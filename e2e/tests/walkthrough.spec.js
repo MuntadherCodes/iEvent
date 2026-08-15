@@ -160,8 +160,8 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
   log('organizer "Zain Events Co." should be credited');
   await expect(page.getByText('Zain Events Co.').first()).toBeVisible();
 
-  log('related events ("More like this") grid should be non-empty');
-  const relatedHeading = page.getByText(/More like this|Related/i).first();
+  log('related events ("More events like this") grid should be non-empty');
+  const relatedHeading = page.getByRole('heading', { name: /More events like this/i }).first();
   await expect(relatedHeading).toBeVisible();
   await expect
     .poll(
