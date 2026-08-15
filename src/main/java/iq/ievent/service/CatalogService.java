@@ -1,0 +1,171 @@
+package iq.ievent.service;
+
+import iq.ievent.domain.Event;
+import iq.ievent.domain.Organization;
+import iq.ievent.domain.TicketType;
+import iq.ievent.repo.EventRepository;
+import iq.ievent.repo.LikeCountRepository;
+import iq.ievent.repo.TicketTypeRepository;
+import iq.ievent.web.dto.Views.CityCount;
+import iq.ievent.web.dto.Views.EventCard;
+import iq.ievent.web.dto.Views.EventDetail;
+import iq.ievent.web.dto.Views.OrganizerView;
+import iq.ievent.web.dto.Views.TicketTypeView;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional(readOnly = true)
+public class CatalogService {
+
+    private final EventRepository events;
+    private final TicketTypeRepository ticketTypes;
+    private final LikeCountRepository likeCounts;
+
+    public CatalogService(EventRepository events,
+                          TicketTypeRepository ticketTypes,
+                          LikeCountRepository likeCounts) {
+        this.events = events;
+        this.ticketTypes = ticketTypes;
+        this.likeCounts = likeCounts;
+    }
+
+    public List<EventCard> upcomingThisWeek(int limit) {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<Event> list = events.findUpcomingWindow(Event.Status.LIVE, now, now.plusDays(7),
+                PageRequest.of(0, limit));
+        return toCards(list);
+    }
+
+    public List<EventCard> trending(int limit) {
+        return toCards(events.findTrending(PageRequest.of(0, limit)));
+    }
+
+    public Page<EventCard> search(String q, String category, String city, boolean freeOnly, Pageable pageable) {
+        String qn = normalize(q);
+        String cat = normalize(category);
+        String cty = normalize(city);
+        Page<Event> page = events.search(qn, cat == null ? null : cat.toUpperCase(), cty, freeOnly, pageable);
+        List<EventCard> cards = toCards(page.getContent());
+        return new PageImpl<>(cards, pageable, page.getTotalElements());
+    }
+
+    public List<CityCount> liveCities() {
+        return events.countLiveByCity().stream()
+                .map(r -> new CityCount(r.getCity(), r.getN()))
+                .collect(Collectors.toList());
+    }
+
+    public Optional<EventDetail> eventDetail(String slug) {
+        return events.findBySlug(slug)
+                .filter(e -> e.getStatus() == Event.Status.LIVE || e.getStatus() == Event.Status.ENDED)
+                .map(this::toDetail);
+    }
+
+    public List<EventCard> related(String slug, int limit) {
+        return events.findBySlug(slug)
+                .map(e -> toCards(events.findRelated(e.getId(), e.getCategory().name(), e.getCity(),
+                        PageRequest.of(0, limit))))
+                .orElse(List.of());
+    }
+
+    // ---- mapping ----
+
+    private List<EventCard> toCards(List<Event> list) {
+        if (list.isEmpty()) return List.of();
+        List<Long> ids = list.stream().map(Event::getId).toList();
+        Map<Long, Long> likes = likeCounts.likesForEvents(ids);
+        Map<Long, Long> minPrices = ticketTypes.minPricesForEvents(ids).stream()
+                .collect(Collectors.toMap(TicketTypeRepository.MinPriceRow::getEventId,
+                                          TicketTypeRepository.MinPriceRow::getMinPrice));
+        List<EventCard> out = new ArrayList<>(list.size());
+        for (Event e : list) {
+            out.add(new EventCard(
+                    e.getSlug(),
+                    e.getTitle(),
+                    Format.categoryLabel(e.getCategory()),
+                    Format.coverTheme(e.getCategory()),
+                    e.getCity(),
+                    e.getVenueName(),
+                    Format.cardDateLine(e.getStartsAt()),
+                    Format.priceLineFromMin(minPrices.get(e.getId())),
+                    likes.getOrDefault(e.getId(), 0L)));
+        }
+        return out;
+    }
+
+    private EventDetail toDetail(Event e) {
+        Organization org = e.getOrganization();
+        List<TicketType> tts = ticketTypes.findByEventIdOrderBySortOrderAsc(e.getId());
+        List<TicketTypeView> ttViews = tts.stream()
+                .filter(tt -> tt.getStatus() != TicketType.Status.HIDDEN)
+                .map(tt -> new TicketTypeView(
+                        tt.getId(), tt.getName(), tt.getPriceIqd(),
+                        Format.priceLabel(tt.getPriceIqd()),
+                        tt.getStatus().name(), tt.remaining()))
+                .toList();
+
+        Long minPrice = tts.stream()
+                .filter(tt -> tt.getStatus() == TicketType.Status.ON_SALE)
+                .map(TicketType::getPriceIqd)
+                .min(Long::compare)
+                .orElse(null);
+
+        long likes = likeCounts.likesForEvents(List.of(e.getId())).getOrDefault(e.getId(), 0L);
+
+        OrganizerView organizer = new OrganizerView(
+                org.getName(),
+                org.getHandle(),
+                org.getBio(),
+                org.isVerified(),
+                Format.compactCount(likeCounts.followersForOrganization(org.getId())),
+                likeCounts.eventsHostedForOrganization(org.getId()),
+                initialsOf(org.getName()));
+
+        List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
+                .map(String::trim)
+                .filter(p -> !p.isEmpty())
+                .toList();
+
+        return new EventDetail(
+                e.getSlug(), e.getTitle(),
+                Format.categoryLabel(e.getCategory()),
+                Format.coverTheme(e.getCategory()),
+                e.getCity(), e.getVenueName(), e.getVenueAddress(),
+                Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
+                Format.monthShort(e.getStartsAt()),
+                Format.dayOfMonth(e.getStartsAt()),
+                paragraphs,
+                minPrice == null ? "Free" : Format.priceLineFromMin(minPrice),
+                likes,
+                organizer,
+                ttViews);
+    }
+
+    private static String initialsOf(String name) {
+        String[] parts = name == null ? new String[0] : name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length && sb.length() < 2; i++) {
+            if (!parts[i].isEmpty()) sb.append(Character.toUpperCase(parts[i].charAt(0)));
+        }
+        return sb.length() == 0 ? "?" : sb.toString();
+    }
+
+    private static String normalize(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+}

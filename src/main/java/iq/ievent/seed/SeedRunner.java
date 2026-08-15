@@ -1,0 +1,258 @@
+package iq.ievent.seed;
+
+import iq.ievent.domain.Event;
+import iq.ievent.domain.Organization;
+import iq.ievent.domain.TicketType;
+import iq.ievent.domain.User;
+import iq.ievent.repo.EventRepository;
+import iq.ievent.repo.OrganizationRepository;
+import iq.ievent.repo.TicketTypeRepository;
+import iq.ievent.repo.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Random;
+
+/**
+ * Seeds demo content (SEED_DEMO=true) and optional synthetic volume (SEED_SCALE=N).
+ * Idempotent: demo seeding is skipped when the demo organizer already exists;
+ * scale seeding tops up to the requested count.
+ */
+@Component
+public class SeedRunner implements CommandLineRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(SeedRunner.class);
+
+    private static final String DEMO_HANDLE = "zainevents";
+    private static final String[] CITIES =
+            {"Baghdad", "Erbil", "Basra", "Sulaymaniyah", "Najaf", "Karbala", "Mosul", "Duhok"};
+
+    private final boolean seedDemo;
+    private final int seedScale;
+    private final UserRepository users;
+    private final OrganizationRepository organizations;
+    private final EventRepository events;
+    private final TicketTypeRepository ticketTypes;
+    private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbc;
+
+    public SeedRunner(@Value("${app.seed.demo:false}") boolean seedDemo,
+                      @Value("${app.seed.scale:0}") int seedScale,
+                      UserRepository users,
+                      OrganizationRepository organizations,
+                      EventRepository events,
+                      TicketTypeRepository ticketTypes,
+                      PasswordEncoder passwordEncoder,
+                      JdbcTemplate jdbc) {
+        this.seedDemo = seedDemo;
+        this.seedScale = seedScale;
+        this.users = users;
+        this.organizations = organizations;
+        this.events = events;
+        this.ticketTypes = ticketTypes;
+        this.passwordEncoder = passwordEncoder;
+        this.jdbc = jdbc;
+    }
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+        if (seedDemo && organizations.findByHandle(DEMO_HANDLE).isEmpty()) {
+            seedDemoData();
+        } else if (seedDemo) {
+            log.info("Demo seed already present — skipping");
+        }
+        if (seedScale > 0) {
+            seedScaleData(seedScale);
+        }
+    }
+
+    private void seedDemoData() {
+        log.info("Seeding demo data …");
+
+        User fahad = user("fahad@zainevents.iq", "Fahad Al-Thakur", "Password123!", User.Role.HOST);
+        User amira = user("amira@example.iq", "Amira Hassan", "Password123!", User.Role.USER);
+        User omar = user("omar@example.iq", "Omar Dawood", "Password123!", User.Role.USER);
+
+        Organization org = new Organization();
+        org.setOwnerUserId(fahad.getId());
+        org.setName("Zain Events Co.");
+        org.setHandle(DEMO_HANDLE);
+        org.setBio("Baghdad's leading live-events crew. We produce festivals, concerts and cultural nights across Iraq — from intimate rooftop sessions to full-scale park festivals.");
+        org.setCity("Baghdad");
+        org.setVerified(true);
+        org = organizations.save(org);
+
+        OffsetDateTime base = OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS);
+
+        Event e1 = event(org, "Baghdad Nights Music Festival", "baghdad-nights-music-festival",
+                Event.Category.MUSIC, "Baghdad", "Al-Zawraa Park — Main Amphitheatre",
+                "Zawraa Park Main Gate, Al-Mansour District, Baghdad",
+                base.plusDays(5).withHour(19), base.plusDays(6).withHour(0),
+                """
+                Baghdad Nights returns for its third — and biggest — edition. One unforgettable evening under the open sky of Al-Zawraa Park, bringing together the best of Iraq's live music scene: from classic maqam reimagined for a new generation to the freshest voices in Arabic indie and hip-hop.
+
+                Expect three stages, a full street-food village curated by Baghdad's favourite kitchens, an artisan market, and a closing fireworks show over the park lake. Gates open at 5:30 PM for VIP ticket holders and 7:00 PM for general admission.
+
+                This is an all-ages, family-friendly event. Free parking is available at the Zawraa main gate, and dedicated shuttle buses run from Karrada and Mansour every 20 minutes from 5:00 PM.
+                """);
+        tt(e1, "Early Bird", 25_000, 100, 100, 0, TicketType.Status.SOLD_OUT);
+        tt(e1, "General Admission", 35_000, 300, 118, 1, TicketType.Status.ON_SALE);
+        tt(e1, "VIP Table (4 seats)", 200_000, 20, 6, 2, TicketType.Status.ON_SALE);
+
+        Event e2 = event(org, "Erbil Tech Summit 2026", "erbil-tech-summit-2026",
+                Event.Category.TECH, "Erbil", "Erbil International Fairground", "100m Road, Erbil",
+                base.plusDays(17).withHour(9), base.plusDays(17).withHour(18),
+                "Two stages, 40 speakers and 1,500 builders — Iraq and Kurdistan's largest gathering of startups, engineers and investors.\n\nTalks in Arabic, Kurdish and English with live translation.");
+        tt(e2, "Standard Pass", 50_000, 1200, 342, 0, TicketType.Status.ON_SALE);
+        tt(e2, "Startup Booth", 250_000, 40, 22, 1, TicketType.Status.ON_SALE);
+
+        Event e3 = event(org, "Basra Corniche Food Carnival", "basra-corniche-food-carnival",
+                Event.Category.FOOD, "Basra", "Basra Corniche", "Corniche Street, Basra",
+                base.plusDays(25).withHour(16), base.plusDays(25).withHour(23),
+                "Fifty kitchens along the Shatt al-Arab. Free entry — taste tickets sold on site.");
+        tt(e3, "Entry", 0, 5000, 129, 0, TicketType.Status.ON_SALE);
+
+        Event e4 = event(org, "Sulaymaniyah Film Nights", "sulaymaniyah-film-nights",
+                Event.Category.FILM, "Sulaymaniyah", "Culture Hall", "Salim Street, Sulaymaniyah",
+                base.plusDays(12).withHour(18).withMinute(30), base.plusDays(12).withHour(23),
+                "Three award-winning features from Iraqi and Kurdish directors, followed by a Q&A.");
+        tt(e4, "Screening Pass", 10_000, 220, 88, 0, TicketType.Status.ON_SALE);
+
+        Event e5 = event(org, "Startup Mixer Baghdad", "startup-mixer-baghdad",
+                Event.Category.BUSINESS, "Baghdad", "The Station", "Karrada, Baghdad",
+                base.plusDays(3).withHour(18), base.plusDays(3).withHour(21),
+                "Monthly meetup for founders, freelancers and the simply curious. First drink on us.");
+        tt(e5, "RSVP", 0, 150, 96, 0, TicketType.Status.ON_SALE);
+
+        Event e6 = event(org, "Mosul Heritage Walk", "mosul-heritage-walk",
+                Event.Category.COMMUNITY, "Mosul", "Old City", "Al-Nuri Mosque gate, Mosul",
+                base.plusDays(7).withHour(8), base.plusDays(7).withHour(12),
+                "A guided morning walk through the rebuilt Old City with local historians.");
+        tt(e6, "Walk Ticket", 5_000, 80, 74, 0, TicketType.Status.ON_SALE);
+
+        Event e7 = event(org, "Karbala Book Fair", "karbala-book-fair",
+                Event.Category.EDUCATION, "Karbala", "Karbala Expo", "Expo grounds, Karbala",
+                base.plusDays(30).withHour(10), base.plusDays(33).withHour(21),
+                "Four days, 120 publishers, author signings and children's readings.");
+        tt(e7, "Entry", 0, 10_000, 63, 0, TicketType.Status.ON_SALE);
+
+        Event e8 = event(org, "Duhok Mountain Marathon", "duhok-mountain-marathon",
+                Event.Category.SPORTS, "Duhok", "Duhok Dam", "Duhok Dam start line",
+                base.plusDays(35).withHour(6), base.plusDays(35).withHour(14),
+                "21K and 10K trail routes above Duhok Dam. Finisher medals, timing chips, water stations.");
+        tt(e8, "10K Entry", 15_000, 600, 141, 0, TicketType.Status.ON_SALE);
+        tt(e8, "21K Entry", 25_000, 400, 97, 1, TicketType.Status.ON_SALE);
+
+        // likes + follows for realistic counts
+        like(amira, e1); like(omar, e1); like(amira, e2); like(omar, e4); like(amira, e5); like(omar, e8);
+        follow(amira, org); follow(omar, org);
+
+        log.info("Demo seed complete: 8 events for organizer @{}", DEMO_HANDLE);
+    }
+
+    private void seedScaleData(int target) {
+        long existing = jdbc.queryForObject(
+                "SELECT count(*) FROM events WHERE slug LIKE 'scale-%'", Long.class);
+        int toCreate = (int) Math.max(0, target - existing);
+        if (toCreate == 0) {
+            log.info("Scale seed already at {} events — skipping", existing);
+            return;
+        }
+        log.info("Scale seeding {} synthetic events …", toCreate);
+
+        Organization org = organizations.findByHandle(DEMO_HANDLE).orElseGet(() -> {
+            User owner = user("scale-host@ievent.iq", "Scale Host", "Password123!", User.Role.HOST);
+            Organization o = new Organization();
+            o.setOwnerUserId(owner.getId());
+            o.setName("Scale Test Events");
+            o.setHandle("scaletest");
+            o.setCity("Baghdad");
+            return organizations.save(o);
+        });
+
+        Event.Category[] cats = Event.Category.values();
+        Random rnd = new Random(42);
+        OffsetDateTime base = OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS);
+
+        for (int i = 0; i < toCreate; i++) {
+            long n = existing + i;
+            Event.Category cat = cats[rnd.nextInt(cats.length)];
+            String city = CITIES[rnd.nextInt(CITIES.length)];
+            Event e = event(org,
+                    "Scale Event #" + n + " — " + city,
+                    "scale-" + n,
+                    cat, city, "Venue " + n, "Address " + n,
+                    base.plusDays(1 + rnd.nextInt(90)).withHour(10 + rnd.nextInt(10)),
+                    null,
+                    "Synthetic event for load testing.");
+            long price = rnd.nextInt(5) == 0 ? 0 : (5 + rnd.nextInt(20)) * 5_000L;
+            tt(e, "General", price, 100 + rnd.nextInt(900), rnd.nextInt(100), 0, TicketType.Status.ON_SALE);
+        }
+        log.info("Scale seed complete ({} total synthetic events)", target);
+    }
+
+    // ---- helpers ----
+
+    private User user(String email, String name, String rawPassword, User.Role role) {
+        return users.findByEmailIgnoreCase(email).orElseGet(() -> {
+            User u = new User();
+            u.setEmail(email);
+            u.setFullName(name);
+            u.setPhone(null);
+            u.setPasswordHash(passwordEncoder.encode(rawPassword));
+            u.setRole(role);
+            return users.save(u);
+        });
+    }
+
+    private Event event(Organization org, String title, String slug, Event.Category cat,
+                        String city, String venueName, String venueAddress,
+                        OffsetDateTime startsAt, OffsetDateTime endsAt, String description) {
+        Event e = new Event();
+        e.setOrganization(org);
+        e.setTitle(title);
+        e.setSlug(slug);
+        e.setCategory(cat);
+        e.setCity(city);
+        e.setVenueName(venueName);
+        e.setVenueAddress(venueAddress);
+        e.setStartsAt(startsAt);
+        e.setEndsAt(endsAt);
+        e.setDescription(description == null ? "" : description.strip());
+        e.setStatus(Event.Status.LIVE);
+        e.setCoverTheme(iq.ievent.service.Format.coverTheme(cat));
+        return events.save(e);
+    }
+
+    private void tt(Event e, String name, long price, int qty, int sold, int order, TicketType.Status status) {
+        TicketType t = new TicketType();
+        t.setEvent(e);
+        t.setName(name);
+        t.setPriceIqd(price);
+        t.setQuantity(qty);
+        t.setSold(sold);
+        t.setSortOrder(order);
+        t.setStatus(status);
+        ticketTypes.save(t);
+    }
+
+    private void like(User u, Event e) {
+        jdbc.update("INSERT INTO event_likes (user_id, event_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                u.getId(), e.getId());
+    }
+
+    private void follow(User u, Organization o) {
+        jdbc.update("INSERT INTO follows (user_id, organization_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                u.getId(), o.getId());
+    }
+}

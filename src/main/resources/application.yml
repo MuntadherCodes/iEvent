@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: ievent
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ievent}
+    username: ${SPRING_DATASOURCE_USERNAME:ievent}
+    password: ${SPRING_DATASOURCE_PASSWORD:ievent}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+  thymeleaf:
+    cache: ${THYMELEAF_CACHE:true}
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${MAILJET_API_KEY:}
+    password: ${MAILJET_SECRET_KEY:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+
+server:
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  mail:
+    mode: ${MAIL_MODE:mailpit}
+    from: ${MAIL_FROM:no-reply@ievent.iq}
+  seed:
+    demo: ${SEED_DEMO:false}
+    scale: ${SEED_SCALE:0}

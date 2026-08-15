@@ -1,0 +1,9 @@
+target/
+.env
+node_modules/
+playwright-report/
+test-results/
+*.bundle
+.idea/
+*.iml
+.DS_Store
