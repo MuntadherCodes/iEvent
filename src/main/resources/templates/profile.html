@@ -21,9 +21,9 @@
           <div class="flex w-max gap-2 md:w-full md:flex-col md:gap-1">
             <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 md:w-full" aria-current="page"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-user"/></svg>Account</span>
             <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-sparkles"/></svg>Interests <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
-            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-bell"/></svg>Notifications <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+            <a href="#notifications" class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-600 transition hover:bg-ink-50 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-bell"/></svg>Notifications</a>
             <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-credit-card"/></svg>Payment methods <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
-            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Security <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+            <a href="#security" class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-600 transition hover:bg-ink-50 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Security</a>
             <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-globe"/></svg>Language <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
           </div>
         </div>
@@ -72,6 +72,67 @@
           </div>
           <div class="mt-7 flex justify-end border-t border-ink-100 pt-5">
             <button type="submit" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Save changes</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ===== Notifications ===== -->
+      <section id="notifications" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+        <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900">Notifications</h2>
+        <p class="mt-1 text-sm text-ink-500">Choose what lands in your inbox.</p>
+        <form th:action="@{/me/profile/notifications}" method="post">
+          <div class="mt-4 divide-y divide-ink-100">
+            <label class="flex cursor-pointer items-center justify-between gap-4 py-4">
+              <span class="flex items-start gap-3">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg></span>
+                <span>
+                  <span class="block text-sm font-semibold text-ink-900">Event updates</span>
+                  <span class="block text-sm text-ink-500">Order confirmations, gate times and changes for events you're attending.</span>
+                </span>
+              </span>
+              <input type="checkbox" name="notifyEvents" value="true" th:checked="${currentUser.notifyEvents}" class="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-ink-200 transition before:absolute before:left-0.5 before:top-0.5 before:h-4 before:w-4 before:rounded-full before:bg-white before:transition checked:bg-brand-500 checked:before:translate-x-4" aria-label="Event updates">
+            </label>
+            <label class="flex cursor-pointer items-center justify-between gap-4 py-4">
+              <span class="flex items-start gap-3">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-megaphone"/></svg></span>
+                <span>
+                  <span class="block text-sm font-semibold text-ink-900">Recommendations &amp; news</span>
+                  <span class="block text-sm text-ink-500">A weekly digest of events we think you'll love.</span>
+                </span>
+              </span>
+              <input type="checkbox" name="notifyMarketing" value="true" th:checked="${currentUser.notifyMarketing}" class="relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-ink-200 transition before:absolute before:left-0.5 before:top-0.5 before:h-4 before:w-4 before:rounded-full before:bg-white before:transition checked:bg-brand-500 checked:before:translate-x-4" aria-label="Recommendations and news">
+            </label>
+          </div>
+          <div class="mt-4 flex justify-end border-t border-ink-100 pt-5">
+            <button type="submit" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Save preferences</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ===== Security ===== -->
+      <section id="security" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+        <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900">Security</h2>
+        <p class="mt-1 text-sm text-ink-500">Manage how you sign in to iEvent.</p>
+
+        <!-- Google-managed accounts have no local password -->
+        <div th:if="${currentUser.authProvider != 'local'}" class="mt-5 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-info"/></svg>
+          You sign in with Google — your password is managed by your Google account.
+        </div>
+
+        <form th:if="${currentUser.authProvider == 'local'}" th:action="@{/me/profile/password}" method="post" class="mt-5">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="sec-current" class="mb-1.5 block text-sm font-semibold text-ink-800">Current password <span class="text-rose-500">*</span></label>
+              <input id="sec-current" name="currentPassword" type="password" required autocomplete="current-password" placeholder="••••••••" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label for="sec-new" class="mb-1.5 block text-sm font-semibold text-ink-800">New password <span class="text-rose-500">*</span></label>
+              <input id="sec-new" name="newPassword" type="password" required minlength="8" autocomplete="new-password" placeholder="8+ characters" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end border-t border-ink-100 pt-5">
+            <button type="submit" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-lock"/></svg>Change password</button>
           </div>
         </form>
       </section>

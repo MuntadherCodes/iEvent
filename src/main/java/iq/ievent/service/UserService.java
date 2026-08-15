@@ -62,4 +62,26 @@ public class UserService implements UserDetailsService {
         user.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
         users.save(user);
     }
+
+    /** Returns an error message, or null on success. */
+    @Transactional
+    public String changePassword(User user, String current, String next) {
+        if (next == null || next.length() < 8) return "New password must be at least 8 characters.";
+        if (!"local".equals(user.getAuthProvider())) {
+            return "This account signs in with Google — password is managed there.";
+        }
+        if (!passwordEncoder.matches(current == null ? "" : current, user.getPasswordHash())) {
+            return "Current password is incorrect.";
+        }
+        user.setPasswordHash(passwordEncoder.encode(next));
+        users.save(user);
+        return null;
+    }
+
+    @Transactional
+    public void updateNotifications(User user, boolean events, boolean marketing) {
+        user.setNotifyEvents(events);
+        user.setNotifyMarketing(marketing);
+        users.save(user);
+    }
 }

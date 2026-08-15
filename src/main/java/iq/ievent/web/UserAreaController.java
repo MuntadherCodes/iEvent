@@ -177,6 +177,29 @@ public class UserAreaController {
         return "redirect:/me/profile";
     }
 
+    @PostMapping("/me/profile/password")
+    public String changePassword(@AuthenticationPrincipal UserDetails principal,
+                                 @RequestParam String currentPassword,
+                                 @RequestParam String newPassword,
+                                 RedirectAttributes redirect) {
+        User user = required(principal);
+        String error = userService.changePassword(user, currentPassword, newPassword);
+        if (error != null) redirect.addFlashAttribute("error", error);
+        else redirect.addFlashAttribute("saved", true);
+        return "redirect:/me/profile";
+    }
+
+    @PostMapping("/me/profile/notifications")
+    public String updateNotifications(@AuthenticationPrincipal UserDetails principal,
+                                      @RequestParam(defaultValue = "false") boolean notifyEvents,
+                                      @RequestParam(defaultValue = "false") boolean notifyMarketing,
+                                      RedirectAttributes redirect) {
+        User user = required(principal);
+        userService.updateNotifications(user, notifyEvents, notifyMarketing);
+        redirect.addFlashAttribute("saved", true);
+        return "redirect:/me/profile";
+    }
+
     @GetMapping("/t/{code}")
     @Transactional(readOnly = true)
     public String ticketStatus(@PathVariable String code, Model model,

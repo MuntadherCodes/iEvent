@@ -158,6 +158,19 @@ public class SeedRunner implements CommandLineRunner {
         tt(e8, "10K Entry", 15_000, 600, 141, 0, TicketType.Status.ON_SALE);
         tt(e8, "21K Entry", 25_000, 400, 97, 1, TicketType.Status.ON_SALE);
 
+        // demo promo code: EARLY20 → 20% off, all events, 100 uses
+        jdbc.update("""
+                INSERT INTO promo_codes (organization_id, event_id, code, kind, value, max_uses)
+                VALUES (?, NULL, 'EARLY20', 'PERCENT', 20, 100)
+                ON CONFLICT DO NOTHING
+                """, org.getId());
+        // demo staff member for door check-in
+        User sara = user("sara@zainevents.iq", "Sara Kareem", "Password123!", User.Role.HOST);
+        jdbc.update("""
+                INSERT INTO org_members (organization_id, user_id, role) VALUES (?, ?, 'STAFF')
+                ON CONFLICT (organization_id, user_id) DO NOTHING
+                """, org.getId(), sara.getId());
+
         // likes + follows for realistic counts
         like(amira, e1); like(omar, e1); like(amira, e2); like(omar, e4); like(amira, e5); like(omar, e8);
         follow(amira, org); follow(omar, org);
@@ -175,7 +188,9 @@ public class SeedRunner implements CommandLineRunner {
         }
         log.info("Scale seeding {} synthetic events …", toCreate);
 
-        Organization org = organizations.findByHandle(DEMO_HANDLE).orElseGet(() -> {
+        // Synthetic volume lives under its OWN organizer so the demo host's
+        // dashboard, earnings and attendee selects stay realistic.
+        Organization org = organizations.findByHandle("scaletest").orElseGet(() -> {
             User owner = user("scale-host@ievent.iq", "Scale Host", "Password123!", User.Role.HOST);
             Organization o = new Organization();
             o.setOwnerUserId(owner.getId());

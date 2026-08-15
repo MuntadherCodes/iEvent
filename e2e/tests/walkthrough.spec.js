@@ -26,10 +26,13 @@ const E2E_EMAIL = `e2e+${RUN_ID}@test.iq`;
 const E2E_NAME = 'E2E Tester';
 const E2E_PASSWORD = 'E2ePassw0rd!';
 
-// Buyer used for the RSVP / direct-transfer / favorites journeys (h–l).
+// Buyer used for the RSVP / direct-transfer / favorites journeys (h–l, o, t).
 const BUYER_EMAIL = `e2e-buyer+${RUN_ID}@test.iq`;
 const BUYER_NAME = 'E2E Buyer';
 const BUYER_PASSWORD = 'BuyerPassw0rd!';
+const BUYER_NEW_PASSWORD = 'BuyerNewPass1!';
+// Mutable: test t changes the buyer's password.
+let buyerPassword = BUYER_PASSWORD;
 
 // Brand-new user who becomes a host in test m.
 const HOST2_EMAIL = `e2e-host+${RUN_ID}@test.iq`;
@@ -298,6 +301,13 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
         `${url} must not contain the error-page marker "Something went wrong"`
       ).not.toContain('Something went wrong');
     }
+
+    log('Google OAuth is OFF in CI — the Google button must be a DISABLED button, not a link');
+    await freshPage.goto('/auth/login');
+    await expect(
+      freshPage.getByRole('button', { name: /Continue with Google/ })
+    ).toBeDisabled();
+    await expect(freshPage.locator('a[href*="/oauth2/authorization/google"]')).toHaveCount(0);
   } finally {
     await context.close();
   }
@@ -305,7 +315,7 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
 
 test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket status', async ({ page }) => {
   await registerUser(page, { name: BUYER_NAME, email: BUYER_EMAIL, password: BUYER_PASSWORD });
-  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+  await login(page, BUYER_EMAIL, buyerPassword);
 
   log('opening Startup Mixer Baghdad (free RSVP ticket)');
   await page.goto('/events/startup-mixer-baghdad');
@@ -356,7 +366,7 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
 test('i. direct-transfer flow: card number, reference, receipt upload, pending order', async ({ page }) => {
   log('buyer opens Baghdad Nights and picks 1 General Admission');
   await page.goto('/auth/login');
-  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+  await login(page, BUYER_EMAIL, buyerPassword);
   await page.goto('/events/baghdad-nights-music-festival');
   await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
   await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
@@ -411,7 +421,7 @@ test('j. host approves the direct-transfer order; buyer receives the ticket', as
 
   log('buyer logs back in — /me/tickets now shows the Baghdad Nights ticket');
   await signOut(page);
-  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+  await login(page, BUYER_EMAIL, buyerPassword);
   await page.goto('/me/tickets');
   await expect(page.getByRole('link', { name: 'Baghdad Nights Music Festival' })).toBeVisible();
 });
@@ -452,7 +462,7 @@ test('k. host check-in: door list check-in + wrong-event code rejected', async (
 
 test('l. likes and follow: save an event, see it in favorites, follow the organizer', async ({ page }) => {
   await signOut(page);
-  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+  await login(page, BUYER_EMAIL, buyerPassword);
 
   log('saving Baghdad Nights via the rail Save button');
   await page.goto('/events/baghdad-nights-music-festival');
@@ -523,4 +533,206 @@ test('n. unauthenticated /me/tickets and /host are pushed to sign-in', async ({ 
   } finally {
     await context.close();
   }
+});
+
+test('o. promo code EARLY20: apply at checkout, discount carries to order and ticket holder', async ({ page }) => {
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('buyer picks GA ×1 on Baghdad Nights and goes to checkout');
+  await page.goto('/events/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+
+  log('applying promo code EARLY20 via the rail Apply mini-form');
+  await page.getByLabel('Promo code').fill('EARLY20');
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(page).toHaveURL(/promo=EARLY20/);
+
+  log('green confirmation, discount line −7,000 IQD, total 29,500 IQD (35,000 − 7,000 + 1,500)');
+  await expect(page.getByText(/EARLY20 applied/).first()).toBeVisible();
+  await expect(page.locator('#discountLine')).toContainText('EARLY20');
+  await expect(page.locator('#discountLine')).toContainText('7,000 IQD');
+  await expect(page.getByText(/29,500\s*IQD/).first()).toBeVisible();
+
+  log('naming the ticket holder and completing the direct-transfer order');
+  await page.locator('input[name="holderName"]').first().fill('Holder One');
+  await page.locator('#transferReference').fill('E2E-REF-2');
+  await page.locator('#receiptInput').setInputFiles(RECEIPT_PNG);
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+
+  log('confirmation shows the discount with the EARLY20 chip and total 29,500 IQD');
+  await expect(page.getByText('Discount').first()).toBeVisible();
+  await expect(page.getByText('EARLY20').first()).toBeVisible();
+  await expect(page.getByText(/7,000 IQD/).first()).toBeVisible();
+  await expect(page.getByText(/29,500\s*IQD/).first()).toBeVisible();
+
+  log('fahad approves the promo order');
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+  await page.goto('/host/orders?status=pending');
+  const row = page.locator('tr').filter({ hasText: BUYER_EMAIL }).first();
+  await expect(row).toBeVisible();
+  await row.getByRole('button', { name: /Approve/ }).click();
+  await expect(page.getByText(/approved — tickets emailed to the buyer/).first()).toBeVisible();
+
+  log('buyer /me/tickets shows the ticket held by "Holder One"');
+  await signOut(page);
+  await login(page, BUYER_EMAIL, buyerPassword);
+  await page.goto('/me/tickets');
+  await expect(page.getByText('Holder One').first()).toBeVisible();
+});
+
+test('p. newsletter signup from the home band', async ({ page }) => {
+  log('subscribing from the home newsletter band');
+  await page.goto('/');
+  await page.getByLabel('Email address').fill(`news+${RUN_ID}@test.iq`);
+  await page.getByRole('button', { name: 'Subscribe' }).click();
+  await expect(page).toHaveURL(/\?subscribed/);
+  await expect(page.getByText(/You're on the list/).first()).toBeVisible();
+});
+
+test('q. calendar .ics, short link and embeddable widget', async ({ page, request }) => {
+  log('GET /events/baghdad-nights-music-festival/calendar.ics');
+  const ics = await request.get('/events/baghdad-nights-music-festival/calendar.ics');
+  expect(ics.status(), 'calendar download should be 200').toBe(200);
+  expect(ics.headers()['content-type']).toContain('text/calendar');
+  const icsBody = await ics.text();
+  expect(icsBody).toContain('BEGIN:VEVENT');
+  expect(icsBody).toContain('Baghdad Nights Music Festival');
+
+  log('short link /e/{slug} should land on the event page');
+  await page.goto('/e/baghdad-nights-music-festival');
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival/);
+  await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
+
+  log('GET /js/widget.js should serve the embeddable widget');
+  const widget = await request.get('/js/widget.js');
+  expect(widget.status(), 'widget script should be 200').toBe(200);
+  expect(await widget.text()).toContain('iEvent');
+});
+
+test('r. event edit: rename + add a ticket type, changes reach the public page', async ({ page }) => {
+  // The E2E-created event belongs to the E2E host org, so edit as that owner
+  // (leaves the seeded Baghdad Nights untouched for later tests).
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the E2E Concert Night console and its edit page');
+  await page.goto('/host/events');
+  await page.getByRole('link', { name: /E2E Concert Night/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  const editEventId = page.url().match(/\/host\/events\/(\d+)/)[1];
+  await page.getByRole('link', { name: /Edit event/ }).click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+\/edit/);
+
+  log('renaming the event with the " (Updated)" suffix');
+  await page.locator('#ev-title').fill('E2E Concert Night (Updated)');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+
+  log('console and public page should show the updated title');
+  await page.goto(`/host/events/${editEventId}`);
+  await expect(page.getByText('E2E Concert Night (Updated)').first()).toBeVisible();
+  const publicLink = page.getByRole('link', { name: /View public page/ });
+  const publicHref = await publicLink.getAttribute('href');
+  await page.goto(publicHref);
+  await expect(page.locator('h1')).toContainText('E2E Concert Night (Updated)');
+
+  log('adding ticket type "Backstage" 50,000 IQD × 10 via the add row');
+  await page.goto(`/host/events/${editEventId}/edit`);
+  const addForm = page.locator('form').filter({ hasText: 'Add ticket type' });
+  await addForm.locator('input[name="name"]').fill('Backstage');
+  await addForm.locator('input[name="price"]').fill('50000');
+  await addForm.locator('input[name="quantity"]').fill('10');
+  await addForm.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+
+  log('the new type should appear in the edit list and on the public page');
+  await expect(page.locator('input[name="name"][value="Backstage"]')).toHaveCount(1);
+  await page.goto(publicHref);
+  await expect(page.getByText('Backstage').first()).toBeVisible();
+  await expect(page.getByText(/50,000\s*IQD/).first()).toBeVisible();
+});
+
+test('s. team: seeded STAFF member, invite flash, staff access boundaries', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('/host/settings members list should contain Sara Kareem with a STAFF badge');
+  await page.goto('/host/settings');
+  const saraRow = page.locator('li').filter({ hasText: 'Sara Kareem' }).first();
+  await expect(saraRow).toBeVisible();
+  await expect(saraRow.getByText('STAFF', { exact: true })).toBeVisible();
+
+  log('re-inviting the already-seeded staff member shows the invited/already flash');
+  await page.getByLabel('Invite email').fill('sara@zainevents.iq');
+  await page.getByRole('button', { name: 'Send invite' }).click();
+  await expect(
+    page.getByText(/(was added to your team|already)/).first()
+  ).toBeVisible();
+
+  log('sara (STAFF) can open the host dashboard and check-in pages');
+  await signOut(page);
+  await login(page, 'sara@zainevents.iq', 'Password123!');
+  await page.goto('/host');
+  await expect(page.getByText("Zain Events Co.").first()).toBeVisible();
+  await page.goto('/host/checkin');
+  await expect(page.getByText('Scan or type a ticket code')).toBeVisible();
+
+  log('GET /host/events/new still renders for staff (POSTs are what is gated)');
+  await page.goto('/host/events/new');
+  await expect(page.getByText("What's your event called?")).toBeVisible();
+
+  log('/host/marketing for staff: no create form, locked notice shown');
+  await page.goto('/host/marketing');
+  await expect(page.getByText('New promo code')).toHaveCount(0);
+  await expect(
+    page.getByText('Only owners and managers can email attendees.')
+  ).toBeVisible();
+});
+
+test('t. profile: change password and notification preferences', async ({ page }) => {
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('changing the buyer password from /me/profile');
+  await page.goto('/me/profile');
+  await page.locator('#sec-current').fill(buyerPassword);
+  await page.locator('#sec-new').fill(BUYER_NEW_PASSWORD);
+  await page.getByRole('button', { name: /Change password/ }).click();
+  await expect(page.getByText('Changes saved.').first()).toBeVisible();
+  buyerPassword = BUYER_NEW_PASSWORD;
+
+  log('toggling marketing notifications off');
+  const marketingToggle = page.locator('input[name="notifyMarketing"]');
+  if (await marketingToggle.isChecked()) {
+    await marketingToggle.uncheck();
+  }
+  await page.getByRole('button', { name: 'Save preferences' }).click();
+  await expect(page.getByText('Changes saved.').first()).toBeVisible();
+  await expect(page.locator('input[name="notifyMarketing"]')).not.toBeChecked();
+
+  log('signing out and back in with the NEW password');
+  await signOut(page);
+  await login(page, BUYER_EMAIL, buyerPassword);
+  await expect(page.locator('header').getByText('EB', { exact: true }).first()).toBeVisible();
+});
+
+test('u. earnings table and camera check-in page', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('/host/earnings should list Baghdad Nights with revenue');
+  await page.goto('/host/earnings');
+  const earningsRow = page
+    .locator('tr')
+    .filter({ hasText: 'Baghdad Nights Music Festival' })
+    .first();
+  await expect(earningsRow).toBeVisible();
+  await expect(earningsRow.getByText(/IQD/).first()).toBeVisible();
+
+  log('/host/checkin should offer the camera scanner (script + Start button) and manual entry');
+  await page.goto('/host/checkin');
+  await expect(page.getByText('Scan with camera')).toBeVisible();
+  await expect(page.locator('#qr-start')).toBeVisible();
+  await expect(page.locator('script[src*="html5-qrcode"]')).toHaveCount(1);
+  await expect(page.locator('input[name="code"]')).toBeVisible();
 });

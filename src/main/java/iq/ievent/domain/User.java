@@ -31,6 +31,15 @@ public class User {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "notify_events", nullable = false)
+    private boolean notifyEvents = true;
+
+    @Column(name = "notify_marketing", nullable = false)
+    private boolean notifyMarketing = true;
+
+    @Column(name = "auth_provider", nullable = false)
+    private String authProvider = "local";
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -43,6 +52,12 @@ public class User {
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
+    public boolean isNotifyEvents() { return notifyEvents; }
+    public void setNotifyEvents(boolean notifyEvents) { this.notifyEvents = notifyEvents; }
+    public boolean isNotifyMarketing() { return notifyMarketing; }
+    public void setNotifyMarketing(boolean notifyMarketing) { this.notifyMarketing = notifyMarketing; }
+    public String getAuthProvider() { return authProvider; }
+    public void setAuthProvider(String authProvider) { this.authProvider = authProvider; }
 
     public String initials() {
         String[] parts = fullName == null ? new String[0] : fullName.trim().split("\\s+");

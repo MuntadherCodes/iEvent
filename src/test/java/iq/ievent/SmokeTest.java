@@ -95,6 +95,35 @@ class SmokeTest {
     }
 
     @Test
+    void calendarIcsDownloads() throws Exception {
+        mockMvc.perform(get("/events/baghdad-nights-music-festival/calendar.ics"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/calendar"))
+                .andExpect(content().string(containsString("BEGIN:VEVENT")));
+    }
+
+    @Test
+    void shortLinkRedirectsToEventPage() throws Exception {
+        mockMvc.perform(get("/e/baghdad-nights-music-festival"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/events/baghdad-nights-music-festival"));
+    }
+
+    @Test
+    void widgetScriptIsServed() throws Exception {
+        mockMvc.perform(get("/js/widget.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("iEvent")));
+    }
+
+    @Test
+    void hostMarketingRequiresLogin() throws Exception {
+        mockMvc.perform(get("/host/marketing"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/auth/login"));
+    }
+
+    @Test
     void registrationRedirectsToLoginWithFlag() throws Exception {
         String uniqueEmail = "smoke+" + System.currentTimeMillis() + "@test.iq";
         mockMvc.perform(post("/auth/register")

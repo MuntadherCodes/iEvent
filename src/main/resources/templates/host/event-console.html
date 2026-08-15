@@ -40,6 +40,7 @@
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <a th:href="@{/host/events/{id}/edit(id=${ev.id()})}" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-pencil"/></svg>Edit event</a>
             <a th:if="${isLive}" th:href="@{/events/{s}(s=${ev.slug()})}" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">View public page<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-external-link"/></svg></a>
             <form th:if="${isDraft}" th:action="@{/host/events/{id}/publish(id=${ev.id()})}" method="post">
               <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish</button>
@@ -136,6 +137,26 @@
         </a>
       </div>
 
+      <!-- Share & embed -->
+      <section class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="Share and embed">
+        <h3 class="font-display text-lg font-bold text-ink-900">Share &amp; embed</h3>
+        <p class="mt-1 text-sm text-ink-500">Send the short link anywhere, or paste the widget snippet into your own website.</p>
+
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <p id="share-link" class="min-w-0 flex-1 truncate rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 font-mono text-sm tabular-nums text-ink-800" th:text="${shareBase + '/e/' + ev.slug()}">https://ievent.iq/e/baghdad-nights</p>
+          <button type="button" data-copy="share-link" class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Copy link</button>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-ink-900 p-4 ring-1 ring-inset ring-white/10 sm:p-5">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Embed a buy button</p>
+            <button type="button" data-copy="embed-code" class="shrink-0 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-brand-400 hover:text-brand-300">Copy snippet</button>
+          </div>
+          <pre class="mt-3 overflow-x-auto"><code id="embed-code" class="block whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-brand-200" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${ev.slug()} + '&quot; data-type=&quot;button&quot;&gt;&lt;/script&gt;'">&lt;script src="https://ievent.iq/js/widget.js" data-event="slug" data-type="button"&gt;&lt;/script&gt;</code></pre>
+          <p class="mt-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/40">Powered by iEvent</p>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -143,5 +164,20 @@
 </div>
 </div>
 
+<script>
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-copy'));
+      if (!el) return;
+      var text = el.textContent.trim();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(function () {});
+      }
+      var old = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = old; }, 1500);
+    });
+  });
+</script>
 </body>
 </html>

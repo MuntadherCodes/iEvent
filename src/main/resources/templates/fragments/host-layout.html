@@ -54,10 +54,19 @@ Responsive behavior:
     <a th:href="@{/host/checkin}" title="Check-in" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'checkin'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'checkin'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'checkin'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-scan-line"/></svg><span class="hidden lg:inline">Check-in</span></a>
+    <a th:href="@{/host/marketing}" title="Marketing" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:classappend="${active == 'marketing'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'marketing'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'marketing'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-megaphone"/></svg><span class="hidden lg:inline">Marketing</span></a>
     <div class="pt-3"><p class="hidden px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-400 lg:block">Organization</p><hr class="mx-2 border-ink-100 lg:hidden"></div>
+    <a th:href="@{/host/earnings}" title="Earnings" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:classappend="${active == 'earnings'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'earnings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'earnings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-wallet"/></svg><span class="hidden lg:inline">Earnings</span></a>
     <a th:href="@{/host/settings/payments}" title="Payments" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'payments'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'payments'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'payments'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-credit-card"/></svg><span class="hidden lg:inline">Payments</span></a>
+    <a th:href="@{/host/settings}" title="Settings &amp; team" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:classappend="${active == 'settings'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'settings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'settings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-settings"/></svg><span class="hidden lg:inline">Settings &amp; team</span></a>
     <a th:href="@{/organizers/{h}(h=${org.handle})}" title="Public profile" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 text-ink-600 transition hover:bg-ink-50 hover:text-ink-900 lg:justify-start lg:px-3"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-globe"/></svg><span class="hidden lg:inline">Public profile</span></a>
   </nav>
   <div class="border-t border-ink-100 p-3 lg:p-4">

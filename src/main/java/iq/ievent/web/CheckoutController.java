@@ -8,6 +8,7 @@ import iq.ievent.repo.TicketRepository;
 import iq.ievent.service.CatalogService;
 import iq.ievent.service.Format;
 import iq.ievent.service.OrderService;
+import iq.ievent.service.PromoService;
 import iq.ievent.service.QrService;
 import iq.ievent.service.UserService;
 import iq.ievent.web.dto.Views.EventDetail;
@@ -41,7 +42,7 @@ public class CheckoutController {
     public record OrderView(String orderCode, String eventTitle, String eventSlug, String dateLine,
                             String venueLine, String buyerName, String buyerEmail, String statusLabel,
                             boolean pending, String subtotalLabel, String feeLabel, String totalLabel,
-                            List<ItemView> items) {}
+                            String discountLabel, String promoCode, List<ItemView> items) {}
 
     public record ItemView(String name, int quantity, String unitLabel, String lineLabel) {}
 
@@ -53,16 +54,21 @@ public class CheckoutController {
     private final TicketRepository tickets;
     private final QrService qr;
     private final UserService userService;
+    private final PromoService promoService;
+    private final iq.ievent.repo.EventRepository eventRepo;
 
     public CheckoutController(CatalogService catalog, OrderService orderService,
                               OrderRepository orders, TicketRepository tickets,
-                              QrService qr, UserService userService) {
+                              QrService qr, UserService userService,
+                              PromoService promoService, iq.ievent.repo.EventRepository eventRepo) {
         this.catalog = catalog;
         this.orderService = orderService;
         this.orders = orders;
         this.tickets = tickets;
         this.qr = qr;
         this.userService = userService;
+        this.promoService = promoService;
+        this.eventRepo = eventRepo;
     }
 
     private User currentUser(UserDetails principal) {
@@ -96,13 +102,37 @@ public class CheckoutController {
         }
         long fee = paidCount * OrderService.BOOKING_FEE_PER_PAID_TICKET;
 
+        // promo preview (?promo=CODE)
+        String promo = params.get("promo");
+        long discount = 0;
+        String promoMsg = null;
+        boolean promoOk = false;
+        if (promo != null && !promo.isBlank()) {
+            var entity = eventRepo.findBySlug(slug).orElse(null);
+            var applied = entity == null ? java.util.Optional.<PromoService.Applied>empty()
+                    : promoService.preview(entity, promo, subtotal);
+            if (applied.isPresent()) {
+                discount = applied.get().discountIqd();
+                promoOk = true;
+                promoMsg = promo.trim().toUpperCase() + " applied — you save " + Format.iqd(discount) + ".";
+            } else {
+                promoMsg = "Code '" + promo.trim() + "' is not valid for this event.";
+            }
+        }
+        long total = Math.max(0, subtotal - discount) + fee;
+
         model.addAttribute("currentUser", user);
         model.addAttribute("event", event);
         model.addAttribute("quantities", quantities);
         model.addAttribute("totalQty", totalQty);
         model.addAttribute("subtotalLabel", Format.iqd(subtotal));
         model.addAttribute("feeLabel", Format.iqd(fee));
-        model.addAttribute("totalLabel", Format.iqd(subtotal + fee));
+        model.addAttribute("discountLabel", discount > 0 ? Format.iqd(discount) : null);
+        model.addAttribute("promo", promo == null ? "" : promo.trim());
+        model.addAttribute("promoOk", promoOk);
+        model.addAttribute("promoMsg", promoMsg);
+        model.addAttribute("totalLabel", Format.iqd(total));
+        model.addAttribute("isFreeOrder", total == 0 && totalQty > 0);
         model.addAttribute("directPay", catalog.directPayInfo(slug).orElse(null));
         return "checkout";
     }
@@ -115,6 +145,8 @@ public class CheckoutController {
                              @RequestParam(name = "buyerPhone", required = false) String buyerPhone,
                              @RequestParam(name = "transferReference", required = false) String transferReference,
                              @RequestParam(name = "receipt", required = false) MultipartFile receipt,
+                             @RequestParam(name = "promo", required = false) String promo,
+                             @RequestParam(name = "holderName", required = false) List<String> holderNames,
                              @AuthenticationPrincipal UserDetails principal,
                              RedirectAttributes redirect) {
         User user = currentUser(principal);
@@ -132,7 +164,8 @@ public class CheckoutController {
         }
         try {
             Order order = orderService.checkout(user, slug, quantities,
-                    buyerName, buyerEmail, buyerPhone, transferReference, receipt);
+                    buyerName, buyerEmail, buyerPhone, transferReference, receipt,
+                    promo, holderNames);
             return "redirect:/orders/" + order.getOrderCode();
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
@@ -169,7 +202,9 @@ public class CheckoutController {
                 pending ? "Pending confirmation" : "Confirmed",
                 pending,
                 Format.iqd(order.getSubtotalIqd()), Format.iqd(order.getBookingFeeIqd()),
-                Format.iqd(order.getTotalIqd()), items);
+                Format.iqd(order.getTotalIqd()),
+                order.getDiscountIqd() > 0 ? Format.iqd(order.getDiscountIqd()) : null,
+                order.getPromoCode(), items);
 
         List<TicketView> ticketViews = tickets.findByOrderIdOrderByIdAsc(order.getId()).stream()
                 .map(t -> new TicketView(t.getCode(), t.getTicketType().getName(), t.getHolderName(),

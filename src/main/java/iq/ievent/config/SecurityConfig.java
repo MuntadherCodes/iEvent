@@ -21,6 +21,22 @@ import java.io.IOException;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final boolean googleEnabled;
+    private final org.springframework.beans.factory.ObjectProvider<
+            org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
+                    org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest,
+                    org.springframework.security.oauth2.core.user.OAuth2User>> googleUserService;
+
+    public SecurityConfig(
+            @org.springframework.beans.factory.annotation.Value("${app.google.client-id:}") String googleClientId,
+            org.springframework.beans.factory.ObjectProvider<
+                    org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
+                            org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest,
+                            org.springframework.security.oauth2.core.user.OAuth2User>> googleUserService) {
+        this.googleEnabled = googleClientId != null && !googleClientId.isBlank();
+        this.googleUserService = googleUserService;
+    }
+
     /**
      * Forces the deferred CSRF token to materialize BEFORE the view starts rendering.
      * Without this, pages that contain a POST form for a visitor with no session yet
@@ -52,7 +68,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
-                        "/auth/**", "/t/**", "/css/**", "/img/**", "/js/**",
+                        "/auth/**", "/t/**", "/e/**", "/newsletter", "/css/**", "/img/**", "/js/**",
                         "/favicon.ico", "/actuator/health", "/error")
                 .permitAll()
                 .anyRequest().authenticated())
@@ -67,6 +83,12 @@ public class SecurityConfig {
                 .logoutUrl("/auth/logout")
                 .logoutSuccessUrl("/?signedout"))
             .addFilterAfter(new CsrfEagerLoadFilter(), BasicAuthenticationFilter.class);
+        if (googleEnabled) {
+            http.oauth2Login(oauth -> oauth
+                .loginPage("/auth/login")
+                .userInfoEndpoint(u -> u.userService(googleUserService.getObject()))
+                .defaultSuccessUrl("/", false));
+        }
         return http.build();
     }
 }

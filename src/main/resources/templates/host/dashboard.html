@@ -67,6 +67,19 @@
         </div>
       </div>
 
+      <!-- Sales chart (renders only when the controller provides salesPoints) -->
+      <section th:if="${salesPoints != null && !#lists.isEmpty(salesPoints)}" class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="Ticket sales chart"
+               th:with="mx=${#aggregates.max(salesPoints.![amountIqd()])}">
+        <h3 class="font-display text-lg font-bold text-ink-900">Ticket sales</h3>
+        <p class="text-sm text-ink-500">Daily gross sales</p>
+        <div class="mt-4 flex h-40 items-end gap-1">
+          <div th:each="p : ${salesPoints}" class="group relative flex-1">
+            <div class="w-full rounded-t bg-brand-400 transition group-hover:bg-brand-500" th:style="'height:' + (${mx} > 0 ? ${100 * p.amountIqd() / mx} : 0) + '%; min-height:2px'"></div>
+            <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-900 px-2 py-1 text-[10px] font-semibold text-white group-hover:block" th:text="${p.label()}">Aug 15</span>
+          </div>
+        </div>
+      </section>
+
       <!-- Two-column: upcoming events + recent orders -->
       <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
 

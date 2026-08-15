@@ -2,6 +2,7 @@ package iq.ievent.service;
 
 import iq.ievent.domain.*;
 import iq.ievent.repo.*;
+import iq.ievent.service.PromoService.Applied;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class OrderService {
     private final EventRepository events;
     private final JdbcTemplate jdbc;
     private final MailService mail;
+    private final PromoService promoService;
     private final SecureRandom random = new SecureRandom();
     private final Path uploadDir;
 
@@ -48,6 +50,7 @@ public class OrderService {
                         EventRepository events,
                         JdbcTemplate jdbc,
                         MailService mail,
+                        PromoService promoService,
                         @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.orders = orders;
         this.tickets = tickets;
@@ -55,6 +58,7 @@ public class OrderService {
         this.events = events;
         this.jdbc = jdbc;
         this.mail = mail;
+        this.promoService = promoService;
         this.uploadDir = Path.of(uploadDir);
     }
 
@@ -67,7 +71,8 @@ public class OrderService {
     @Transactional
     public Order checkout(User buyer, String slug, Map<Long, Integer> quantities,
                           String buyerName, String buyerEmail, String buyerPhone,
-                          String transferReference, MultipartFile receipt) {
+                          String transferReference, MultipartFile receipt,
+                          String promoCode, List<String> holderNames) {
         Event event = events.findBySlug(slug)
                 .filter(e -> e.getStatus() == Event.Status.LIVE)
                 .orElseThrow(() -> new CheckoutException("This event is not on sale."));
@@ -109,7 +114,16 @@ public class OrderService {
             if (entry.getKey().getPriceIqd() > 0) paidTickets += entry.getValue();
         }
         long fee = paidTickets * BOOKING_FEE_PER_PAID_TICKET;
-        long total = subtotal + fee;
+
+        Applied applied = promoService.preview(event, promoCode, subtotal).orElse(null);
+        if (promoCode != null && !promoCode.isBlank() && applied == null) {
+            throw new CheckoutException("Promo code '" + promoCode.trim() + "' is not valid for this event.");
+        }
+        long discount = applied == null ? 0 : applied.discountIqd();
+        if (applied != null && !promoService.redeem(applied.promo())) {
+            throw new CheckoutException("That promo code just ran out of uses.");
+        }
+        long total = Math.max(0, subtotal - discount) + fee;
 
         boolean free = total == 0;
         if (!free && !event.getOrganization().isDirectPaymentsEnabled()) {
@@ -129,6 +143,10 @@ public class OrderService {
         order.setSubtotalIqd(subtotal);
         order.setBookingFeeIqd(fee);
         order.setTotalIqd(total);
+        if (applied != null) {
+            order.setPromoCode(applied.promo().getCode());
+            order.setDiscountIqd(discount);
+        }
         if (!free) {
             order.setTransferReference(transferReference == null || transferReference.isBlank()
                     ? null : transferReference.trim());
@@ -143,6 +161,7 @@ public class OrderService {
             item.setUnitPriceIqd(entry.getKey().getPriceIqd());
             order.addItem(item);
         }
+        order.setHolderNames(String.join("\n", sanitizeHolders(holderNames, totalQty, buyerName)));
         order = orders.save(order);
 
         if (free) {
@@ -189,7 +208,10 @@ public class OrderService {
     }
 
     private List<Ticket> issueTickets(Order order) {
+        List<String> holders = order.getHolderNames() == null ? List.of()
+                : List.of(order.getHolderNames().split("\\n"));
         List<Ticket> issued = new ArrayList<>();
+        int n = 0;
         for (OrderItem item : order.getItems()) {
             item.getTicketType().getName(); // initialize proxy inside txn (email renders async)
             for (int i = 0; i < item.getQuantity(); i++) {
@@ -198,12 +220,25 @@ public class OrderService {
                 t.setOrder(order);
                 t.setTicketType(item.getTicketType());
                 t.setEvent(order.getEvent());
-                t.setHolderName(order.getBuyerName());
+                t.setHolderName(n < holders.size() ? holders.get(n) : order.getBuyerName());
                 t.setStatus(Ticket.Status.VALID);
                 issued.add(tickets.save(t));
+                n++;
             }
         }
         return issued;
+    }
+
+    private static List<String> sanitizeHolders(List<String> raw, int totalQty, String buyerName) {
+        List<String> out = new ArrayList<>();
+        if (raw != null) {
+            for (String r : raw) {
+                if (out.size() >= totalQty) break;
+                out.add(r == null || r.isBlank() ? buyerName.trim() : r.trim());
+            }
+        }
+        while (out.size() < totalQty) out.add(buyerName.trim());
+        return out;
     }
 
     private String storeReceipt(MultipartFile receipt, String orderCode) {

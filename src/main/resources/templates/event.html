@@ -54,9 +54,10 @@
                   th:attr="aria-label='Like this event, ' + ${event.likes} + ' likes',aria-pressed=${liked} ? 'true' : 'false'"><svg class="h-4 w-4" th:classappend="${liked} ? 'fill-current' : ''" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${event.likes}">214</span></button>
         </form>
         <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-white/90 px-4 text-sm font-semibold tabular-nums text-ink-700 transition hover:text-rose-500" th:attr="aria-label='Like this event, ' + ${event.likes} + ' likes'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${event.likes}">214</span></a>
-        <button class="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600" aria-label="Share event">
+        <button id="shareBtn" type="button" class="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600" aria-label="Share event">
           <svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg>
         </button>
+        <span id="shareCopied" class="hidden rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-green-700" role="status">Link copied</span>
       </div>
     </div>
 
@@ -75,7 +76,7 @@
             </span>
             <div>
               <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="${event.dateLine}">Saturday, September 12 · 7:00 PM – 12:00 AM</span></p>
-              <a href="#" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>Add to calendar</a>
+              <a th:href="@{/events/{s}/calendar.ics(s=${event.slug})}" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>Add to calendar</a>
             </div>
           </div>
         </div>
@@ -113,7 +114,14 @@
             </div>
             <a href="#" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Get directions<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           </div>
-          <div class="relative mt-4 h-56 overflow-hidden rounded-2xl border border-ink-100 bg-[#e8ecf1] ring-1 ring-inset ring-black/5">
+          <!-- Live map when a Google Maps key is configured -->
+          <iframe th:if="${mapsKey != null}"
+                  th:src="@{https://www.google.com/maps/embed/v1/place(key=${mapsKey},q=${(event.venueName != null ? event.venueName + ', ' : '') + event.city})}"
+                  class="mt-4 h-56 w-full rounded-2xl border-0"
+                  loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen
+                  th:attr="title='Map of ' + ${event.venueName != null ? event.venueName : event.city}"></iframe>
+          <!-- Placeholder map when no key is configured -->
+          <div th:if="${mapsKey == null}" class="relative mt-4 h-56 overflow-hidden rounded-2xl border border-ink-100 bg-[#e8ecf1] ring-1 ring-inset ring-black/5">
             <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="evmap" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#cbd5e1" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#evmap)"/><path d="M0 120 C 120 80, 240 160, 480 110" stroke="#94a3b8" stroke-width="10" fill="none" opacity=".5"/><path d="M60 0 C 90 120, 70 180, 130 260" stroke="#b6c2d1" stroke-width="7" fill="none" opacity=".6"/></svg>
             <span class="absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-full place-items-center rounded-full bg-brand-500 text-white shadow-pop"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
           </div>
@@ -270,6 +278,30 @@
     });
   });
   updateTotal();
+
+  // Share: native share sheet with copy-link fallback
+  var shareBtn = document.getElementById('shareBtn');
+  var shareCopied = document.getElementById('shareCopied');
+  function showCopied() {
+    if (!shareCopied) return;
+    shareCopied.classList.remove('hidden');
+    setTimeout(function () { shareCopied.classList.add('hidden'); }, 1800);
+  }
+  if (shareBtn) shareBtn.addEventListener('click', function () {
+    var url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: document.title, url: url }).catch(function () {});
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(showCopied).catch(function () {});
+    } else {
+      var tmp = document.createElement('input');
+      tmp.value = url;
+      document.body.appendChild(tmp);
+      tmp.select();
+      try { document.execCommand('copy'); showCopied(); } catch (e) {}
+      document.body.removeChild(tmp);
+    }
+  });
 </script>
 </body>
 </html>

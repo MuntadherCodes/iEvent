@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="margin:0;padding:0;background:#f7f7fa;font-family:Arial,Helvetica,sans-serif;color:#23222f;">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+  <div style="text-align:center;padding:8px 0 16px;">
+    <span style="font-size:22px;font-weight:800;letter-spacing:.02em;"><span style="color:#8f7ac9;">i</span>Event</span>
+  </div>
+  <div style="background:#ffffff;border:1px solid #ececf1;border-radius:14px;padding:28px;">
+    <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#8f7ac9;text-transform:uppercase;">
+      Update from the organizer
+    </p>
+    <h1 style="margin:0 0 16px;font-size:20px;" th:text="${eventTitle}">Event</h1>
+    <div style="font-size:14px;line-height:1.65;color:#3d3c4f;white-space:pre-line;" th:text="${bodyText}">Message</div>
+    <div style="text-align:center;margin-top:22px;">
+      <a th:href="${eventUrl}"
+         style="display:inline-block;background:#8f7ac9;color:#ffffff;font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;text-decoration:none;">
+        View the event
+      </a>
+    </div>
+  </div>
+  <p style="text-align:center;color:#908fa3;font-size:11px;margin-top:16px;">
+    © 2026 iEvent · You receive event updates for events you have tickets to.
+    Manage preferences from your <a th:href="${baseUrl + '/me/profile'}" style="color:#8f7ac9;">profile</a>.
+  </p>
+</div>
+</body>
+</html>

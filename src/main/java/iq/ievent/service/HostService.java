@@ -28,27 +28,41 @@ public class HostService {
 
     public record TicketTypeForm(String name, Long priceIqd, Integer quantity) {}
 
+    public record DayPoint(String label, long amountIqd) {}
+
+    public record EarningsRow(Long eventId, String title, long ticketsSold, String grossLabel,
+                              String feesLabel, String netLabel) {}
+
     private final OrganizationRepository organizations;
     private final EventRepository events;
     private final TicketTypeRepository ticketTypes;
     private final UserRepository users;
     private final JdbcTemplate jdbc;
+    private final TeamService teamService;
 
     public HostService(OrganizationRepository organizations,
                        EventRepository events,
                        TicketTypeRepository ticketTypes,
                        UserRepository users,
-                       JdbcTemplate jdbc) {
+                       JdbcTemplate jdbc,
+                       TeamService teamService) {
         this.organizations = organizations;
         this.events = events;
         this.ticketTypes = ticketTypes;
         this.users = users;
         this.jdbc = jdbc;
+        this.teamService = teamService;
+    }
+
+    /** Organization the user can act for: as owner or as team member. */
+    @Transactional(readOnly = true)
+    public Optional<Organization> organizationOf(User user) {
+        return teamService.accessOf(user).map(TeamService.Access::org);
     }
 
     @Transactional(readOnly = true)
-    public Optional<Organization> organizationOf(User user) {
-        return organizations.findFirstByOwnerUserId(user.getId());
+    public Optional<TeamService.Access> accessOf(User user) {
+        return teamService.accessOf(user);
     }
 
     @Transactional
@@ -80,7 +94,7 @@ public class HostService {
                 WHERE e.organization_id = ? AND o.status = 'CONFIRMED'
                 """, Long.class, orgId);
         Long revenue = jdbc.queryForObject("""
-                SELECT COALESCE(SUM(o.subtotal_iqd), 0) FROM orders o
+                SELECT COALESCE(SUM(o.subtotal_iqd - o.discount_iqd), 0) FROM orders o
                 JOIN events e ON e.id = o.event_id
                 WHERE e.organization_id = ? AND o.status = 'CONFIRMED'
                 """, Long.class, orgId);
@@ -144,6 +158,94 @@ public class HostService {
     }
 
     @Transactional
+    public void updateEvent(Event e, String title, Event.Category category, String city,
+                            String venueName, String venueAddress, LocalDate date, LocalTime start,
+                            LocalTime end, String description) {
+        e.setTitle(title.trim());
+        e.setCategory(category);
+        e.setCity(city);
+        e.setVenueName(venueName);
+        e.setVenueAddress(venueAddress);
+        OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
+        e.setStartsAt(startsAt);
+        e.setEndsAt(end == null ? null
+                : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
+                        .atZone(Format.BAGHDAD).toOffsetDateTime());
+        e.setDescription(description == null ? "" : description.strip());
+        e.setCoverTheme(Format.coverTheme(category));
+        events.save(e);
+        jdbc.update("UPDATE events SET updated_at = now() WHERE id = ?", e.getId());
+    }
+
+    @Transactional
+    public String upsertTicketType(Event event, Long ttId, String name, long priceIqd,
+                                   int quantity, String status) {
+        if (name == null || name.isBlank()) return "Ticket name is required.";
+        TicketType tt;
+        if (ttId == null) {
+            tt = new TicketType();
+            tt.setEvent(event);
+            tt.setSortOrder((int) ticketTypes.findByEventIdOrderBySortOrderAsc(event.getId()).size());
+        } else {
+            tt = ticketTypes.findById(ttId)
+                    .filter(x -> x.getEvent().getId().equals(event.getId()))
+                    .orElse(null);
+            if (tt == null) return "Unknown ticket type.";
+            if (quantity < tt.getSold()) {
+                return "Quantity cannot be below tickets already sold (" + tt.getSold() + ").";
+            }
+        }
+        tt.setName(name.trim());
+        tt.setPriceIqd(Math.max(0, priceIqd));
+        tt.setQuantity(Math.max(0, quantity));
+        try {
+            tt.setStatus(TicketType.Status.valueOf(status));
+        } catch (Exception ignored) {
+            tt.setStatus(TicketType.Status.ON_SALE);
+        }
+        ticketTypes.save(tt);
+        return null;
+    }
+
+    /** Daily gross (confirmed orders) for the last 30 days, oldest first. */
+    @Transactional(readOnly = true)
+    public List<DayPoint> dailySales(Long orgId) {
+        return jdbc.query("""
+                SELECT d::date AS day, COALESCE(SUM(o.total_iqd), 0) AS amount
+                FROM generate_series(now() - interval '29 days', now(), interval '1 day') d
+                LEFT JOIN orders o ON o.created_at::date = d::date AND o.status = 'CONFIRMED'
+                    AND o.event_id IN (SELECT id FROM events WHERE organization_id = ?)
+                GROUP BY d::date ORDER BY d::date
+                """,
+                (rs, i) -> new DayPoint(
+                        rs.getDate(1).toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH)),
+                        rs.getLong(2)),
+                orgId);
+    }
+
+    /** Per-event earnings: gross (confirmed subtotals - discounts), booking fees collected, net. */
+    @Transactional(readOnly = true)
+    public List<EarningsRow> earnings(Long orgId) {
+        return jdbc.query("""
+                SELECT e.id, e.title,
+                       (SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi
+                          JOIN orders o ON o.id = oi.order_id
+                         WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS sold,
+                       (SELECT COALESCE(SUM(o.subtotal_iqd - o.discount_iqd), 0) FROM orders o
+                         WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS gross,
+                       (SELECT COALESCE(SUM(o.booking_fee_iqd), 0) FROM orders o
+                         WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS fees
+                FROM events e
+                WHERE e.organization_id = ?
+                ORDER BY gross DESC, e.starts_at DESC
+                """,
+                (rs, i) -> new EarningsRow(rs.getLong(1), rs.getString(2), rs.getLong(3),
+                        Format.iqd(rs.getLong(4)), Format.iqd(rs.getLong(5)),
+                        Format.iqd(Math.max(0, rs.getLong(4)))),
+                orgId);
+    }
+
+    @Transactional
     public void publish(Event event) {
         event.setStatus(Event.Status.LIVE);
         events.save(event);
@@ -153,6 +255,14 @@ public class HostService {
     public void unpublish(Event event) {
         event.setStatus(Event.Status.DRAFT);
         events.save(event);
+    }
+
+    @Transactional
+    public void updateOrganizationProfile(Organization org, String name, String city, String bio) {
+        org.setName(name.trim());
+        org.setCity(city == null || city.isBlank() ? null : city);
+        org.setBio(bio == null || bio.isBlank() ? null : bio.strip());
+        organizations.save(org);
     }
 
     @Transactional

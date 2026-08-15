@@ -1,0 +1,86 @@
+# iEvent staging/production stack — real domain + automatic HTTPS via Caddy.
+#
+#   1. Point your DNS A record (e.g. app.ievent.iq) at this server.
+#   2. Copy .env.example → .env and set:
+#        DOMAIN=app.ievent.iq
+#        APP_BASE_URL=https://app.ievent.iq
+#        MAIL_MODE=mailjet  + MAILJET_API_KEY / MAILJET_SECRET_KEY
+#        SPRING_MAIL_HOST=in-v3.mailjet.com  SPRING_MAIL_PORT=587
+#        MAIL_SMTP_AUTH=true  MAIL_SMTP_STARTTLS=true
+#        SEED_DEMO=false  SEED_SCALE=0
+#   3. docker compose -f docker-compose.staging.yml up -d --build
+#
+# See DEPLOY.md for the full runbook (backups, upgrades, rollback).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ievent}
+      POSTGRES_USER: ${POSTGRES_USER:-ievent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ievent_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ievent} -d ${POSTGRES_DB:-ievent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8080"
+    volumes:
+      - ievent_uploads:/app/data
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-ievent}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-ievent}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      APP_BASE_URL: ${APP_BASE_URL:?set APP_BASE_URL in .env}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      SEED_SCALE: ${SEED_SCALE:-0}
+      MAIL_MODE: ${MAIL_MODE:-mailjet}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@ievent.iq}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-in-v3.mailjet.com}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-true}
+      MAILJET_API_KEY: ${MAILJET_API_KEY:?set MAILJET_API_KEY in .env}
+      MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY:?set MAILJET_SECRET_KEY in .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ievent_caddy_data:/data
+      - ievent_caddy_config:/config
+
+volumes:
+  ievent_pgdata:
+  ievent_uploads:
+  ievent_caddy_data:
+  ievent_caddy_config:

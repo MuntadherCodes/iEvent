@@ -59,6 +59,15 @@ public class Order {
     @Column(name = "receipt_path")
     private String receiptPath;
 
+    @Column(name = "promo_code")
+    private String promoCode;
+
+    @Column(name = "discount_iqd", nullable = false)
+    private long discountIqd;
+
+    @Column(name = "holder_names")
+    private String holderNames;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -95,6 +104,12 @@ public class Order {
     public void setTransferReference(String transferReference) { this.transferReference = transferReference; }
     public String getReceiptPath() { return receiptPath; }
     public void setReceiptPath(String receiptPath) { this.receiptPath = receiptPath; }
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) { this.promoCode = promoCode; }
+    public long getDiscountIqd() { return discountIqd; }
+    public void setDiscountIqd(long discountIqd) { this.discountIqd = discountIqd; }
+    public String getHolderNames() { return holderNames; }
+    public void setHolderNames(String holderNames) { this.holderNames = holderNames; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getConfirmedAt() { return confirmedAt; }
     public void setConfirmedAt(OffsetDateTime confirmedAt) { this.confirmedAt = confirmedAt; }

@@ -48,6 +48,9 @@ services:
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
       MAILJET_API_KEY: ${MAILJET_API_KEY:-}
       MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
       interval: 10s

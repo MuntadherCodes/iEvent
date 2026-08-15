@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Checkout — ' + ${event.title} + ' — iEvent')}"></head>
 <body class="bg-white font-body text-ink-800 antialiased"
-      th:with="isFree=${totalLabel == '0 IQD'},
+      th:with="isFree=${isFreeOrder},
                grad=${event.coverTheme == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                : (event.coverTheme == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
                : (event.coverTheme == 'business'  ? 'from-ink-800 via-ink-700 to-brand-700'
@@ -63,6 +63,8 @@
 
   <!-- ===== Checkout form ===== -->
   <form th:if="${currentUser != null}" method="post" th:action="@{/events/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
+    <!-- Applied promo code carries into the order -->
+    <input type="hidden" name="promo" th:value="${promo}">
 
     <!-- Mobile collapsible summary -->
     <div class="mb-6 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card lg:hidden">
@@ -73,6 +75,7 @@
       <div id="mobileSummaryBody" class="hidden border-t border-ink-100 px-5 py-4 text-sm">
         <div class="flex justify-between py-1"><span class="text-ink-500">Subtotal</span><span class="sum-sub font-semibold tabular-nums" th:text="${subtotalLabel}">0 IQD</span></div>
         <div class="flex justify-between py-1"><span class="text-ink-500">Booking fee (1,500 IQD per paid ticket)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
+        <div th:if="${discountLabel != null}" class="flex justify-between py-1 text-green-700"><span>Discount<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span><span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span></div>
         <div class="mt-2 flex justify-between border-t border-dashed border-ink-200 pt-3"><span class="font-bold text-ink-900">Total</span><span class="sum-total font-display font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</span></div>
       </div>
     </div>
@@ -104,6 +107,27 @@
             </div>
           </div>
           <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>Booking fee 1,500 IQD per paid ticket. Free tickets have no fee.</p>
+        </section>
+
+        <!-- Ticket holders -->
+        <section th:if="${totalQty > 0}" class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-7">
+          <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900">Ticket holders</h2>
+          <p class="mt-1 text-sm text-ink-500">Each ticket has its own QR code — names must match ID at the door. Optional: blank tickets go under the buyer's name.</p>
+          <div class="mt-5 space-y-3">
+            <th:block th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE' && (quantities.get(tt.id) ?: 0) > 0}">
+              <div th:each="i : ${#numbers.sequence(1, quantities.get(tt.id))}" class="overflow-hidden rounded-xl border border-ink-200">
+                <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+                  <span class="flex shrink-0 items-center gap-3">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-brand-100 text-xs font-bold tabular-nums text-brand-700" th:text="${i}">1</span>
+                    <span class="text-sm font-semibold text-ink-800" th:text="'Ticket ' + ${i} + ' · ' + ${tt.name}">Ticket 1 · General Admission</span>
+                  </span>
+                  <input type="text" name="holderName" placeholder="Ticket holder full name"
+                         class="w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:ml-auto sm:max-w-xs"
+                         th:attr="aria-label='Holder name for ticket ' + ${i} + ' — ' + ${tt.name}">
+                </div>
+              </div>
+            </th:block>
+          </div>
         </section>
 
         <!-- Your details -->
@@ -233,6 +257,23 @@
             </div>
             <div class="flex justify-between"><span class="text-ink-500">Subtotal</span><span class="sum-sub font-semibold tabular-nums text-ink-800" th:text="${subtotalLabel}">0 IQD</span></div>
             <div class="flex justify-between"><span class="text-ink-500">Booking fee (1,500 IQD × paid ticket)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
+            <div th:if="${discountLabel != null}" id="discountLine" th:attr="data-discount=${discountLabel}" class="flex justify-between text-green-700">
+              <span>Discount<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span>
+              <span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span>
+            </div>
+          </div>
+
+          <!-- Promo code (submits the separate GET form below via the form attribute) -->
+          <div class="mt-4">
+            <div class="flex gap-2">
+              <input type="text" name="promo" form="promoForm" th:value="${promo}" placeholder="Promo code" aria-label="Promo code" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <button type="submit" form="promoForm" class="shrink-0 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Apply</button>
+            </div>
+            <p th:if="${promoMsg != null}" class="mt-2 flex items-start gap-1.5 text-xs font-medium"
+               th:classappend="${promoOk} ? 'text-green-700' : 'text-rose-600'">
+              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use th:attr="href=${promoOk} ? '#i-circle-check' : '#i-circle-alert'"/></svg>
+              <span th:text="${promoMsg}">SUMMER10 applied — you save 5,000 IQD.</span>
+            </p>
           </div>
 
           <div class="mt-4 flex items-baseline justify-between border-t border-dashed border-ink-200 pt-4">
@@ -243,6 +284,14 @@
         </div>
       </aside>
     </div>
+  </form>
+
+  <!-- Promo apply: standalone GET form (targeted from the rail via the form attribute; no nested forms).
+       Hidden qty inputs mirror the steppers — kept in sync by the recompute() script. -->
+  <form th:if="${currentUser != null}" id="promoForm" method="get" th:action="@{/events/{s}/checkout(s=${event.slug})}" class="hidden">
+    <th:block th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE'}">
+      <input type="hidden" class="promo-qty" th:attr="data-id=${tt.id}" th:name="'qty-' + ${tt.id}" th:value="${quantities.get(tt.id) ?: 0}">
+    </th:block>
   </form>
 </main>
 
@@ -269,6 +318,10 @@
     document.querySelectorAll(selector).forEach(function (el) { el.textContent = text; });
   }
 
+  var discountLine = document.getElementById('discountLine');
+  // Server-applied fixed discount (digits parsed from the display label; server recomputes at submit).
+  var discount = discountLine ? parseInt((discountLine.getAttribute('data-discount') || '').replace(/[^0-9]/g, ''), 10) || 0 : 0;
+
   function recompute() {
     var subtotal = 0, fees = 0, tickets = 0;
     rows.forEach(function (row) {
@@ -286,12 +339,14 @@
         line.querySelector('.sum-line-label').textContent = name + ' × ' + qty;
         line.querySelector('.sum-line-amt').textContent = fmt(qty * price);
       }
+      var mirror = document.querySelector('.promo-qty[data-id="' + row.getAttribute('data-id') + '"]');
+      if (mirror) mirror.value = qty;
     });
-    var total = subtotal + fees;
+    var total = Math.max(0, subtotal - discount) + fees;
     setAll('.sum-sub', fmt(subtotal));
     setAll('.sum-fee', fmt(fees));
     setAll('.sum-total', fmt(total));
-    var isFree = total === 0;
+    var isFree = total === 0 && tickets > 0;
     if (freeNote) freeNote.classList.toggle('hidden', !isFree);
     if (directPanel) directPanel.classList.toggle('hidden', isFree);
     if (noPayCard) noPayCard.classList.toggle('hidden', isFree);

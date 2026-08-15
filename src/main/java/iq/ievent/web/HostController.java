@@ -79,14 +79,18 @@ public class HostController {
     private final TicketRepository tickets;
     private final TicketTypeRepository ticketTypes;
 
+    private final String baseUrl;
+
     public HostController(UserService userService, HostService hostService, OrderService orderService,
-                          OrderRepository orders, TicketRepository tickets, TicketTypeRepository ticketTypes) {
+                          OrderRepository orders, TicketRepository tickets, TicketTypeRepository ticketTypes,
+                          @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
         this.hostService = hostService;
         this.orderService = orderService;
         this.orders = orders;
         this.tickets = tickets;
         this.ticketTypes = ticketTypes;
+        this.baseUrl = baseUrl;
     }
 
     private User user(UserDetails principal) {
@@ -144,6 +148,7 @@ public class HostController {
         model.addAttribute("upcoming", upcoming);
         model.addAttribute("recentOrders", recent.getContent().stream().map(this::toRow).toList());
         model.addAttribute("pendingCount", stats.pendingOrders());
+        model.addAttribute("salesPoints", hostService.dailySales(org.getId()));
         return "host/dashboard";
     }
 
@@ -243,7 +248,100 @@ public class HostController {
         model.addAttribute("ticketRows", ttRows);
         model.addAttribute("checkedIn", tickets.countByEventIdAndStatus(ev.getId(), Ticket.Status.CHECKED_IN));
         model.addAttribute("ticketsTotal", tickets.countByEventId(ev.getId()));
+        model.addAttribute("shareBase", baseUrl);
         return "host/event-console";
+    }
+
+    @GetMapping("/events/{id}/edit")
+    @Transactional(readOnly = true)
+    public String editEvent(@PathVariable Long id,
+                            @AuthenticationPrincipal UserDetails principal, Model model) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        java.time.ZonedDateTime z = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
+        model.addAttribute("currentUser", u);
+        model.addAttribute("org", org);
+        model.addAttribute("ev", toRow(ev));
+        model.addAttribute("evEntity", new EventEditView(ev.getTitle(), ev.getCategory().name(),
+                ev.getCity(), ev.getVenueName(), ev.getVenueAddress(),
+                z.toLocalDate().toString(), z.toLocalTime().toString().substring(0, 5),
+                ev.getEndsAt() == null ? "" : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD)
+                        .toLocalTime().toString().substring(0, 5),
+                ev.getDescription()));
+        model.addAttribute("ticketRows",
+                ticketTypes.findByEventIdOrderBySortOrderAsc(ev.getId()).stream()
+                        .map(tt -> new TicketTypeEditRow(tt.getId(), tt.getName(), tt.getPriceIqd(),
+                                tt.getQuantity(), tt.getSold(), tt.getStatus().name()))
+                        .toList());
+        model.addAttribute("categories", PageController.CATEGORIES);
+        return "host/event-edit";
+    }
+
+    public record EventEditView(String title, String category, String city, String venueName,
+                                String venueAddress, String date, String startTime, String endTime,
+                                String description) {}
+
+    public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
+                                    String status) {}
+
+    @PostMapping("/events/{id}/edit")
+    public String updateEvent(@PathVariable Long id,
+                              @AuthenticationPrincipal UserDetails principal,
+                              @RequestParam String title,
+                              @RequestParam String category,
+                              @RequestParam String city,
+                              @RequestParam(required = false) String venueName,
+                              @RequestParam(required = false) String venueAddress,
+                              @RequestParam String date,
+                              @RequestParam String startTime,
+                              @RequestParam(required = false) String endTime,
+                              @RequestParam(required = false) String description,
+                              RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        try {
+            hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
+                    venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
+                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+            redirect.addFlashAttribute("saved", true);
+        } catch (Exception e) {
+            redirect.addFlashAttribute("error", "Could not save — check the fields. (" + e.getMessage() + ")");
+        }
+        return "redirect:/host/events/" + id + "/edit";
+    }
+
+    @PostMapping("/events/{id}/tickets")
+    public String upsertTicket(@PathVariable Long id,
+                               @AuthenticationPrincipal UserDetails principal,
+                               @RequestParam(required = false) Long ttId,
+                               @RequestParam String name,
+                               @RequestParam(defaultValue = "0") long price,
+                               @RequestParam(defaultValue = "0") int quantity,
+                               @RequestParam(defaultValue = "ON_SALE") String status,
+                               RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        String error = hostService.upsertTicketType(ev, ttId, name, price, quantity, status);
+        if (error != null) redirect.addFlashAttribute("error", error);
+        else redirect.addFlashAttribute("saved", true);
+        return "redirect:/host/events/" + id + "/edit";
+    }
+
+    private void requireManage(User u) {
+        if (hostService.accessOf(u).map(a -> !a.canManage()).orElse(true)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
     }
 
     @PostMapping("/events/{id}/publish")
@@ -251,6 +349,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         hostService.eventOf(org.getId(), id).ifPresent(hostService::publish);
         return "redirect:/host/events/" + id;
     }
@@ -260,6 +359,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         hostService.eventOf(org.getId(), id).ifPresent(hostService::unpublish);
         return "redirect:/host/events/" + id;
     }
@@ -296,6 +396,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         try {
             Order o = orderService.approve(id, org.getId());
             redirect.addFlashAttribute("actioned", "Order " + o.getOrderCode() + " approved — tickets emailed to the buyer.");
@@ -311,6 +412,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         try {
             Order o = orderService.reject(id, org.getId());
             redirect.addFlashAttribute("actioned", "Order " + o.getOrderCode() + " rejected — the buyer was notified.");
@@ -491,6 +593,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings/payments";

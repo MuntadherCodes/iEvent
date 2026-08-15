@@ -55,6 +55,27 @@ public class MailService {
     }
 
     @Async
+    public void sendCampaign(String to, String subject, String bodyText, String eventTitle, String eventUrl) {
+        try {
+            Context ctx = new Context();
+            ctx.setVariable("bodyText", bodyText);
+            ctx.setVariable("eventTitle", eventTitle);
+            ctx.setVariable("eventUrl", eventUrl);
+            ctx.setVariable("baseUrl", baseUrl);
+            String html = templates.process("email/campaign", ctx);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            sender.send(message);
+        } catch (Exception e) {
+            log.error("Campaign mail failed to {}: {}", to, e.getMessage());
+        }
+    }
+
+    @Async
     public void sendOrderRejected(Order order) {
         send(order.getBuyerEmail(),
              "Order " + order.getOrderCode() + " could not be confirmed",

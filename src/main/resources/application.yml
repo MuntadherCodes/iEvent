@@ -47,6 +47,10 @@ management:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    maps-key: ${GOOGLE_MAPS_API_KEY:}
   upload-dir: ${APP_UPLOAD_DIR:/app/data/uploads}
   mail:
     mode: ${MAIL_MODE:mailpit}
