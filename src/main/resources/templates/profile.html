@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Account settings — iEvent')}"></head>
+<body class="bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+
+<main id="main" class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+
+  <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl">Account settings</h1>
+  <p class="mt-2 text-ink-500">Manage your profile, preferences and security.</p>
+
+  <div class="mt-8 grid gap-6 md:grid-cols-[240px_1fr] lg:grid-cols-[260px_1fr] lg:gap-8">
+
+    <!-- ===== Left nav ===== -->
+    <aside class="min-w-0">
+      <nav class="min-w-0 rounded-2xl border border-ink-100 bg-white p-2 shadow-card md:sticky md:top-24" aria-label="Settings sections">
+        <div class="relative min-w-0 overflow-x-auto md:overflow-visible">
+          <div class="flex w-max gap-2 md:w-full md:flex-col md:gap-1">
+            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 md:w-full" aria-current="page"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-user"/></svg>Account</span>
+            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-sparkles"/></svg>Interests <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-bell"/></svg>Notifications <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-credit-card"/></svg>Payment methods <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Security <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+            <span class="flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium text-ink-300 md:w-full"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-globe"/></svg>Language <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-ink-300">Soon</span></span>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- ===== Account panel ===== -->
+    <div class="min-w-0">
+      <!-- Flash banners -->
+      <div th:if="${saved != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        Changes saved.
+      </div>
+      <div th:if="${error != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+        <span th:text="${error}">Name cannot be empty.</span>
+      </div>
+
+      <section class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+        <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900">Account</h2>
+        <p class="mt-1 text-sm text-ink-500">This is how you appear on orders and to organizers.</p>
+
+        <div class="mt-6 flex items-center gap-5">
+          <span class="grid h-20 w-20 place-items-center rounded-full bg-brand-100 font-display text-2xl font-extrabold text-brand-700" th:text="${currentUser.initials()}">FA</span>
+          <div>
+            <p class="font-display font-bold text-ink-900" th:text="${currentUser.fullName}">Fahad Al-Thakur</p>
+            <p class="text-sm text-ink-500" th:text="${currentUser.email}">you@email.com</p>
+          </div>
+        </div>
+
+        <form th:action="@{/me/profile}" method="post" class="mt-7">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="pf-name" class="mb-1.5 block text-sm font-semibold text-ink-800">Full name <span class="text-rose-500">*</span></label>
+              <input id="pf-name" name="fullName" type="text" required th:value="${currentUser.fullName}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label for="pf-email" class="mb-1.5 block text-sm font-semibold text-ink-800">Email</label>
+              <input id="pf-email" type="email" th:value="${currentUser.email}" disabled class="w-full cursor-not-allowed rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-500 outline-none">
+              <p class="mt-1.5 text-xs text-ink-400">Your email is your sign-in — it can't be changed here.</p>
+            </div>
+            <div>
+              <label for="pf-phone" class="mb-1.5 block text-sm font-semibold text-ink-800">Phone</label>
+              <input id="pf-phone" name="phone" type="tel" th:value="${currentUser.phone}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+          </div>
+          <div class="mt-7 flex justify-end border-t border-ink-100 pt-5">
+            <button type="submit" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Save changes</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

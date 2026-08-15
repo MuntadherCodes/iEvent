@@ -11,6 +11,7 @@ RUN mvn -B -DskipTests package
 FROM eclipse-temurin:21-jre
 RUN useradd --system --home /app ievent
 WORKDIR /app
+RUN mkdir -p /app/data/uploads && chown -R ievent /app/data
 COPY --from=build /workspace/target/ievent.jar app.jar
 USER ievent
 EXPOSE 8080

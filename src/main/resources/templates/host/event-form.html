@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head('Create event — iEvent Host')}"></head>
+<body class="bg-ink-50 font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<div class="flex min-h-screen">
+
+<aside th:replace="~{fragments/host-layout :: sidebar('events')}"></aside>
+
+<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+
+  <header th:replace="~{fragments/host-layout :: topbar('Create event')}"></header>
+
+  <main id="main" class="flex-1 px-4 py-6 pb-32 sm:px-6 md:pb-16 lg:px-8">
+    <div class="mx-auto max-w-3xl">
+
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <a th:href="@{/host/events}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 transition hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>My events</a>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> New event
+        </span>
+      </div>
+
+      <!-- Error flash -->
+      <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+        <span th:text="${error}">Could not create the event — check the required fields.</span>
+      </div>
+
+      <form th:action="@{/host/events/new}" method="post" class="mt-6 space-y-6">
+
+        <!-- Name -->
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">What's your event called?</h2>
+          <p class="mt-1 text-sm text-ink-500">Keep it short and punchy — this is the first thing people see.</p>
+          <input type="text" name="title" required class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-4 font-display text-lg font-bold text-ink-900 outline-none transition placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="e.g. Baghdad Nights Music Festival" aria-label="Event name">
+          <p class="mt-2 inline-flex items-center gap-1 text-xs text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg>Great names mention the city or vibe</p>
+        </div>
+
+        <!-- When -->
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+          <h3 class="font-display text-lg font-bold text-ink-900">When is it happening?</h3>
+          <div class="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date">Date <span class="text-rose-500">*</span></label>
+              <input id="ev-date" name="date" type="date" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start">Starts <span class="text-rose-500">*</span></label>
+              <input id="ev-start" name="startTime" type="time" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end">Ends</label>
+              <input id="ev-end" name="endTime" type="time" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+          </div>
+        </div>
+
+        <!-- Where -->
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+          <h3 class="font-display text-lg font-bold text-ink-900">Where is it?</h3>
+          <div class="mt-4 space-y-4">
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue</label>
+              <input id="ev-venue" name="venueName" type="text" placeholder="e.g. Al-Zawraa Park" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address">Address</label>
+              <input id="ev-address" name="venueAddress" type="text" placeholder="Street, district, landmark…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city">City <span class="text-rose-500">*</span></label>
+                <div class="relative">
+                  <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="Baghdad">Baghdad</option>
+                    <option value="Basra">Basra</option>
+                    <option value="Erbil">Erbil</option>
+                    <option value="Sulaymaniyah">Sulaymaniyah</option>
+                    <option value="Najaf">Najaf</option>
+                    <option value="Karbala">Karbala</option>
+                    <option value="Mosul">Mosul</option>
+                    <option value="Duhok">Duhok</option>
+                  </select>
+                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </div>
+              </div>
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat">Category <span class="text-rose-500">*</span></label>
+                <div class="relative">
+                  <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${c.label()}">Music</option>
+                  </select>
+                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+          <h3 class="font-display text-lg font-bold text-ink-900">Tell people what to expect</h3>
+          <p class="mt-1 text-sm text-ink-500">Line-up, schedule, what's included — the more detail, the more tickets.</p>
+          <textarea name="description" rows="5" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="A sunset food carnival on the Corniche — 40+ street food stalls, live music and family fun." aria-label="Event description"></textarea>
+        </div>
+
+        <!-- Tickets -->
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Set up your tickets</h2>
+          <p class="mt-1 text-sm text-ink-500">Fill in the rows you need — leave the rest empty. Price 0 makes a ticket free.</p>
+
+          <div class="mt-5 space-y-4">
+            <div class="rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
+              <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
+                  <input type="text" name="ttName" placeholder="General Admission" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 1 name">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
+                  <input type="number" name="ttPrice" min="0" step="500" placeholder="25000" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 1 price in IQD">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
+                  <input type="number" name="ttQty" min="0" placeholder="100" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 1 quantity">
+                </div>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
+              <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
+                  <input type="text" name="ttName" placeholder="e.g. VIP" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 2 name">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
+                  <input type="number" name="ttPrice" min="0" step="500" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 2 price in IQD">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
+                  <input type="number" name="ttQty" min="0" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 2 quantity">
+                </div>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
+              <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
+                  <input type="text" name="ttName" placeholder="e.g. Early Bird" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 3 name">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
+                  <input type="number" name="ttPrice" min="0" step="500" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 3 price in IQD">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
+                  <input type="number" name="ttQty" min="0" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 3 quantity">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
+            <span>Paid tickets carry a <strong class="font-semibold text-ink-800">1,500 IQD booking fee per ticket</strong> — paid by the buyer at checkout.</span>
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-3 rounded-2xl border border-ink-100 bg-white p-4 shadow-pop sm:flex-row sm:items-center sm:justify-end sm:p-5">
+          <button type="submit" name="action" value="draft" class="inline-flex items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-6 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Save draft</button>
+          <button type="submit" name="action" value="publish" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Publish event<svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg></button>
+        </div>
+
+      </form>
+
+    </div>
+  </main>
+
+  <nav th:replace="~{fragments/host-layout :: bottomTabs('events')}"></nav>
+</div>
+</div>
+
+</body>
+</html>

@@ -54,4 +54,7 @@ public final class Views {
             List<TicketTypeView> ticketTypes) {}
 
     public record CityCount(String city, long count) {}
+
+    /** Organizer direct-transfer payment details shown at checkout (null when not enabled). */
+    public record DirectPayInfo(String cardNumber, String accountName, String walletBank, String instructions) {}
 }

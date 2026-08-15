@@ -67,6 +67,12 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <dependency>
+      <!-- QR code generation for tickets (tiny, zero-dependency) -->
+      <groupId>io.nayuki</groupId>
+      <artifactId>qrcodegen</artifactId>
+      <version>1.8.0</version>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>

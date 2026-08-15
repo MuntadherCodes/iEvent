@@ -55,4 +55,11 @@ public class UserService implements UserDetailsService {
     public User byEmail(String email) {
         return users.findByEmailIgnoreCase(email).orElse(null);
     }
+
+    @Transactional
+    public void updateProfile(User user, String fullName, String phone) {
+        user.setFullName(fullName.trim());
+        user.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
+        users.save(user);
+    }
 }

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head('Overview — iEvent Host')}"></head>
+<body class="bg-ink-50 font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<div class="flex min-h-screen">
+
+<aside th:replace="~{fragments/host-layout :: sidebar('overview')}"></aside>
+
+<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+
+  <header th:replace="~{fragments/host-layout :: topbar('Overview')}"></header>
+
+  <main id="main" class="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
+    <div class="mx-auto max-w-6xl space-y-6 lg:space-y-8 2xl:max-w-7xl">
+
+      <!-- Pending confirmations banner -->
+      <div th:if="${pendingCount > 0}" class="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <p class="flex items-start gap-2 text-sm font-semibold text-amber-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+          <span><span class="tabular-nums" th:text="${pendingCount}">4</span> direct-transfer orders waiting for your confirmation</span>
+        </p>
+        <a th:href="@{/host/orders(status='pending')}" class="inline-flex items-center gap-1.5 self-start rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 active:scale-[.98] sm:self-auto">Review now<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </div>
+
+      <!-- Welcome row -->
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl">Salam, <span th:text="${currentUser.fullName}">Fahad</span> 👋</h2>
+          <p class="mt-1 text-sm text-ink-500">Here's how <span th:text="${org.name}">Zain Events Co.</span> is doing.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a th:href="@{/host/events/new}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>
+            Create event
+          </a>
+          <a th:href="@{/}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
+            View site
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
+          <p class="text-sm text-ink-500">Tickets sold</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${stats.ticketsSold()}">312</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ticket"/></svg>confirmed orders</p>
+        </div>
+        <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
+          <p class="text-sm text-ink-500">Revenue</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${revenueLabel}">4,280,000 IQD</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-trending-up"/></svg>gross ticket sales</p>
+        </div>
+        <a th:href="@{/host/orders(status='pending')}" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-card transition hover:border-amber-300 sm:p-5">
+          <p class="text-sm text-amber-800">Pending confirmations</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-amber-800 sm:text-3xl" th:text="${stats.pendingOrders()}">4</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-700">Review orders<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></p>
+        </a>
+        <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
+          <p class="text-sm text-ink-500">Live events</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${stats.liveEvents()}">3</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-green-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>on sale now</p>
+        </div>
+      </div>
+
+      <!-- Two-column: upcoming events + recent orders -->
+      <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
+
+        <!-- Upcoming events -->
+        <section class="min-w-0 rounded-2xl border border-ink-100 bg-white shadow-card" aria-label="Upcoming events">
+          <div class="flex items-center justify-between border-b border-ink-100 px-5 py-4">
+            <h3 class="font-display text-lg font-bold text-ink-900">Upcoming events</h3>
+            <a th:href="@{/host/events}" class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          </div>
+          <ul class="divide-y divide-ink-50">
+            <li th:each="e : ${upcoming}">
+              <a th:href="@{/host/events/{id}(id=${e.id()})}" class="flex items-center gap-4 px-5 py-4 transition hover:bg-brand-50/40">
+                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-violet-500 via-brand-500 to-fuchsia-500 ring-1 ring-black/5"><svg class="h-6 w-6 text-white/40" aria-hidden="true"><use href="#i-ticket"/></svg></span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="truncate font-semibold text-ink-900" th:text="${e.title()}">Baghdad Nights Music Festival</p>
+                    <span th:if="${e.statusLabel() == 'Live'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Live</span>
+                    <span th:if="${e.statusLabel() == 'Draft'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Draft</span>
+                    <span th:if="${e.statusLabel() != 'Live' && e.statusLabel() != 'Draft'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${e.statusLabel()}">Ended</span></span>
+                  </div>
+                  <p class="mt-0.5 text-xs text-ink-500"><span th:text="${e.dateLine()}">Sat, Sep 12 · 7:00 PM</span> · <span th:text="${e.venueName() != null ? e.venueName() + ', ' + e.city() : e.city()}">Al-Zawraa Park, Baghdad</span></p>
+                  <div class="mt-2 flex items-center gap-2">
+                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-100"><div class="h-full rounded-full bg-brand-500" th:style="'width:' + (${e.capacity()} > 0 ? ${100 * e.sold() / e.capacity()} : 0) + '%'"></div></div>
+                    <span class="shrink-0 text-xs font-semibold tabular-nums text-ink-600" th:text="${e.salesLabel()}">218 / 400</span>
+                  </div>
+                </div>
+                <svg class="h-4 w-4 shrink-0 text-ink-300" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+              </a>
+            </li>
+            <li th:if="${#lists.isEmpty(upcoming)}" class="px-5 py-10 text-center">
+              <p class="text-sm font-semibold text-ink-700">No upcoming events yet</p>
+              <a th:href="@{/host/events/new}" class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">Create your first event <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Recent orders -->
+        <section class="min-w-0 rounded-2xl border border-ink-100 bg-white shadow-card" aria-label="Recent orders">
+          <div class="flex items-center justify-between border-b border-ink-100 px-5 py-4">
+            <h3 class="font-display text-lg font-bold text-ink-900">Recent orders</h3>
+            <a th:href="@{/host/orders}" class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">View all <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          </div>
+          <ul class="divide-y divide-ink-50 text-sm">
+            <li th:each="o : ${recentOrders}" class="flex items-center gap-3 px-5 py-3.5 transition hover:bg-brand-50/40">
+              <span class="font-mono text-xs font-semibold tabular-nums text-brand-600" th:text="${o.orderCode()}">EVT-2026-04131</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-semibold text-ink-900" th:text="${o.buyerName()}">Noor Al-Saadi</p>
+                <p class="truncate text-xs text-ink-500" th:text="${o.eventTitle()}">Baghdad Nights Music Festival</p>
+              </div>
+              <div class="text-right">
+                <p class="font-semibold tabular-nums text-ink-900" th:text="${o.totalLabel()}">70,000 IQD</p>
+                <p class="text-xs text-ink-400" th:text="${o.createdLine()}">Aug 4</p>
+              </div>
+              <span th:if="${o.pending()}" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Pending</span>
+              <span th:if="${o.statusLabel() == 'Confirmed'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Confirmed</span>
+              <span th:if="${o.statusLabel() == 'Rejected'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Rejected</span>
+              <span th:if="${!o.pending() && o.statusLabel() != 'Confirmed' && o.statusLabel() != 'Rejected'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${o.statusLabel()}">Cancelled</span></span>
+            </li>
+            <li th:if="${#lists.isEmpty(recentOrders)}" class="px-5 py-10 text-center">
+              <p class="text-sm font-semibold text-ink-700">No orders yet</p>
+              <p class="mt-1 text-xs text-ink-500">Orders appear here as soon as buyers check out.</p>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <nav th:replace="~{fragments/host-layout :: bottomTabs('overview')}"></nav>
+</div>
+</div>
+
+</body>
+</html>

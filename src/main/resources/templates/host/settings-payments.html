@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head('Payments — iEvent Host')}"></head>
+<body class="bg-ink-50 font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<div class="flex min-h-screen">
+
+<aside th:replace="~{fragments/host-layout :: sidebar('payments')}"></aside>
+
+<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+
+  <header th:replace="~{fragments/host-layout :: topbar('Payments')}"></header>
+
+  <main id="main" class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
+    <div class="mx-auto max-w-4xl space-y-6">
+
+      <!-- Saved flash -->
+      <div th:if="${saved}" class="flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        Saved ✓ — your payment settings are up to date.
+      </div>
+
+      <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+        <h2 class="font-display text-lg font-bold text-ink-900">Payments &amp; fees</h2>
+        <p class="mt-1 text-sm text-ink-500">Choose how buyers pay for your tickets.</p>
+
+        <h3 class="mt-6 text-xs font-semibold uppercase tracking-wide text-ink-400">Gateways</h3>
+
+        <form th:action="@{/host/settings/payments}" method="post">
+          <div class="mt-3 grid gap-4 lg:grid-cols-2">
+
+            <!-- Card A: iEvent Payments (phase 2) -->
+            <div class="flex flex-col rounded-2xl border border-ink-200 bg-ink-50/60 p-5 opacity-70">
+              <div class="flex items-start justify-between gap-3">
+                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-ink-200 text-ink-500"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-wallet"/></svg></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-500"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-clock"/></svg>Phase 2 — coming soon</span>
+              </div>
+              <p class="mt-3 font-display text-base font-bold text-ink-700">iEvent Payments — online gateway</p>
+              <p class="mt-1 text-sm text-ink-500">Buyers pay inside checkout — tickets are issued instantly and refunds are one click.</p>
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-500 ring-1 ring-ink-100"><svg class="h-3.5 w-3.5 text-ink-400" aria-hidden="true"><use href="#i-smartphone"/></svg>ZainCash</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-500 ring-1 ring-ink-100"><svg class="h-3.5 w-3.5 text-ink-400" aria-hidden="true"><use href="#i-building-2"/></svg>FIB / FastPay</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-500 ring-1 ring-ink-100"><svg class="h-3.5 w-3.5 text-ink-400" aria-hidden="true"><use href="#i-credit-card"/></svg>Qi Card</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-500 ring-1 ring-ink-100"><svg class="h-3.5 w-3.5 text-ink-400" aria-hidden="true"><use href="#i-credit-card"/></svg>Visa / Mastercard</span>
+              </div>
+            </div>
+
+            <!-- Card B: Direct payments -->
+            <div class="flex flex-col rounded-2xl border-2 border-brand-300 bg-brand-50/40 p-5">
+              <div class="flex items-start justify-between gap-3">
+                <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-ink-100 text-ink-700"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-qr-code"/></svg></span>
+                <label class="relative inline-block h-7 w-12 shrink-0 cursor-pointer" title="Enable direct payments">
+                  <input type="checkbox" name="enabled" value="true" th:checked="${org.directPaymentsEnabled}" class="peer sr-only" aria-label="Enable direct payments">
+                  <span class="absolute inset-0 rounded-full bg-ink-200 transition peer-checked:bg-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400"></span>
+                  <span class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+                </label>
+              </div>
+              <p class="mt-3 font-display text-base font-bold text-ink-900">Direct payments — QR / card transfer</p>
+              <p class="mt-1 text-sm text-ink-500">Buyers see your card number and instructions at checkout, upload a transfer receipt, and you approve each order manually in Orders.</p>
+              <div class="mt-4 flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3.5 py-2.5 text-xs leading-relaxed text-sky-800">
+                <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
+                <span>No processing fees — money goes straight to your wallet or bank.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Direct payments setup -->
+          <div class="mt-4 rounded-2xl border border-brand-200 bg-brand-50/30 p-5">
+            <h4 class="flex items-center gap-2 font-display text-base font-bold text-ink-900"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use href="#i-qr-code"/></svg>Direct payment setup</h4>
+            <div class="mt-4 grid gap-5 md:grid-cols-[180px_1fr]">
+              <div>
+                <p class="mb-1.5 block text-sm font-semibold text-ink-800">Payment QR code</p>
+                <div class="grid place-items-center gap-2 rounded-2xl border-2 border-dashed border-ink-200 bg-white p-4 text-center">
+                  <span class="grid h-16 w-16 place-items-center rounded-xl bg-ink-50 text-ink-300"><svg class="h-8 w-8" aria-hidden="true"><use href="#i-qr-code"/></svg></span>
+                  <p class="text-xs leading-relaxed text-ink-400">QR image upload — phase 2; buyers currently see your card number and instructions</p>
+                </div>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="gw-card">Card number</label>
+                  <input id="gw-card" name="cardNumber" type="text" th:value="${org.payCardNumber}" placeholder="5326 1102 4478 4821" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="gw-holder">Account holder name</label>
+                  <input id="gw-holder" name="accountName" type="text" th:value="${org.payAccountName}" placeholder="Fahad Al-Thakur" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="gw-wallet">Wallet / bank</label>
+                  <div class="relative">
+                    <select id="gw-wallet" name="walletBank" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                      <option value="ZainCash" th:selected="${org.payWalletBank == 'ZainCash'}">ZainCash</option>
+                      <option value="FIB" th:selected="${org.payWalletBank == 'FIB'}">FIB</option>
+                      <option value="Qi Card" th:selected="${org.payWalletBank == 'Qi Card'}">Qi Card</option>
+                      <option value="Bank of Baghdad" th:selected="${org.payWalletBank == 'Bank of Baghdad'}">Bank of Baghdad</option>
+                      <option value="Other" th:selected="${org.payWalletBank == 'Other'}">Other</option>
+                    </select>
+                    <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  </div>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="gw-note">Instructions to buyer</label>
+                  <textarea id="gw-note" name="instructions" rows="2" placeholder="Transfer the exact total, then upload a screenshot of the receipt. Write your order number in the transfer note." class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:text="${org.payInstructions}"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800">
+              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+              <span><span class="font-semibold">You are responsible for confirming transfers before tickets are issued</span> — pending orders wait in <a th:href="@{/host/orders(status='pending')}" class="font-semibold underline decoration-amber-300 underline-offset-2">Orders</a>.</span>
+            </div>
+            <div class="mt-4">
+              <button type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Save payment settings</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+  <nav th:replace="~{fragments/host-layout :: bottomTabs('payments')}"></nav>
+</div>
+</div>
+
+</body>
+</html>

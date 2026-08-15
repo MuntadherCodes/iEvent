@@ -1,3 +1,5 @@
 node_modules/
 playwright-report/
 test-results/
+# Runtime-generated test fixtures (created by walkthrough.spec.js beforeAll)
+fixtures/

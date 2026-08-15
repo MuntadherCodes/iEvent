@@ -74,6 +74,31 @@ public class CatalogService {
                 .map(this::toDetail);
     }
 
+    /** Cards for an explicit id list (e.g. favorites), preserving the given order. */
+    public List<EventCard> cardsForIds(List<Long> ids) {
+        if (ids.isEmpty()) return List.of();
+        List<Event> found = events.findAllById(ids);
+        Map<Long, Event> byId = found.stream()
+                .collect(Collectors.toMap(Event::getId, e -> e));
+        List<Event> ordered = ids.stream().map(byId::get)
+                .filter(java.util.Objects::nonNull).toList();
+        return toCards(ordered);
+    }
+
+    public List<EventCard> upcomingForOrganization(Long orgId, int limit) {
+        return toCards(events.findByOrganizationIdAndStatusAndStartsAtAfterOrderByStartsAtAsc(
+                orgId, Event.Status.LIVE, OffsetDateTime.now(), PageRequest.of(0, limit)));
+    }
+
+    public java.util.Optional<iq.ievent.web.dto.Views.DirectPayInfo> directPayInfo(String slug) {
+        return events.findBySlug(slug)
+                .map(Event::getOrganization)
+                .filter(Organization::isDirectPaymentsEnabled)
+                .map(o -> new iq.ievent.web.dto.Views.DirectPayInfo(
+                        o.getPayCardNumber(), o.getPayAccountName(),
+                        o.getPayWalletBank(), o.getPayInstructions()));
+    }
+
     public List<EventCard> related(String slug, int limit) {
         return events.findBySlug(slug)
                 .map(e -> toCards(events.findRelated(e.getId(), e.getCategory().name(), e.getCity(),

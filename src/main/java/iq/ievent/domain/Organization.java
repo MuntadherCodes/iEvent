@@ -30,6 +30,21 @@ public class Organization {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "direct_payments_enabled", nullable = false)
+    private boolean directPaymentsEnabled;
+
+    @Column(name = "pay_card_number")
+    private String payCardNumber;
+
+    @Column(name = "pay_account_name")
+    private String payAccountName;
+
+    @Column(name = "pay_wallet_bank")
+    private String payWalletBank;
+
+    @Column(name = "pay_instructions")
+    private String payInstructions;
+
     public Long getId() { return id; }
     public Long getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(Long ownerUserId) { this.ownerUserId = ownerUserId; }
@@ -44,4 +59,14 @@ public class Organization {
     public boolean isVerified() { return verified; }
     public void setVerified(boolean verified) { this.verified = verified; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
+    public boolean isDirectPaymentsEnabled() { return directPaymentsEnabled; }
+    public void setDirectPaymentsEnabled(boolean directPaymentsEnabled) { this.directPaymentsEnabled = directPaymentsEnabled; }
+    public String getPayCardNumber() { return payCardNumber; }
+    public void setPayCardNumber(String payCardNumber) { this.payCardNumber = payCardNumber; }
+    public String getPayAccountName() { return payAccountName; }
+    public void setPayAccountName(String payAccountName) { this.payAccountName = payAccountName; }
+    public String getPayWalletBank() { return payWalletBank; }
+    public void setPayWalletBank(String payWalletBank) { this.payWalletBank = payWalletBank; }
+    public String getPayInstructions() { return payInstructions; }
+    public void setPayInstructions(String payInstructions) { this.payInstructions = payInstructions; }
 }

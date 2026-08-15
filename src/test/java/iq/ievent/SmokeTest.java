@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -64,6 +65,33 @@ class SmokeTest {
     void unknownEventSlugIs404() throws Exception {
         mockMvc.perform(get("/events/nope"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void myTicketsRequiresLogin() throws Exception {
+        mockMvc.perform(get("/me/tickets"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/auth/login"));
+    }
+
+    @Test
+    void hostAreaRequiresLogin() throws Exception {
+        mockMvc.perform(get("/host"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/auth/login"));
+    }
+
+    @Test
+    void unknownTicketCodeIs404() throws Exception {
+        mockMvc.perform(get("/t/NOPE"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void checkoutPageRendersForAnonymousVisitor() throws Exception {
+        // Anonymous visitors get the sign-in prompt, but the page itself is 200.
+        mockMvc.perform(get("/events/baghdad-nights-music-festival/checkout"))
+                .andExpect(status().isOk());
     }
 
     @Test

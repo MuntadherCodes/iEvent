@@ -15,6 +15,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     Optional<Event> findBySlug(String slug);
 
+    List<Event> findByOrganizationIdOrderByStartsAtDesc(Long organizationId);
+
+    List<Event> findByOrganizationIdAndStatusAndStartsAtAfterOrderByStartsAtAsc(
+            Long organizationId, Event.Status status, OffsetDateTime after, Pageable pageable);
+
     @Query("""
            select e from Event e
            where e.status = :status

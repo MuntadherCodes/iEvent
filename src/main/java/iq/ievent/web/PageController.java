@@ -39,10 +39,16 @@ public class PageController {
 
     private final CatalogService catalog;
     private final UserService userService;
+    private final iq.ievent.service.InteractionService interactions;
+    private final iq.ievent.repo.EventRepository events;
 
-    public PageController(CatalogService catalog, UserService userService) {
+    public PageController(CatalogService catalog, UserService userService,
+                          iq.ievent.service.InteractionService interactions,
+                          iq.ievent.repo.EventRepository events) {
         this.catalog = catalog;
         this.userService = userService;
+        this.interactions = interactions;
+        this.events = events;
     }
 
     @ModelAttribute
@@ -80,10 +86,20 @@ public class PageController {
     }
 
     @GetMapping("/events/{slug}")
-    public String event(@PathVariable String slug, Model model) {
+    public String event(@PathVariable String slug,
+                        @AuthenticationPrincipal UserDetails principal,
+                        Model model) {
         EventDetail detail = catalog.eventDetail(slug)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        boolean liked = false;
+        if (principal != null) {
+            var user = userService.byEmail(principal.getUsername());
+            liked = user != null && events.findBySlug(slug)
+                    .map(e -> interactions.isLiked(user.getId(), e.getId()))
+                    .orElse(false);
+        }
         model.addAttribute("event", detail);
+        model.addAttribute("liked", liked);
         model.addAttribute("related", catalog.related(slug, 3));
         return "event";
     }

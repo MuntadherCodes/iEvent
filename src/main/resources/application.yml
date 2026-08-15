@@ -18,6 +18,11 @@ spring:
   thymeleaf:
     cache: ${THYMELEAF_CACHE:true}
 
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 8MB
+
   mail:
     host: ${SPRING_MAIL_HOST:localhost}
     port: ${SPRING_MAIL_PORT:1025}
@@ -42,6 +47,7 @@ management:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  upload-dir: ${APP_UPLOAD_DIR:/app/data/uploads}
   mail:
     mode: ${MAIL_MODE:mailpit}
     from: ${MAIL_FROM:no-reply@ievent.iq}

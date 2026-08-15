@@ -1,18 +1,23 @@
 // @ts-check
 /**
- * iEvent end-to-end walkthrough.
+ * iEvent end-to-end walkthrough (serial).
  *
  * Assumes the docker-compose stack is up with the demo seed loaded:
- *   SEED_DEMO=true  -> organizer "Zain Events Co." + 8 showcase events
- *                      (incl. "Baghdad Nights Music Festival",
- *                       slug baghdad-nights-music-festival, GA 35,000 IQD,
- *                       Early Bird sold out, booking fee 1,500 IQD/ticket)
+ *   SEED_DEMO=true  -> organizer "Zain Events Co." (@zainevents, direct payments
+ *                      ENABLED, card 5326 1102 4478 4821; host login
+ *                      fahad@zainevents.iq / Password123!) + 8 showcase events:
+ *                      - "Baghdad Nights Music Festival" (baghdad-nights-music-festival)
+ *                        GA 35,000 IQD on sale, Early Bird sold out
+ *                      - "Startup Mixer Baghdad" (startup-mixer-baghdad) free "RSVP" ticket
+ *                      Booking fee: 1,500 IQD per PAID ticket.
  *   SEED_SCALE=300  -> 300 synthetic "Scale Event #N — <City>" events
  *
- * Selectors lean on semantic anchors (roles, accessible names, visible text)
- * taken from the v3 wireframes, since those are what the templates implement.
+ * Selectors are bound to the actual Thymeleaf templates in
+ * src/main/resources/templates (aria-labels, visible copy, form field names).
  */
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -20,6 +25,30 @@ const RUN_ID = process.env.GITHUB_RUN_ID || String(Date.now());
 const E2E_EMAIL = `e2e+${RUN_ID}@test.iq`;
 const E2E_NAME = 'E2E Tester';
 const E2E_PASSWORD = 'E2ePassw0rd!';
+
+// Buyer used for the RSVP / direct-transfer / favorites journeys (h–l).
+const BUYER_EMAIL = `e2e-buyer+${RUN_ID}@test.iq`;
+const BUYER_NAME = 'E2E Buyer';
+const BUYER_PASSWORD = 'BuyerPassw0rd!';
+
+// Brand-new user who becomes a host in test m.
+const HOST2_EMAIL = `e2e-host+${RUN_ID}@test.iq`;
+const HOST2_NAME = 'E2E Host';
+const HOST2_PASSWORD = 'HostPassw0rd!';
+
+// Seeded demo host with direct payments enabled.
+const DEMO_HOST_EMAIL = 'fahad@zainevents.iq';
+const DEMO_HOST_PASSWORD = 'Password123!';
+
+// 1x1 transparent PNG, generated at runtime as the transfer-receipt fixture.
+const PNG_1PX_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const FIXTURES_DIR = path.join(__dirname, '..', 'fixtures');
+const RECEIPT_PNG = path.join(FIXTURES_DIR, 'receipt.png');
+
+// State shared across the serial walkthrough.
+let rsvpTicketCode = ''; // Startup Mixer ticket code from test h
+let baghdadHostEventId = ''; // /host/events/{id} for Baghdad Nights (test k)
 
 function log(msg) {
   // eslint-disable-next-line no-console
@@ -48,6 +77,51 @@ test.afterEach(async ({ page }, testInfo) => {
   }
 });
 
+test.beforeAll(() => {
+  fs.mkdirSync(FIXTURES_DIR, { recursive: true });
+  fs.writeFileSync(RECEIPT_PNG, Buffer.from(PNG_1PX_BASE64, 'base64'));
+});
+
+// ---------- helpers ----------
+
+async function registerUser(page, { name, email, password }) {
+  log(`registering ${email}`);
+  await page.goto('/auth/register');
+  await page.locator('input[name="fullName"]').fill(name);
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(password);
+  await page
+    .locator('form')
+    .filter({ has: page.locator('input[name="fullName"]') })
+    .locator('button[type="submit"], input[type="submit"]')
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/auth\/login\?registered/);
+}
+
+async function login(page, email, password) {
+  log(`logging in as ${email}`);
+  await page.goto('/auth/login');
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).not.toHaveURL(/\/auth\/login/);
+}
+
+async function signOut(page) {
+  log('signing out');
+  await page.goto('/');
+  const logoutForm = page.locator('header form[action*="/auth/logout"]');
+  if (await logoutForm.first().isVisible().catch(() => false)) {
+    await logoutForm.locator('button, [type="submit"]').first().click();
+    await expect(page.locator('header').getByText(/Sign in/i).first()).toBeVisible();
+  } else {
+    log('already signed out');
+  }
+}
+
+// ---------- walkthrough ----------
+
 test('a. health endpoint reports UP', async ({ request }) => {
   log('GET /actuator/health');
   const res = await request.get('/actuator/health');
@@ -67,7 +141,7 @@ test('b. home page shows hero, seeded event, trending and Sign in', async ({ pag
   log('seeded "Baghdad Nights Music Festival" card should be on the home page');
   await expect(page.getByText('Baghdad Nights Music Festival').first()).toBeVisible();
 
-  log('a "Trending" section should be present');
+  log('the "Trending across Iraq" section should be present');
   await expect(page.getByText(/Trending/i).first()).toBeVisible();
 
   log('header should offer "Sign in" for anonymous visitors');
@@ -90,20 +164,11 @@ test('c. browse: scale volume, pagination, category / search / free filters', as
     .poll(async () => cards.count(), { message: 'expected at least 12 event cards' })
     .toBeGreaterThanOrEqual(12);
 
-  log('pagination "Next" control should be visible');
-  await expect(
-    page
-      .getByRole('link', { name: /next/i })
-      .or(page.getByRole('button', { name: /next/i }))
-      .first()
-  ).toBeVisible();
+  log('pagination "Next" link should be visible');
+  await expect(page.getByRole('link', { name: /^Next$/ }).first()).toBeVisible();
 
-  log('clicking the Music category chip should filter to category=MUSIC');
-  const musicChip = page
-    .locator('a[href*="category=MUSIC"]')
-    .or(page.getByRole('link', { name: /^Music$/ }))
-    .first();
-  await musicChip.click();
+  log('clicking the "Music" category chip should filter to category=MUSIC');
+  await page.locator('a[href*="category=MUSIC"]').first().click();
   await expect(page).toHaveURL(/category=MUSIC/);
 
   log('Baghdad Nights (MUSIC, starts in ~5 days) should be on page 1 of the Music filter');
@@ -133,10 +198,7 @@ test('c. browse: scale volume, pagination, category / search / free filters', as
 test('d. event detail: tickets, sold out, organizer, related, stepper total', async ({ page }) => {
   log('opening Baghdad Nights from the browse grid');
   await page.goto('/browse?q=Baghdad%20Nights');
-  await page
-    .locator('a[href*="baghdad-nights-music-festival"]')
-    .first()
-    .click();
+  await page.locator('a[href*="baghdad-nights-music-festival"]').first().click();
   await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival/);
 
   log('h1 should carry the event title');
@@ -160,9 +222,8 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
   log('organizer "Zain Events Co." should be credited');
   await expect(page.getByText('Zain Events Co.').first()).toBeVisible();
 
-  log('related events ("More events like this") grid should be non-empty');
-  const relatedHeading = page.getByRole('heading', { name: /More events like this/i }).first();
-  await expect(relatedHeading).toBeVisible();
+  log('"More events like this" grid should be non-empty');
+  await expect(page.getByText(/More events like this/i).first()).toBeVisible();
   await expect
     .poll(
       async () =>
@@ -174,61 +235,27 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
     .toBeGreaterThan(0);
 
   log('ticket stepper: +1 General Admission should total 36,500 IQD (35,000 + 1,500 fee)');
-  const plusButton = page
-    .getByRole('button', { name: /add one general admission/i })
-    .or(
-      page
-        .locator('div, li')
-        .filter({ hasText: /^General Admission/ })
-        .locator('button')
-        .last()
-    )
-    .first();
-  await plusButton.click();
-  await expect(page.getByText(/36,500\s*IQD/).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
 });
 
 test('e. auth: register, login shows initials, logout restores Sign in', async ({ page }) => {
-  log(`registering ${E2E_EMAIL}`);
-  await page.goto('/auth/register');
-  await page.locator('input[name="fullName"]').fill(E2E_NAME);
-  await page.locator('input[name="email"]').fill(E2E_EMAIL);
-  await page.locator('input[name="password"]').fill(E2E_PASSWORD);
-  await page
-    .locator('form')
-    .filter({ has: page.locator('input[name="fullName"]') })
-    .locator('button[type="submit"], input[type="submit"]')
-    .first()
-    .click();
+  await registerUser(page, { name: E2E_NAME, email: E2E_EMAIL, password: E2E_PASSWORD });
 
-  log('registration should redirect to /auth/login?registered with a success banner');
-  await expect(page).toHaveURL(/\/auth\/login\?registered/);
+  log('registration success banner should be visible on the login page');
   await expect(page.getByText(/(account|registered|created|success)/i).first()).toBeVisible();
 
-  log('logging in with the new account');
-  await page.locator('input[name="email"]').fill(E2E_EMAIL);
-  await page.locator('input[name="password"]').fill(E2E_PASSWORD);
-  await page
-    .locator('form')
-    .filter({ has: page.locator('input[name="password"]') })
-    .locator('button[type="submit"], input[type="submit"]')
-    .first()
-    .click();
+  await login(page, E2E_EMAIL, E2E_PASSWORD);
 
-  log('after login we should land on home and the header should show user initials');
-  await expect(page).toHaveURL(/\/(\?.*)?$/);
+  log('after login the header should show user initials instead of "Sign in"');
   const header = page.locator('header');
   await expect(header.getByRole('link', { name: /Sign in/i })).toHaveCount(0);
   // "E2E Tester" -> initials "ET"
   await expect(header.getByText('ET', { exact: true }).first()).toBeVisible();
 
   log('signing out via the header sign-out form');
-  const logoutForm = page.locator('form[action*="/auth/logout"]');
-  if (!(await logoutForm.first().isVisible().catch(() => false))) {
-    log('logout form not directly visible — opening the account menu first');
-    await header.getByText('ET', { exact: true }).first().click();
-  }
-  await logoutForm
+  await page
+    .locator('header form[action*="/auth/logout"]')
     .locator('button, [type="submit"]')
     .first()
     .click();
@@ -243,8 +270,257 @@ test('f. unknown event slug returns a branded 404', async ({ page }) => {
   expect(response, 'navigation should produce a response').toBeTruthy();
   expect(response.status(), 'unknown slug should be a 404').toBe(404);
 
-  log('error page should be branded (iEvent look, not a bare Whitelabel page)');
+  log('error page should be the branded iEvent error page');
   await expect(
-    page.getByText(/(couldn.t find|not found|doesn.t exist|404)/i).first()
+    page.getByRole('heading', { name: /Something went wrong/i })
   ).toBeVisible();
+  await expect(page.getByText(/Error 404/i).first()).toBeVisible();
+});
+
+test('g. REGRESSION: login/register render cleanly in a cookie-less context', async ({ browser }) => {
+  // Guards the CSRF-after-commit crash: a visitor with no session opening
+  // /auth/login or /auth/register must get a fully rendered form, never the
+  // "Something went wrong" error fragment appended mid-render.
+  const context = await browser.newContext();
+  const freshPage = await context.newPage();
+  try {
+    for (const url of ['/auth/login', '/auth/register']) {
+      log(`fresh context (no cookies) → GET ${url}`);
+      const response = await freshPage.goto(url);
+      expect(response.status(), `${url} should answer 200`).toBe(200);
+      await expect(
+        freshPage.locator('input[name="password"]'),
+        `${url} should render its password field`
+      ).toBeVisible();
+      const body = await freshPage.locator('body').innerText();
+      expect(
+        body,
+        `${url} must not contain the error-page marker "Something went wrong"`
+      ).not.toContain('Something went wrong');
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket status', async ({ page }) => {
+  await registerUser(page, { name: BUYER_NAME, email: BUYER_EMAIL, password: BUYER_PASSWORD });
+  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+
+  log('opening Startup Mixer Baghdad (free RSVP ticket)');
+  await page.goto('/events/startup-mixer-baghdad');
+  await expect(page.locator('h1')).toContainText('Startup Mixer Baghdad');
+
+  log('stepper: +1 RSVP, then submit the rail form ("Get tickets")');
+  await page.getByRole('button', { name: 'Add one RSVP ticket' }).click();
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/events\/startup-mixer-baghdad\/checkout/);
+
+  log('buyer details should be prefilled from the account');
+  await expect(page.locator('#buyerName')).toHaveValue(BUYER_NAME);
+  await expect(page.locator('#buyerEmail')).toHaveValue(BUYER_EMAIL);
+
+  log('free registration note and "Register free" submit label expected');
+  await expect(page.getByText(/Free registration — tickets are issued instantly/)).toBeVisible();
+  await expect(page.locator('#submitLabel')).toHaveText('Register free');
+
+  log('submitting the free order');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+
+  log('confirmation: "You\'re going!" hero + one ticket stub with a QR svg');
+  await expect(page.getByRole('heading', { name: /You're going!/ })).toBeVisible();
+  await expect(page.locator('.qr-box svg').first()).toBeVisible();
+
+  rsvpTicketCode = (
+    await page
+      .locator('dl > div')
+      .filter({ hasText: 'Ticket code' })
+      .locator('dd')
+      .first()
+      .innerText()
+  ).trim();
+  log(`captured RSVP ticket code: ${rsvpTicketCode}`);
+  expect(rsvpTicketCode.length).toBeGreaterThan(5);
+
+  log('/me/tickets should list the Startup Mixer ticket');
+  await page.goto('/me/tickets');
+  await expect(page.getByRole('link', { name: 'Startup Mixer Baghdad' })).toBeVisible();
+  await expect(page.locator('.qr-box svg').first()).toBeVisible();
+
+  log(`public ticket status /t/${rsvpTicketCode} should show "Valid ticket"`);
+  await page.goto(`/t/${rsvpTicketCode}`);
+  await expect(page.getByText('Valid ticket')).toBeVisible();
+});
+
+test('i. direct-transfer flow: card number, reference, receipt upload, pending order', async ({ page }) => {
+  log('buyer opens Baghdad Nights and picks 1 General Admission');
+  await page.goto('/auth/login');
+  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+  await page.goto('/events/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+
+  log('direct-transfer panel with the organizer card number should be visible');
+  await expect(page.getByText('Direct transfer to organizer')).toBeVisible();
+  await expect(page.getByText('5326 1102 4478 4821')).toBeVisible();
+
+  log('filling transfer reference and attaching the receipt fixture');
+  await page.locator('#transferReference').fill('E2E-REF-1');
+  await page.locator('#receiptInput').setInputFiles(RECEIPT_PNG);
+  await expect(page.getByText(/receipt\.png attached/)).toBeVisible();
+
+  log('submitting the order for confirmation');
+  await expect(page.locator('#submitLabel')).toHaveText('Submit order for confirmation');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+
+  log('confirmation should be the amber PENDING state with total 36,500 IQD and no tickets');
+  await expect(
+    page.getByRole('heading', { name: /pending organizer confirmation/i })
+  ).toBeVisible();
+  await expect(page.getByText('Pending confirmation').first()).toBeVisible();
+  await expect(page.getByText(/36,500\s*IQD/).first()).toBeVisible();
+  await expect(page.locator('.qr-box')).toHaveCount(0);
+});
+
+test('j. host approves the direct-transfer order; buyer receives the ticket', async ({ page }) => {
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('/host dashboard should flag pending direct-transfer orders');
+  await page.goto('/host');
+  await expect(
+    page.getByText(/direct-transfer orders waiting for your confirmation/).first()
+  ).toBeVisible();
+
+  log('opening the pending orders queue');
+  await page.goto('/host/orders?status=pending');
+  const row = page.locator('tr').filter({ hasText: BUYER_EMAIL }).first();
+  await expect(row).toBeVisible();
+
+  log('the row should link to the uploaded receipt and show the reference');
+  await expect(row.getByRole('link', { name: /Receipt/ })).toBeVisible();
+  await expect(row.getByText('E2E-REF-1')).toBeVisible();
+
+  log('approving the order');
+  await row.getByRole('button', { name: /Approve/ }).click();
+  await expect(page.getByText(/approved — tickets emailed to the buyer/).first()).toBeVisible();
+
+  log('buyer logs back in — /me/tickets now shows the Baghdad Nights ticket');
+  await signOut(page);
+  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+  await page.goto('/me/tickets');
+  await expect(page.getByRole('link', { name: 'Baghdad Nights Music Festival' })).toBeVisible();
+});
+
+test('k. host check-in: door list check-in + wrong-event code rejected', async ({ page }) => {
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('navigating /host/events → Baghdad Nights console');
+  await page.goto('/host/events');
+  await page.getByRole('link', { name: /Baghdad Nights Music Festival/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  baghdadHostEventId = page.url().match(/\/host\/events\/(\d+)/)[1];
+  log(`Baghdad Nights host event id: ${baghdadHostEventId}`);
+
+  log('opening the attendees quick-link from the event console');
+  await page.locator('a[href*="/host/attendees?event="]').first().click();
+  await expect(page).toHaveURL(/\/host\/attendees\?event=/);
+
+  log(`searching the door list for "${BUYER_NAME}"`);
+  await page.locator('input[name="q"]').fill(BUYER_NAME);
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  const attendeeRow = page.locator('tr').filter({ hasText: BUYER_NAME }).first();
+  await expect(attendeeRow).toBeVisible();
+
+  log('checking the buyer in');
+  await attendeeRow.getByRole('button', { name: /Check in/ }).click();
+  const checkedRow = page.locator('tr').filter({ hasText: BUYER_NAME }).first();
+  await expect(checkedRow.getByRole('button', { name: 'Undo' })).toBeVisible();
+
+  log('check-in screen: a ticket code from ANOTHER event must be rejected');
+  await page.goto(`/host/checkin?event=${baghdadHostEventId}`);
+  await page.locator('input[name="code"]').fill(rsvpTicketCode);
+  await page.getByRole('button', { name: /Check in/ }).click();
+  await expect(page.getByText(/belongs to a different event/)).toBeVisible();
+  await expect(page.getByText(/Startup Mixer Baghdad/).first()).toBeVisible();
+});
+
+test('l. likes and follow: save an event, see it in favorites, follow the organizer', async ({ page }) => {
+  await signOut(page);
+  await login(page, BUYER_EMAIL, BUYER_PASSWORD);
+
+  log('saving Baghdad Nights via the rail Save button');
+  await page.goto('/events/baghdad-nights-music-festival');
+  const saveBtn = page.locator('button[form="likeForm"]');
+  await expect(saveBtn).toContainText('Save');
+  await saveBtn.click();
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival/);
+  await expect(page.locator('button[form="likeForm"]')).toContainText('Saved');
+
+  log('/favorites should show the saved card');
+  await page.goto('/favorites');
+  await expect(page.getByText('Baghdad Nights Music Festival').first()).toBeVisible();
+
+  log('following @zainevents from the organizer page');
+  await page.goto('/organizers/zainevents');
+  await page.getByRole('button', { name: 'Follow', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Following' })).toBeVisible();
+});
+
+test('m. host onboarding: new user creates an org, publishes an event, it goes public', async ({ page }) => {
+  await signOut(page);
+  await registerUser(page, { name: HOST2_NAME, email: HOST2_EMAIL, password: HOST2_PASSWORD });
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('/host without an organization should redirect to onboarding (/host/start)');
+  await page.goto('/host');
+  await expect(page).toHaveURL(/\/host\/start/);
+  await expect(page.getByRole('heading', { name: /Become a host/ })).toBeVisible();
+
+  log('creating organizer profile "E2E Test Events"');
+  await page.locator('#orgName').fill('E2E Test Events');
+  await page.getByRole('button', { name: /Create organizer profile/ }).click();
+  await expect(page).toHaveURL(/\/host(\/)?$/);
+  await expect(page.getByText('E2E Test Events').first()).toBeVisible();
+
+  log('creating "E2E Concert Night" via /host/events/new (publish)');
+  await page.goto('/host/events/new');
+  await page.locator('input[name="title"]').fill('E2E Concert Night');
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await page.locator('input[name="date"]').fill(tomorrow);
+  await page.locator('input[name="startTime"]').fill('20:00');
+  await page.locator('select[name="city"]').selectOption('Baghdad');
+  await page.locator('select[name="category"]').selectOption('MUSIC');
+  await page.locator('input[name="ttName"]').first().fill('GA');
+  await page.locator('input[name="ttPrice"]').first().fill('10000');
+  await page.locator('input[name="ttQty"]').first().fill('50');
+  await page.getByRole('button', { name: /Publish event/ }).click();
+
+  log('event console should show the event as Live');
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /View public page/ })).toBeVisible();
+
+  log('the published event should be discoverable on public browse');
+  await page.goto('/browse?q=E2E%20Concert');
+  await expect(page.getByText('E2E Concert Night').first()).toBeVisible();
+});
+
+test('n. unauthenticated /me/tickets and /host are pushed to sign-in', async ({ browser }) => {
+  const context = await browser.newContext();
+  const freshPage = await context.newPage();
+  try {
+    for (const url of ['/me/tickets', '/host']) {
+      log(`fresh context → GET ${url} should land on the login page`);
+      await freshPage.goto(url);
+      await expect(freshPage).toHaveURL(/\/auth\/login/);
+    }
+  } finally {
+    await context.close();
+  }
 });

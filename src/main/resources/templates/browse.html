@@ -29,7 +29,7 @@
   <!-- ============ STICKY FILTER BAR ============ -->
   <div class="sticky top-16 z-40 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
     <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-      <div class="relative -my-1 flex flex-1 items-center gap-2 overflow-x-auto py-1 [scrollbar-width:none] [&amp;::-webkit-scrollbar]:hidden">
+      <div class="no-scrollbar relative -my-1 flex flex-1 items-center gap-2 overflow-x-auto py-1">
         <a th:href="@{/browse(q=${q},city=${selectedCity},free=${freeOnly})}"
            class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
            th:classappend="${selectedCategory == ''} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All</a>

@@ -90,6 +90,11 @@ public class SeedRunner implements CommandLineRunner {
         org.setBio("Baghdad's leading live-events crew. We produce festivals, concerts and cultural nights across Iraq — from intimate rooftop sessions to full-scale park festivals.");
         org.setCity("Baghdad");
         org.setVerified(true);
+        org.setDirectPaymentsEnabled(true);
+        org.setPayCardNumber("5326 1102 4478 4821");
+        org.setPayAccountName("Fahad Al-Thakur");
+        org.setPayWalletBank("ZainCash");
+        org.setPayInstructions("Transfer the exact total, then upload a screenshot of the receipt. Write your order number in the transfer note.");
         org = organizations.save(org);
 
         OffsetDateTime base = OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS);

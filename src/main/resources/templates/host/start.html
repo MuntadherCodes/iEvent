@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Become a host — iEvent')}"></head>
+<body class="bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
+
+<!-- Minimal header -->
+<header class="sticky top-0 z-50 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <a th:href="@{/}" class="flex shrink-0 items-center gap-2" aria-label="iEvent home">
+      <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
+      <span class="font-display text-lg font-extrabold tracking-tight text-ink-900"><span class="text-brand-500">i</span>Event</span>
+    </a>
+    <a th:href="@{/}" class="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">Exit<svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></a>
+  </div>
+</header>
+
+<div class="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl lg:grid-cols-[1.05fr_1fr]">
+
+  <!-- ============ LEFT · FORM ============ -->
+  <main id="main" class="flex flex-col justify-center px-4 pb-10 pt-8 sm:px-6 lg:px-12 lg:pt-12">
+    <div class="mx-auto w-full max-w-lg">
+      <p class="text-xs font-bold uppercase tracking-wider text-brand-600">Welcome to iEvent</p>
+      <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Become a host</h1>
+      <p class="mt-3 max-w-md text-ink-500">Set up your organizer profile — it takes a minute. You can polish it any time.</p>
+
+      <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+        <span th:text="${error}">Give your organizer profile a name.</span>
+      </div>
+
+      <form th:action="@{/host/start}" method="post" class="mt-8 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+        <div>
+          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="orgName">Organizer name <span class="text-rose-500">*</span></label>
+          <input id="orgName" name="orgName" type="text" required placeholder="e.g. Zain Events Co."
+                 class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+        </div>
+        <div class="mt-5">
+          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="handle">Profile handle</label>
+          <div class="flex items-center overflow-hidden rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+            <span class="shrink-0 border-r border-ink-100 bg-ink-50 px-3.5 py-3 text-sm font-medium text-ink-400">ievent.iq/o/</span>
+            <input id="handle" name="handle" type="text" placeholder="zain-events"
+                   class="w-full bg-transparent px-3.5 py-3 text-sm outline-none placeholder:text-ink-400">
+          </div>
+          <p class="mt-1.5 text-xs text-ink-400">Leave blank and we'll create one from your name.</p>
+        </div>
+        <div class="mt-5">
+          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="city">Home city</label>
+          <div class="relative">
+            <select id="city" name="city" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <option value="Baghdad">Baghdad</option>
+              <option value="Basra">Basra</option>
+              <option value="Erbil">Erbil</option>
+              <option value="Sulaymaniyah">Sulaymaniyah</option>
+              <option value="Najaf">Najaf</option>
+              <option value="Karbala">Karbala</option>
+              <option value="Mosul">Mosul</option>
+              <option value="Duhok">Duhok</option>
+            </select>
+            <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          </div>
+        </div>
+        <div class="mt-5">
+          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="bio">Short bio</label>
+          <textarea id="bio" name="bio" rows="3" placeholder="Tell attendees who you are and what kind of events you host."
+                    class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+        </div>
+        <button type="submit" class="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
+          Create organizer profile<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+        </button>
+        <p class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
+          <span>Free events are free. Paid tickets: <strong class="font-semibold text-ink-800">1,500 IQD booking fee per ticket</strong> — paid by the buyer.</span>
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <!-- ============ RIGHT · VISUAL PANEL (lg+) ============ -->
+  <aside class="relative hidden overflow-hidden bg-gradient-to-br from-brand-700 via-brand-500 to-brand-400 lg:block" aria-hidden="true">
+    <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="ob-dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#ob-dots)"/></svg>
+    <div class="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
+    <div class="pointer-events-none absolute -right-20 bottom-10 h-80 w-80 rounded-full bg-brand-950/30 blur-3xl"></div>
+
+    <div class="absolute inset-0 flex flex-col items-center justify-center p-10 xl:p-16">
+      <div class="relative w-full max-w-sm">
+        <!-- Floating mock event card -->
+        <div class="-rotate-2 rounded-2xl bg-white p-3 shadow-pop transition">
+          <div class="relative aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br from-violet-500 via-brand-500 to-fuchsia-500 ring-1 ring-black/5">
+            <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="ob-card-dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#ob-card-dots)"/></svg>
+            <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40"><use href="#i-music"/></svg>
+            <span class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800">Music</span>
+          </div>
+          <div class="p-3">
+            <p class="text-xs font-bold uppercase tracking-wide text-brand-600">Sat, Sep 12 · 7:00 PM</p>
+            <h3 class="mt-1 font-display font-bold leading-snug text-ink-900">Baghdad Nights Music Festival</h3>
+            <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400"><use href="#i-map-pin"/></svg>Al-Zawraa Park, Baghdad</p>
+            <p class="mt-2.5 flex items-center justify-between text-sm font-semibold text-ink-800"><span class="tabular-nums">From 25,000 IQD</span><span class="inline-flex items-center gap-1 text-xs font-medium tabular-nums text-ink-400"><svg class="h-3.5 w-3.5"><use href="#i-heart"/></svg>214</span></p>
+          </div>
+        </div>
+        <!-- Floating stat chip -->
+        <div class="absolute -right-4 -top-5 flex rotate-3 items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-pop">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-100 text-brand-600"><svg class="h-4 w-4"><use href="#i-ticket"/></svg></span>
+          <span class="text-left leading-tight"><span class="block font-display text-sm font-extrabold tabular-nums text-ink-900">218/400</span><span class="block text-[11px] font-semibold text-ink-500">tickets sold</span></span>
+        </div>
+        <!-- Floating payout chip -->
+        <div class="absolute -bottom-5 -left-4 flex -rotate-2 items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-pop">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-green-100 text-green-600"><svg class="h-4 w-4"><use href="#i-wallet"/></svg></span>
+          <span class="text-left leading-tight"><span class="block font-display text-sm font-extrabold tabular-nums text-ink-900">5,450,000 IQD</span><span class="block text-[11px] font-semibold text-ink-500">straight to your wallet</span></span>
+        </div>
+      </div>
+      <p class="mt-14 max-w-xs text-center font-display text-lg font-bold text-white">Everything you need to sell out — built for Iraq.</p>
+      <p class="mt-2 text-center text-sm text-white/70">Find your event, find your people.</p>
+    </div>
+  </aside>
+</div>
+
+</body>
+</html>
