@@ -151,7 +151,10 @@ public class HostController {
         model.addAttribute("upcoming", upcoming);
         model.addAttribute("recentOrders", recent.getContent().stream().map(this::toRow).toList());
         model.addAttribute("pendingCount", stats.pendingOrders());
-        model.addAttribute("salesPoints", hostService.dailySales(org.getId()));
+        List<HostService.DayPoint> salesPoints = hostService.dailySales(org.getId());
+        model.addAttribute("salesPoints", salesPoints);
+        model.addAttribute("salesMax", salesPoints.stream()
+                .mapToLong(HostService.DayPoint::amountIqd).max().orElse(0L));
         return "host/dashboard";
     }
 

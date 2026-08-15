@@ -619,6 +619,12 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   log('creating organizer profile "E2E Test Events"');
   await page.locator('#orgName').fill('E2E Test Events');
   await page.getByRole('button', { name: /Create organizer profile/ }).click();
+
+  // Regression (round 6): a brand-new host's EMPTY dashboard must render — the
+  // sales-chart #aggregates.max SpEL crash 500'd every /host visit (CI run 6).
+  log('fresh host dashboard renders without error');
+  await expect(page).toHaveURL(/\/host/);
+  await expect(page.locator('body')).not.toContainText('Something went wrong');
   await expect(page).toHaveURL(/\/host(\/)?$/);
   await expect(page.getByText('E2E Test Events').first()).toBeVisible();
 

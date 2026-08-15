@@ -69,7 +69,7 @@
 
       <!-- Sales chart (renders only when the controller provides salesPoints) -->
       <section th:if="${salesPoints != null && !#lists.isEmpty(salesPoints)}" class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="Ticket sales chart"
-               th:with="mx=${#aggregates.max(salesPoints.![amountIqd()])}">
+               th:with="mx=${salesMax}">
         <h3 class="font-display text-lg font-bold text-ink-900">Ticket sales</h3>
         <p class="text-sm text-ink-500">Daily gross sales</p>
         <div class="mt-4 flex h-40 items-end gap-1">
