@@ -43,6 +43,12 @@ const HOST2_PASSWORD = 'HostPassw0rd!';
 const DEMO_HOST_EMAIL = 'fahad@zainevents.iq';
 const DEMO_HOST_PASSWORD = 'Password123!';
 
+// Mailpit HTTP API (compose exposes the UI/API on the runner host, default :8025).
+// Override with MAILPIT_API for non-standard setups. In CI mail assertions are
+// mandatory; in local runs without Mailpit they are skipped with an annotation.
+const MAILPIT_API = process.env.MAILPIT_API || 'http://localhost:8025';
+const IS_CI = !!process.env.CI || !!process.env.GITHUB_RUN_ID;
+
 // 1x1 transparent PNG, generated at runtime as the transfer-receipt fixture.
 const PNG_1PX_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -121,6 +127,70 @@ async function signOut(page) {
   } else {
     log('already signed out');
   }
+}
+
+/** True when the Mailpit API answers at MAILPIT_API. */
+async function mailpitAvailable(request) {
+  try {
+    const res = await request.get(`${MAILPIT_API}/api/v1/messages?limit=1`);
+    return res.ok();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Poll the Mailpit API (up to timeoutMs) for a message whose To contains `to`
+ * and whose Subject contains `subjectPart`. Returns the message or null.
+ */
+async function mailpitFind(request, { to, subjectPart }, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await request.get(`${MAILPIT_API}/api/v1/messages?limit=50`);
+      if (res.ok()) {
+        const data = await res.json();
+        const hit = (data.messages || []).find(
+          (m) =>
+            (m.To || []).some(
+              (a) => (a.Address || '').toLowerCase() === to.toLowerCase()
+            ) && (m.Subject || '').includes(subjectPart)
+        );
+        if (hit) return hit;
+      }
+    } catch {
+      // Mailpit briefly unreachable — keep polling.
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return null;
+}
+
+/**
+ * Assert a mail landed in Mailpit. CI is the referee: there the assertion is
+ * mandatory. Local runs without Mailpit skip with an annotation instead.
+ */
+async function assertMail(request, testInfo, { to, subjectPart }) {
+  if (!(await mailpitAvailable(request))) {
+    if (IS_CI) {
+      throw new Error(
+        `Mailpit API not reachable at ${MAILPIT_API} — email delivery cannot be verified in CI`
+      );
+    }
+    testInfo.annotations.push({
+      type: 'mail-check-skipped',
+      description: `Mailpit not available at ${MAILPIT_API} — skipped assertion for "${subjectPart}"`,
+    });
+    log(`Mailpit unavailable at ${MAILPIT_API} — skipping mail assertion ("${subjectPart}")`);
+    return;
+  }
+  log(`mailpit: waiting for mail to ${to} with subject containing "${subjectPart}"`);
+  const hit = await mailpitFind(request, { to, subjectPart });
+  expect(
+    hit,
+    `expected a Mailpit message to ${to} with subject containing "${subjectPart}"`
+  ).toBeTruthy();
+  log(`mailpit: found "${hit.Subject}"`);
 }
 
 // ---------- walkthrough ----------
@@ -313,7 +383,7 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
   }
 });
 
-test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket status', async ({ page }) => {
+test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket status', async ({ page, request }, testInfo) => {
   await registerUser(page, { name: BUYER_NAME, email: BUYER_EMAIL, password: BUYER_PASSWORD });
   await login(page, BUYER_EMAIL, buyerPassword);
 
@@ -361,9 +431,15 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   log(`public ticket status /t/${rsvpTicketCode} should show "Valid ticket"`);
   await page.goto(`/t/${rsvpTicketCode}`);
   await expect(page.getByText('Valid ticket')).toBeVisible();
+
+  log('EMAIL: the ticket email for the free order must land in Mailpit');
+  await assertMail(request, testInfo, {
+    to: BUYER_EMAIL,
+    subjectPart: 'Your tickets for Startup Mixer Baghdad',
+  });
 });
 
-test('i. direct-transfer flow: card number, reference, receipt upload, pending order', async ({ page }) => {
+test('i. direct-transfer flow: card number, reference, receipt upload, pending order', async ({ page, request }, testInfo) => {
   log('buyer opens Baghdad Nights and picks 1 General Admission');
   await page.goto('/auth/login');
   await login(page, BUYER_EMAIL, buyerPassword);
@@ -394,9 +470,15 @@ test('i. direct-transfer flow: card number, reference, receipt upload, pending o
   await expect(page.getByText('Pending confirmation').first()).toBeVisible();
   await expect(page.getByText(/36,500\s*IQD/).first()).toBeVisible();
   await expect(page.locator('.qr-box')).toHaveCount(0);
+
+  log('EMAIL: the "Order received" pending mail must land in Mailpit');
+  await assertMail(request, testInfo, {
+    to: BUYER_EMAIL,
+    subjectPart: 'Order received',
+  });
 });
 
-test('j. host approves the direct-transfer order; buyer receives the ticket', async ({ page }) => {
+test('j. host approves the direct-transfer order; buyer receives the ticket', async ({ page, request }, testInfo) => {
   await signOut(page);
   await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
 
@@ -424,6 +506,12 @@ test('j. host approves the direct-transfer order; buyer receives the ticket', as
   await login(page, BUYER_EMAIL, buyerPassword);
   await page.goto('/me/tickets');
   await expect(page.getByRole('link', { name: 'Baghdad Nights Music Festival' })).toBeVisible();
+
+  log('EMAIL: approval must send the ticket email for Baghdad Nights');
+  await assertMail(request, testInfo, {
+    to: BUYER_EMAIL,
+    subjectPart: 'Your tickets for Baghdad Nights Music Festival',
+  });
 });
 
 test('k. host check-in: door list check-in + wrong-event code rejected', async ({ page }) => {
@@ -454,8 +542,10 @@ test('k. host check-in: door list check-in + wrong-event code rejected', async (
 
   log('check-in screen: a ticket code from ANOTHER event must be rejected');
   await page.goto(`/host/checkin?event=${baghdadHostEventId}`);
-  await page.locator('input[name="code"]').fill(rsvpTicketCode);
-  await page.getByRole('button', { name: /Check in/ }).click();
+  // Scope to the manual-entry form — the door list has its own "Check in" buttons.
+  const manualForm = page.locator('form:has(input[name="code"])');
+  await manualForm.locator('input[name="code"]').fill(rsvpTicketCode);
+  await manualForm.getByRole('button', { name: /Check in/ }).click();
   await expect(page.getByText(/belongs to a different event/)).toBeVisible();
   await expect(page.getByText(/Startup Mixer Baghdad/).first()).toBeVisible();
 });
@@ -734,5 +824,195 @@ test('u. earnings table and camera check-in page', async ({ page }) => {
   await expect(page.getByText('Scan with camera')).toBeVisible();
   await expect(page.locator('#qr-start')).toBeVisible();
   await expect(page.locator('script[src*="html5-qrcode"]')).toHaveCount(1);
-  await expect(page.locator('input[name="code"]')).toBeVisible();
+  await expect(page.locator('form:has(input[name="code"]) input[name="code"]')).toBeVisible();
+});
+
+test('v. attendees regression: auto-select, seeded demo rows, search, no 500s', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('/host/attendees without params auto-selects the first event and must not error');
+  await page.goto('/host/attendees');
+  await expect(page).toHaveURL(/\/host\/attendees\?event=/);
+  let body = await page.locator('body').innerText();
+  expect(body).not.toContain('Something went wrong');
+
+  log('selecting Baghdad Nights shows the seeded EVT-DEMO attendee rows');
+  const baghdadOption = page
+    .locator('#event-scope option')
+    .filter({ hasText: 'Baghdad Nights Music Festival' })
+    .first();
+  const baghdadValue = await baghdadOption.getAttribute('value');
+  await page.goto(`/host/attendees?event=${baghdadValue}`);
+  const rows = page.locator('tbody tr');
+  await expect
+    .poll(async () => rows.count(), { message: 'expected seeded attendee rows' })
+    .toBeGreaterThan(0);
+  const demoGuests =
+    /(Ali Hassan|Noor Al-Saadi|Omar Dawood|Huda Jassim|Mustafa Karim|Zainab Qasim|Rania Faris|Yousif Salman|Layla Ibrahim|Ahmed Rashid|Sarah Mahmoud|Bilal Hameed|Dina Kareem|Hasan Jabbar|Mariam Adel)/;
+  await expect(page.getByText(demoGuests).first()).toBeVisible();
+
+  log('searching a partial holder name filters the list');
+  // The first td holds an avatar-initial span + the name span (.font-semibold).
+  const fullName = (await rows.first().locator('span.font-semibold').first().innerText()).trim();
+  const firstName = fullName.split(/\s+/)[0];
+  await page.locator('input[name="q"]').fill(firstName);
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(
+    page.locator('tbody tr').filter({ hasText: firstName }).first()
+  ).toBeVisible();
+
+  log('the first 3 event options must render without a 500 ("Something went wrong")');
+  const firstThree = await page
+    .locator('#event-scope option')
+    .evaluateAll((opts) => opts.slice(0, 3).map((o) => o.value));
+  for (const value of firstThree) {
+    await page.goto(`/host/attendees?event=${value}`);
+    body = await page.locator('body').innerText();
+    expect(body, `event option ${value} should render cleanly`).not.toContain(
+      'Something went wrong'
+    );
+  }
+});
+
+test('w. check-in door list: seeded names, search, one-click check-in bumps the counter', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('opening check-in for Baghdad Nights (picked from the event dropdown)');
+  await page.goto('/host/checkin');
+  const baghdadValue = await page
+    .locator('#ci-event option')
+    .filter({ hasText: 'Baghdad Nights Music Festival' })
+    .first()
+    .getAttribute('value');
+  await page.goto(`/host/checkin?event=${baghdadValue}`);
+
+  log('the Door list column should be visible with seeded ticket rows');
+  await expect(page.getByText('Door list', { exact: true })).toBeVisible();
+  const uncheckedRow = page
+    .locator('li')
+    .filter({ has: page.getByRole('button', { name: 'Check in', exact: true }) })
+    .first();
+  await expect(uncheckedRow).toBeVisible();
+
+  const counterText = await page.getByText(/Checked in\s*\d+/).first().innerText();
+  const before = parseInt(counterText.replace(/[^0-9/]/g, '').split('/')[0], 10);
+  log(`counter before: ${before} (badge: "${counterText.trim()}")`);
+
+  log('searching the door list by holder name');
+  const holderName = (await uncheckedRow.locator('p').first().innerText()).trim();
+  const searchTerm = holderName.split(/\s+/)[0];
+  await page.getByLabel('Search door list').fill(searchTerm);
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  const foundRow = page
+    .locator('li')
+    .filter({ hasText: holderName })
+    .filter({ has: page.getByRole('button', { name: 'Check in', exact: true }) })
+    .first();
+  await expect(foundRow).toBeVisible();
+
+  log(`checking in "${holderName}" from the door list`);
+  await foundRow.getByRole('button', { name: 'Check in', exact: true }).click();
+  await expect(
+    page
+      .locator('li')
+      .filter({ hasText: holderName })
+      .filter({ has: page.getByRole('button', { name: 'Undo' }) })
+      .first()
+  ).toBeVisible();
+
+  const afterText = await page.getByText(/Checked in\s*\d+/).first().innerText();
+  const after = parseInt(afterText.replace(/[^0-9/]/g, '').split('/')[0], 10);
+  log(`counter after: ${after}`);
+  expect(after, 'checked-in counter should increment').toBe(before + 1);
+});
+
+test('x. event covers: theme picker, photo upload served via /media, remove restores gradient', async ({ page, request }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the E2E event edit page');
+  await page.goto('/host/events');
+  await page.getByRole('link', { name: /E2E Concert Night/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  const eventId = page.url().match(/\/host\/events\/(\d+)/)[1];
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  await page.goto(`/host/events/${eventId}/edit`);
+
+  log('cover section: 10 theme radios + file input should be present');
+  await expect(page.locator('input[name="coverTheme"]')).toHaveCount(10);
+  await expect(page.locator('#cover-image')).toBeVisible();
+
+  log('picking the "tech" theme and saving');
+  await page
+    .locator('label')
+    .filter({ has: page.locator('input[name="coverTheme"][value="tech"]') })
+    .click();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.locator('input[name="coverTheme"][value="tech"]')).toBeChecked();
+
+  log('uploading a cover photo and saving');
+  await page.locator('#cover-image').setInputFiles(RECEIPT_PNG);
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.getByText('Current cover photo')).toBeVisible();
+  await expect(page.locator('img[src*="/media/event-cover/"]').first()).toBeVisible();
+
+  log('the public event page should render the uploaded cover from /media/event-cover/');
+  await page.goto(publicHref);
+  const coverImg = page.locator('img[src*="/media/event-cover/"]').first();
+  await expect(coverImg).toBeVisible();
+  const coverSrc = await coverImg.getAttribute('src');
+  const coverRes = await request.get(coverSrc);
+  expect(coverRes.status(), 'cover image should be served').toBe(200);
+  expect(coverRes.headers()['content-type']).toContain('image/png');
+
+  log('removing the cover restores the gradient (no /media img on the public page)');
+  await page.goto(`/host/events/${eventId}/edit`);
+  await page.locator('input[name="removeCover"]').check();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await page.goto(publicHref);
+  await expect(page.locator('img[src*="/media/event-cover/"]')).toHaveCount(0);
+});
+
+test('y. browse "when" chips: Next 7 days has results, Today renders cleanly', async ({ page }) => {
+  log('clicking the "Next 7 days" chip');
+  await page.goto('/browse');
+  await page.getByRole('link', { name: 'Next 7 days' }).click();
+  await expect(page).toHaveURL(/when=week/);
+
+  log('seeded events inside 7 days (Startup Mixer +3, Baghdad Nights +5) → cards > 0');
+  await expect
+    .poll(async () => page.locator('main a[href^="/events/"]').count(), {
+      message: 'expected event cards within the next 7 days',
+    })
+    .toBeGreaterThan(0);
+
+  log('the "Today" chip may match zero events — page must render cards or the empty state');
+  await page.getByRole('link', { name: 'Today', exact: true }).click();
+  await expect(page).toHaveURL(/when=today/);
+  const body = await page.locator('body').innerText();
+  expect(body).not.toContain('Something went wrong');
+  const cardCount = await page.locator('main a[href^="/events/"]').count();
+  if (cardCount === 0) {
+    await expect(page.getByText('No events match')).toBeVisible();
+  }
+  log(`Today filter rendered with ${cardCount} card(s)`);
+});
+
+test('z. host test email reaches Mailpit', async ({ page, request }, testInfo) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('sending the test email from /host/settings/payments');
+  await page.goto('/host/settings/payments');
+  await page.getByRole('button', { name: /Send me a test email/ }).click();
+  await expect(page.getByText(/Test email sent to/).first()).toBeVisible();
+
+  log('EMAIL: the test mail must land in Mailpit');
+  await assertMail(request, testInfo, {
+    to: DEMO_HOST_EMAIL,
+    subjectPart: 'iEvent test email',
+  });
 });

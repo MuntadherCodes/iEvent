@@ -71,15 +71,20 @@ public class PageController {
                          @RequestParam(required = false) String category,
                          @RequestParam(required = false) String city,
                          @RequestParam(required = false, defaultValue = "false") boolean free,
+                         @RequestParam(required = false) String when,
                          @RequestParam(required = false, defaultValue = "0") int page,
                          Model model) {
         int safePage = Math.max(0, page);
-        Page<EventCard> results = catalog.search(q, category, city, free, PageRequest.of(safePage, 12));
+        String safeWhen = when == null || !java.util.List.of("today", "weekend", "week").contains(when)
+                ? "" : when;
+        Page<EventCard> results = catalog.search(q, category, city, free,
+                safeWhen.isEmpty() ? null : safeWhen, PageRequest.of(safePage, 12));
         model.addAttribute("results", results);
         model.addAttribute("q", q == null ? "" : q);
         model.addAttribute("selectedCategory", category == null ? "" : category);
         model.addAttribute("selectedCity", city == null ? "" : city);
         model.addAttribute("freeOnly", free);
+        model.addAttribute("selectedWhen", safeWhen);
         model.addAttribute("cities", catalog.liveCities());
         model.addAttribute("categories", CATEGORIES);
         return "browse";

@@ -28,21 +28,39 @@
 
   <!-- ============ STICKY FILTER BAR ============ -->
   <div class="sticky top-16 z-40 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-    <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-      <div class="no-scrollbar relative -my-1 flex flex-1 items-center gap-2 overflow-x-auto py-1">
-        <a th:href="@{/browse(q=${q},city=${selectedCity},free=${freeOnly})}"
-           class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${selectedCategory == ''} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All</a>
-        <a th:each="c : ${categories}" th:href="@{/browse(q=${q},category=${c.value},city=${selectedCity},free=${freeOnly})}"
-           class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${selectedCategory == c.value} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"
-           th:text="${c.label}">Music</a>
+    <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <div class="no-scrollbar relative -my-1 flex flex-1 items-center gap-2 overflow-x-auto py-1">
+          <a th:href="@{/browse(q=${q},city=${selectedCity},free=${freeOnly},when=${selectedWhen})}"
+             class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
+             th:classappend="${selectedCategory == ''} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All</a>
+          <a th:each="c : ${categories}" th:href="@{/browse(q=${q},category=${c.value},city=${selectedCity},free=${freeOnly},when=${selectedWhen})}"
+             class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
+             th:classappend="${selectedCategory == c.value} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"
+             th:text="${c.label}">Music</a>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <button id="filtersOpenBtn" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 lg:hidden">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sliders-horizontal"/></svg>
+            Filters
+          </button>
+        </div>
       </div>
-      <div class="flex shrink-0 items-center gap-2">
-        <button id="filtersOpenBtn" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 lg:hidden">
-          <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sliders-horizontal"/></svg>
-          Filters
-        </button>
+      <!-- When chips -->
+      <div class="no-scrollbar mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+        <span class="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendar"/></svg>When</span>
+        <a th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},when='')}"
+           class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
+           th:classappend="${selectedWhen == ''} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Any time</a>
+        <a th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},when='today')}"
+           class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
+           th:classappend="${selectedWhen == 'today'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Today</a>
+        <a th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},when='weekend')}"
+           class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
+           th:classappend="${selectedWhen == 'weekend'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">This weekend</a>
+        <a th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},when='week')}"
+           class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition"
+           th:classappend="${selectedWhen == 'week'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Next 7 days</a>
       </div>
     </div>
   </div>
@@ -56,6 +74,7 @@
     </div>
     <form th:action="@{/browse}" method="get" class="space-y-7">
       <input type="hidden" name="category" th:value="${selectedCategory}">
+      <input type="hidden" name="when" th:value="${selectedWhen}">
       <fieldset>
         <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400">Search</legend>
         <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
@@ -93,6 +112,7 @@
         <aside class="hidden lg:block" aria-label="Filters">
           <form th:action="@{/browse}" method="get" class="sticky top-36 space-y-7 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
             <input type="hidden" name="category" th:value="${selectedCategory}">
+            <input type="hidden" name="when" th:value="${selectedWhen}">
             <fieldset>
               <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400">Search</legend>
               <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 transition focus-within:border-brand-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-100">
@@ -142,12 +162,12 @@
           <!-- Pagination -->
           <nav class="mt-12 flex items-center justify-center gap-2" aria-label="Pagination" th:if="${results.totalPages > 1}">
             <a th:if="${results.hasPrevious()}"
-               th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},page=${results.number - 1})}"
+               th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},when=${selectedWhen},page=${results.number - 1})}"
                class="inline-flex h-10 items-center gap-1.5 rounded-xl border border-ink-200 px-4 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-left"/></svg>Previous</a>
             <span class="grid h-10 min-w-10 place-items-center rounded-xl bg-brand-500 px-3 font-semibold tabular-nums text-white shadow-pop" aria-current="page" th:text="${results.number + 1}">1</span>
             <span class="px-1 text-sm tabular-nums text-ink-400" th:text="'of ' + ${results.totalPages}">of 42</span>
             <a th:if="${results.hasNext()}"
-               th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},page=${results.number + 1})}"
+               th:href="@{/browse(q=${q},category=${selectedCategory},city=${selectedCity},free=${freeOnly},when=${selectedWhen},page=${results.number + 1})}"
                class="inline-flex h-10 items-center gap-1.5 rounded-xl border border-ink-200 px-4 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
           </nav>
         </div>

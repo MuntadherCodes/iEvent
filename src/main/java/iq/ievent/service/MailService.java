@@ -71,7 +71,7 @@ public class MailService {
             helper.setText(html, true);
             sender.send(message);
         } catch (Exception e) {
-            log.error("Campaign mail failed to {}: {}", to, e.getMessage());
+            log.error("Campaign mail failed to {}", to, e);
         }
     }
 
@@ -103,7 +103,7 @@ public class MailService {
             sender.send(message);
             log.info("Sent mail '{}' to {}", template, to);
         } catch (Exception e) {
-            log.error("Mail send failed for template {} to {}: {}", template, to, e.getMessage());
+            log.error("Mail send failed for template {} to {}", template, to, e);
         }
     }
 }

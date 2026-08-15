@@ -8,9 +8,11 @@ import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.TicketTypeRepository;
 import iq.ievent.repo.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.text.Normalizer;
 import java.time.LocalDate;
@@ -39,19 +41,73 @@ public class HostService {
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final TeamService teamService;
+    private final java.nio.file.Path uploadDir;
+
+    public static final java.util.List<String> COVER_THEMES = java.util.List.of(
+            "music", "tech", "business", "arts", "food",
+            "sports", "community", "education", "film", "family");
 
     public HostService(OrganizationRepository organizations,
                        EventRepository events,
                        TicketTypeRepository ticketTypes,
                        UserRepository users,
                        JdbcTemplate jdbc,
-                       TeamService teamService) {
+                       TeamService teamService,
+                       @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.organizations = organizations;
         this.events = events;
         this.ticketTypes = ticketTypes;
         this.users = users;
         this.jdbc = jdbc;
         this.teamService = teamService;
+        this.uploadDir = java.nio.file.Path.of(uploadDir);
+    }
+
+    /** Stores/replaces the event cover image. Returns an error message or null. */
+    @Transactional
+    public String storeCover(Event event, MultipartFile cover) {
+        if (cover == null || cover.isEmpty()) return null;
+        if (cover.getSize() > 3 * 1024 * 1024) return "Cover image is too large (max 3 MB).";
+        String original = cover.getOriginalFilename() == null ? "" : cover.getOriginalFilename();
+        String ext = original.contains(".")
+                ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
+        if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
+            return "Cover must be a JPG, PNG or WEBP image.";
+        }
+        try {
+            java.nio.file.Path dir = uploadDir.resolve("covers");
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Path target = dir.resolve("event-" + event.getId() + "." + ext);
+            java.nio.file.Files.copy(cover.getInputStream(), target,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            if (event.getCoverImagePath() != null && !event.getCoverImagePath().equals(target.toString())) {
+                try { java.nio.file.Files.deleteIfExists(java.nio.file.Path.of(event.getCoverImagePath())); }
+                catch (Exception ignored) {}
+            }
+            event.setCoverImagePath(target.toString());
+            events.save(event);
+            return null;
+        } catch (java.io.IOException e) {
+            return "Could not store the cover image — try again.";
+        }
+    }
+
+    @Transactional
+    public void removeCover(Event event) {
+        if (event.getCoverImagePath() != null) {
+            try { java.nio.file.Files.deleteIfExists(java.nio.file.Path.of(event.getCoverImagePath())); }
+            catch (Exception ignored) {}
+            event.setCoverImagePath(null);
+            events.save(event);
+        }
+    }
+
+    @Transactional
+    public void applyCoverTheme(Event event, String theme) {
+        if (theme != null && COVER_THEMES.contains(theme)) {
+            event.setCoverTheme(theme);
+            events.save(event);
+        }
     }
 
     /** Organization the user can act for: as owner or as team member. */
@@ -172,7 +228,6 @@ public class HostService {
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
         e.setDescription(description == null ? "" : description.strip());
-        e.setCoverTheme(Format.coverTheme(category));
         events.save(e);
         jdbc.update("UPDATE events SET updated_at = now() WHERE id = ?", e.getId());
     }

@@ -80,9 +80,11 @@ public class HostController {
     private final TicketTypeRepository ticketTypes;
 
     private final String baseUrl;
+    private final iq.ievent.service.MailService mailService;
 
     public HostController(UserService userService, HostService hostService, OrderService orderService,
                           OrderRepository orders, TicketRepository tickets, TicketTypeRepository ticketTypes,
+                          iq.ievent.service.MailService mailService,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
         this.hostService = hostService;
@@ -90,6 +92,7 @@ public class HostController {
         this.orders = orders;
         this.tickets = tickets;
         this.ticketTypes = ticketTypes;
+        this.mailService = mailService;
         this.baseUrl = baseUrl;
     }
 
@@ -175,6 +178,7 @@ public class HostController {
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
         model.addAttribute("categories", PageController.CATEGORIES);
+        model.addAttribute("coverThemes", HostService.COVER_THEMES);
         return "host/event-form";
     }
 
@@ -193,6 +197,9 @@ public class HostController {
                               @RequestParam(name = "ttPrice", required = false) List<String> ttPrices,
                               @RequestParam(name = "ttQty", required = false) List<String> ttQtys,
                               @RequestParam(name = "action", defaultValue = "draft") String action,
+                              @RequestParam(name = "coverImage", required = false)
+                                  org.springframework.web.multipart.MultipartFile coverImage,
+                              @RequestParam(name = "coverTheme", required = false) String coverTheme,
                               RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
@@ -214,6 +221,9 @@ public class HostController {
                     venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
                     description, forms);
+            hostService.applyCoverTheme(created, coverTheme);
+            String coverError = hostService.storeCover(created, coverImage);
+            if (coverError != null) redirect.addFlashAttribute("error", coverError);
             if ("publish".equals(action)) {
                 hostService.publish(created);
                 redirect.addFlashAttribute("published", true);
@@ -277,6 +287,11 @@ public class HostController {
                                 tt.getQuantity(), tt.getSold(), tt.getStatus().name()))
                         .toList());
         model.addAttribute("categories", PageController.CATEGORIES);
+        model.addAttribute("coverThemes", HostService.COVER_THEMES);
+        model.addAttribute("currentTheme", ev.getCoverTheme());
+        model.addAttribute("hasCoverImage", ev.getCoverImagePath() != null);
+        model.addAttribute("coverImageUrl",
+                ev.getCoverImagePath() == null ? null : "/media/event-cover/" + ev.getId());
         return "host/event-edit";
     }
 
@@ -299,6 +314,10 @@ public class HostController {
                               @RequestParam String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
+                              @RequestParam(name = "coverImage", required = false)
+                                  org.springframework.web.multipart.MultipartFile coverImage,
+                              @RequestParam(name = "coverTheme", required = false) String coverTheme,
+                              @RequestParam(name = "removeCover", defaultValue = "false") boolean removeCover,
                               RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
@@ -310,7 +329,11 @@ public class HostController {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
                     venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
-            redirect.addFlashAttribute("saved", true);
+            hostService.applyCoverTheme(ev, coverTheme);
+            if (removeCover) hostService.removeCover(ev);
+            String coverError = hostService.storeCover(ev, coverImage);
+            if (coverError != null) redirect.addFlashAttribute("error", coverError);
+            else redirect.addFlashAttribute("saved", true);
         } catch (Exception e) {
             redirect.addFlashAttribute("error", "Could not save — check the fields. (" + e.getMessage() + ")");
         }
@@ -451,15 +474,16 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
-        List<EventRow> options = hostService.eventsOf(org.getId()).stream().map(this::toRow).toList();
+        List<EventRow> options = sortForSelect(hostService.eventsOf(org.getId()));
         EventRow selected = null;
         List<AttendeeRow> rows = List.of();
         if (event != null) {
             Event ev = hostService.eventOf(org.getId(), event).orElse(null);
             if (ev != null) {
                 selected = toRow(ev);
-                rows = tickets.searchForEvent(ev.getId(),
-                                q == null || q.isBlank() ? null : q.trim()).stream()
+                String qLike = q == null || q.isBlank() ? null
+                        : "%" + q.trim().toLowerCase() + "%";
+                rows = tickets.searchForEvent(ev.getId(), qLike).stream()
                         .map(this::toRow).toList();
             }
         } else if (!options.isEmpty()) {
@@ -514,19 +538,25 @@ public class HostController {
     @Transactional(readOnly = true)
     public String checkinPage(@AuthenticationPrincipal UserDetails principal,
                               @RequestParam(required = false) Long event,
+                              @RequestParam(required = false) String q,
                               Model model) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
-        List<EventRow> options = hostService.eventsOf(org.getId()).stream().map(this::toRow).toList();
+        List<EventRow> options = sortForSelect(hostService.eventsOf(org.getId()));
         EventRow selected = null;
         long in = 0, total = 0;
+        List<AttendeeRow> doorList = List.of();
         if (event != null) {
             Event ev = hostService.eventOf(org.getId(), event).orElse(null);
             if (ev != null) {
                 selected = toRow(ev);
                 in = tickets.countByEventIdAndStatus(ev.getId(), Ticket.Status.CHECKED_IN);
                 total = tickets.countByEventId(ev.getId());
+                String qLike = q == null || q.isBlank() ? null
+                        : "%" + q.trim().toLowerCase() + "%";
+                doorList = tickets.searchForEvent(ev.getId(), qLike).stream()
+                        .limit(50).map(this::toRow).toList();
             }
         } else if (!options.isEmpty()) {
             return "redirect:/host/checkin?event=" + options.get(0).id();
@@ -537,6 +567,8 @@ public class HostController {
         model.addAttribute("ev", selected);
         model.addAttribute("checkedIn", in);
         model.addAttribute("ticketsTotal", total);
+        model.addAttribute("doorList", doorList);
+        model.addAttribute("q", q == null ? "" : q);
         return "host/checkin";
     }
 
@@ -597,6 +629,35 @@ public class HostController {
         hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings/payments";
+    }
+
+    @PostMapping("/test-mail")
+    public String testMail(@AuthenticationPrincipal UserDetails principal,
+                           RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        mailService.sendCampaign(u.getEmail(), "iEvent test email",
+                "This is a test email from your iEvent installation. If you can read this, "
+                + "outgoing email works. (Local dev: it lands in the Mailpit inbox.)",
+                org.getName(), baseUrl + "/host");
+        redirect.addFlashAttribute("testMailSent", u.getEmail());
+        return "redirect:/host/settings/payments";
+    }
+
+    /** Soonest upcoming events first, then past events (most recent first). */
+    private List<EventRow> sortForSelect(List<Event> events) {
+        OffsetDateTime now = OffsetDateTime.now();
+        return events.stream()
+                .sorted((a, b) -> {
+                    boolean fa = a.getStartsAt().isAfter(now);
+                    boolean fb = b.getStartsAt().isAfter(now);
+                    if (fa != fb) return fa ? -1 : 1;
+                    return fa ? a.getStartsAt().compareTo(b.getStartsAt())
+                              : b.getStartsAt().compareTo(a.getStartsAt());
+                })
+                .map(this::toRow)
+                .toList();
     }
 
     // ---------- mapping ----------

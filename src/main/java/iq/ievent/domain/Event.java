@@ -54,6 +54,9 @@ public class Event {
     @Column(name = "cover_theme", nullable = false)
     private String coverTheme = "community";
 
+    @Column(name = "cover_image_path")
+    private String coverImagePath;
+
     @Column(nullable = false)
     private String language = "en";
 
@@ -88,6 +91,8 @@ public class Event {
     public void setStatus(Status status) { this.status = status; }
     public String getCoverTheme() { return coverTheme; }
     public void setCoverTheme(String coverTheme) { this.coverTheme = coverTheme; }
+    public String getCoverImagePath() { return coverImagePath; }
+    public void setCoverImagePath(String coverImagePath) { this.coverImagePath = coverImagePath; }
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

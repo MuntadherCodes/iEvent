@@ -14,7 +14,7 @@
   <header th:replace="~{fragments/host-layout :: topbar('Check-in')}"></header>
 
   <main id="main" class="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
-    <div class="mx-auto max-w-3xl">
+    <div class="mx-auto max-w-6xl 2xl:max-w-7xl">
 
       <!-- Page controls bar -->
       <form th:action="@{/host/checkin}" method="get" class="flex flex-wrap items-center gap-2">
@@ -41,8 +41,13 @@
         </div>
       </div>
 
+      <div th:if="${ev != null}" class="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
+
+      <!-- ===== Left: scanner + manual entry ===== -->
+      <div class="min-w-0 space-y-6">
+
       <!-- Camera scanner card -->
-      <section th:if="${ev != null}" class="mt-6 rounded-2xl border border-ink-100 bg-white p-5 shadow-card" aria-label="Camera scanner">
+      <section class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card" aria-label="Camera scanner">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-camera"/></svg>Scan with camera</h2>
           <div class="flex items-center gap-2">
@@ -63,7 +68,7 @@
       </section>
 
       <!-- Manual entry card (dark panel) -->
-      <section th:if="${ev != null}" class="mt-6 overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" aria-label="Ticket check-in">
+      <section class="overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" aria-label="Ticket check-in">
         <div class="relative p-6 sm:p-8">
           <svg class="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="cam-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#cam-dots)"/></svg>
           <div class="relative">
@@ -85,28 +90,67 @@
         </div>
       </section>
 
+      <!-- Tip card -->
+      <p class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
+        <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
+        <span><span class="font-semibold text-ink-800">Tip:</span> any USB/bluetooth QR scanner types the code into the box — or use the camera above.</span>
+      </p>
+
+      </div>
+
+      <!-- ===== Right: door list ===== -->
+      <section class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card" aria-label="Door list">
+        <div class="flex items-center justify-between">
+          <h2 class="font-display text-lg font-bold text-ink-900">Door list</h2>
+          <a th:href="@{/host/attendees(event=${ev.id()})}" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700"><span class="inline-flex items-center gap-1">Full list<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></a>
+        </div>
+
+        <form th:action="@{/host/checkin}" method="get" class="mt-4 flex gap-2">
+          <input type="hidden" name="event" th:value="${ev.id()}">
+          <div class="relative min-w-0 flex-1">
+            <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" name="q" th:value="${q}" placeholder="Search name, code or order #" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Search door list">
+          </div>
+          <button type="submit" class="shrink-0 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Search</button>
+        </form>
+
+        <ul class="mt-3 divide-y divide-ink-50">
+          <li th:each="r : ${doorList}" class="flex items-center gap-3 py-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-semibold text-ink-900" th:text="${r.holderName()}">Ali Hassan</p>
+              <p class="truncate text-xs text-ink-500"><span th:text="${r.typeName()}">GA</span> · <span class="font-mono tabular-nums" th:text="${r.orderCode()}">EVT-2026-04127</span> · <span class="font-mono tabular-nums" th:text="${r.code()}">TKT-8841-A</span></p>
+            </div>
+            <form th:unless="${r.checkedIn()}" th:action="@{/host/tickets/{id}/checkin(id=${r.ticketId()})}" method="post" class="shrink-0">
+              <button type="submit" class="rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Check in</button>
+            </form>
+            <div th:if="${r.checkedIn()}" class="flex shrink-0 flex-col items-end gap-1">
+              <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="${r.checkedInLine()}">Aug 15 · 7:12 PM</span></span>
+              <form th:action="@{/host/tickets/{id}/undo-checkin(id=${r.ticketId()})}" method="post">
+                <button type="submit" class="rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">Undo</button>
+              </form>
+            </div>
+          </li>
+          <li th:if="${#lists.isEmpty(doorList) && #strings.isEmpty(q)}" class="py-10 text-center">
+            <p class="text-sm font-semibold text-ink-700">No tickets yet</p>
+            <p class="mt-1 text-xs text-ink-500">Attendees appear here once orders are confirmed.</p>
+          </li>
+          <li th:if="${#lists.isEmpty(doorList) && !#strings.isEmpty(q)}" class="py-10 text-center">
+            <p class="text-sm font-semibold text-ink-700">No match for &ldquo;<span th:text="${q}">ali</span>&rdquo;</p>
+            <p class="mt-1 text-xs text-ink-500">Try part of the name, ticket code or order #.</p>
+          </li>
+        </ul>
+        <p th:if="${#lists.size(doorList) == 50}" class="mt-3 rounded-xl bg-ink-50 px-4 py-2.5 text-center text-xs font-medium text-ink-500">Showing first 50 — refine the search to narrow it down.</p>
+      </section>
+
+      </div>
+
       <div th:if="${ev == null}" class="mt-6 rounded-2xl border border-ink-100 bg-white px-6 py-16 text-center shadow-card">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-scan-line"/></svg></span>
         <h3 class="mt-4 font-display text-lg font-bold text-ink-900">No event selected</h3>
         <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">Create and publish an event first — then check attendees in from this screen.</p>
         <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Create event</a>
       </div>
-
-      <!-- Tip card -->
-      <p class="mt-5 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
-        <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
-        <span><span class="font-semibold text-ink-800">Tip:</span> any USB/bluetooth QR scanner types the code into the box — camera scanning arrives in phase 2.</span>
-      </p>
-
-      <!-- Quick link to full list -->
-      <a th:if="${ev != null}" th:href="@{/host/attendees(event=${ev.id()})}" class="group mt-4 flex items-center gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-cardHover">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-users"/></svg></span>
-        <span class="min-w-0 flex-1">
-          <span class="block font-semibold text-ink-900 group-hover:text-brand-700">Open the door list</span>
-          <span class="block text-xs text-ink-500">Search names and check in manually from the attendee list</span>
-        </span>
-        <svg class="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-500" aria-hidden="true"><use href="#i-arrow-right"/></svg>
-      </a>
 
     </div>
   </main>

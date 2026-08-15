@@ -117,6 +117,12 @@ class SmokeTest {
     }
 
     @Test
+    void unknownEventCoverIs404() throws Exception {
+        mockMvc.perform(get("/media/event-cover/999999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void hostMarketingRequiresLogin() throws Exception {
         mockMvc.perform(get("/host/marketing"))
                 .andExpect(status().is3xxRedirection())

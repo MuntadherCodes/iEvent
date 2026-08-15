@@ -53,11 +53,36 @@ public class CatalogService {
         return toCards(events.findTrending(PageRequest.of(0, limit)));
     }
 
-    public Page<EventCard> search(String q, String category, String city, boolean freeOnly, Pageable pageable) {
+    public Page<EventCard> search(String q, String category, String city, boolean freeOnly,
+                                  String when, Pageable pageable) {
         String qn = normalize(q);
         String cat = normalize(category);
         String cty = normalize(city);
-        Page<Event> page = events.search(qn, cat == null ? null : cat.toUpperCase(), cty, freeOnly, pageable);
+        OffsetDateTime fromTs = null;
+        OffsetDateTime toTs = null;
+        if (when != null) {
+            java.time.ZonedDateTime now = java.time.ZonedDateTime.now(Format.BAGHDAD);
+            switch (when) {
+                case "today" -> {
+                    fromTs = now.toLocalDate().atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
+                    toTs = now.toLocalDate().plusDays(1).atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
+                }
+                case "weekend" -> {
+                    // Iraqi weekend: Friday + Saturday
+                    java.time.LocalDate d = now.toLocalDate();
+                    while (d.getDayOfWeek() != java.time.DayOfWeek.FRIDAY) d = d.plusDays(1);
+                    fromTs = d.atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
+                    toTs = d.plusDays(2).atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
+                }
+                case "week" -> {
+                    fromTs = now.toOffsetDateTime();
+                    toTs = now.plusDays(7).toOffsetDateTime();
+                }
+                default -> { }
+            }
+        }
+        Page<Event> page = events.search(qn, cat == null ? null : cat.toUpperCase(), cty, freeOnly,
+                fromTs, toTs, pageable);
         List<EventCard> cards = toCards(page.getContent());
         return new PageImpl<>(cards, pageable, page.getTotalElements());
     }
@@ -121,7 +146,8 @@ public class CatalogService {
                     e.getSlug(),
                     e.getTitle(),
                     Format.categoryLabel(e.getCategory()),
-                    Format.coverTheme(e.getCategory()),
+                    e.getCoverTheme(),
+                    e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
                     e.getCity(),
                     e.getVenueName(),
                     Format.cardDateLine(e.getStartsAt()),
@@ -167,7 +193,8 @@ public class CatalogService {
         return new EventDetail(
                 e.getSlug(), e.getTitle(),
                 Format.categoryLabel(e.getCategory()),
-                Format.coverTheme(e.getCategory()),
+                e.getCoverTheme(),
+                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
                 e.getCity(), e.getVenueName(), e.getVenueAddress(),
                 Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
                 Format.monthShort(e.getStartsAt()),

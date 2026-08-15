@@ -6,6 +6,11 @@ const { defineConfig } = require('@playwright/test');
  *
  * Runs against an already-started stack (docker compose up -d --build).
  * Override the target with BASE_URL, e.g. BASE_URL=http://localhost:8080.
+ *
+ * Email assertions talk to the Mailpit HTTP API (compose maps it to the host
+ * on ${MAILPIT_UI_PORT:-8025}). Override with MAILPIT_API, e.g.
+ * MAILPIT_API=http://localhost:8025. In CI the mail checks are mandatory;
+ * local runs without Mailpit skip them with a test annotation.
  */
 module.exports = defineConfig({
   testDir: './tests',

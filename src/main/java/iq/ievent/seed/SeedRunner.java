@@ -66,14 +66,120 @@ public class SeedRunner implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        repairScaleEventOwnership();
         if (seedDemo && organizations.findByHandle(DEMO_HANDLE).isEmpty()) {
             seedDemoData();
         } else if (seedDemo) {
             log.info("Demo seed already present — skipping");
+            seedDemoOrdersIfMissing();
         }
         if (seedScale > 0) {
             seedScaleData(seedScale);
         }
+    }
+
+    /** Older seeds attached synthetic scale events to the demo organizer, drowning
+     *  its dashboard in noise. Move them (idempotent data repair, runs every boot). */
+    private void repairScaleEventOwnership() {
+        Long demoOrg = jdbc.query("SELECT id FROM organizations WHERE handle = ?",
+                rs -> rs.next() ? rs.getLong(1) : null, DEMO_HANDLE);
+        if (demoOrg == null) return;
+        Integer misplaced = jdbc.queryForObject(
+                "SELECT count(*) FROM events WHERE slug LIKE 'scale-%' AND organization_id = ?",
+                Integer.class, demoOrg);
+        if (misplaced == null || misplaced == 0) return;
+        Long scaleOrg = jdbc.query("SELECT id FROM organizations WHERE handle = 'scaletest'",
+                rs -> rs.next() ? rs.getLong(1) : null);
+        if (scaleOrg == null) {
+            User owner = user("scale-host@ievent.iq", "Scale Host", "Password123!", User.Role.HOST);
+            Organization o = new Organization();
+            o.setOwnerUserId(owner.getId());
+            o.setName("Scale Test Events");
+            o.setHandle("scaletest");
+            o.setCity("Baghdad");
+            scaleOrg = organizations.save(o).getId();
+        }
+        int moved = jdbc.update(
+                "UPDATE events SET organization_id = ? WHERE slug LIKE 'scale-%' AND organization_id = ?",
+                scaleOrg, demoOrg);
+        log.info("Repair: moved {} scale events off the demo organizer", moved);
+    }
+
+    /** Flagship events looked sold (sold counters) but had no ticket rows, so
+     *  attendee lists and door lists were empty. Create real demo orders once. */
+    private void seedDemoOrdersIfMissing() {
+        Long demoOrg = jdbc.query("SELECT id FROM organizations WHERE handle = ?",
+                rs -> rs.next() ? rs.getLong(1) : null, DEMO_HANDLE);
+        if (demoOrg == null) return;
+        Integer existing = jdbc.queryForObject("""
+                SELECT count(*) FROM orders o JOIN events e ON e.id = o.event_id
+                WHERE e.organization_id = ? AND o.order_code LIKE 'EVT-DEMO-%'
+                """, Integer.class, demoOrg);
+        if (existing != null && existing > 0) return;
+        seedDemoOrders();
+    }
+
+    private static final String[] DEMO_GUESTS = {
+            "Ali Hassan", "Noor Al-Saadi", "Omar Dawood", "Huda Jassim", "Mustafa Karim",
+            "Zainab Qasim", "Rania Faris", "Yousif Salman", "Layla Ibrahim", "Ahmed Rashid",
+            "Sarah Mahmoud", "Bilal Hameed", "Dina Kareem", "Hasan Jabbar", "Mariam Adel"
+    };
+
+    private void seedDemoOrders() {
+        log.info("Seeding demo orders & tickets for flagship events …");
+        Random rnd = new Random(7);
+        // (event slug, ticket type name, how many single-ticket confirmed orders, how many checked in)
+        String[][] plan = {
+                {"baghdad-nights-music-festival", "General Admission", "12", "5"},
+                {"startup-mixer-baghdad", "RSVP", "10", "6"},
+                {"erbil-tech-summit-2026", "Standard Pass", "8", "0"},
+                {"sulaymaniyah-film-nights", "Screening Pass", "6", "0"},
+        };
+        int seq = 1;
+        for (String[] p : plan) {
+            Long eventId = jdbc.query("SELECT id FROM events WHERE slug = ?",
+                    rs -> rs.next() ? rs.getLong(1) : null, p[0]);
+            if (eventId == null) continue;
+            Long ttId = jdbc.query("SELECT id FROM ticket_types WHERE event_id = ? AND name = ?",
+                    rs -> rs.next() ? rs.getLong(1) : null, eventId, p[1]);
+            if (ttId == null) continue;
+            Long price = jdbc.queryForObject("SELECT price_iqd FROM ticket_types WHERE id = ?",
+                    Long.class, ttId);
+            int orders = Integer.parseInt(p[2]);
+            int checkins = Integer.parseInt(p[3]);
+            for (int i = 0; i < orders; i++) {
+                String guest = DEMO_GUESTS[rnd.nextInt(DEMO_GUESTS.length)];
+                String email = guest.toLowerCase().replace(" ", ".") + "@example.iq";
+                User buyer = user(email, guest, "Password123!", User.Role.USER);
+                long fee = price != null && price > 0 ? 1_500L : 0L;
+                String code = String.format("EVT-DEMO-%05d", seq++);
+                Long orderId = jdbc.queryForObject("""
+                        INSERT INTO orders (order_code, event_id, buyer_user_id, buyer_name, buyer_email,
+                                            payment_method, status, subtotal_iqd, booking_fee_iqd, total_iqd,
+                                            confirmed_at, holder_names)
+                        VALUES (?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, now(), ?)
+                        RETURNING id
+                        """, Long.class,
+                        code, eventId, buyer.getId(), guest, email,
+                        price != null && price > 0 ? "DIRECT_TRANSFER" : "FREE",
+                        price == null ? 0 : price, fee, (price == null ? 0 : price) + fee, guest);
+                jdbc.update("""
+                        INSERT INTO order_items (order_id, ticket_type_id, quantity, unit_price_iqd)
+                        VALUES (?, ?, 1, ?)
+                        """, orderId, ttId, price == null ? 0 : price);
+                boolean checkedIn = i < checkins;
+                StringBuilder tcode = new StringBuilder("DEMO");
+                String alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+                for (int c = 0; c < 16; c++) tcode.append(alphabet.charAt(rnd.nextInt(alphabet.length())));
+                jdbc.update("""
+                        INSERT INTO tickets (code, order_id, ticket_type_id, event_id, holder_name, status, checked_in_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, tcode.toString(), orderId, ttId, eventId, guest,
+                        checkedIn ? "CHECKED_IN" : "VALID",
+                        checkedIn ? java.sql.Timestamp.from(java.time.Instant.now()) : null);
+            }
+        }
+        log.info("Demo orders & tickets seeded");
     }
 
     private void seedDemoData() {
@@ -176,6 +282,7 @@ public class SeedRunner implements CommandLineRunner {
         follow(amira, org); follow(omar, org);
 
         log.info("Demo seed complete: 8 events for organizer @{}", DEMO_HANDLE);
+        seedDemoOrders();
     }
 
     private void seedScaleData(int target) {

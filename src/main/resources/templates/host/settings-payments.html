@@ -116,6 +116,19 @@
         </form>
       </div>
 
+      <!-- Email delivery -->
+      <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+        <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-mail"/></svg>Email delivery</h2>
+        <p class="mt-2 text-sm leading-relaxed text-ink-600">Local dev: emails land in the <span class="font-semibold text-ink-800">Mailpit</span> inbox (the port you set as <code class="rounded bg-ink-50 px-1.5 py-0.5 font-mono text-xs text-ink-700">MAILPIT_UI_PORT</code>, default <span class="font-mono tabular-nums">8025</span>). Production: <span class="font-semibold text-ink-800">Mailjet</span> via env keys.</p>
+        <div th:if="${testMailSent != null}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+          <span>Test email sent to <span class="font-semibold" th:text="${testMailSent}">you@example.com</span> — check your inbox/Mailpit.</span>
+        </div>
+        <form th:action="@{/host/test-mail}" method="post" class="mt-4">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg>Send me a test email</button>
+        </form>
+      </div>
+
     </div>
   </main>
 

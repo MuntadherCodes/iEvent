@@ -50,6 +50,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
              AND (:freeOnly = FALSE OR COALESCE(
                    (SELECT MIN(tt.price_iqd) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.status = 'ON_SALE'), 0) = 0)
+             AND (CAST(:fromTs AS timestamptz) IS NULL OR e.starts_at >= CAST(:fromTs AS timestamptz))
+             AND (CAST(:toTs AS timestamptz) IS NULL OR e.starts_at <= CAST(:toTs AS timestamptz))
            ORDER BY e.starts_at ASC
            """,
            countQuery = """
@@ -61,12 +63,16 @@ public interface EventRepository extends JpaRepository<Event, Long> {
              AND (:freeOnly = FALSE OR COALESCE(
                    (SELECT MIN(tt.price_iqd) FROM ticket_types tt
                      WHERE tt.event_id = e.id AND tt.status = 'ON_SALE'), 0) = 0)
+             AND (CAST(:fromTs AS timestamptz) IS NULL OR e.starts_at >= CAST(:fromTs AS timestamptz))
+             AND (CAST(:toTs AS timestamptz) IS NULL OR e.starts_at <= CAST(:toTs AS timestamptz))
            """,
            nativeQuery = true)
     Page<Event> search(@Param("q") String q,
                        @Param("category") String category,
                        @Param("city") String city,
                        @Param("freeOnly") boolean freeOnly,
+                       @Param("fromTs") OffsetDateTime fromTs,
+                       @Param("toTs") OffsetDateTime toTs,
                        Pageable pageable);
 
     @Query(value = """

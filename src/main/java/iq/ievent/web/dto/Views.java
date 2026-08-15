@@ -13,6 +13,7 @@ public final class Views {
             String title,
             String categoryLabel,   // "Music"
             String coverTheme,      // music|tech|business|arts|food|sports|community|education|film|family
+            String coverImageUrl,   // "/media/event-cover/{id}" or null → gradient fallback
             String city,
             String venueName,       // may be null
             String dateLine,        // "SAT, SEP 12 · 7:00 PM"
@@ -41,6 +42,7 @@ public final class Views {
             String title,
             String categoryLabel,
             String coverTheme,
+            String coverImageUrl,   // null → gradient fallback
             String city,
             String venueName,
             String venueAddress,

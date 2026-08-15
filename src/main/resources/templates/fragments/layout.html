@@ -200,8 +200,9 @@
   <div class="relative aspect-[16/9] overflow-hidden rounded-t-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5" th:classappend="${grad}">
     <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='p-'+${card.slug}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#p-'+${card.slug}+')'"/></svg>
     <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
-    <span class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="${card.categoryLabel}">Music</span>
-    <button aria-label="Save event" class="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
+    <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
+    <span class="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="${card.categoryLabel}">Music</span>
+    <button aria-label="Save event" class="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
   </div>
   <div class="p-4">
     <p class="text-xs font-bold uppercase tracking-wide text-brand-600" th:text="${card.dateLine}">Sat, Sep 12 · 7:00 PM</p>
