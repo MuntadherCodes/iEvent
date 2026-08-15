@@ -56,11 +56,13 @@ public class CheckoutController {
     private final UserService userService;
     private final PromoService promoService;
     private final iq.ievent.repo.EventRepository eventRepo;
+    private final iq.ievent.service.TicketPdfService ticketPdf;
 
     public CheckoutController(CatalogService catalog, OrderService orderService,
                               OrderRepository orders, TicketRepository tickets,
                               QrService qr, UserService userService,
-                              PromoService promoService, iq.ievent.repo.EventRepository eventRepo) {
+                              PromoService promoService, iq.ievent.repo.EventRepository eventRepo,
+                              iq.ievent.service.TicketPdfService ticketPdf) {
         this.catalog = catalog;
         this.orderService = orderService;
         this.orders = orders;
@@ -69,6 +71,7 @@ public class CheckoutController {
         this.userService = userService;
         this.promoService = promoService;
         this.eventRepo = eventRepo;
+        this.ticketPdf = ticketPdf;
     }
 
     private User currentUser(UserDetails principal) {
@@ -173,6 +176,25 @@ public class CheckoutController {
             quantities.forEach((id, q) -> qs.append("&qty-").append(id).append("=").append(q));
             return "redirect:/events/" + slug + "/checkout?_e" + qs;
         }
+    }
+
+    @GetMapping("/orders/{code}/tickets.pdf")
+    @Transactional(readOnly = true)
+    public org.springframework.http.ResponseEntity<byte[]> orderTicketsPdf(
+            @PathVariable String code,
+            @AuthenticationPrincipal UserDetails principal) {
+        User user = currentUser(principal);
+        Order order = orders.findByOrderCode(code)
+                .filter(o -> user != null && o.getBuyerUserId().equals(user.getId()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        java.util.List<iq.ievent.domain.Ticket> list =
+                tickets.findByOrderIdOrderByIdAsc(order.getId());
+        if (list.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"ievent-" + order.getOrderCode() + "-tickets.pdf\"")
+                .body(ticketPdf.ticketsPdf(list));
     }
 
     @GetMapping("/orders/{code}")

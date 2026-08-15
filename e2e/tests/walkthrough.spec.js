@@ -57,6 +57,7 @@ const RECEIPT_PNG = path.join(FIXTURES_DIR, 'receipt.png');
 
 // State shared across the serial walkthrough.
 let rsvpTicketCode = ''; // Startup Mixer ticket code from test h
+let rsvpOrderCode = ''; // Startup Mixer order code from test h
 let baghdadHostEventId = ''; // /host/events/{id} for Baghdad Nights (test k)
 
 function log(msg) {
@@ -387,6 +388,12 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   await registerUser(page, { name: BUYER_NAME, email: BUYER_EMAIL, password: BUYER_PASSWORD });
   await login(page, BUYER_EMAIL, buyerPassword);
 
+  log('a plain (non-host) user must NOT be redirected to /host after login');
+  await expect(page).not.toHaveURL(/\/host/);
+  await expect(
+    page.locator('header').getByRole('link', { name: 'Host an event' })
+  ).toBeVisible();
+
   log('opening Startup Mixer Baghdad (free RSVP ticket)');
   await page.goto('/events/startup-mixer-baghdad');
   await expect(page.locator('h1')).toContainText('Startup Mixer Baghdad');
@@ -411,6 +418,13 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   log('confirmation: "You\'re going!" hero + one ticket stub with a QR svg');
   await expect(page.getByRole('heading', { name: /You're going!/ })).toBeVisible();
   await expect(page.locator('.qr-box svg').first()).toBeVisible();
+  rsvpOrderCode = page.url().match(/\/orders\/([A-Z0-9-]+)/)[1];
+  log(`captured order code: ${rsvpOrderCode}`);
+
+  log('confirmed orders offer "Download all tickets (PDF)"');
+  await expect(
+    page.getByRole('link', { name: /Download all tickets \(PDF\)/ })
+  ).toBeVisible();
 
   rsvpTicketCode = (
     await page
@@ -471,6 +485,9 @@ test('i. direct-transfer flow: card number, reference, receipt upload, pending o
   await expect(page.getByText(/36,500\s*IQD/).first()).toBeVisible();
   await expect(page.locator('.qr-box')).toHaveCount(0);
 
+  log('pending orders must NOT offer the tickets PDF download');
+  await expect(page.getByRole('link', { name: /Download all tickets \(PDF\)/ })).toHaveCount(0);
+
   log('EMAIL: the "Order received" pending mail must land in Mailpit');
   await assertMail(request, testInfo, {
     to: BUYER_EMAIL,
@@ -481,6 +498,15 @@ test('i. direct-transfer flow: card number, reference, receipt upload, pending o
 test('j. host approves the direct-transfer order; buyer receives the ticket', async ({ page, request }, testInfo) => {
   await signOut(page);
   await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('HOST users with no deep-link land on /host after login (HostAwareSuccessHandler)');
+  await expect(page).toHaveURL(/\/host(\/)?(\?.*)?$/);
+
+  log('the public header shows "Host console" for host accounts');
+  await page.goto('/');
+  await expect(
+    page.locator('header').getByRole('link', { name: 'Host console' })
+  ).toBeVisible();
 
   log('/host dashboard should flag pending direct-transfer orders');
   await page.goto('/host');
@@ -577,10 +603,18 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   await registerUser(page, { name: HOST2_NAME, email: HOST2_EMAIL, password: HOST2_PASSWORD });
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
 
-  log('/host without an organization should redirect to onboarding (/host/start)');
+  log('/host without an organization should redirect to the onboarding funnel (/host/start)');
   await page.goto('/host');
   await expect(page).toHaveURL(/\/host\/start/);
-  await expect(page.getByRole('heading', { name: /Become a host/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /What kind of events will you host/ })
+  ).toBeVisible();
+
+  log('clicking Next through the 4-step funnel to reach the org form');
+  await page.locator('#nextBtn').click(); // step 2 · frequency
+  await page.locator('#nextBtn').click(); // step 3 · city
+  await page.locator('#nextBtn').click(); // step 4 · the real form
+  await expect(page.locator('#orgName')).toBeVisible();
 
   log('creating organizer profile "E2E Test Events"');
   await page.locator('#orgName').fill('E2E Test Events');
@@ -588,18 +622,38 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   await expect(page).toHaveURL(/\/host(\/)?$/);
   await expect(page.getByText('E2E Test Events').first()).toBeVisible();
 
-  log('creating "E2E Concert Night" via /host/events/new (publish)');
+  log('creating "E2E Concert Night" via the 5-step wizard at /host/events/new');
   await page.goto('/host/events/new');
-  await page.locator('input[name="title"]').fill('E2E Concert Night');
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 1 of 5');
+
+  log('wizard step 1 (basics): title, date, start time, city, category');
+  await page.locator('#ev-title').fill('E2E Concert Night');
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  await page.locator('input[name="date"]').fill(tomorrow);
-  await page.locator('input[name="startTime"]').fill('20:00');
-  await page.locator('select[name="city"]').selectOption('Baghdad');
-  await page.locator('select[name="category"]').selectOption('MUSIC');
+  await page.locator('#ev-date').fill(tomorrow);
+  await page.locator('#ev-start').fill('20:00');
+  await page.locator('#ev-city').selectOption('Baghdad');
+  await page.locator('#ev-cat').selectOption('MUSIC');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
+
+  log('wizard step 2 (banner): skipping straight through');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+
+  log('wizard step 3 (tickets): GA 10,000 IQD × 50 — required by the step validation');
   await page.locator('input[name="ttName"]').first().fill('GA');
   await page.locator('input[name="ttPrice"]').first().fill('10000');
   await page.locator('input[name="ttQty"]').first().fill('50');
-  await page.getByRole('button', { name: /Publish event/ }).click();
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 4 of 5');
+
+  log('wizard step 4 (details): optional — continuing to publish');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+
+  log('wizard step 5: review shows the title, then Publish event (sticky action bar)');
+  await expect(page.locator('#rv-title')).toHaveText('E2E Concert Night');
+  await page.locator('#finalBtns button[value="publish"]').click();
 
   log('event console should show the event as Live');
   await expect(page).toHaveURL(/\/host\/events\/\d+/);
@@ -1015,4 +1069,45 @@ test('z. host test email reaches Mailpit', async ({ page, request }, testInfo) =
     to: DEMO_HOST_EMAIL,
     subjectPart: 'iEvent test email',
   });
+});
+
+test('aa. ticket downloads: QR PNG, single-ticket PDF, buyer-only order PDF', async ({ page, request }) => {
+  expect(rsvpTicketCode, 'needs the ticket code captured in test h').toBeTruthy();
+  expect(rsvpOrderCode, 'needs the order code captured in test h').toBeTruthy();
+
+  log(`GET /t/${rsvpTicketCode}/qr.png → PNG attachment (public by unguessable code)`);
+  const png = await request.get(`/t/${rsvpTicketCode}/qr.png`);
+  expect(png.status()).toBe(200);
+  expect(png.headers()['content-type']).toContain('image/png');
+  expect(png.headers()['content-disposition']).toContain('attachment');
+
+  log(`GET /t/${rsvpTicketCode}/ticket.pdf → PDF starting with %PDF`);
+  const pdf = await request.get(`/t/${rsvpTicketCode}/ticket.pdf`);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()['content-type']).toContain('application/pdf');
+  const pdfBody = await pdf.body();
+  expect(pdfBody.slice(0, 4).toString()).toBe('%PDF');
+
+  log('the buyer (via the page session) can download the whole-order PDF');
+  await login(page, BUYER_EMAIL, buyerPassword);
+  const orderPdf = await page.request.get(`/orders/${rsvpOrderCode}/tickets.pdf`);
+  expect(orderPdf.status()).toBe(200);
+  expect(orderPdf.headers()['content-type']).toContain('application/pdf');
+  expect((await orderPdf.body()).slice(0, 4).toString()).toBe('%PDF');
+
+  log('anonymous requests for the order PDF are pushed to sign-in (no PDF leak)');
+  const anon = await request.get(`/orders/${rsvpOrderCode}/tickets.pdf`, {
+    maxRedirects: 0,
+  });
+  expect(
+    anon.status(),
+    'anonymous order-PDF request must redirect to login, not serve the PDF'
+  ).toBeGreaterThanOrEqual(300);
+  expect(anon.status()).toBeLessThan(400);
+  expect(anon.headers()['content-type'] || '').not.toContain('application/pdf');
+
+  log('the /me/tickets stubs expose per-ticket QR PNG and PDF download links');
+  await page.goto('/me/tickets');
+  await expect(page.getByRole('link', { name: 'QR PNG' }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'PDF', exact: true }).first()).toBeVisible();
 });

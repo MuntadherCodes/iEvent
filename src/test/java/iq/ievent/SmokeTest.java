@@ -130,6 +130,19 @@ class SmokeTest {
     }
 
     @Test
+    void unknownTicketQrPngIs404() throws Exception {
+        mockMvc.perform(get("/t/NOPE/qr.png"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void orderTicketsPdfRequiresLogin() throws Exception {
+        mockMvc.perform(get("/orders/EVT-2026-00000/tickets.pdf"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/auth/login"));
+    }
+
+    @Test
     void registrationRedirectsToLoginWithFlag() throws Exception {
         String uniqueEmail = "smoke+" + System.currentTimeMillis() + "@test.iq";
         mockMvc.perform(post("/auth/register")

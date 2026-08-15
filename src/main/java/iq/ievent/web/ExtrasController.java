@@ -1,8 +1,12 @@
 package iq.ievent.web;
 
 import iq.ievent.domain.Event;
+import iq.ievent.domain.Ticket;
 import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.OrderRepository;
+import iq.ievent.repo.TicketRepository;
+import iq.ievent.service.QrService;
+import iq.ievent.service.TicketPdfService;
 import iq.ievent.service.Format;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -33,12 +37,43 @@ public class ExtrasController {
 
     private final EventRepository events;
     private final OrderRepository orders;
+    private final TicketRepository tickets;
     private final JdbcTemplate jdbc;
+    private final QrService qr;
+    private final TicketPdfService pdf;
 
-    public ExtrasController(EventRepository events, OrderRepository orders, JdbcTemplate jdbc) {
+    public ExtrasController(EventRepository events, OrderRepository orders, TicketRepository tickets,
+                            JdbcTemplate jdbc, QrService qr, TicketPdfService pdf) {
         this.events = events;
         this.orders = orders;
+        this.tickets = tickets;
         this.jdbc = jdbc;
+        this.qr = qr;
+        this.pdf = pdf;
+    }
+
+    /** QR image download for a confirmed ticket (access = knowing the unguessable code). */
+    @GetMapping("/t/{code}/qr.png")
+    public ResponseEntity<byte[]> ticketQrPng(@PathVariable String code) {
+        Ticket t = tickets.findByCode(code)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"ievent-ticket-" + t.getCode() + ".png\"")
+                .body(qr.ticketQrPng(t.getCode()));
+    }
+
+    /** Printable single-ticket PDF. */
+    @GetMapping("/t/{code}/ticket.pdf")
+    public ResponseEntity<byte[]> ticketPdf(@PathVariable String code) {
+        Ticket t = tickets.findByCode(code)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"ievent-ticket-" + t.getCode() + ".pdf\"")
+                .body(pdf.ticketsPdf(java.util.List.of(t)));
     }
 
     /** Short link used by the embeddable widget and social shares. */

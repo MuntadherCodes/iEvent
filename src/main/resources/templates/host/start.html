@@ -7,76 +7,146 @@
 
 <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
 
-<!-- Minimal header -->
+<!-- ============ MINIMAL TOP BAR ============ -->
 <header class="sticky top-0 z-50 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
   <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
     <a th:href="@{/}" class="flex shrink-0 items-center gap-2" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
-      <span class="font-display text-lg font-extrabold tracking-tight text-ink-900"><span class="text-brand-500">i</span>Event</span>
+      <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
     </a>
     <a th:href="@{/}" class="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">Exit<svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></a>
   </div>
+  <!-- Slim progress bar -->
+  <div class="h-1.5 w-full bg-ink-100" role="progressbar" aria-label="Onboarding progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" id="progressTrack">
+    <div id="progressFill" class="h-full rounded-r-full bg-brand-500 transition-all duration-500" style="width:25%"></div>
+  </div>
 </header>
 
-<div class="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl lg:grid-cols-[1.05fr_1fr]">
+<div class="mx-auto grid min-h-[calc(100vh-4rem-6px)] max-w-7xl lg:grid-cols-[1.05fr_1fr]">
 
-  <!-- ============ LEFT · FORM ============ -->
-  <main id="main" class="flex flex-col justify-center px-4 pb-10 pt-8 sm:px-6 lg:px-12 lg:pt-12">
-    <div class="mx-auto w-full max-w-lg">
-      <p class="text-xs font-bold uppercase tracking-wider text-brand-600">Welcome to iEvent</p>
-      <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Become a host</h1>
-      <p class="mt-3 max-w-md text-ink-500">Set up your organizer profile — it takes a minute. You can polish it any time.</p>
+  <!-- ============ LEFT · QUESTIONS ============ -->
+  <main id="main" class="flex flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-12 lg:pt-12">
 
-      <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
-        <span th:text="${error}">Give your organizer profile a name.</span>
+    <!-- Step dots -->
+    <div class="flex items-center gap-2" aria-hidden="true">
+      <span class="ob-dot h-2 w-8 rounded-full bg-brand-500 transition-all duration-300"></span>
+      <span class="ob-dot h-2 w-2 rounded-full bg-ink-200 transition-all duration-300"></span>
+      <span class="ob-dot h-2 w-2 rounded-full bg-ink-200 transition-all duration-300"></span>
+      <span class="ob-dot h-2 w-2 rounded-full bg-ink-200 transition-all duration-300"></span>
+      <span id="stepText" class="ml-2 text-xs font-semibold tabular-nums text-ink-400">Step 1 of 4</span>
+    </div>
+
+    <!-- Error flash -->
+    <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+      <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+      <span th:text="${error}">Give your organizer profile a name.</span>
+    </div>
+
+    <form th:action="@{/host/start}" method="post" class="flex flex-1 flex-col">
+      <input type="hidden" name="city" id="cityInput" value="Baghdad">
+
+      <div class="flex-1">
+
+        <!-- STEP 1 · Event types (visual only) -->
+        <section class="ob-panel mt-8" data-panel="1">
+          <p class="text-xs font-bold uppercase tracking-wider text-brand-600">Welcome to iEvent</p>
+          <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">What kind of events will you host?</h1>
+          <p class="mt-3 max-w-md text-ink-500">Pick as many as you like — we'll tailor your dashboard and tips to match.</p>
+          <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Music" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-music"/></svg><span class="truncate">Music</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Tech" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-laptop"/></svg><span class="truncate">Tech</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Business" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-briefcase"/></svg><span class="truncate">Business</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Arts &amp; Culture" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-palette"/></svg><span class="truncate">Arts &amp; Culture</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Food &amp; Drink" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-utensils"/></svg><span class="truncate">Food &amp; Drink</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Sports" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-volleyball"/></svg><span class="truncate">Sports</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Community" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-heart-handshake"/></svg><span class="truncate">Community</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Education" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-graduation-cap"/></svg><span class="truncate">Education</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Film &amp; Media" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-clapperboard"/></svg><span class="truncate">Film &amp; Media</span></button>
+            <button type="button" class="ob-chip cat-chip flex min-h-[48px] items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Family" aria-pressed="false"><svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#i-baby"/></svg><span class="truncate">Family</span></button>
+          </div>
+        </section>
+
+        <!-- STEP 2 · Frequency (visual only) -->
+        <section class="ob-panel mt-8 hidden" data-panel="2">
+          <p class="text-xs font-bold uppercase tracking-wider text-brand-600">Your plans</p>
+          <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">How often will you run events?</h1>
+          <p class="mt-3 max-w-md text-ink-500">A rough guess is fine — this just helps us point you to the right tools.</p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <button type="button" class="ob-chip freq-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-6 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="First event" aria-pressed="false">First event</button>
+            <button type="button" class="ob-chip freq-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-6 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="A few per year" aria-pressed="false">A few per year</button>
+            <button type="button" class="ob-chip freq-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-6 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Monthly" aria-pressed="false">Monthly</button>
+            <button type="button" class="ob-chip freq-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-6 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Weekly" aria-pressed="false">Weekly</button>
+          </div>
+          <div class="mt-8 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
+            <p>Hosting a series? You can duplicate any event and reuse tickets and settings.</p>
+          </div>
+        </section>
+
+        <!-- STEP 3 · City (sets the real city field) -->
+        <section class="ob-panel mt-8 hidden" data-panel="3">
+          <p class="text-xs font-bold uppercase tracking-wider text-brand-600">Location &amp; reach</p>
+          <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Where will you host?</h1>
+          <p class="mt-3 max-w-md text-ink-500">Pick your home city — attendees browse by city. You can host anywhere later.</p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-brand-500 bg-brand-50 px-5 py-3 text-sm font-semibold text-brand-700 transition" data-value="Baghdad" aria-pressed="true">Baghdad</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Erbil" aria-pressed="false">Erbil</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Basra" aria-pressed="false">Basra</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Sulaymaniyah" aria-pressed="false">Sulaymaniyah</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Najaf" aria-pressed="false">Najaf</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Karbala" aria-pressed="false">Karbala</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Mosul" aria-pressed="false">Mosul</button>
+            <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Duhok" aria-pressed="false">Duhok</button>
+          </div>
+        </section>
+
+        <!-- STEP 4 · The real profile form -->
+        <section class="ob-panel mt-8 hidden" data-panel="4">
+          <p class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-party-popper"/></svg>Almost there</p>
+          <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Set up your organizer profile</h1>
+          <p id="summaryLine" class="mt-4 max-w-lg rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 text-sm leading-relaxed text-brand-900">You'll host events in Baghdad.</p>
+
+          <div class="mt-6 max-w-lg space-y-5">
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="orgName">Organizer name <span class="text-rose-500">*</span></label>
+              <input id="orgName" name="orgName" type="text" required placeholder="e.g. Zain Events Co."
+                     class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="handle">Profile handle</label>
+              <div class="flex items-center overflow-hidden rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+                <span class="shrink-0 border-r border-ink-100 bg-ink-50 px-3.5 py-3 text-sm font-medium text-ink-400">ievent.iq/o/</span>
+                <input id="handle" name="handle" type="text" placeholder="zain-events"
+                       class="w-full bg-transparent px-3.5 py-3 text-sm outline-none placeholder:text-ink-400">
+              </div>
+              <p class="mt-1.5 text-xs text-ink-400">Leave blank and we'll create one from your name.</p>
+            </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="bio">Short bio</label>
+              <textarea id="bio" name="bio" rows="3" placeholder="Tell attendees who you are and what kind of events you host."
+                        class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+            </div>
+            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
+              Create organizer profile<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+            </button>
+            <p class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
+              <span>Free events are free. Paid tickets: <strong class="font-semibold text-ink-800">1,500 IQD booking fee per ticket</strong> — paid by the buyer.</span>
+            </p>
+          </div>
+        </section>
+
       </div>
 
-      <form th:action="@{/host/start}" method="post" class="mt-8 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-        <div>
-          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="orgName">Organizer name <span class="text-rose-500">*</span></label>
-          <input id="orgName" name="orgName" type="text" required placeholder="e.g. Zain Events Co."
-                 class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+      <!-- Wizard controls -->
+      <div class="mt-10 flex items-center justify-between gap-3 border-t border-ink-100 pt-6">
+        <button id="backBtn" type="button" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40" disabled><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back</button>
+        <div id="fwdBtns" class="flex items-center gap-2 sm:gap-3">
+          <button id="skipBtn" type="button" class="inline-flex min-h-[44px] items-center rounded-xl px-4 py-3 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">Skip</button>
+          <button id="nextBtn" type="button" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
         </div>
-        <div class="mt-5">
-          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="handle">Profile handle</label>
-          <div class="flex items-center overflow-hidden rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
-            <span class="shrink-0 border-r border-ink-100 bg-ink-50 px-3.5 py-3 text-sm font-medium text-ink-400">ievent.iq/o/</span>
-            <input id="handle" name="handle" type="text" placeholder="zain-events"
-                   class="w-full bg-transparent px-3.5 py-3 text-sm outline-none placeholder:text-ink-400">
-          </div>
-          <p class="mt-1.5 text-xs text-ink-400">Leave blank and we'll create one from your name.</p>
-        </div>
-        <div class="mt-5">
-          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="city">Home city</label>
-          <div class="relative">
-            <select id="city" name="city" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-              <option value="Baghdad">Baghdad</option>
-              <option value="Basra">Basra</option>
-              <option value="Erbil">Erbil</option>
-              <option value="Sulaymaniyah">Sulaymaniyah</option>
-              <option value="Najaf">Najaf</option>
-              <option value="Karbala">Karbala</option>
-              <option value="Mosul">Mosul</option>
-              <option value="Duhok">Duhok</option>
-            </select>
-            <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-          </div>
-        </div>
-        <div class="mt-5">
-          <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="bio">Short bio</label>
-          <textarea id="bio" name="bio" rows="3" placeholder="Tell attendees who you are and what kind of events you host."
-                    class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
-        </div>
-        <button type="submit" class="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
-          Create organizer profile<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg>
-        </button>
-        <p class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
-          <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
-          <span>Free events are free. Paid tickets: <strong class="font-semibold text-ink-800">1,500 IQD booking fee per ticket</strong> — paid by the buyer.</span>
-        </p>
-      </form>
-    </div>
+      </div>
+    </form>
   </main>
 
   <!-- ============ RIGHT · VISUAL PANEL (lg+) ============ -->
@@ -118,5 +188,95 @@
   </aside>
 </div>
 
+<script>
+(function () {
+  var current = 1, total = 4;
+  var panels = document.querySelectorAll('.ob-panel');
+  var dots = document.querySelectorAll('.ob-dot');
+  var fill = document.getElementById('progressFill');
+  var track = document.getElementById('progressTrack');
+  var backBtn = document.getElementById('backBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var skipBtn = document.getElementById('skipBtn');
+  var fwdBtns = document.getElementById('fwdBtns');
+  var stepText = document.getElementById('stepText');
+  var cityInput = document.getElementById('cityInput');
+  var summaryLine = document.getElementById('summaryLine');
+
+  var CHIP_OFF = ['border-ink-200', 'bg-white', 'text-ink-700', 'hover:border-brand-400', 'hover:text-brand-600'];
+  var CHIP_ON = ['border-brand-500', 'bg-brand-50', 'text-brand-700'];
+
+  function setChip(btn, on) {
+    CHIP_OFF.forEach(function (c) { btn.classList.toggle(c, !on); });
+    CHIP_ON.forEach(function (c) { btn.classList.toggle(c, on); });
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function picks(selector) {
+    var out = [];
+    document.querySelectorAll(selector).forEach(function (b) {
+      if (b.getAttribute('aria-pressed') === 'true') out.push(b.getAttribute('data-value'));
+    });
+    return out;
+  }
+
+  function updateSummary() {
+    var cats = picks('.cat-chip');
+    var freq = picks('.freq-chip');
+    var city = cityInput.value;
+    var text = 'You’ll host ';
+    text += cats.length > 0 ? cats.join(', ') + ' events' : 'events';
+    if (freq.length > 0) text += ' · ' + freq[0].toLowerCase();
+    text += ' · in ' + city + '.';
+    summaryLine.textContent = text;
+  }
+
+  function render() {
+    panels.forEach(function (p) { p.classList.toggle('hidden', +p.dataset.panel !== current); });
+    dots.forEach(function (d, i) {
+      var active = i + 1 === current;
+      var done = i + 1 < current;
+      d.className = 'ob-dot h-2 rounded-full transition-all duration-300 ' +
+        (active ? 'w-8 bg-brand-500' : (done ? 'w-2 bg-brand-400' : 'w-2 bg-ink-200'));
+    });
+    fill.style.width = (current * 25) + '%';
+    track.setAttribute('aria-valuenow', current);
+    stepText.textContent = 'Step ' + current + ' of ' + total;
+    backBtn.disabled = current === 1;
+    fwdBtns.classList.toggle('hidden', current === total);
+    if (current === total) updateSummary();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  nextBtn.addEventListener('click', function () { if (current < total) { current++; render(); } });
+  backBtn.addEventListener('click', function () { if (current > 1) { current--; render(); } });
+  skipBtn.addEventListener('click', function () { current = total; render(); });
+  render();
+
+  // Step 1: category chips — multi-select, visual only
+  document.querySelectorAll('.cat-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setChip(btn, btn.getAttribute('aria-pressed') !== 'true');
+    });
+  });
+
+  // Step 2: frequency chips — single-select, visual only
+  var freqChips = document.querySelectorAll('.freq-chip');
+  freqChips.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      freqChips.forEach(function (b) { setChip(b, b === btn); });
+    });
+  });
+
+  // Step 3: city chips — single-select, sets the real city field
+  var cityChips = document.querySelectorAll('.city-chip');
+  cityChips.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      cityChips.forEach(function (b) { setChip(b, b === btn); });
+      cityInput.value = btn.getAttribute('data-value');
+    });
+  });
+})();
+</script>
 </body>
 </html>

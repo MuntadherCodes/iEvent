@@ -45,6 +45,29 @@ public class SecurityConfig {
      * no longer be set and rendering dies with an IllegalStateException appended as
      * an error page fragment (observed locally as "ERROR 200" inside the login page).
      */
+    /** Hosts land on their console after login; everyone else follows the saved
+     *  request (deep link) or goes home. */
+    static class HostAwareSuccessHandler
+            extends org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler {
+        HostAwareSuccessHandler() {
+            setDefaultTargetUrl("/");
+        }
+        @Override
+        public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                org.springframework.security.core.Authentication authentication)
+                throws IOException, ServletException {
+            var cache = new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
+            boolean hasSaved = cache.getRequest(request, response) != null;
+            boolean host = authentication.getAuthorities().stream().anyMatch(a ->
+                    "ROLE_HOST".equals(a.getAuthority()) || "ROLE_ADMIN".equals(a.getAuthority()));
+            if (!hasSaved && host) {
+                getRedirectStrategy().sendRedirect(request, response, "/host");
+                return;
+            }
+            super.onAuthenticationSuccess(request, response, authentication);
+        }
+    }
+
     static class CsrfEagerLoadFilter extends OncePerRequestFilter {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -77,7 +100,7 @@ public class SecurityConfig {
                 .loginProcessingUrl("/auth/login")
                 .usernameParameter("email")
                 .passwordParameter("password")
-                .defaultSuccessUrl("/", false)
+                .successHandler(new HostAwareSuccessHandler())
                 .failureUrl("/auth/login?error"))
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
@@ -87,7 +110,7 @@ public class SecurityConfig {
             http.oauth2Login(oauth -> oauth
                 .loginPage("/auth/login")
                 .userInfoEndpoint(u -> u.userService(googleUserService.getObject()))
-                .defaultSuccessUrl("/", false));
+                .successHandler(new HostAwareSuccessHandler()));
         }
         return http.build();
     }

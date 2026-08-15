@@ -17,6 +17,31 @@ public class QrService {
         return baseUrl + "/t/" + ticketCode;
     }
 
+    /** Renders the ticket QR as a PNG (for downloads and PDF embedding). */
+    public byte[] ticketQrPng(String ticketCode) {
+        QrCode qr = QrCode.encodeText(ticketUrl(ticketCode), QrCode.Ecc.MEDIUM);
+        int scale = 8;
+        int border = 3;
+        int dim = (qr.size + border * 2) * scale;
+        java.awt.image.BufferedImage img =
+                new java.awt.image.BufferedImage(dim, dim, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < dim; y++) {
+            for (int x = 0; x < dim; x++) {
+                int mx = x / scale - border;
+                int my = y / scale - border;
+                boolean dark = mx >= 0 && my >= 0 && mx < qr.size && my < qr.size && qr.getModule(mx, my);
+                img.setRGB(x, y, dark ? 0x23222F : 0xFFFFFF);
+            }
+        }
+        try {
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(img, "png", out);
+            return out.toByteArray();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("PNG encoding failed", e);
+        }
+    }
+
     /** Renders the ticket QR as a standalone SVG string (dark modules on transparent). */
     public String ticketQrSvg(String ticketCode) {
         QrCode qr = QrCode.encodeText(ticketUrl(ticketCode), QrCode.Ecc.MEDIUM);

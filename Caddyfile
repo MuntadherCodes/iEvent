@@ -9,3 +9,8 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 }
+
+# Convenience host for organizers: console.<domain> → the host dashboard.
+console.{$DOMAIN} {
+	redir https://{$DOMAIN}/host{uri} permanent
+}
