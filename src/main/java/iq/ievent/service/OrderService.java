@@ -182,8 +182,9 @@ public class OrderService {
             mail.sendOrderPending(order);
             Organization org = event.getOrganization();
             if (org.isNotifyPendingOrders()) {
+                final Order saved = order;
                 jdbc.query("SELECT email FROM users WHERE id = ?",
-                        rs -> { mail.sendPendingOrderAlert(rs.getString(1), order); },
+                        rs -> { mail.sendPendingOrderAlert(rs.getString(1), saved); },
                         org.getOwnerUserId());
             }
         }
