@@ -38,7 +38,7 @@
         </div>
       </div>
 
-      <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div class="mt-6 grid gap-6 2xl:grid-cols-[1fr_360px]">
 
         <!-- ===== Left column ===== -->
         <div class="min-w-0 space-y-6">
@@ -76,9 +76,9 @@
             </div>
 
             <div th:unless="${#lists.isEmpty(rows)}" class="relative min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
-              <table class="w-full min-w-[720px] text-sm">
+              <table class="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
+                  <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
                     <th class="px-4 py-3">Event</th>
                     <th class="px-3 py-3">Tickets sold</th>
                     <th class="px-3 py-3">Gross (net of discounts)</th>
@@ -97,9 +97,9 @@
                       <a th:href="@{/host/events/{id}(id=${r.eventId()})}" class="font-semibold text-ink-900 transition hover:text-brand-600" th:text="${r.title()}">Baghdad Nights Music Festival</a>
                     </td>
                     <td class="px-3 py-3.5 tabular-nums text-ink-600" th:text="${r.ticketsSold()}">218</td>
-                    <td class="px-3 py-3.5 font-semibold tabular-nums text-ink-900" th:text="${r.grossLabel()}">7,630,000 IQD</td>
-                    <td class="px-3 py-3.5 tabular-nums text-ink-500" th:text="${r.feesLabel()}">327,000 IQD</td>
-                    <td class="px-4 py-3.5 text-right font-semibold tabular-nums text-green-700" th:text="${r.netLabel()}">7,630,000 IQD</td>
+                    <td class="whitespace-nowrap px-3 py-3.5 font-semibold tabular-nums text-ink-900" th:text="${r.grossLabel()}">7,630,000 IQD</td>
+                    <td class="whitespace-nowrap px-3 py-3.5 tabular-nums text-ink-500" th:text="${r.feesLabel()}">327,000 IQD</td>
+                    <td class="whitespace-nowrap px-4 py-3.5 text-right font-semibold tabular-nums text-green-700" th:text="${r.netLabel()}">7,630,000 IQD</td>
                   </tr>
                 </tbody>
               </table>

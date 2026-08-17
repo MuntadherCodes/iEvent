@@ -26,15 +26,24 @@ public class SecurityConfig {
             org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
                     org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest,
                     org.springframework.security.oauth2.core.user.OAuth2User>> googleUserService;
+    private final org.springframework.beans.factory.ObjectProvider<
+            org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
+                    org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest,
+                    org.springframework.security.oauth2.core.oidc.user.OidcUser>> googleOidcUserService;
 
     public SecurityConfig(
             @org.springframework.beans.factory.annotation.Value("${app.google.client-id:}") String googleClientId,
             org.springframework.beans.factory.ObjectProvider<
                     org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
                             org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest,
-                            org.springframework.security.oauth2.core.user.OAuth2User>> googleUserService) {
+                            org.springframework.security.oauth2.core.user.OAuth2User>> googleUserService,
+            org.springframework.beans.factory.ObjectProvider<
+                    org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
+                            org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest,
+                            org.springframework.security.oauth2.core.oidc.user.OidcUser>> googleOidcUserService) {
         this.googleEnabled = googleClientId != null && !googleClientId.isBlank();
         this.googleUserService = googleUserService;
+        this.googleOidcUserService = googleOidcUserService;
     }
 
     /**
@@ -113,7 +122,11 @@ public class SecurityConfig {
         if (googleEnabled) {
             http.oauth2Login(oauth -> oauth
                 .loginPage("/auth/login")
-                .userInfoEndpoint(u -> u.userService(googleUserService.getObject()))
+                // Google sends the "openid" scope → the OIDC path is the one that
+                // actually runs; the plain userService stays as a fallback.
+                .userInfoEndpoint(u -> u
+                        .userService(googleUserService.getObject())
+                        .oidcUserService(googleOidcUserService.getObject()))
                 .successHandler(new HostAwareSuccessHandler()));
         }
         return http.build();

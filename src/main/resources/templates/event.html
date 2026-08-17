@@ -275,7 +275,8 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <button type="button" class="qty-minus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label='Remove one ' + ${t.name} + ' ticket'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-minus"/></svg></button>
-                  <input type="number" th:name="'qty-' + ${t.id}" value="0" min="0" max="10" readonly
+                  <input type="number" th:name="'qty-' + ${t.id}" min="0" max="10" readonly
+                         th:value="${defaultQtyTypeId != null && t.id == defaultQtyTypeId} ? '1' : '0'"
                          class="qty-input w-8 border-0 bg-transparent p-0 text-center font-bold tabular-nums text-ink-900 outline-none [appearance:textfield]"
                          th:attr="aria-label=${t.name} + ' quantity'">
                   <button type="button" class="qty-plus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label='Add one ' + ${t.name} + ' ticket'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg></button>

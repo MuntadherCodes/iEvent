@@ -8,6 +8,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -293,5 +294,43 @@ class SmokeTest {
                         .with(user(DEMO_HOST_EMAIL)))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/host/settings/payments"));
+    }
+
+    // ---- round 9: checkout qty default, marketing widgets tab ----
+
+    @Test
+    void checkoutDefaultsFirstOnSaleTicketToOneOnFirstVisit() throws Exception {
+        // A first GET with no qty-* params preselects 1× the first ON_SALE type
+        // with stock (General Admission — Early Bird is SOLD_OUT), so exactly one
+        // holder row is server-rendered.
+        mockMvc.perform(get("/events/baghdad-nights-music-festival/checkout")
+                        .with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ticket 1 · General Admission")));
+    }
+
+    @Test
+    void checkoutRespectsExplicitZeroQuantities() throws Exception {
+        // Any explicit qty-* param disables the first-visit default entirely —
+        // an all-zero deep link renders no holder rows at all.
+        mockMvc.perform(get("/events/baghdad-nights-music-festival/checkout")
+                        .param("qty-0", "0")
+                        .with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Ticket 1 ·"))));
+    }
+
+    @Test
+    void marketingWidgetsTabRendersEventPickerAndSnippets() throws Exception {
+        // Round 9 redesign: event dropdown + per-event panels with Button/Card
+        // embed snippets (HTML-escaped by th:text) and the live widget preview.
+        mockMvc.perform(get("/host/marketing").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("widget-event-select")))
+                .andExpect(content().string(containsString("data-widget-panel")))
+                .andExpect(content().string(containsString(
+                        "data-event=&quot;baghdad-nights-music-festival&quot;")))
+                .andExpect(content().string(containsString("/js/widget.js")))
+                .andExpect(content().string(containsString("POWERED BY IEVENT")));
     }
 }

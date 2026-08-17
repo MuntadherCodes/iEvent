@@ -39,6 +39,26 @@ public class GoogleOAuthConfig {
         return new InMemoryClientRegistrationRepository(google);
     }
 
+    /** Matches or provisions the local account for a Google identity. */
+    private static User provision(UserRepository users, PasswordEncoder passwordEncoder,
+                                  SecureRandom random, String email, String name) {
+        if (email == null || email.isBlank()) {
+            throw new OAuth2AuthenticationException("Google account has no email");
+        }
+        return users.findByEmailIgnoreCase(email).orElseGet(() -> {
+            User u = new User();
+            u.setEmail(email.toLowerCase());
+            u.setFullName(name == null || name.isBlank() ? email : name);
+            byte[] noise = new byte[32];
+            random.nextBytes(noise);
+            u.setPasswordHash(passwordEncoder.encode(Base64.getEncoder().encodeToString(noise)));
+            u.setRole(User.Role.USER);
+            u.setAuthProvider("google");
+            return users.save(u);
+        });
+    }
+
+    /** Plain-OAuth2 path (used when the registration has no "openid" scope). */
     @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> googleUserService(
             UserRepository users, PasswordEncoder passwordEncoder) {
@@ -46,23 +66,31 @@ public class GoogleOAuthConfig {
         SecureRandom random = new SecureRandom();
         return request -> {
             OAuth2User oauth = delegate.loadUser(request);
-            String email = oauth.getAttribute("email");
-            String name = oauth.getAttribute("name");
-            if (email == null || email.isBlank()) {
-                throw new OAuth2AuthenticationException("Google account has no email");
-            }
-            User user = users.findByEmailIgnoreCase(email).orElseGet(() -> {
-                User u = new User();
-                u.setEmail(email.toLowerCase());
-                u.setFullName(name == null || name.isBlank() ? email : name);
-                byte[] noise = new byte[32];
-                random.nextBytes(noise);
-                u.setPasswordHash(passwordEncoder.encode(Base64.getEncoder().encodeToString(noise)));
-                u.setRole(User.Role.USER);
-                u.setAuthProvider("google");
-                return users.save(u);
-            });
+            User user = provision(users, passwordEncoder, random,
+                    oauth.getAttribute("email"), oauth.getAttribute("name"));
             return new AppOAuth2User(user, oauth.getAttributes());
+        };
+    }
+
+    /**
+     * OIDC path — this is the one Google logins ACTUALLY take: Google's default
+     * scopes include "openid", so Spring Security uses the OIDC login flow and
+     * IGNORES the plain userService above. Without this bean no local account
+     * was created and the principal wasn't a UserDetails, so signed-in Google
+     * users looked anonymous and hit 404s on /me/** and PDF downloads.
+     */
+    @Bean
+    public OAuth2UserService<org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest,
+                             org.springframework.security.oauth2.core.oidc.user.OidcUser>
+            googleOidcUserService(UserRepository users, PasswordEncoder passwordEncoder) {
+        org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService delegate =
+                new org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService();
+        SecureRandom random = new SecureRandom();
+        return request -> {
+            org.springframework.security.oauth2.core.oidc.user.OidcUser oidc = delegate.loadUser(request);
+            User user = provision(users, passwordEncoder, random,
+                    oidc.getEmail(), oidc.getFullName());
+            return new AppOidcUser(user, oidc);
         };
     }
 }

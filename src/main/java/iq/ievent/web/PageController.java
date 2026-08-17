@@ -196,6 +196,11 @@ public class PageController {
         String statusName = entity.getStatus().name();
         model.addAttribute("eventStatus", statusName);
         model.addAttribute("purchasable", entity.getStatus() == Event.Status.LIVE);
+        // First buyable ticket type defaults to qty 1 in the rail (user request R9).
+        model.addAttribute("defaultQtyTypeId", detail.ticketTypes().stream()
+                .filter(t -> "ON_SALE".equals(t.status()) && t.remaining() > 0)
+                .map(t -> t.id())
+                .findFirst().orElse(null));
         model.addAttribute("summary",
                 entity.getSummary() == null || entity.getSummary().isBlank() ? null : entity.getSummary().trim());
         model.addAttribute("tags", parseTags(entity.getTags()));

@@ -92,15 +92,34 @@ public class CheckoutController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 
         Map<Long, Integer> quantities = new HashMap<>();
-        long subtotal = 0;
-        long paidCount = 0;
-        int totalQty = 0;
+        boolean explicitQty = false;
+        for (String key : params.keySet()) {
+            if (key.startsWith("qty-")) { explicitQty = true; break; }
+        }
         for (var tt : event.ticketTypes()) {
             String raw = params.get("qty-" + tt.id());
             int q = 0;
             try { q = raw == null ? 0 : Math.max(0, Math.min(10, Integer.parseInt(raw))); }
             catch (NumberFormatException ignored) {}
             quantities.put(tt.id(), q);
+        }
+        // First visit (no explicit qty-* params, e.g. straight from the event page):
+        // preselect one ticket of the first purchasable type so the buyer starts at
+        // qty 1 instead of an empty order. Re-posts and deep links with qty-* params
+        // are respected exactly as sent.
+        if (!explicitQty) {
+            for (var tt : event.ticketTypes()) {
+                if ("ON_SALE".equals(tt.status()) && tt.remaining() > 0) {
+                    quantities.put(tt.id(), 1);
+                    break;
+                }
+            }
+        }
+        long subtotal = 0;
+        long paidCount = 0;
+        int totalQty = 0;
+        for (var tt : event.ticketTypes()) {
+            int q = quantities.get(tt.id());
             subtotal += tt.priceIqd() * q;
             if (tt.priceIqd() > 0) paidCount += q;
             totalQty += q;

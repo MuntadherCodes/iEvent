@@ -344,8 +344,17 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
     )
     .toBeGreaterThan(0);
 
-  log('ticket stepper: +1 General Admission should total 36,500 IQD (35,000 + 1,500 fee)');
+  log('round 9: GA (first buyable type) defaults to qty 1 — rail total starts at 36,500 IQD (35,000 + 1,500 fee)');
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
+
+  log('ticket stepper: +1 General Admission on top of the default → 2 tickets, 73,000 IQD');
   await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('.qty-input').first()).toHaveValue('2');
+  await expect(page.locator('#railTotal')).toHaveText(/73,000\s*IQD/);
+
+  log('− returns to the single-ticket default');
+  await page.getByRole('button', { name: 'Remove one General Admission ticket' }).click();
   await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
 });
 
@@ -434,8 +443,8 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   await page.goto('/events/startup-mixer-baghdad');
   await expect(page.locator('h1')).toContainText('Startup Mixer Baghdad');
 
-  log('stepper: +1 RSVP, then submit the rail form ("Get tickets")');
-  await page.getByRole('button', { name: 'Add one RSVP ticket' }).click();
+  log('round 9: the RSVP stepper already defaults to 1 — submit the rail form as-is ("Get tickets")');
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/events\/startup-mixer-baghdad\/checkout/);
 
@@ -502,11 +511,11 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
 });
 
 test('i. direct-transfer flow: card number, reference, receipt upload, pending order', async ({ page, request }, testInfo) => {
-  log('buyer opens Baghdad Nights and picks 1 General Admission');
+  log('buyer opens Baghdad Nights — GA already defaults to 1 (round 9), total 36,500 IQD');
   await page.goto('/auth/login');
   await login(page, BUYER_EMAIL, buyerPassword);
   await page.goto('/events/baghdad-nights-music-festival');
-  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
@@ -751,9 +760,9 @@ test('n. unauthenticated /me/tickets and /host are pushed to sign-in', async ({ 
 test('o. promo code EARLY20: apply at checkout, discount carries to order and ticket holder', async ({ page }) => {
   await login(page, BUYER_EMAIL, buyerPassword);
 
-  log('buyer picks GA ×1 on Baghdad Nights and goes to checkout');
+  log('buyer keeps the default GA ×1 on Baghdad Nights (round 9) and goes to checkout');
   await page.goto('/events/baghdad-nights-music-festival');
-  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
 
@@ -1613,7 +1622,8 @@ test('an. orders: enriched view, search, CSV, full refund flow voids the ticket 
   await registerUser(page, { name: REFUND_NAME, email: REFUND_EMAIL, password: REFUND_PASSWORD });
   await login(page, REFUND_EMAIL, REFUND_PASSWORD);
   await page.goto('/events/baghdad-nights-music-festival');
-  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  // Round 9: the rail already defaults to GA ×1 — submit as-is.
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
   await page.locator('#transferReference').fill('E2E-REF-REFUND');
@@ -1775,7 +1785,8 @@ test('aq. notification center: pending order notifies the buyer, summary API has
 
   log('placing a direct-transfer order on Baghdad Nights WITHOUT a receipt (host-side warning tested in ar)');
   await page.goto('/events/baghdad-nights-music-festival');
-  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  // Round 9: the rail already defaults to GA ×1 — submit as-is.
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
   await page.locator('#transferReference').fill('E2E-REF-NOTIF');
@@ -1911,9 +1922,9 @@ test('au. checkout method picker: both methods with copy buttons + amount callou
   await signOut(page);
   await login(page, BUYER_EMAIL, buyerPassword);
 
-  log('buyer picks GA ×1 on Baghdad Nights and opens checkout');
+  log('buyer keeps the default GA ×1 on Baghdad Nights (round 9) and opens checkout');
   await page.goto('/events/baghdad-nights-music-festival');
-  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
 
@@ -1994,11 +2005,11 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
   const publicHtml = await page.content();
   expect(publicHtml, 'join URL must not leak into public HTML').not.toContain('meet.example.com');
 
-  log('buyer RSVPs free — instant tickets reveal the "Join online event" link');
+  log('buyer RSVPs free — the rail already defaults to RSVP ×1 (round 9), instant tickets reveal the "Join online event" link');
   await signOut(page);
   await login(page, BUYER_EMAIL, buyerPassword);
   await page.goto(onlineEventPublicHref);
-  await page.getByRole('button', { name: 'Add one RSVP ticket' }).click();
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page.locator('#submitLabel')).toHaveText('Register free');
   await page.locator('#submitBtn').click();
@@ -2072,4 +2083,100 @@ test('ay. search styling: the home hero search input carries outline-none', asyn
   const heroInput = page.locator('input[aria-label="Search events"]');
   await expect(heroInput).toBeVisible();
   await expect(heroInput).toHaveClass(/outline-none/);
+});
+
+// ---------- round 9: checkout qty default, widgets tab redesign, signed-in error page ----------
+
+test('az. checkout default: fresh GET preselects 1× first on-sale type; explicit qty params still win; signed-in 404 keeps navbar', async ({ page }) => {
+  await signOut(page);
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('opening the Baghdad Nights checkout DIRECTLY (no qty-* params in the URL)');
+  await page.goto('/events/baghdad-nights-music-festival/checkout');
+
+  log('round 9: the first ON_SALE type with stock defaults to qty 1 — General Admission (Early Bird is SOLD_OUT and not rendered)');
+  const qtyInputs = page.locator('.qty-input');
+  await expect(qtyInputs.first()).toHaveValue('1');
+  await expect(qtyInputs.nth(1)).toHaveValue('0'); // VIP Table stays at 0
+
+  log('exactly one holder row is rendered for the defaulted ticket');
+  await expect(page.locator('.holder-row')).toHaveCount(1);
+  await expect(page.getByText('Ticket 1 · General Admission')).toBeVisible();
+
+  log('the total shows the single-ticket amount: 36,500 IQD (35,000 + 1,500 fee)');
+  await expect(page.locator('.sum-total').first()).toHaveText(/36,500\s*IQD/);
+  await expect(page.locator('#submitLabel')).toHaveText('Submit order for confirmation');
+
+  log('the stepper starts FROM the default: one + click makes it 2 (not 1)');
+  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(qtyInputs.first()).toHaveValue('2');
+  await expect(page.locator('.holder-row')).toHaveCount(2);
+  await expect(page.locator('.sum-total').first()).toHaveText(/73,000\s*IQD/);
+
+  log('a deep link WITH explicit qty-* params is respected exactly (all zero → no default, no holder rows)');
+  await page.goto('/events/baghdad-nights-music-festival/checkout?qty-0=0');
+  await expect(page.locator('.qty-input').first()).toHaveValue('0');
+  await expect(page.locator('.holder-row')).toHaveCount(0);
+
+  log('regression (GlobalModelAdvice): a bogus URL while signed in keeps the signed-in navbar');
+  await page.goto('/events/does-not-exist-e2e-round9');
+  await expect(page.getByText(/Error 404/i).first()).toBeVisible();
+  const header = page.locator('header');
+  // "E2E Buyer" -> initials "EB"; no "Sign in" link for an authenticated visitor.
+  await expect(header.getByText('EB', { exact: true }).first()).toBeVisible();
+  await expect(header.getByRole('link', { name: /Sign in/i })).toHaveCount(0);
+});
+
+test('ba. marketing Widgets tab: event picker swaps panels, embed snippets, live widget preview', async ({ page }) => {
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('?tab=share deep-links into the redesigned Widgets tab');
+  await page.goto('/host/marketing?tab=share');
+  await expect(page.locator('#tab-share')).toBeVisible();
+
+  log('the event dropdown lists the org\'s events, Baghdad Nights among them (exactly once)');
+  const select = page.locator('#widget-event-select');
+  await expect(select).toBeVisible();
+  const options = select.locator('option');
+  await expect
+    .poll(async () => options.count(), { message: 'expected the org events in the picker' })
+    .toBeGreaterThan(1);
+  await expect(options.filter({ hasText: /^Baghdad Nights Music Festival$/ })).toHaveCount(1);
+
+  log('initially only the selected event\'s panels show (snippet column + live preview = 2 elements)');
+  const initialId = await select.inputValue();
+  const visiblePanels = page.locator('div[data-widget-panel]:visible');
+  await expect(visiblePanels).toHaveCount(2);
+  for (const el of await visiblePanels.all()) {
+    expect(await el.getAttribute('data-widget-panel'), 'visible panel must belong to the selected event').toBe(initialId);
+  }
+
+  log('switching the picker to Baghdad Nights swaps the visible panels');
+  await select.selectOption({ label: 'Baghdad Nights Music Festival' });
+  const bnId = await select.inputValue();
+  const bnPanels = page.locator(`div[data-widget-panel="${bnId}"]`);
+  await expect(bnPanels).toHaveCount(2);
+  await expect(bnPanels.first()).toBeVisible();
+  await expect(bnPanels.nth(1)).toBeVisible();
+  await expect(page.locator('div[data-widget-panel]:visible')).toHaveCount(2);
+
+  log('share link carries /e/{slug}; Button + Card snippets carry data-event and /js/widget.js');
+  const snippetPanel = bnPanels.first();
+  await expect(snippetPanel.getByText(/\/e\/baghdad-nights-music-festival/).first()).toBeVisible();
+  const btnSnippet = page.locator(`#embed-btn-${bnId}`);
+  await expect(btnSnippet).toContainText('data-event="baghdad-nights-music-festival"');
+  await expect(btnSnippet).toContainText('/js/widget.js');
+  await expect(btnSnippet).toContainText('data-type="button"');
+  const cardSnippet = page.locator(`#embed-card-${bnId}`);
+  await expect(cardSnippet).toContainText('data-event="baghdad-nights-music-festival"');
+  await expect(cardSnippet).toContainText('data-type="card"');
+  await expect(snippetPanel.getByRole('button', { name: 'Copy link' })).toBeVisible();
+
+  log('the live preview reproduces the real widget: "Get tickets" button/card + POWERED BY IEVENT');
+  const previewPanel = bnPanels.nth(1);
+  await expect(previewPanel.getByText('Button widget')).toBeVisible();
+  await expect(previewPanel.getByText('Card widget')).toBeVisible();
+  await expect(previewPanel.getByText('Get tickets').first()).toBeVisible();
+  await expect(previewPanel.getByText('POWERED BY IEVENT')).toBeVisible();
 });

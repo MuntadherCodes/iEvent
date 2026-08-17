@@ -28,7 +28,7 @@
       <!-- Check-in progress bar -->
       <div th:if="${ev != null && ticketsTotal > 0}" class="mt-4 rounded-2xl border border-ink-100 bg-white px-5 py-4 shadow-card">
         <div class="flex items-center justify-between text-xs font-semibold">
-          <span class="uppercase tracking-wide text-ink-400">Check-in progress</span>
+          <span class="uppercase tracking-wide text-ink-500">Check-in progress</span>
           <span class="tabular-nums text-brand-700" th:text="${(checkedIn * 100 / ticketsTotal)} + '%'">40%</span>
         </div>
         <div class="mt-2 h-2 rounded-full bg-ink-100" role="progressbar" th:attr="aria-valuenow=${checkedIn},aria-valuemax=${ticketsTotal}" aria-valuemin="0">

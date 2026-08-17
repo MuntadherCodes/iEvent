@@ -49,7 +49,7 @@
             <button th:if="${following}" type="submit" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
           </form>
           <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</a>
-          <a th:if="${ox.contactEmail() != null}" th:href="'mailto:' + ${ox.contactEmail()}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-message-circle"/></svg>Message</a>
+          <!-- Message button hidden until messaging ships (phase 2) -->
         </div>
       </div>
       <p th:if="${org.bio != null}" class="mt-6 max-w-2xl text-ink-600" th:text="${org.bio}">Baghdad's leading live-events crew.</p>

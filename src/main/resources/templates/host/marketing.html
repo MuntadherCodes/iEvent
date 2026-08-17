@@ -96,7 +96,7 @@
         <div class="relative mt-4 min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
           <table class="w-full min-w-[680px] text-sm">
             <thead>
-              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
+              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
                 <th class="px-4 py-3">Code</th>
                 <th class="px-3 py-3">Type</th>
                 <th class="px-3 py-3">Applies to</th>
@@ -242,7 +242,7 @@
         <div class="relative mt-6 min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
           <table class="w-full min-w-[680px] text-sm">
             <thead>
-              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
+              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
                 <th class="px-4 py-3">Link</th>
                 <th class="px-3 py-3">Event</th>
                 <th class="px-3 py-3">Channel</th>
@@ -310,41 +310,63 @@
 
       <!-- ===== TAB: Widgets (share & embed) ===== -->
       <section id="tab-share" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Share and embed">
-        <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+
+        <!-- No events yet -->
+        <div th:if="${#lists.isEmpty(events)}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
+          <p class="text-sm font-semibold text-ink-700">No events to share yet</p>
+          <p class="mt-1 text-xs text-ink-500">Create an event first — its share link and widget snippets appear here.</p>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(events)}" class="grid gap-6 xl:grid-cols-[1fr_360px]">
 
           <div class="min-w-0 space-y-6">
-            <!-- Share links -->
+            <!-- Event picker + links & embed snippets -->
             <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-              <h3 class="font-display text-lg font-bold text-ink-900">Share links</h3>
-              <p class="mt-1 text-sm text-ink-500">Short links to each event — perfect for Instagram bio, WhatsApp and posters.</p>
-              <ul class="mt-4 divide-y divide-ink-50">
-                <li th:each="e : ${events}" class="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center">
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-semibold text-ink-900" th:text="${e.title()}">Baghdad Nights Music Festival</p>
-                    <p class="truncate font-mono text-xs tabular-nums text-brand-600" th:id="'share-link-' + ${e.id()}" th:text="${shareBase + '/e/' + e.slug()}">https://ievent.iq/e/baghdad-nights</p>
-                  </div>
-                  <button type="button" th:attr="data-copy='share-link-' + ${e.id()}" class="shrink-0 self-start rounded-lg border border-ink-200 bg-white px-3.5 py-2 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600 sm:self-auto">Copy link</button>
-                </li>
-                <li th:if="${#lists.isEmpty(events)}" class="py-8 text-center text-sm text-ink-500">Create an event first — its share link appears here.</li>
-              </ul>
-            </div>
+              <h3 class="font-display text-lg font-bold text-ink-900">Share &amp; embed</h3>
+              <p class="mt-1 text-sm text-ink-500">Pick an event to get its short share link and website widget snippets.</p>
 
-            <!-- Widget embed -->
-            <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-              <h3 class="font-display text-lg font-bold text-ink-900">Sales widget</h3>
-              <p class="mt-1 text-sm text-ink-500">Sell tickets from your own website — paste one snippet and you're live.</p>
-              <div th:each="e : ${events}" class="mt-4 rounded-2xl bg-ink-900 p-4 ring-1 ring-inset ring-white/10">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="truncate text-xs font-semibold uppercase tracking-wide text-white/60" th:text="${e.title()}">Baghdad Nights Music Festival</p>
-                  <button type="button" th:attr="data-copy='embed-code-' + ${e.id()}" class="shrink-0 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-brand-400 hover:text-brand-300">Copy snippet</button>
+              <label for="widget-event-select" class="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-400">Event</label>
+              <select id="widget-event-select" class="mt-1.5 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-900 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
+              </select>
+
+              <!-- Per-event links & snippets (server-rendered; the picker toggles visibility) -->
+              <div th:each="e, eStat : ${events}" th:attr="data-widget-panel=${e.id()}" th:classappend="${eStat.first} ? '' : 'hidden'" class="mt-5 space-y-5">
+
+                <!-- Short share link -->
+                <div>
+                  <p class="text-sm font-semibold text-ink-900">Share link</p>
+                  <p class="mt-0.5 text-xs text-ink-500">Short link — perfect for Instagram bio, WhatsApp and posters.</p>
+                  <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <p class="min-w-0 flex-1 truncate rounded-xl border border-ink-200 bg-ink-50 px-4 py-2.5 font-mono text-xs tabular-nums text-brand-600" th:id="'share-link-' + ${e.id()}" th:text="${shareBase + '/e/' + e.slug()}">https://ievent.iq/e/baghdad-nights</p>
+                    <button type="button" th:attr="data-copy='share-link-' + ${e.id()}" class="shrink-0 self-start rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600 sm:self-auto">Copy link</button>
+                  </div>
                 </div>
-                <pre class="mt-3 overflow-x-auto"><code th:id="'embed-code-' + ${e.id()}" class="block whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-brand-200" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${e.slug()} + '&quot; data-type=&quot;button&quot;&gt;&lt;/script&gt;'">&lt;script src="https://ievent.iq/js/widget.js" data-event="slug" data-type="button"&gt;&lt;/script&gt;</code></pre>
+
+                <!-- Button widget snippet -->
+                <div class="rounded-2xl bg-ink-900 p-4 ring-1 ring-inset ring-white/10">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Button widget</p>
+                    <button type="button" th:attr="data-copy='embed-btn-' + ${e.id()}" class="shrink-0 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-brand-400 hover:text-brand-300">Copy snippet</button>
+                  </div>
+                  <pre class="mt-3 overflow-x-auto"><code th:id="'embed-btn-' + ${e.id()}" class="block whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-brand-200" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${e.slug()} + '&quot; data-type=&quot;button&quot; data-label=&quot;Get tickets&quot;&gt;&lt;/script&gt;'">&lt;script src="https://ievent.iq/js/widget.js" data-event="slug" data-type="button" data-label="Get tickets"&gt;&lt;/script&gt;</code></pre>
+                </div>
+
+                <!-- Card widget snippet -->
+                <div class="rounded-2xl bg-ink-900 p-4 ring-1 ring-inset ring-white/10">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Card widget</p>
+                    <button type="button" th:attr="data-copy='embed-card-' + ${e.id()}" class="shrink-0 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-brand-400 hover:text-brand-300">Copy snippet</button>
+                  </div>
+                  <pre class="mt-3 overflow-x-auto"><code th:id="'embed-card-' + ${e.id()}" class="block whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-brand-200" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${e.slug()} + '&quot; data-type=&quot;card&quot; data-label=&quot;Get tickets&quot;&gt;&lt;/script&gt;'">&lt;script src="https://ievent.iq/js/widget.js" data-event="slug" data-type="card" data-label="Get tickets"&gt;&lt;/script&gt;</code></pre>
+                </div>
+
+                <p class="text-xs text-ink-400">Optional attributes: <span class="font-mono">data-label</span> changes the button text, <span class="font-mono">data-color</span> sets a custom hex colour.</p>
               </div>
-              <p th:if="${#lists.isEmpty(events)}" class="mt-4 text-sm text-ink-500">Create an event to get its widget snippet.</p>
             </div>
           </div>
 
-          <!-- Live preview mock -->
+          <!-- Live preview: the real widget markup, exactly as widget.js injects it -->
           <aside class="min-w-0">
             <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
               <div class="flex items-center justify-between">
@@ -358,12 +380,27 @@
                   <div class="h-2 w-44 rounded bg-ink-200"></div>
                   <div class="h-2 w-36 rounded bg-ink-200"></div>
                 </div>
-                <div class="grid place-items-center py-4">
-                  <div class="text-center">
-                    <span class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 font-semibold text-white shadow-pop">
-                      <svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg>Get tickets
-                    </span>
-                    <p class="mt-2 text-[10px] font-semibold uppercase tracking-widest text-ink-400">Powered by iEvent</p>
+
+                <!-- Static reproduction of what widget.js injects (inline styles match the script) -->
+                <div th:each="e, eStat : ${events}" th:attr="data-widget-panel=${e.id()}" th:classappend="${eStat.first} ? '' : 'hidden'" class="space-y-6 py-2">
+                  <div>
+                    <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-ink-400">Button widget</p>
+                    <div style="display:inline-block;font-family:Inter,Arial,sans-serif;">
+                      <span style="display:inline-block;background:#8f7ac9;color:#ffffff;font-weight:700;font-size:14px;padding:12px 22px;border-radius:11px;text-decoration:none;box-shadow:0 8px 30px -6px rgba(72,55,105,.28);">Get tickets</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-ink-400">Card widget</p>
+                    <div style="display:inline-block;font-family:Inter,Arial,sans-serif;">
+                      <span style="display:block;width:280px;max-width:100%;text-decoration:none;border:1px solid #ececf1;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 6px 20px -8px rgba(35,34,47,.12);">
+                        <span style="display:block;height:96px;background:linear-gradient(135deg,#8f7ac9,#574382);"></span>
+                        <span style="display:block;padding:14px 16px;">
+                          <span style="display:block;margin:0;font-weight:700;color:#23222f;font-size:15px;" th:text="${#strings.replace(e.slug(), '-', ' ')}">baghdad nights music festival</span>
+                          <span style="display:inline-block;margin:10px 0 0;background:#8f7ac9;color:#fff;font-weight:700;font-size:13px;padding:8px 14px;border-radius:9px;">Get tickets</span>
+                          <span style="display:block;margin:10px 0 0;font-size:10px;color:#908fa3;letter-spacing:.04em;">POWERED BY IEVENT</span>
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -422,6 +459,21 @@
       setTimeout(function () { btn.textContent = old; }, 1500);
     });
   });
+
+  // Widgets tab: the event picker toggles the per-event link/snippet/preview panels.
+  // Everything is server-rendered; this only switches which panel is visible.
+  var widgetSelect = document.getElementById('widget-event-select');
+  function syncWidgetPanels() {
+    if (!widgetSelect) return;
+    var picked = widgetSelect.value;
+    document.querySelectorAll('[data-widget-panel]').forEach(function (panel) {
+      panel.classList.toggle('hidden', panel.getAttribute('data-widget-panel') !== picked);
+    });
+  }
+  if (widgetSelect) {
+    widgetSelect.addEventListener('change', syncWidgetPanels);
+    syncWidgetPanels();
+  }
 </script>
 </body>
 </html>
