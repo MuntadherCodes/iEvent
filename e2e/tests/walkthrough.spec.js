@@ -39,6 +39,20 @@ const HOST2_EMAIL = `e2e-host+${RUN_ID}@test.iq`;
 const HOST2_NAME = 'E2E Host';
 const HOST2_PASSWORD = 'HostPassw0rd!';
 
+// Throwaway user for the password-reset email round-trip (test af).
+const RESET_EMAIL = `e2e-reset+${RUN_ID}@test.iq`;
+const RESET_NAME = 'E2E Reset';
+const RESET_PASSWORD = 'ResetPassw0rd!';
+const RESET_NEW_PASSWORD = 'ResetNewPass1!';
+
+// Throwaway buyer whose order gets REFUNDED (test an).
+const REFUND_EMAIL = `e2e-refund+${RUN_ID}@test.iq`;
+const REFUND_NAME = 'E2E Refundee';
+const REFUND_PASSWORD = 'RefundPassw0rd!';
+
+// Unique subject for the followers email campaign (test ao).
+const CAMPAIGN_SUBJECT = `E2E followers update ${RUN_ID}`;
+
 // Seeded demo host with direct payments enabled.
 const DEMO_HOST_EMAIL = 'fahad@zainevents.iq';
 const DEMO_HOST_PASSWORD = 'Password123!';
@@ -100,6 +114,8 @@ async function registerUser(page, { name, email, password }) {
   await page.locator('input[name="fullName"]').fill(name);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
+  // Registration requires accepting the Terms (enforced server-side too).
+  await page.locator('input[name="terms"]').check();
   await page
     .locator('form')
     .filter({ has: page.locator('input[name="fullName"]') })
@@ -165,6 +181,14 @@ async function mailpitFind(request, { to, subjectPart }, timeoutMs = 20_000) {
     await new Promise((r) => setTimeout(r, 1000));
   }
   return null;
+}
+
+/** Full body (HTML + text) of one Mailpit message, for link extraction. */
+async function mailpitMessageBody(request, id) {
+  const res = await request.get(`${MAILPIT_API}/api/v1/message/${id}`);
+  if (!res.ok()) return '';
+  const data = await res.json();
+  return `${data.HTML || ''}\n${data.Text || ''}`;
 }
 
 /**
@@ -238,8 +262,8 @@ test('c. browse: scale volume, pagination, category / search / free filters', as
     .poll(async () => cards.count(), { message: 'expected at least 12 event cards' })
     .toBeGreaterThanOrEqual(12);
 
-  log('pagination "Next" link should be visible');
-  await expect(page.getByRole('link', { name: /^Next$/ }).first()).toBeVisible();
+  log('pagination "Next page" arrow should be visible');
+  await expect(page.getByRole('link', { name: 'Next page' }).first()).toBeVisible();
 
   log('clicking the "Music" category chip should filter to category=MUSIC');
   await page.locator('a[href*="category=MUSIC"]').first().click();
@@ -406,6 +430,18 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   log('buyer details should be prefilled from the account');
   await expect(page.locator('#buyerName')).toHaveValue(BUYER_NAME);
   await expect(page.locator('#buyerEmail')).toHaveValue(BUYER_EMAIL);
+
+  log('holder row: name + optional email inputs and "Copy from buyer details"');
+  const holderNameInput = page.locator('input[name="holderName"]').first();
+  const holderEmailInput = page.locator('input[name="holderEmail"]').first();
+  await expect(holderNameInput).toBeVisible();
+  await expect(holderEmailInput).toBeVisible();
+  await page.locator('input.copy-buyer').first().check();
+  await expect(holderNameInput).toHaveValue(BUYER_NAME);
+  await expect(holderEmailInput).toHaveValue(BUYER_EMAIL);
+
+  log('"Keep me updated" checkbox is checked by default');
+  await expect(page.locator('input[name="keepUpdated"]')).toBeChecked();
 
   log('free registration note and "Register free" submit label expected');
   await expect(page.getByText(/Free registration — tickets are issued instantly/)).toBeVisible();
@@ -1116,4 +1152,584 @@ test('aa. ticket downloads: QR PNG, single-ticket PDF, buyer-only order PDF', as
   await page.goto('/me/tickets');
   await expect(page.getByRole('link', { name: 'QR PNG' }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'PDF', exact: true }).first()).toBeVisible();
+});
+
+// ---------- wireframe-parity round ----------
+
+test('ab. browse parity: sort, price radios, when pills, numbered pagination, filter chips', async ({ page }) => {
+  log('/browse shows the results count line and numbered pagination');
+  await page.goto('/browse');
+  await expect(page.getByText(/Showing/).first()).toBeVisible();
+  await expect(page.getByText(/events across Iraq/).first()).toBeVisible();
+  const pagination = page.locator('nav[aria-label="Pagination"]');
+  await expect(pagination.locator('[aria-current="page"]')).toHaveText('1');
+  await expect(page.getByRole('link', { name: 'Page 2' })).toBeVisible();
+  await expect(pagination.getByText('…').first()).toBeVisible();
+
+  log('clicking "Page 2" navigates to page=1 and marks it current');
+  await page.getByRole('link', { name: 'Page 2' }).click();
+  await expect(page).toHaveURL(/page=1/);
+  await expect(page.locator('nav[aria-label="Pagination"] [aria-current="page"]')).toHaveText('2');
+
+  log('sort dropdown: choosing "Most popular" submits sort=popular');
+  await page.goto('/browse');
+  await page.locator('#sortSelect').selectOption('popular');
+  await expect(page).toHaveURL(/sort=popular/);
+  await expect(page.locator('#sortSelect')).toHaveValue('popular');
+
+  log('sort=price deep link pre-selects "Price low→high"');
+  await page.goto('/browse?sort=price');
+  await expect(page.locator('#sortSelect')).toHaveValue('price');
+
+  log('price=paid checks the sidebar radio and shows the removable "Paid" chip');
+  await page.goto('/browse?q=Basra&price=paid');
+  const sidebar = page.locator('aside[aria-label="Filters"]');
+  await expect(sidebar.locator('input[name="price"][value="paid"]')).toBeChecked();
+  await expect(page.getByRole('link', { name: 'Remove price filter' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Remove search filter Basra/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Clear all' })).toBeVisible();
+
+  log('clicking the price chip clears only the price filter (q stays)');
+  await page.getByRole('link', { name: 'Remove price filter' }).click();
+  await expect(page).not.toHaveURL(/price=paid/);
+  await expect(page).toHaveURL(/q=Basra/);
+  await expect(page.getByRole('link', { name: 'Remove price filter' })).toHaveCount(0);
+
+  log('"Tomorrow" when-pill renders cleanly (cards or the empty state)');
+  await page.goto('/browse');
+  await page.getByRole('link', { name: 'Tomorrow', exact: true }).click();
+  await expect(page).toHaveURL(/when=tomorrow/);
+  let body = await page.locator('body').innerText();
+  expect(body).not.toContain('Something went wrong');
+  if ((await page.locator('main a[href^="/events/"]').count()) === 0) {
+    await expect(page.getByText('No events match')).toBeVisible();
+  }
+
+  log('"This month" when-pill has seeded events inside 31 days');
+  await page.getByRole('link', { name: 'This month', exact: true }).click();
+  await expect(page).toHaveURL(/when=month/);
+  await expect
+    .poll(async () => page.locator('main a[href^="/events/"]').count(), {
+      message: 'expected event cards within this month',
+    })
+    .toBeGreaterThan(0);
+
+  log('unknown tracking code /l/... safely redirects to /browse');
+  await page.goto('/l/e2e-unknown-code');
+  await expect(page).toHaveURL(/\/browse/);
+});
+
+test('ac. event page parity: summary, tags, lineup, directions, refund policy, follow form', async ({ page }) => {
+  log('opening the enriched Baghdad Nights page anonymously');
+  await page.goto('/events/baghdad-nights-music-festival');
+
+  log('short summary under the title (seed enrichment)');
+  await expect(page.getByText('One night, three stages').first()).toBeVisible();
+
+  log('tag chips link into browse search');
+  const tagChip = page.getByRole('link', { name: '#family-friendly' });
+  await expect(tagChip).toBeVisible();
+  expect(await tagChip.getAttribute('href')).toContain('/browse');
+
+  log('Lineup section lists the seeded acts');
+  await expect(page.getByRole('heading', { name: 'Lineup' })).toBeVisible();
+  await expect(page.getByText('DJ Rafi')).toBeVisible();
+  await expect(page.getByText('Maqam Reborn Ensemble')).toBeVisible();
+
+  log('"Get directions" opens a maps.google.com link');
+  const directions = page.getByRole('link', { name: /Get directions/ });
+  await expect(directions).toBeVisible();
+  expect(await directions.getAttribute('href')).toContain('maps.google.com');
+
+  log('refund policy line is rendered');
+  await expect(page.getByRole('heading', { name: 'Refund policy' })).toBeVisible();
+  await expect(page.getByText(/Booking fees are non-refundable/).first()).toBeVisible();
+
+  log('signed-in user can follow the organizer straight from the event page (POST form)');
+  await login(page, E2E_EMAIL, E2E_PASSWORD);
+  await page.goto('/events/baghdad-nights-music-festival');
+  const followBtn = page.getByRole('button', { name: 'Follow', exact: true }).first();
+  if (await followBtn.isVisible().catch(() => false)) {
+    // The follow POST redirects to the organizer profile page.
+    await followBtn.click();
+    await expect(page).toHaveURL(/\/organizers\/zainevents/);
+    await page.goto('/events/baghdad-nights-music-festival');
+  }
+  await expect(page.getByRole('button', { name: 'Following' }).first()).toBeVisible();
+});
+
+test('ad. organizer page: tabs, contact block, initials avatar, past events tab', async ({ page }) => {
+  log('opening @zainevents anonymously');
+  await page.goto('/organizers/zainevents');
+
+  log('initials avatar (no logo seeded) and the three tabs render');
+  await expect(page.getByText('ZE', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Upcoming \(/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Past events' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'About' })).toBeVisible();
+
+  log('About tab shows the seeded contact & socials block');
+  await page.getByRole('tab', { name: 'About' }).click();
+  await expect(page.locator('#tab-about')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'hello@zainevents.iq' })).toBeVisible();
+  await expect(page.getByText('+964 770 123 4567')).toBeVisible();
+  await expect(page.getByText('instagram.com/zainevents')).toBeVisible();
+  await expect(page.getByText('zainevents.iq', { exact: true }).first()).toBeVisible();
+
+  log('Past events tab opens (cards or the "No past events yet" empty state)');
+  await page.getByRole('tab', { name: 'Past events' }).click();
+  await expect(page.locator('#tab-past')).toBeVisible();
+  if ((await page.locator('#tab-past a[href^="/events/"]').count()) === 0) {
+    await expect(page.getByText('No past events yet')).toBeVisible();
+  }
+});
+
+test('ae. auth extras: remember-me, forgot-password confirmation, invalid reset token', async ({ page }) => {
+  log('login page offers "Remember me" and a forgot-password link');
+  await page.goto('/auth/login');
+  await expect(page.locator('input[name="remember-me"]')).toBeVisible();
+  const forgotLink = page.getByRole('link', { name: 'Forgot password?' });
+  await expect(forgotLink).toBeVisible();
+
+  log('/auth/forgot always answers with the "Check your inbox" confirmation');
+  await forgotLink.click();
+  await expect(page).toHaveURL(/\/auth\/forgot/);
+  await page.locator('#fp-email').fill(`no-such-user+${RUN_ID}@test.iq`);
+  await page.getByRole('button', { name: /Email me a reset link/ }).click();
+  await expect(page.getByText('Check your inbox')).toBeVisible();
+  await expect(page.getByText(/If an account exists for/)).toBeVisible();
+
+  log('/auth/reset with a bogus token shows the expired-link state');
+  await page.goto('/auth/reset?token=totally-bogus-token');
+  await expect(page.getByText('This link has expired')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Request a new link' })).toBeVisible();
+  await expect(page.locator('#rp-pass')).toHaveCount(0);
+});
+
+test('af. password reset email: Mailpit link completes the reset, new password works', async ({ page, request }, testInfo) => {
+  await registerUser(page, { name: RESET_NAME, email: RESET_EMAIL, password: RESET_PASSWORD });
+
+  log('requesting a reset link for the fresh user');
+  await page.goto('/auth/forgot');
+  await page.locator('#fp-email').fill(RESET_EMAIL);
+  await page.getByRole('button', { name: /Email me a reset link/ }).click();
+  await expect(page.getByText('Check your inbox')).toBeVisible();
+
+  if (!(await mailpitAvailable(request))) {
+    if (IS_CI) {
+      throw new Error(`Mailpit API not reachable at ${MAILPIT_API} — password-reset mail cannot be verified in CI`);
+    }
+    testInfo.annotations.push({
+      type: 'mail-check-skipped',
+      description: `Mailpit not available at ${MAILPIT_API} — reset round-trip skipped`,
+    });
+    log('Mailpit unavailable — skipping the reset round-trip locally');
+    return;
+  }
+
+  log('EMAIL: "Reset your iEvent password" must land in Mailpit');
+  const hit = await mailpitFind(request, {
+    to: RESET_EMAIL,
+    subjectPart: 'Reset your iEvent password',
+  });
+  expect(hit, 'expected the password-reset mail in Mailpit').toBeTruthy();
+
+  log('extracting the /auth/reset?token=... link from the mail body');
+  const mailBody = await mailpitMessageBody(request, hit.ID);
+  const tokenMatch = mailBody.match(/\/auth\/reset\?token=([A-Za-z0-9]+)/);
+  expect(tokenMatch, 'reset mail should contain the tokenized link').toBeTruthy();
+
+  log('completing the reset with a new password');
+  await page.goto(`/auth/reset?token=${tokenMatch[1]}`);
+  await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
+  await page.locator('#rp-pass').fill(RESET_NEW_PASSWORD);
+  await page.locator('#rp-confirm').fill(RESET_NEW_PASSWORD);
+  await page.getByRole('button', { name: /Update password/ }).click();
+  await expect(page).toHaveURL(/\/auth\/login\?reset/);
+  await expect(page.getByText(/Password updated/).first()).toBeVisible();
+
+  log('signing in with the NEW password succeeds');
+  await login(page, RESET_EMAIL, RESET_NEW_PASSWORD);
+});
+
+test('ag. user area: tickets Upcoming/Past tabs, favorites Organizers tab', async ({ page }) => {
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('/me/tickets renders the Upcoming and Past tabs');
+  await page.goto('/me/tickets');
+  await expect(page.getByRole('tab', { name: /Upcoming \(/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Past \(/ })).toBeVisible();
+
+  log('switching to the Past tab shows past orders or the empty state');
+  await page.locator('#tabPast').click();
+  await expect(page.locator('#panelPast')).toBeVisible();
+  if ((await page.locator('#panelPast article').count()) === 0) {
+    await expect(page.getByText("That's everything so far")).toBeVisible();
+  }
+
+  log('/favorites?tab=organizers opens the Organizers tab with the followed organizer');
+  await page.goto('/favorites?tab=organizers');
+  await expect(page.getByRole('tab', { name: /Organizers \(/ })).toHaveAttribute('aria-selected', 'true');
+  const orgCard = page.locator('article').filter({ hasText: 'Zain Events Co.' }).first();
+  await expect(orgCard).toBeVisible();
+  await expect(orgCard.getByText('@zainevents')).toBeVisible();
+  await expect(orgCard.getByRole('button', { name: /Following/ })).toBeVisible();
+});
+
+test('ah. profile: city select and interests chips persist across a re-GET', async ({ page }) => {
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('choosing Baghdad as the profile city and saving');
+  await page.goto('/me/profile');
+  await page.locator('#pf-city').selectOption('Baghdad');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText('Changes saved.').first()).toBeVisible();
+
+  log('picking the Music and Tech interest chips and saving');
+  const musicInput = page.locator('input[name="interests"][value="MUSIC"]');
+  const techInput = page.locator('input[name="interests"][value="TECH"]');
+  if (!(await musicInput.isChecked())) {
+    await page.locator('label').filter({ has: musicInput }).click();
+  }
+  if (!(await techInput.isChecked())) {
+    await page.locator('label').filter({ has: techInput }).click();
+  }
+  await page.getByRole('button', { name: 'Save interests' }).click();
+  await expect(page.getByText('Changes saved.').first()).toBeVisible();
+
+  log('a fresh GET shows the persisted city and interests');
+  await page.goto('/me/profile');
+  await expect(page.locator('#pf-city')).toHaveValue('Baghdad');
+  await expect(page.locator('input[name="interests"][value="MUSIC"]')).toBeChecked();
+  await expect(page.locator('input[name="interests"][value="TECH"]')).toBeChecked();
+});
+
+test('ai. host dashboard: views/followers cards, delta chips, ?range=7, to-do checklist', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('stat cards: Page views and Followers with delta chips');
+  await page.goto('/host');
+  await expect(page.getByText('Page views').first()).toBeVisible();
+  await expect(page.getByText('Followers').first()).toBeVisible();
+  await expect(page.getByText('vs prev. 30 days').first()).toBeVisible();
+
+  log('sales chart range pill: ?range=7 marks 7d as current');
+  await page.goto('/host?range=7');
+  await expect(page.locator('section[aria-label="Ticket sales chart"]')).toBeVisible();
+  await expect(page.locator('a[href*="range=7"]')).toHaveAttribute('aria-current', 'true');
+
+  log('fahad\'s mature org hides or shows the To-do card without erroring');
+  const body = await page.locator('body').innerText();
+  expect(body).not.toContain('Something went wrong');
+
+  log('the fresh E2E host org still shows the To-do checklist (payments not set up)');
+  await signOut(page);
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+  await page.goto('/host');
+  await expect(page.getByRole('heading', { name: 'To-do' })).toBeVisible();
+  await expect(page.getByText('Set up payments')).toBeVisible();
+});
+
+test('aj. host events list: q search filters rows, status filter works', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('searching q=Erbil narrows the list to the Tech Summit');
+  await page.goto('/host/events?q=Erbil');
+  await expect(page.getByText('Erbil Tech Summit 2026').first()).toBeVisible();
+  await expect(page.getByText('Baghdad Nights Music Festival')).toHaveCount(0);
+
+  log('status=live keeps the live flagship visible');
+  await page.goto('/host/events?status=live');
+  await expect(page).toHaveURL(/status=live/);
+  await expect(page.getByText('Baghdad Nights Music Festival').first()).toBeVisible();
+
+  log('the search input and status chips render as a filter bar');
+  await expect(page.locator('input[name="q"]')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Draft/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Cancelled/ })).toBeVisible();
+});
+
+test('ak. event edit: summary/tags/lineup/visibility/refund fields, summary reaches the public page', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the E2E event edit page');
+  await page.goto('/host/events');
+  await page.getByRole('link', { name: /E2E Concert Night/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  const eventId = page.url().match(/\/host\/events\/(\d+)/)[1];
+  await page.goto(`/host/events/${eventId}/edit`);
+
+  log('all the new descriptive fields are present');
+  await expect(page.locator('#ev-summary')).toBeVisible();
+  await expect(page.locator('#ev-tags')).toBeVisible();
+  await expect(page.locator('#ev-lineup')).toBeVisible();
+  await expect(page.locator('#ev-refund')).toBeVisible();
+  await expect(page.locator('input[name="visibility"]')).toHaveCount(2);
+
+  log('filling summary, tags, lineup and a NO_REFUNDS policy, then saving');
+  await page.locator('#ev-summary').fill('An unforgettable E2E night out in Baghdad.');
+  await page.locator('#ev-tags').fill('e2eparity, test');
+  await page.locator('#ev-lineup').fill('DJ E2E — 9:00 PM\nThe Regression Band — 10:30 PM');
+  await page.locator('#ev-refund').selectOption('NO_REFUNDS');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+
+  log('the public page shows the summary, tag chip, lineup and refund line');
+  await page.goto(publicHref);
+  await expect(page.getByText('An unforgettable E2E night out in Baghdad.')).toBeVisible();
+  await expect(page.getByRole('link', { name: '#e2eparity' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Lineup' })).toBeVisible();
+  await expect(page.getByText('DJ E2E')).toBeVisible();
+  await expect(page.getByText(/All sales are final/).first()).toBeVisible();
+});
+
+test('al. event lifecycle: duplicate creates a "(copy)" draft, publish, postpone, cancel', async ({ page }) => {
+  // Confirm dialogs (postpone/cancel) must be accepted, not auto-dismissed.
+  page.on('dialog', (dialog) => dialog.accept());
+
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('opening the ORIGINAL Baghdad Nights console (never the copy)');
+  await page.goto('/host/events');
+  await page
+    .locator('a')
+    .filter({ hasText: 'Baghdad Nights Music Festival' })
+    .filter({ hasNotText: '(copy)' })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+
+  log('Duplicate → lands on the copy\'s edit page as a draft titled "(copy)"');
+  await page.getByRole('button', { name: 'Duplicate' }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+\/edit/);
+  await expect(page.getByText(/Duplicated as a draft/).first()).toBeVisible();
+  const copyId = page.url().match(/\/host\/events\/(\d+)\/edit/)[1];
+  await expect(page.locator('#ev-title')).toHaveValue(/\(copy\)$/);
+
+  log('publishing the duplicate from the edit page');
+  await page.getByRole('button', { name: 'Publish', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/host/events/${copyId}$`));
+  await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+
+  log('postponing the duplicate by three weeks');
+  const newDate = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await page.locator('#pp-date').fill(newDate);
+  await page.getByRole('button', { name: 'Postpone', exact: true }).click();
+  await expect(page.getByText(/New date saved — every buyer has been emailed/).first()).toBeVisible();
+  await expect(page.locator('#pp-date')).toHaveValue(newDate);
+
+  log('cancelling the duplicate (NEVER a seeded flagship)');
+  await page.getByRole('button', { name: 'Cancel event' }).click();
+  await expect(page.getByText(/Event cancelled — every buyer has been emailed/).first()).toBeVisible();
+  await expect(page.getByText(/This event is cancelled/).first()).toBeVisible();
+
+  log('the public page shows the cancelled banner and no ticket rail');
+  await page.goto(publicHref);
+  await expect(page.getByText('This event has been cancelled')).toBeVisible();
+  await expect(page.getByText('Event cancelled', { exact: true }).first()).toBeVisible();
+});
+
+test('am. attendees: filters UI, stats row, CSV export, resend action', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('selecting Baghdad Nights in the attendees event scope');
+  await page.goto('/host/attendees');
+  const baghdadValue = await page
+    .locator('#event-scope option')
+    .filter({ hasText: /^Baghdad Nights Music Festival$/ })
+    .first()
+    .getAttribute('value');
+  await page.goto(`/host/attendees?event=${baghdadValue}`);
+
+  log('filter controls: ticket-type select, status select, Apply, search box');
+  await expect(page.locator('select[name="type"]')).toBeVisible();
+  await expect(page.locator('select[name="status"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apply', exact: true })).toBeVisible();
+  await expect(page.locator('input[name="q"]')).toBeVisible();
+
+  log('stats strip: total / checked in / remaining / void cards');
+  await expect(page.getByText('Total attendees')).toBeVisible();
+  await expect(page.getByText('Checked in', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Remaining', { exact: true })).toBeVisible();
+  await expect(page.getByText('Void / refunded', { exact: true }).first()).toBeVisible();
+
+  log('a "Resend ticket" action exists on confirmed rows');
+  await expect(page.getByRole('button', { name: 'Resend ticket' }).first()).toBeVisible();
+
+  log('status filter CHECKED_IN renders without error');
+  await page.goto(`/host/attendees?event=${baghdadValue}&status=CHECKED_IN`);
+  const body = await page.locator('body').innerText();
+  expect(body).not.toContain('Something went wrong');
+
+  log('CSV export answers text/csv with the header row');
+  const csv = await page.request.get(`/host/attendees/export.csv?event=${baghdadValue}`);
+  expect(csv.status(), 'attendees CSV should be 200').toBe(200);
+  expect(csv.headers()['content-type']).toContain('text/csv');
+  const csvBody = await csv.text();
+  expect(csvBody.startsWith('Name,Email,Ticket type,Order code')).toBeTruthy();
+});
+
+test('an. orders: enriched view, search, CSV, full refund flow voids the ticket and emails the buyer', async ({ page, request }, testInfo) => {
+  // Refund confirm dialog must be accepted.
+  page.on('dialog', (dialog) => dialog.accept());
+
+  log('fresh buyer places a direct-transfer order on Baghdad Nights');
+  await registerUser(page, { name: REFUND_NAME, email: REFUND_EMAIL, password: REFUND_PASSWORD });
+  await login(page, REFUND_EMAIL, REFUND_PASSWORD);
+  await page.goto('/events/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+  await page.locator('#transferReference').fill('E2E-REF-REFUND');
+  await page.locator('#receiptInput').setInputFiles(RECEIPT_PNG);
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+  const refundOrderCode = page.url().match(/\/orders\/([A-Z0-9-]+)/)[1];
+  log(`captured refund-flow order code: ${refundOrderCode}`);
+
+  log('host approves the order from the pending queue');
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+  await page.goto('/host/orders?status=pending');
+  const pendingRow = page.locator('tr').filter({ hasText: REFUND_EMAIL }).first();
+  await expect(pendingRow).toBeVisible();
+  await pendingRow.getByRole('button', { name: /Approve/ }).click();
+  await expect(page.getByText(/approved — tickets emailed to the buyer/).first()).toBeVisible();
+
+  log('buyer grabs the issued ticket code from the order page');
+  await signOut(page);
+  await login(page, REFUND_EMAIL, REFUND_PASSWORD);
+  await page.goto(`/orders/${refundOrderCode}`);
+  const refundTicketCode = (
+    await page
+      .locator('dl > div')
+      .filter({ hasText: 'Ticket code' })
+      .locator('dd')
+      .first()
+      .innerText()
+  ).trim();
+  expect(refundTicketCode.length).toBeGreaterThan(5);
+  await page.goto(`/t/${refundTicketCode}`);
+  await expect(page.getByText('Valid ticket')).toBeVisible();
+
+  log('enriched orders view: stats row, Refunded tab, search, CSV export');
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+  await page.goto('/host/orders?f=1');
+  await expect(page.getByText('Gross sales')).toBeVisible();
+  await expect(page.getByText('Awaiting confirmation')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Refunded/ }).first()).toBeVisible();
+  await expect(page.locator('input[name="q"]')).toBeVisible();
+  const ordersCsv = await page.request.get('/host/orders/export.csv');
+  expect(ordersCsv.status(), 'orders CSV should be 200').toBe(200);
+  expect(ordersCsv.headers()['content-type']).toContain('text/csv');
+  expect((await ordersCsv.text()).startsWith('Order code,Buyer,Email')).toBeTruthy();
+
+  log('searching the buyer, expanding the row and refunding the order');
+  await page.goto(`/host/orders?f=1&q=${encodeURIComponent(REFUND_EMAIL)}`);
+  const orderRow = page.locator('tr').filter({ hasText: REFUND_EMAIL }).first();
+  await expect(orderRow).toBeVisible();
+  await orderRow.locator('.detail-toggle').click();
+  await page.getByRole('button', { name: /Refund order/ }).click();
+  await expect(page.getByText(/refunded — tickets voided/).first()).toBeVisible();
+
+  log('the order row now carries the Refunded badge');
+  await expect(
+    page.locator('tr').filter({ hasText: REFUND_EMAIL }).first().getByText('Refunded', { exact: true })
+  ).toBeVisible();
+
+  log('the voided ticket\'s public status page shows "Void ticket"');
+  await page.goto(`/t/${refundTicketCode}`);
+  await expect(page.getByText('Void ticket')).toBeVisible();
+
+  log('EMAIL: the "refunded" notification must land in Mailpit');
+  await assertMail(request, testInfo, {
+    to: REFUND_EMAIL,
+    subjectPart: 'refunded',
+  });
+});
+
+test('ao. marketing: tabs, tracking link counts clicks, followers campaign hits Mailpit', async ({ page, request }, testInfo) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('marketing tabs render: Promo codes / Email campaigns / Tracking links / Social');
+  await page.goto('/host/marketing');
+  await expect(page.getByRole('tab', { name: /Promo codes/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Email campaigns/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Tracking links/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Social/ })).toBeVisible();
+
+  log('creating an Instagram tracking link for Baghdad Nights');
+  await page.goto('/host/marketing?tab=links');
+  // Scope to the links panel — the (hidden) promo form also has an eventId select.
+  const linksPanel = page.locator('#tab-links');
+  await linksPanel.locator('select[name="eventId"]').selectOption({ label: 'Baghdad Nights Music Festival' });
+  await linksPanel.locator('select[name="channel"]').selectOption('instagram');
+  await page.getByRole('button', { name: 'Generate', exact: true }).click();
+  const flashText = await page.getByText(/Tracking link ready:/).innerText();
+  const codeMatch = flashText.match(/\/l\/([A-Za-z0-9]+)/);
+  expect(codeMatch, 'flash should contain the /l/{code} URL').toBeTruthy();
+  const linkCode = codeMatch[1];
+  log(`tracking link code: ${linkCode}`);
+
+  log('the link is listed with its /l/ URL and 0 clicks');
+  const linkRow = page.locator('tr').filter({ hasText: `/l/${linkCode}` }).first();
+  await expect(linkRow).toBeVisible();
+  await expect(linkRow.locator('td').nth(3)).toHaveText('0');
+
+  log('following /l/{code} redirects to the event page with ?via=');
+  await page.goto(`/l/${linkCode}`);
+  await expect(page).toHaveURL(new RegExp(`/events/baghdad-nights-music-festival\\?via=${linkCode}`));
+  await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
+
+  log('the click counter increments after a reload of the links tab');
+  await page.goto('/host/marketing?tab=links');
+  await expect(
+    page.locator('tr').filter({ hasText: `/l/${linkCode}` }).first().locator('td').nth(3)
+  ).toHaveText(/^[1-9]\d*$/);
+
+  log('sending an email campaign to FOLLOWERS (amira/omar follow @zainevents)');
+  await page.goto('/host/marketing?tab=email');
+  await page.locator('#em-audience').selectOption('FOLLOWERS');
+  await page.locator('#em-subject').fill(CAMPAIGN_SUBJECT);
+  await page.locator('#em-body').fill('Salam! This is the E2E walkthrough campaign — see you at the festival.');
+  await page.getByRole('button', { name: /Send campaign/ }).click();
+  await expect(page.getByText(/Campaign sent to \d+ recipient/).first()).toBeVisible();
+
+  log('the campaign shows up in the Sent campaigns history');
+  await expect(page.getByText(CAMPAIGN_SUBJECT).first()).toBeVisible();
+
+  log('EMAIL: seeded follower amira@example.iq must receive the campaign');
+  await assertMail(request, testInfo, {
+    to: 'amira@example.iq',
+    subjectPart: CAMPAIGN_SUBJECT,
+  });
+});
+
+test('ap. host settings: branding prefilled from seed, notifications toggle, ?tab deep links', async ({ page }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('?tab=brand deep-links straight into the Branding panel');
+  await page.goto('/host/settings?tab=brand');
+  await expect(page.locator('#st-brand')).toBeVisible();
+  await expect(page.locator('#st-org')).toBeHidden();
+
+  log('branding form is prefilled with the seeded contact details');
+  await expect(page.locator('#c-email')).toHaveValue('hello@zainevents.iq');
+  await expect(page.locator('#c-phone')).toHaveValue('+964 770 123 4567');
+  await expect(page.locator('#c-insta')).toHaveValue('zainevents');
+  await expect(page.locator('#brand-color')).toBeVisible();
+  await expect(page.locator('input[name="logo"]')).toBeVisible();
+
+  log('?tab=notif shows the notifications panel with the pending-orders toggle ON');
+  await page.goto('/host/settings?tab=notif');
+  await expect(page.locator('#st-notif')).toBeVisible();
+  await expect(page.locator('input[name="notifyPendingOrders"]')).toBeChecked();
+  await expect(page.getByRole('button', { name: 'Save notifications' })).toBeVisible();
 });

@@ -76,6 +76,31 @@ public class MailService {
     }
 
     @Async
+    public void sendOrderRefunded(Order order) {
+        send(order.getBuyerEmail(),
+             "Order " + order.getOrderCode() + " refunded — " + order.getEvent().getTitle(),
+             "email/order-refunded", order, null);
+    }
+
+    @Async
+    public void sendPendingOrderAlert(String hostEmail, Order order) {
+        sendCampaign(hostEmail,
+                "Action needed: order " + order.getOrderCode() + " awaits your confirmation",
+                "A buyer submitted a direct-transfer order for " + order.getEvent().getTitle()
+                        + " (total " + Format.iqd(order.getTotalIqd())
+                        + ").\n\nReview the receipt and approve or reject it in your console: Orders → Pending.",
+                order.getEvent().getTitle(), baseUrl + "/host/orders?status=pending");
+    }
+
+    @Async
+    public void sendPasswordReset(String to, String resetUrl) {
+        sendCampaign(to, "Reset your iEvent password",
+                "Someone (hopefully you) asked to reset the password for this iEvent account.\n\n"
+                        + "The link below is valid for 60 minutes. If this wasn't you, ignore this email.",
+                "Password reset", resetUrl);
+    }
+
+    @Async
     public void sendOrderRejected(Order order) {
         send(order.getBuyerEmail(),
              "Order " + order.getOrderCode() + " could not be confirmed",

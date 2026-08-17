@@ -16,7 +16,7 @@
     <div class="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-brand-100/60 blur-3xl" aria-hidden="true"></div>
     <div class="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8 lg:py-24">
       <div class="mx-auto max-w-3xl text-center">
-        <span class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-brand-700 shadow-card"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg>Events across Iraq, every week</span>
+        <span class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-brand-700 shadow-card"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg><span class="tabular-nums" th:text="${monthCountLine}">2,300</span>&nbsp;events across Iraq this month</span>
         <h1 class="mt-6 font-display text-4xl font-extrabold tracking-tight text-ink-900 sm:text-5xl lg:text-6xl">Find your next <span class="text-brand-500">experience</span> in Iraq</h1>
         <p class="mx-auto mt-5 max-w-xl text-base text-ink-500 md:text-lg">Concerts, tech summits, food carnivals and more — discover what's happening in your city, follow the events you love, and grab tickets in seconds.</p>
 
@@ -44,7 +44,7 @@
         <div class="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm">
           <span class="text-xs font-semibold uppercase tracking-wide text-ink-400">Popular:</span>
           <a th:href="@{/browse(category='MUSIC')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-music"/></svg>Live music</a>
-          <a th:href="@{/browse(free='true')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>Free this week</a>
+          <a th:href="@{/browse(price='free',when='week')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>Free this week</a>
           <a th:href="@{/browse(category='TECH')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-laptop"/></svg>Tech meetups</a>
           <a th:href="@{/browse(category='FOOD')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-utensils"/></svg>Food festivals</a>
         </div>
@@ -96,7 +96,7 @@
           <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl">This weekend</h2>
           <p class="mt-1.5 text-sm text-ink-500">Plans for Friday &amp; Saturday, sorted.</p>
         </div>
-        <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/browse(when='weekend')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <th:block th:each="card : ${weekendEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
@@ -114,7 +114,7 @@
           <span class="inline-block rounded-full bg-brand-500/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-300">For hosts</span>
           <h2 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">Host your event on <span class="text-brand-400">iEvent</span></h2>
           <p class="mt-4 max-w-lg text-ink-300">From a neighbourhood workshop to a stadium festival — publish your event, sell tickets, and check in guests. All from one dashboard, built for Iraq.</p>
-          <a href="#" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Create your first event<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          <a th:href="@{/host}" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Create your first event<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         </div>
         <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
           <div class="rounded-2xl border border-ink-700 bg-ink-800/70 p-5 transition hover:border-brand-500/60">
@@ -145,7 +145,7 @@
           <h2 class="flex items-center gap-2.5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl">Trending across Iraq<svg class="h-6 w-6 text-brand-500 md:h-7 md:w-7" aria-hidden="true"><use href="#i-trending-up"/></svg></h2>
           <p class="mt-1.5 text-sm text-ink-500">The events everyone is talking about right now.</p>
         </div>
-        <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/browse(sort='popular')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <th:block th:each="card : ${trendingEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>

@@ -31,6 +31,9 @@ public class Ticket {
     @Column(name = "holder_name", nullable = false)
     private String holderName;
 
+    @Column(name = "holder_email")
+    private String holderEmail;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.VALID;
@@ -52,6 +55,8 @@ public class Ticket {
     public void setEvent(Event event) { this.event = event; }
     public String getHolderName() { return holderName; }
     public void setHolderName(String holderName) { this.holderName = holderName; }
+    public String getHolderEmail() { return holderEmail; }
+    public void setHolderEmail(String holderEmail) { this.holderEmail = holderEmail; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public OffsetDateTime getCheckedInAt() { return checkedInAt; }

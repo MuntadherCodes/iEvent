@@ -210,6 +210,13 @@
             </div>
             <p class="mt-2 text-xs text-ink-400">Leave unselected and we'll match the theme to your category.</p>
           </div>
+
+          <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+            <h3 class="font-display text-lg font-bold text-ink-900">Event summary</h3>
+            <p class="text-sm text-ink-500">One or two lines shown on your event card in the directory.</p>
+            <textarea id="ev-summary" name="summary" rows="3" maxlength="160" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="A sunset food carnival on the Corniche — 40+ street food stalls, live music and family fun." aria-label="Event summary"></textarea>
+            <p class="mt-1.5 text-right text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
+          </div>
         </section>
 
         <!-- ============ STEP 3 · TICKETS ============ -->
@@ -298,11 +305,49 @@
                   <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg>Add parking / gate directions.</li>
                 </ul>
               </div>
-              <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-                <p class="text-sm font-bold text-ink-900">Refund policy</p>
-                <p class="mt-1.5 text-xs leading-relaxed text-ink-500">The default policy applies: refunds up to 7 days before the event. Custom policies arrive in a later release.</p>
-              </div>
             </aside>
+          </div>
+
+          <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+            <h3 class="font-display text-lg font-bold text-ink-900">Lineup / agenda</h3>
+            <p class="mt-1 text-sm text-ink-500">One act or agenda item per line, e.g. <span class="font-medium text-ink-700">Sunset stage — 7:00 PM</span>. Shown on your event page.</p>
+            <textarea name="lineup" rows="4" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="Gates open · food stalls &amp; family zone — 4:30 PM&#10;Sunset stage — live oud &amp; band sets — 7:00 PM" aria-label="Lineup, one act per line"></textarea>
+          </div>
+
+          <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund">Refund policy</label>
+                <div class="relative">
+                  <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="UP_TO_7_DAYS" selected>Refunds up to 7 days before event</option>
+                    <option value="UP_TO_48H">Refunds up to 48 hours before event</option>
+                    <option value="NO_REFUNDS">No refunds</option>
+                  </select>
+                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </div>
+              </div>
+              <div>
+                <span class="mb-1.5 block text-sm font-semibold text-ink-800">Visibility</span>
+                <div class="flex gap-2">
+                  <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                    <input type="radio" name="visibility" value="PUBLIC" checked class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Public
+                  </label>
+                  <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                    <input type="radio" name="visibility" value="UNLISTED" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Unlisted
+                  </label>
+                </div>
+                <p class="mt-1.5 text-xs text-ink-400">Public appears in the directory and search. Unlisted is reachable only by people with the link.</p>
+              </div>
+            </div>
+            <div class="mt-5">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags">Tags</label>
+              <div class="relative">
+                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg></span>
+                <input id="ev-tags" name="tags" type="text" placeholder="street food, basra, family" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              </div>
+              <p class="mt-1.5 text-xs text-ink-400">Comma separated — tags help people find your event in search.</p>
+            </div>
           </div>
         </section>
 
@@ -323,8 +368,9 @@
                 <p class="text-xs font-bold uppercase tracking-wide text-brand-600"><span id="rv-date">—</span> · <span id="rv-time">—</span></p>
                 <h3 id="rv-title" class="font-display text-xl font-bold leading-snug text-ink-900">Your event title</h3>
                 <p class="flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-map-pin"/></svg><span id="rv-place">City</span></p>
+                <p id="rv-summary" class="hidden text-sm text-ink-600"></p>
                 <div id="rv-tickets" class="flex flex-wrap gap-2 pt-1 text-xs"></div>
-                <p class="text-xs text-ink-400">Booking fee: passed to buyer · Refunds up to 7 days before · Public</p>
+                <p class="text-xs text-ink-400">Booking fee: passed to buyer · <span id="rv-policy">Refunds up to 7 days before event</span> · <span id="rv-visibility">Public</span></p>
               </div>
             </div>
 
@@ -418,6 +464,17 @@
     document.getElementById('rv-time').textContent = start ? (start + (end ? ' – ' + end : '')) : '—';
     document.getElementById('rv-place').textContent = venue ? venue + ', ' + city : city;
     document.getElementById('rv-category').textContent = catLabel;
+
+    var summary = document.getElementById('ev-summary').value.trim();
+    var rvSummary = document.getElementById('rv-summary');
+    rvSummary.textContent = summary;
+    rvSummary.classList.toggle('hidden', !summary);
+    var refundSel = document.getElementById('ev-refund');
+    document.getElementById('rv-policy').textContent =
+      refundSel.options[refundSel.selectedIndex] ? refundSel.options[refundSel.selectedIndex].text : '';
+    var vis = document.querySelector('input[name="visibility"]:checked');
+    document.getElementById('rv-visibility').textContent =
+      vis && vis.value === 'UNLISTED' ? 'Unlisted' : 'Public';
 
     var box = document.getElementById('rv-tickets');
     box.innerHTML = '';
@@ -528,6 +585,13 @@
     titleHint.textContent = len > 0
       ? len + ' characters · Great names mention the city or vibe'
       : 'Great names mention the city or vibe';
+  });
+
+  // Summary character counter
+  var summaryInput = document.getElementById('ev-summary');
+  var summaryCount = document.getElementById('summaryCount');
+  summaryInput.addEventListener('input', function () {
+    summaryCount.textContent = summaryInput.value.length;
   });
 
   // Cover theme live preview

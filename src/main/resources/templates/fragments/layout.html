@@ -271,14 +271,14 @@
         <li><a th:href="@{/browse}" class="transition hover:text-brand-300">Browse events</a></li>
         <li><a th:href="@{/browse(category='MUSIC')}" class="transition hover:text-brand-300">Music</a></li>
         <li><a th:href="@{/browse(category='TECH')}" class="transition hover:text-brand-300">Tech &amp; Business</a></li>
-        <li><a th:href="@{/browse(free='true')}" class="transition hover:text-brand-300">Free events</a></li>
+        <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300">Free events</a></li>
       </ul>
     </nav>
     <nav aria-label="Hosts">
       <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white">For hosts</h3>
       <ul class="space-y-2.5 text-sm">
-        <li><a href="#" class="transition hover:text-brand-300">Host an event</a></li>
-        <li><a href="#" class="transition hover:text-brand-300">Host dashboard</a></li>
+        <li><a th:href="@{/host}" class="transition hover:text-brand-300">Host an event</a></li>
+        <li><a th:href="@{/host}" class="transition hover:text-brand-300">Host dashboard</a></li>
         <li><a href="#" class="transition hover:text-brand-300">Pricing</a></li>
         <li><a href="#" class="transition hover:text-brand-300">Host resources</a></li>
       </ul>

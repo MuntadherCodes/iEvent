@@ -53,11 +53,17 @@ public class CatalogService {
         return toCards(events.findTrending(PageRequest.of(0, limit)));
     }
 
-    public Page<EventCard> search(String q, String category, String city, boolean freeOnly,
-                                  String when, Pageable pageable) {
+    /**
+     * @param price  null/"all" | "free" | "paid"
+     * @param sort   "soonest" (default) | "price" | "popular"
+     */
+    public Page<EventCard> search(String q, String category, String city, String price,
+                                  String when, String sort, Pageable pageable) {
         String qn = normalize(q);
         String cat = normalize(category);
         String cty = normalize(city);
+        boolean freeOnly = "free".equalsIgnoreCase(normalize(price) == null ? "" : price.trim());
+        boolean paidOnly = "paid".equalsIgnoreCase(normalize(price) == null ? "" : price.trim());
         OffsetDateTime fromTs = null;
         OffsetDateTime toTs = null;
         if (when != null) {
@@ -66,6 +72,10 @@ public class CatalogService {
                 case "today" -> {
                     fromTs = now.toLocalDate().atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
                     toTs = now.toLocalDate().plusDays(1).atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
+                }
+                case "tomorrow" -> {
+                    fromTs = now.toLocalDate().plusDays(1).atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
+                    toTs = now.toLocalDate().plusDays(2).atStartOfDay(Format.BAGHDAD).toOffsetDateTime();
                 }
                 case "weekend" -> {
                     // Iraqi weekend: Friday + Saturday
@@ -78,13 +88,31 @@ public class CatalogService {
                     fromTs = now.toOffsetDateTime();
                     toTs = now.plusDays(7).toOffsetDateTime();
                 }
+                case "month" -> {
+                    fromTs = now.toOffsetDateTime();
+                    toTs = now.plusDays(31).toOffsetDateTime();
+                }
                 default -> { }
             }
         }
-        Page<Event> page = events.search(qn, cat == null ? null : cat.toUpperCase(), cty, freeOnly,
-                fromTs, toTs, pageable);
+        String sortKey = switch (sort == null ? "" : sort) {
+            case "price", "popular" -> sort;
+            default -> "soonest";
+        };
+        Page<Event> page = events.search(qn, cat == null ? null : cat.toUpperCase(), cty,
+                freeOnly, paidOnly, fromTs, toTs, sortKey, pageable);
         List<EventCard> cards = toCards(page.getContent());
         return new PageImpl<>(cards, pageable, page.getTotalElements());
+    }
+
+    /** Fire-and-forget page-view counter; separate txn, never breaks the page. */
+    @Transactional
+    public void recordView(String slug) {
+        try {
+            events.findBySlug(slug).ifPresent(e -> events.incrementViewCount(e.getId()));
+        } catch (Exception ignored) {
+            // view counting must never break event rendering
+        }
     }
 
     public List<CityCount> liveCities() {

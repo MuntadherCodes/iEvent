@@ -1,9 +1,16 @@
 package iq.ievent.web;
 
+import iq.ievent.domain.Event;
+import iq.ievent.domain.Organization;
 import iq.ievent.service.CatalogService;
+import iq.ievent.service.Format;
 import iq.ievent.service.UserService;
 import iq.ievent.web.dto.Views.EventCard;
 import iq.ievent.web.dto.Views.EventDetail;
+import iq.ievent.web.dto.Views.LineupItem;
+import iq.ievent.web.dto.Views.OrganizerExtras;
+import iq.ievent.web.dto.Views.OrganizerView;
+import iq.ievent.web.dto.Views.PastEventCard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -17,7 +24,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Controller
 public class PageController {
@@ -37,18 +52,35 @@ public class PageController {
             new CategoryOption("FILM", "Film & Media"),
             new CategoryOption("FAMILY", "Family"));
 
+    private static final List<String> WHEN_VALUES = List.of("today", "tomorrow", "weekend", "week", "month");
+    private static final Map<String, String> WHEN_LABELS = Map.of(
+            "today", "Today",
+            "tomorrow", "Tomorrow",
+            "weekend", "This weekend",
+            "week", "Next 7 days",
+            "month", "This month");
+
     private final CatalogService catalog;
     private final UserService userService;
     private final iq.ievent.service.InteractionService interactions;
     private final iq.ievent.repo.EventRepository events;
+    private final iq.ievent.repo.OrganizationRepository organizations;
+    private final iq.ievent.repo.LikeCountRepository likeCounts;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public PageController(CatalogService catalog, UserService userService,
                           iq.ievent.service.InteractionService interactions,
-                          iq.ievent.repo.EventRepository events) {
+                          iq.ievent.repo.EventRepository events,
+                          iq.ievent.repo.OrganizationRepository organizations,
+                          iq.ievent.repo.LikeCountRepository likeCounts,
+                          org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.catalog = catalog;
         this.userService = userService;
         this.interactions = interactions;
         this.events = events;
+        this.organizations = organizations;
+        this.likeCounts = likeCounts;
+        this.jdbc = jdbc;
     }
 
     @ModelAttribute
@@ -63,6 +95,10 @@ public class PageController {
         model.addAttribute("trendingEvents", catalog.trending(8));
         model.addAttribute("cities", catalog.liveCities());
         model.addAttribute("categories", CATEGORIES);
+        long monthCount = catalog.search(null, null, null, null, "month", "soonest",
+                PageRequest.of(0, 1)).getTotalElements();
+        model.addAttribute("monthCountLine",
+                String.format(Locale.ENGLISH, "%,d", monthCount));
         return "index";
     }
 
@@ -70,42 +106,244 @@ public class PageController {
     public String browse(@RequestParam(required = false) String q,
                          @RequestParam(required = false) String category,
                          @RequestParam(required = false) String city,
-                         @RequestParam(required = false, defaultValue = "false") boolean free,
+                         @RequestParam(required = false) String price,
                          @RequestParam(required = false) String when,
+                         @RequestParam(required = false) String sort,
                          @RequestParam(required = false, defaultValue = "0") int page,
                          Model model) {
         int safePage = Math.max(0, page);
-        String safeWhen = when == null || !java.util.List.of("today", "weekend", "week").contains(when)
-                ? "" : when;
-        Page<EventCard> results = catalog.search(q, category, city, free,
-                safeWhen.isEmpty() ? null : safeWhen, PageRequest.of(safePage, 12));
+        String safeWhen = when != null && WHEN_VALUES.contains(when) ? when : "";
+        String safePrice = "free".equals(price) || "paid".equals(price) ? price : "";
+        String safeSort = "price".equals(sort) || "popular".equals(sort) ? sort : "";
+
+        Page<EventCard> results = catalog.search(q, category, city,
+                safePrice.isEmpty() ? null : safePrice,
+                safeWhen.isEmpty() ? null : safeWhen,
+                safeSort.isEmpty() ? "soonest" : safeSort,
+                PageRequest.of(safePage, 12));
+
+        String safeQ = q == null ? "" : q.trim();
+        String safeCategory = category == null ? "" : category;
+        String selectedCategoryLabel = CATEGORIES.stream()
+                .filter(c -> c.value().equals(safeCategory))
+                .map(CategoryOption::label)
+                .findFirst().orElse("");
+
         model.addAttribute("results", results);
-        model.addAttribute("q", q == null ? "" : q);
-        model.addAttribute("selectedCategory", category == null ? "" : category);
+        model.addAttribute("q", safeQ);
+        model.addAttribute("selectedCategory", safeCategory);
+        model.addAttribute("selectedCategoryLabel", selectedCategoryLabel);
         model.addAttribute("selectedCity", city == null ? "" : city);
-        model.addAttribute("freeOnly", free);
+        model.addAttribute("selectedPrice", safePrice);
         model.addAttribute("selectedWhen", safeWhen);
+        model.addAttribute("selectedWhenLabel", WHEN_LABELS.getOrDefault(safeWhen, ""));
+        model.addAttribute("selectedSort", safeSort.isEmpty() ? "soonest" : safeSort);
+        model.addAttribute("hasFilters", !safeQ.isEmpty() || !safeCategory.isEmpty()
+                || (city != null && !city.isBlank()) || !safePrice.isEmpty() || !safeWhen.isEmpty());
+        model.addAttribute("totalCountLine",
+                String.format(Locale.ENGLISH, "%,d", results.getTotalElements()));
+        model.addAttribute("pageItems", pageItems(results.getNumber(), results.getTotalPages()));
         model.addAttribute("cities", catalog.liveCities());
         model.addAttribute("categories", CATEGORIES);
         return "browse";
+    }
+
+    /** Windowed 0-based page indices for numbered pagination; -1 marks an ellipsis. */
+    static List<Integer> pageItems(int current, int totalPages) {
+        List<Integer> items = new ArrayList<>();
+        if (totalPages <= 1) return items;
+        int last = totalPages - 1;
+        int prev = -2;
+        for (int i = 0; i <= last; i++) {
+            boolean show = i == 0 || i == last || Math.abs(i - current) <= 1;
+            if (!show) continue;
+            if (prev >= 0 && i - prev > 1) items.add(-1); // ellipsis
+            items.add(i);
+            prev = i;
+        }
+        return items;
     }
 
     @GetMapping("/events/{slug}")
     public String event(@PathVariable String slug,
                         @AuthenticationPrincipal UserDetails principal,
                         Model model) {
-        EventDetail detail = catalog.eventDetail(slug)
+        Event entity = events.findBySlug(slug)
+                .filter(e -> e.getStatus() != Event.Status.DRAFT)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+
+        EventDetail detail = catalog.eventDetail(slug)
+                .orElseGet(() -> fallbackDetail(entity)); // CANCELLED events still render (with banner)
+
+        catalog.recordView(slug); // fire-and-forget view counter
+
         boolean liked = false;
+        boolean followingOrganizer = false;
         if (principal != null) {
             var user = userService.byEmail(principal.getUsername());
-            liked = user != null && events.findBySlug(slug)
-                    .map(e -> interactions.isLiked(user.getId(), e.getId()))
-                    .orElse(false);
+            if (user != null) {
+                liked = interactions.isLiked(user.getId(), entity.getId());
+                followingOrganizer = interactions.isFollowing(user.getId(), entity.getOrganization().getId());
+            }
         }
+
         model.addAttribute("event", detail);
         model.addAttribute("liked", liked);
+        model.addAttribute("followingOrganizer", followingOrganizer);
         model.addAttribute("related", catalog.related(slug, 3));
+
+        // ---- wireframe extras computed server-side ----
+        String statusName = entity.getStatus().name();
+        model.addAttribute("eventStatus", statusName);
+        model.addAttribute("purchasable", entity.getStatus() == Event.Status.LIVE);
+        model.addAttribute("summary",
+                entity.getSummary() == null || entity.getSummary().isBlank() ? null : entity.getSummary().trim());
+        model.addAttribute("tags", parseTags(entity.getTags()));
+        model.addAttribute("lineup", parseLineup(entity.getLineup()));
+        model.addAttribute("refundPolicyText", refundPolicyText(entity.getRefundPolicy()));
+        model.addAttribute("directionsUrl", directionsUrl(entity));
         return "event";
+    }
+
+    /** Minimal detail for CANCELLED events (CatalogService only maps LIVE/ENDED).
+     *  Reloads the organization by id: open-in-view is off, so the lazy proxy on the
+     *  detached event cannot be initialized here (getId() alone is proxy-safe). */
+    private EventDetail fallbackDetail(Event e) {
+        Organization org = organizations.findById(e.getOrganization().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        long likes = likeCounts.likesForEvents(List.of(e.getId())).getOrDefault(e.getId(), 0L);
+        OrganizerView organizer = new OrganizerView(
+                org.getName(), org.getHandle(), org.getBio(), org.isVerified(),
+                Format.compactCount(likeCounts.followersForOrganization(org.getId())),
+                likeCounts.eventsHostedForOrganization(org.getId()),
+                initialsOf(org.getName()));
+        List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
+                .map(String::trim).filter(p -> !p.isEmpty()).toList();
+        return new EventDetail(
+                e.getSlug(), e.getTitle(),
+                Format.categoryLabel(e.getCategory()),
+                e.getCoverTheme(),
+                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                e.getCity(), e.getVenueName(), e.getVenueAddress(),
+                Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
+                Format.monthShort(e.getStartsAt()),
+                Format.dayOfMonth(e.getStartsAt()),
+                paragraphs,
+                "Free",
+                likes,
+                organizer,
+                List.of());
+    }
+
+    static List<String> parseTags(String raw) {
+        if (raw == null || raw.isBlank()) return List.of();
+        List<String> out = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String t = part.trim();
+            while (t.startsWith("#")) t = t.substring(1).trim();
+            if (!t.isEmpty()) out.add(t);
+        }
+        return out;
+    }
+
+    /** One act per line, "Name — 10:00 PM" (em/en dash or hyphen separated). */
+    static List<LineupItem> parseLineup(String raw) {
+        if (raw == null || raw.isBlank()) return List.of();
+        List<LineupItem> out = new ArrayList<>();
+        for (String line : raw.split("\r?\n")) {
+            String t = line.trim();
+            if (t.isEmpty()) continue;
+            String[] parts = t.split("\\s+[—–-]\\s+", 2);
+            String name = parts[0].trim();
+            String note = parts.length > 1 ? parts[1].trim() : null;
+            if (!name.isEmpty()) out.add(new LineupItem(name, note == null || note.isEmpty() ? null : note));
+        }
+        return out;
+    }
+
+    static String refundPolicyText(String policy) {
+        String p = policy == null ? "" : policy;
+        return switch (p) {
+            case "NO_REFUNDS" -> "All sales are final — this event does not offer refunds. Booking fees are non-refundable.";
+            case "UP_TO_48H" -> "Full refund up to 48 hours before doors open. Booking fees are non-refundable.";
+            default -> "Full refund up to 7 days before the event. Booking fees are non-refundable.";
+        };
+    }
+
+    static String directionsUrl(Event e) {
+        StringBuilder sb = new StringBuilder();
+        if (e.getVenueName() != null && !e.getVenueName().isBlank()) sb.append(e.getVenueName().trim());
+        String addr = e.getVenueAddress() != null && !e.getVenueAddress().isBlank()
+                ? e.getVenueAddress().trim() : e.getCity();
+        if (sb.length() > 0) sb.append(", ");
+        sb.append(addr);
+        return "https://maps.google.com/?q=" + URLEncoder.encode(sb.toString(), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Organizer-profile extras (logo, contact block, past events). Called from
+     * organizer.html via ${@pageController.organizerExtras(org.handle)} because the
+     * /organizers/{handle} handler lives in another controller this module cannot edit.
+     */
+    public OrganizerExtras organizerExtras(String handle) {
+        Organization org = organizations.findByHandle(handle).orElse(null);
+        if (org == null) {
+            return new OrganizerExtras(0L, null, null, null, null, null, null, null, List.of());
+        }
+        List<Event> all = events.findByOrganizationIdOrderByStartsAtDesc(org.getId());
+        OffsetDateTime now = OffsetDateTime.now();
+        List<Event> past = all.stream()
+                .filter(e -> e.getStartsAt().isBefore(now))
+                .filter(e -> e.getStatus() == Event.Status.LIVE || e.getStatus() == Event.Status.ENDED)
+                .limit(12)
+                .toList();
+        Map<Long, Long> attended = new HashMap<>();
+        if (!past.isEmpty()) {
+            String placeholders = String.join(",", past.stream().map(e -> "?").toList());
+            Object[] ids = past.stream().map(Event::getId).toArray();
+            jdbc.query("SELECT event_id, count(*) FROM tickets WHERE status IN ('VALID','CHECKED_IN') "
+                            + "AND event_id IN (" + placeholders + ") GROUP BY event_id",
+                    rs -> { attended.put(rs.getLong(1), rs.getLong(2)); },
+                    ids);
+        }
+        List<PastEventCard> pastCards = new ArrayList<>(past.size());
+        for (Event e : past) {
+            long n = attended.getOrDefault(e.getId(), 0L);
+            pastCards.add(new PastEventCard(
+                    e.getSlug(), e.getTitle(), e.getCoverTheme(),
+                    e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                    e.getCity(), e.getVenueName(),
+                    Format.cardDateLine(e.getStartsAt()),
+                    n > 0 ? String.format(Locale.ENGLISH, "%,d attended", n) : null));
+        }
+        String website = clean(org.getWebsite());
+        String instagram = clean(org.getInstagram());
+        String instagramHandle = instagram == null ? null
+                : instagram.replaceFirst("^https?://(www\\.)?instagram\\.com/", "").replaceFirst("^@", "").replaceAll("/+$", "");
+        return new OrganizerExtras(
+                org.getId(),
+                org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId(),
+                clean(org.getContactEmail()),
+                clean(org.getContactPhone()),
+                website == null ? null : website.replaceFirst("^https?://", "").replaceAll("/+$", ""),
+                website == null ? null : (website.startsWith("http") ? website : "https://" + website),
+                instagramHandle == null ? null : "instagram.com/" + instagramHandle,
+                instagramHandle == null ? null : "https://instagram.com/" + instagramHandle,
+                pastCards);
+    }
+
+    private static String clean(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String initialsOf(String name) {
+        String[] parts = name == null ? new String[0] : name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length && sb.length() < 2; i++) {
+            if (!parts[i].isEmpty()) sb.append(Character.toUpperCase(parts[i].charAt(0)));
+        }
+        return sb.length() == 0 ? "?" : sb.toString();
     }
 }

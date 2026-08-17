@@ -39,6 +39,10 @@
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
         You've been signed out. See you soon!
       </div>
+      <div th:if="${param.reset != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        Password updated — sign in with your new password.
+      </div>
 
       <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
 
@@ -50,10 +54,14 @@
           <div>
             <div class="mb-1.5 flex items-center justify-between">
               <label for="si-pass" class="block text-sm font-semibold text-ink-800">Password</label>
-              <a href="#" class="text-xs font-semibold text-brand-600 transition hover:text-brand-700">Forgot?</a>
+              <a th:href="@{/auth/forgot}" class="text-xs font-semibold text-brand-600 transition hover:text-brand-700">Forgot password?</a>
             </div>
             <input id="si-pass" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
           </div>
+          <label class="flex cursor-pointer items-center gap-2.5 text-sm text-ink-600">
+            <input type="checkbox" name="remember-me" value="true" class="h-4 w-4 rounded border-ink-300 accent-[#8f7ac9]">
+            Remember me for 30 days
+          </label>
           <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Sign in</button>
 
           <div class="flex items-center gap-3 py-1" aria-hidden="true">

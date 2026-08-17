@@ -10,19 +10,69 @@
 <main id="main" class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
 
   <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl">Saved</h1>
-  <p class="mt-2 text-ink-500">Events you've hearted, all in one place.</p>
+  <p class="mt-2 text-ink-500">Events you've hearted and organizers you follow.</p>
 
-  <!-- ===== Saved grid ===== -->
-  <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" th:if="${!events.isEmpty()}">
-    <th:block th:each="card : ${events}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+  <!-- Tabs -->
+  <div class="mt-8 flex gap-2 border-b border-ink-100" role="tablist" aria-label="Saved filters">
+    <button id="tabEvents" type="button" role="tab" aria-controls="panelEvents"
+            th:attr="aria-selected=${activeTab == 'events'}"
+            th:classappend="${activeTab == 'events'} ? 'border-brand-500 font-bold text-brand-600' : 'border-transparent font-medium text-ink-500 hover:text-ink-800'"
+            class="border-b-2 px-4 py-3 text-sm transition"
+            th:text="'Events (' + ${events.size()} + ')'">Events (5)</button>
+    <button id="tabOrganizers" type="button" role="tab" aria-controls="panelOrganizers"
+            th:attr="aria-selected=${activeTab == 'organizers'}"
+            th:classappend="${activeTab == 'organizers'} ? 'border-brand-500 font-bold text-brand-600' : 'border-transparent font-medium text-ink-500 hover:text-ink-800'"
+            class="border-b-2 px-4 py-3 text-sm transition"
+            th:text="'Organizers (' + ${orgs.size()} + ')'">Organizers (2)</button>
   </div>
 
-  <!-- ===== Empty state ===== -->
-  <div th:if="${events.isEmpty()}" class="mt-10 rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
-    <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-heart"/></svg></div>
-    <h2 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">Nothing saved yet</h2>
-    <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Tap the heart on any event to keep it here for later.</p>
-    <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse events</a>
+  <!-- ===== Events panel ===== -->
+  <div id="panelEvents" role="tabpanel" class="mt-8" th:classappend="${activeTab == 'organizers'} ? 'hidden' : ''">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" th:if="${!events.isEmpty()}">
+      <th:block th:each="card : ${events}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+    </div>
+
+    <!-- Empty state -->
+    <div th:if="${events.isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-14 text-center">
+      <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-heart"/></svg></div>
+      <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">Nothing saved yet</h3>
+      <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Tap the heart on any event to keep it here for later.</p>
+      <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse events</a>
+    </div>
+  </div>
+
+  <!-- ===== Organizers panel ===== -->
+  <div id="panelOrganizers" role="tabpanel" class="mt-8 space-y-4" th:classappend="${activeTab == 'organizers'} ? '' : 'hidden'">
+
+    <article th:each="org : ${orgs}" class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <img th:if="${org.logoUrl() != null}" th:src="${org.logoUrl()}" alt="" class="h-14 w-14 shrink-0 rounded-2xl object-cover ring-1 ring-black/5">
+        <span th:if="${org.logoUrl() == null}" class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 font-display text-lg font-extrabold text-white ring-1 ring-black/5" th:text="${org.initials()}">ZE</span>
+        <div class="min-w-0 flex-1">
+          <a th:href="@{/organizers/{h}(h=${org.handle()})}" class="inline-flex items-center gap-1.5 font-display text-lg font-bold text-ink-900 transition hover:text-brand-600"><span th:text="${org.name()}">Zain Events Co.</span><svg th:if="${org.verified()}" class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg></a>
+          <p class="truncate text-sm text-ink-500"><span th:text="'@' + ${org.handle()}">@zainevents</span><span th:if="${org.bio() != null}" th:text="' · ' + ${org.bio()}"> · Baghdad's leading live-events crew</span></p>
+          <p class="mt-0.5 text-xs tabular-nums text-ink-400"><span th:text="${org.followersDisplay()}">12.4K</span> followers · <span th:text="${org.eventsHosted()}">48</span> events hosted</p>
+        </div>
+        <form th:action="@{/organizers/{h}/follow(h=${org.handle()})}" method="post" class="shrink-0">
+          <button type="submit" class="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-brand-500 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                  th:attr="aria-label='Unfollow ' + ${org.name()}">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following
+          </button>
+        </form>
+      </div>
+      <div class="mt-4 flex items-center justify-between gap-4 border-t border-ink-100 pt-4">
+        <p class="flex items-center gap-1.5 text-sm text-ink-600"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-bell"/></svg>You'll get an email when they announce new events</p>
+        <a th:href="@{/organizers/{h}(h=${org.handle()})}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">View page<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </div>
+    </article>
+
+    <!-- Empty state -->
+    <div th:if="${orgs.isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-14 text-center">
+      <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-users-round"/></svg></div>
+      <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No organizers followed yet</h3>
+      <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Follow organizers to catch their next event the moment it's announced.</p>
+      <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse events</a>
+    </div>
   </div>
 
 </main>
@@ -30,5 +80,32 @@
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
+<script>
+  // Events / Organizers tab toggle
+  (function () {
+    var tabE = document.getElementById('tabEvents');
+    var tabO = document.getElementById('tabOrganizers');
+    var panE = document.getElementById('panelEvents');
+    var panO = document.getElementById('panelOrganizers');
+    var on = 'border-brand-500 text-brand-600 font-bold';
+    var off = 'border-transparent text-ink-500 font-medium';
+    function select(eventsTab) {
+      panE.classList.toggle('hidden', !eventsTab);
+      panO.classList.toggle('hidden', eventsTab);
+      tabE.setAttribute('aria-selected', eventsTab);
+      tabO.setAttribute('aria-selected', !eventsTab);
+      on.split(' ').forEach(function (c) {
+        tabE.classList.toggle(c, eventsTab);
+        tabO.classList.toggle(c, !eventsTab);
+      });
+      off.split(' ').forEach(function (c) {
+        tabE.classList.toggle(c, !eventsTab);
+        tabO.classList.toggle(c, eventsTab);
+      });
+    }
+    tabE.addEventListener('click', function () { select(true); });
+    tabO.addEventListener('click', function () { select(false); });
+  })();
+</script>
 </body>
 </html>

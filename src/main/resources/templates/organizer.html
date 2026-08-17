@@ -7,7 +7,9 @@
 
 <th:block th:replace="~{fragments/layout :: header('')}"></th:block>
 
-<main id="main">
+<!-- Extra profile data (logo, contact, past events) resolved via the pageController bean:
+     the /organizers/{handle} handler lives in a controller outside this module. -->
+<main id="main" th:with="ox=${@pageController.organizerExtras(org.handle)}">
 
   <!-- ============ COVER + PROFILE HEAD ============ -->
   <section>
@@ -19,7 +21,9 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="relative -mt-14 flex flex-col gap-5 md:-mt-16 md:flex-row md:items-end md:justify-between">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <span class="grid h-28 w-28 shrink-0 place-items-center rounded-full border-4 border-white bg-brand-500 font-display text-3xl font-extrabold text-white shadow-cardHover md:h-32 md:w-32" th:text="${org.initials}">ZE</span>
+          <img th:if="${ox.logoUrl() != null}" th:src="${ox.logoUrl()}" th:alt="${org.name} + ' logo'"
+               class="h-28 w-28 shrink-0 rounded-full border-4 border-white bg-white object-cover shadow-cardHover md:h-32 md:w-32">
+          <span th:if="${ox.logoUrl() == null}" class="grid h-28 w-28 shrink-0 place-items-center rounded-full border-4 border-white bg-brand-500 font-display text-3xl font-extrabold text-white shadow-cardHover md:h-32 md:w-32" th:text="${org.initials}">ZE</span>
           <div class="pb-1">
             <h1 class="flex flex-wrap items-center gap-2 font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl"><span th:text="${org.name}">Zain Events Co.</span><svg th:if="${org.verified}" class="h-6 w-6 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${org.verified}" class="sr-only">Verified organizer</span></h1>
             <p class="mt-0.5 text-sm font-medium text-ink-500" th:text="'@' + ${org.handle}">@zainevents</p>
@@ -37,30 +41,116 @@
             <button th:if="${following}" type="submit" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
           </form>
           <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</a>
+          <a th:if="${ox.contactEmail() != null}" th:href="'mailto:' + ${ox.contactEmail()}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-message-circle"/></svg>Message</a>
         </div>
       </div>
       <p th:if="${org.bio != null}" class="mt-6 max-w-2xl text-ink-600" th:text="${org.bio}">Baghdad's leading live-events crew.</p>
     </div>
   </section>
 
-  <!-- ============ UPCOMING EVENTS ============ -->
+  <!-- ============ TABS ============ -->
   <section class="py-10 md:py-12 lg:py-14">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="border-b border-ink-100 pb-3">
-        <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900">Upcoming events</h2>
+
+      <div class="relative flex gap-1 overflow-x-auto border-b border-ink-100" role="tablist" aria-label="Organizer sections">
+        <button id="tabBtn-upcoming" role="tab" aria-selected="true" aria-controls="tab-upcoming" class="tab-btn shrink-0 border-b-2 border-brand-500 px-5 py-3 text-sm font-semibold text-brand-600 transition" th:text="'Upcoming (' + ${events.size()} + ')'">Upcoming (4)</button>
+        <button id="tabBtn-past" role="tab" aria-selected="false" aria-controls="tab-past" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900">Past events</button>
+        <button id="tabBtn-about" role="tab" aria-selected="false" aria-controls="tab-about" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900">About</button>
       </div>
 
-      <div class="grid grid-cols-1 gap-6 pt-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" th:if="${!events.isEmpty()}">
-        <th:block th:each="card : ${events}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+      <!-- UPCOMING -->
+      <div id="tab-upcoming" role="tabpanel" class="tab-panel pt-8">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" th:if="${!events.isEmpty()}">
+          <th:block th:each="card : ${events}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+        </div>
+        <!-- Empty state -->
+        <div th:if="${events.isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
+          <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-calendar"/></svg></div>
+          <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No upcoming events</h3>
+          <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Follow this organizer to hear about their next event first.</p>
+          <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse all events</a>
+        </div>
       </div>
 
-      <!-- Empty state -->
-      <div th:if="${events.isEmpty()}" class="mt-8 rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
-        <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-calendar"/></svg></div>
-        <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No upcoming events</h3>
-        <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Follow this organizer to hear about their next event first.</p>
-        <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse all events</a>
+      <!-- PAST -->
+      <div id="tab-past" role="tabpanel" class="tab-panel hidden pt-8">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" th:if="${!ox.pastEvents().isEmpty()}">
+          <a th:each="p : ${ox.pastEvents()}" th:href="@{/events/{s}(s=${p.slug()})}"
+             class="group block rounded-2xl border border-ink-100 bg-white opacity-70 shadow-card transition hover:-translate-y-0.5 hover:opacity-90 hover:shadow-cardHover"
+             th:with="pgrad=${p.coverTheme() == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
+                      : (p.coverTheme() == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
+                      : (p.coverTheme() == 'business'  ? 'from-ink-800 via-ink-700 to-brand-700'
+                      : (p.coverTheme() == 'arts'      ? 'from-amber-400 via-orange-400 to-rose-400'
+                      : (p.coverTheme() == 'food'      ? 'from-rose-400 via-red-400 to-orange-400'
+                      : (p.coverTheme() == 'sports'    ? 'from-emerald-400 via-teal-400 to-cyan-500'
+                      : (p.coverTheme() == 'education' ? 'from-sky-400 via-blue-500 to-indigo-500'
+                      : (p.coverTheme() == 'film'      ? 'from-slate-600 via-ink-700 to-brand-800'
+                      : (p.coverTheme() == 'family'    ? 'from-emerald-600 via-teal-500 to-sky-500'
+                      :                                   'from-brand-400 via-brand-500 to-indigo-500'))))))))},
+                      picon=${p.coverTheme() == 'music'     ? 'i-music'
+                      : (p.coverTheme() == 'tech'      ? 'i-laptop'
+                      : (p.coverTheme() == 'business'  ? 'i-briefcase'
+                      : (p.coverTheme() == 'arts'      ? 'i-palette'
+                      : (p.coverTheme() == 'food'      ? 'i-utensils'
+                      : (p.coverTheme() == 'sports'    ? 'i-volleyball'
+                      : (p.coverTheme() == 'education' ? 'i-graduation-cap'
+                      : (p.coverTheme() == 'film'      ? 'i-clapperboard'
+                      : (p.coverTheme() == 'family'    ? 'i-baby'
+                      :                                   'i-heart-handshake'))))))))}">
+            <div class="relative aspect-[16/9] overflow-hidden rounded-t-2xl bg-gradient-to-br saturate-50 ring-1 ring-inset ring-black/5" th:classappend="${pgrad}">
+              <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='pa-'+${p.slug()}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#pa-'+${p.slug()}+')'"/></svg>
+              <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${picon}"/></svg>
+              <img th:if="${p.coverImageUrl() != null}" th:src="${p.coverImageUrl()}" th:alt="${p.title()}" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
+              <span class="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Ended</span>
+            </div>
+            <div class="p-4">
+              <p class="text-xs font-bold uppercase tracking-wide text-ink-400" th:text="${p.dateLine()}">Fri, May 22 · 8:00 PM</p>
+              <h3 class="mt-1.5 font-display font-bold leading-snug text-ink-900" th:text="${p.title()}">Baghdad Nights — Spring Edition</h3>
+              <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${p.venueName() != null ? p.venueName() + ', ' + p.city() : p.city()}">Al-Zawraa Park, Baghdad</span></p>
+              <p th:if="${p.attendedLine() != null}" class="mt-2.5 flex items-center gap-1.5 text-sm font-semibold tabular-nums text-ink-500"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-users"/></svg><span th:text="${p.attendedLine()}">2,140 attended</span></p>
+            </div>
+          </a>
+        </div>
+        <!-- Empty state -->
+        <div th:if="${ox.pastEvents().isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
+          <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-clock"/></svg></div>
+          <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No past events yet</h3>
+          <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">This organizer's event history will appear here.</p>
+        </div>
       </div>
+
+      <!-- ABOUT -->
+      <div id="tab-about" role="tabpanel" class="tab-panel hidden pt-8">
+        <div class="grid gap-10 lg:grid-cols-[1fr_360px]">
+          <div class="space-y-4 leading-relaxed text-ink-600">
+            <h2 class="font-display text-xl font-extrabold text-ink-900" th:text="'About ' + ${org.name}">About Zain Events Co.</h2>
+            <p th:if="${org.bio != null}" th:text="${org.bio}">Founded in Baghdad in 2019.</p>
+            <p th:if="${org.bio == null}" class="text-ink-500">This organizer hasn't written a bio yet.</p>
+          </div>
+          <div class="h-fit rounded-2xl border border-ink-100 bg-ink-50/70 p-6 shadow-card"
+               th:if="${ox.contactEmail() != null || ox.contactPhone() != null || ox.instagram() != null || ox.website() != null}">
+            <h3 class="font-display font-bold text-ink-900">Contact &amp; socials</h3>
+            <ul class="mt-4 space-y-3 text-sm">
+              <li th:if="${ox.contactEmail() != null}" class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg></span><a th:href="'mailto:' + ${ox.contactEmail()}" class="break-all font-medium text-ink-700 transition hover:text-brand-600" th:text="${ox.contactEmail()}">hello@zainevents.iq</a></li>
+              <li th:if="${ox.contactPhone() != null}" class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-phone"/></svg></span><a th:href="'tel:' + ${ox.contactPhone()}" class="font-medium tabular-nums text-ink-700 transition hover:text-brand-600" th:text="${ox.contactPhone()}">+964 770 123 4567</a></li>
+              <li th:if="${ox.instagram() != null}" class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-camera"/></svg></span><a th:href="${ox.instagramHref()}" target="_blank" rel="noopener" class="break-all font-medium text-ink-700 transition hover:text-brand-600" th:text="${ox.instagram()}">instagram.com/zainevents</a></li>
+              <li th:if="${ox.website() != null}" class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-globe"/></svg></span><a th:href="${ox.websiteHref()}" target="_blank" rel="noopener" class="break-all font-medium text-ink-700 transition hover:text-brand-600" th:text="${ox.website()}">zainevents.iq</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ TRUST BAND ============ -->
+  <section class="border-t border-ink-100 bg-brand-50 py-8">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
+      <p class="flex items-center gap-3 text-sm font-medium text-ink-700">
+        <svg class="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-shield-check"/></svg>
+        Hosted with <span class="font-display font-extrabold tracking-wide text-ink-900"><span class="text-brand-500">i</span>Event</span> — secure tickets, verified organizers.
+      </p>
+      <a th:href="@{/host}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">Host your own event<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
   </section>
 
@@ -69,5 +159,24 @@
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
+<script>
+  // Tabs
+  var tabs = ['upcoming', 'past', 'about'];
+  tabs.forEach(function (name) {
+    document.getElementById('tabBtn-' + name).addEventListener('click', function () {
+      tabs.forEach(function (n) {
+        var btn = document.getElementById('tabBtn-' + n);
+        var panel = document.getElementById('tab-' + n);
+        var active = n === name;
+        btn.setAttribute('aria-selected', active);
+        btn.classList.toggle('border-brand-500', active);
+        btn.classList.toggle('text-brand-600', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-ink-500', !active);
+        panel.classList.toggle('hidden', !active);
+      });
+    });
+  });
+</script>
 </body>
 </html>

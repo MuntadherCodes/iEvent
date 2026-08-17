@@ -23,6 +23,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("""
            select e from Event e
            where e.status = :status
+             and e.visibility = 'PUBLIC'
              and e.startsAt between :from and :to
            order by e.startsAt asc
            """)
@@ -35,7 +36,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            SELECT e.* FROM events e
            LEFT JOIN (SELECT event_id, count(*) AS n FROM event_likes GROUP BY event_id) l
                   ON l.event_id = e.id
-           WHERE e.status = 'LIVE' AND e.starts_at > now()
+           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC' AND e.starts_at > now()
            ORDER BY COALESCE(l.n, 0) DESC, e.starts_at ASC
            """,
            nativeQuery = true)
@@ -43,26 +44,35 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query(value = """
            SELECT e.* FROM events e
-           WHERE e.status = 'LIVE'
+           LEFT JOIN (SELECT event_id, count(*) AS n FROM event_likes GROUP BY event_id) l
+                  ON l.event_id = e.id
+           LEFT JOIN (SELECT event_id, MIN(price_iqd) AS p FROM ticket_types
+                       WHERE status = 'ON_SALE' GROUP BY event_id) mp
+                  ON mp.event_id = e.id
+           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
              AND (:q IS NULL OR lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
              AND (:category IS NULL OR e.category = CAST(:category AS text))
              AND (:city IS NULL OR e.city = CAST(:city AS text))
-             AND (:freeOnly = FALSE OR COALESCE(
-                   (SELECT MIN(tt.price_iqd) FROM ticket_types tt
-                     WHERE tt.event_id = e.id AND tt.status = 'ON_SALE'), 0) = 0)
+             AND (:freeOnly = FALSE OR COALESCE(mp.p, 0) = 0)
+             AND (:paidOnly = FALSE OR COALESCE(mp.p, 0) > 0)
              AND (CAST(:fromTs AS timestamptz) IS NULL OR e.starts_at >= CAST(:fromTs AS timestamptz))
              AND (CAST(:toTs AS timestamptz) IS NULL OR e.starts_at <= CAST(:toTs AS timestamptz))
-           ORDER BY e.starts_at ASC
+           ORDER BY
+             CASE WHEN CAST(:sort AS text) = 'popular' THEN COALESCE(l.n, 0) END DESC,
+             CASE WHEN CAST(:sort AS text) = 'price' THEN COALESCE(mp.p, 0) END ASC,
+             e.starts_at ASC
            """,
            countQuery = """
            SELECT count(*) FROM events e
-           WHERE e.status = 'LIVE'
+           LEFT JOIN (SELECT event_id, MIN(price_iqd) AS p FROM ticket_types
+                       WHERE status = 'ON_SALE' GROUP BY event_id) mp
+                  ON mp.event_id = e.id
+           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
              AND (:q IS NULL OR lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
              AND (:category IS NULL OR e.category = CAST(:category AS text))
              AND (:city IS NULL OR e.city = CAST(:city AS text))
-             AND (:freeOnly = FALSE OR COALESCE(
-                   (SELECT MIN(tt.price_iqd) FROM ticket_types tt
-                     WHERE tt.event_id = e.id AND tt.status = 'ON_SALE'), 0) = 0)
+             AND (:freeOnly = FALSE OR COALESCE(mp.p, 0) = 0)
+             AND (:paidOnly = FALSE OR COALESCE(mp.p, 0) > 0)
              AND (CAST(:fromTs AS timestamptz) IS NULL OR e.starts_at >= CAST(:fromTs AS timestamptz))
              AND (CAST(:toTs AS timestamptz) IS NULL OR e.starts_at <= CAST(:toTs AS timestamptz))
            """,
@@ -71,13 +81,19 @@ public interface EventRepository extends JpaRepository<Event, Long> {
                        @Param("category") String category,
                        @Param("city") String city,
                        @Param("freeOnly") boolean freeOnly,
+                       @Param("paidOnly") boolean paidOnly,
                        @Param("fromTs") OffsetDateTime fromTs,
                        @Param("toTs") OffsetDateTime toTs,
+                       @Param("sort") String sort,
                        Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = "UPDATE events SET view_count = view_count + 1 WHERE id = :id", nativeQuery = true)
+    void incrementViewCount(@Param("id") long id);
 
     @Query(value = """
            SELECT e.* FROM events e
-           WHERE e.status = 'LIVE' AND e.id <> :excludeId AND e.starts_at > now()
+           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC' AND e.id <> :excludeId AND e.starts_at > now()
              AND (e.category = CAST(:category AS text) OR e.city = CAST(:city AS text))
            ORDER BY (e.category = CAST(:category AS text)) DESC, e.starts_at ASC
            """,

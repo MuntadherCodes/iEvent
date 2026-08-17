@@ -45,6 +45,25 @@ public class Organization {
     @Column(name = "pay_instructions")
     private String payInstructions;
 
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    @Column(name = "contact_phone")
+    private String contactPhone;
+
+    private String website;
+
+    private String instagram;
+
+    @Column(name = "logo_path")
+    private String logoPath;
+
+    @Column(name = "brand_color")
+    private String brandColor;
+
+    @Column(name = "notify_pending_orders", nullable = false)
+    private boolean notifyPendingOrders = true;
+
     public Long getId() { return id; }
     public Long getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(Long ownerUserId) { this.ownerUserId = ownerUserId; }
@@ -69,4 +88,18 @@ public class Organization {
     public void setPayWalletBank(String payWalletBank) { this.payWalletBank = payWalletBank; }
     public String getPayInstructions() { return payInstructions; }
     public void setPayInstructions(String payInstructions) { this.payInstructions = payInstructions; }
+    public String getContactEmail() { return contactEmail; }
+    public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
+    public String getInstagram() { return instagram; }
+    public void setInstagram(String instagram) { this.instagram = instagram; }
+    public String getLogoPath() { return logoPath; }
+    public void setLogoPath(String logoPath) { this.logoPath = logoPath; }
+    public String getBrandColor() { return brandColor; }
+    public void setBrandColor(String brandColor) { this.brandColor = brandColor; }
+    public boolean isNotifyPendingOrders() { return notifyPendingOrders; }
+    public void setNotifyPendingOrders(boolean notifyPendingOrders) { this.notifyPendingOrders = notifyPendingOrders; }
 }

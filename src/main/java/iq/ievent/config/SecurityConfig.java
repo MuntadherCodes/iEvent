@@ -91,7 +91,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
-                        "/auth/**", "/t/**", "/e/**", "/newsletter", "/media/**", "/css/**", "/img/**", "/js/**",
+                        "/auth/**", "/t/**", "/e/**", "/l/**", "/newsletter", "/media/**", "/css/**", "/img/**", "/js/**",
                         "/favicon.ico", "/actuator/health", "/error")
                 .permitAll()
                 .anyRequest().authenticated())
@@ -102,6 +102,10 @@ public class SecurityConfig {
                 .passwordParameter("password")
                 .successHandler(new HostAwareSuccessHandler())
                 .failureUrl("/auth/login?error"))
+            .rememberMe(remember -> remember
+                .rememberMeParameter("remember-me")
+                .key("ievent-remember")
+                .tokenValiditySeconds(60 * 60 * 24 * 30))
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
                 .logoutSuccessUrl("/?signedout"))

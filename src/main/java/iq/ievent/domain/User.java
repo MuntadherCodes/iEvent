@@ -40,6 +40,10 @@ public class User {
     @Column(name = "auth_provider", nullable = false)
     private String authProvider = "local";
 
+    private String city;
+
+    private String interests;
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -58,6 +62,10 @@ public class User {
     public void setNotifyMarketing(boolean notifyMarketing) { this.notifyMarketing = notifyMarketing; }
     public String getAuthProvider() { return authProvider; }
     public void setAuthProvider(String authProvider) { this.authProvider = authProvider; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getInterests() { return interests; }
+    public void setInterests(String interests) { this.interests = interests; }
 
     public String initials() {
         String[] parts = fullName == null ? new String[0] : fullName.trim().split("\\s+");

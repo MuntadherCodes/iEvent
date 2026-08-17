@@ -73,9 +73,64 @@ public class SeedRunner implements CommandLineRunner {
             log.info("Demo seed already present — skipping");
             seedDemoOrdersIfMissing();
         }
+        if (seedDemo) {
+            enrichDemoContent();
+        }
         if (seedScale > 0) {
             seedScaleData(seedScale);
         }
+    }
+
+    /** V5 fields (summary/tags/lineup, org contacts) for existing demo databases.
+     *  Idempotent: only fills columns that are still NULL. */
+    private void enrichDemoContent() {
+        jdbc.update("""
+                UPDATE organizations SET
+                    contact_email = COALESCE(contact_email, 'hello@zainevents.iq'),
+                    contact_phone = COALESCE(contact_phone, '+964 770 123 4567'),
+                    website       = COALESCE(website, 'https://zainevents.iq'),
+                    instagram     = COALESCE(instagram, 'zainevents'),
+                    brand_color   = COALESCE(brand_color, '#8f7ac9')
+                WHERE handle = ?
+                """, DEMO_HANDLE);
+        enrich("baghdad-nights-music-festival",
+                "One night, three stages, the best of Iraq's live music scene under the open sky.",
+                "music, festival, live, family-friendly, baghdad",
+                "DJ Rafi — 7:00 PM\nHiba Salim & Band — 8:15 PM\nMaqam Reborn Ensemble — 9:30 PM\nIlham (headliner) — 11:00 PM");
+        enrich("erbil-tech-summit-2026",
+                "Iraq and Kurdistan's largest gathering of startups, engineers and investors.",
+                "tech, startup, conference, networking, erbil",
+                "Opening keynote — 9:30 AM\nFounders panel — 11:00 AM\nInvestor office hours — 2:00 PM\nDemo night — 5:00 PM");
+        enrich("basra-corniche-food-carnival",
+                "Fifty kitchens along the Shatt al-Arab — free entry, taste tickets on site.",
+                "food, street-food, family, basra", null);
+        enrich("sulaymaniyah-film-nights",
+                "Three award-winning Iraqi and Kurdish features, followed by a director Q&A.",
+                "film, cinema, culture, sulaymaniyah",
+                "Doors — 6:30 PM\nFeature one — 7:00 PM\nFeature two — 8:40 PM\nDirector Q&A — 10:20 PM");
+        enrich("startup-mixer-baghdad",
+                "Monthly meetup for founders, freelancers and the simply curious. First drink on us.",
+                "business, networking, startup, baghdad", null);
+        enrich("mosul-heritage-walk",
+                "A guided morning walk through the rebuilt Old City with local historians.",
+                "community, heritage, walking-tour, mosul", null);
+        enrich("karbala-book-fair",
+                "Four days, 120 publishers, author signings and children's readings.",
+                "education, books, family, karbala", null);
+        enrich("duhok-mountain-marathon",
+                "21K and 10K trail routes above Duhok Dam — medals, chips, water stations.",
+                "sports, running, outdoors, duhok",
+                "10K start — 6:30 AM\n21K start — 7:00 AM\nAwards ceremony — 12:30 PM");
+    }
+
+    private void enrich(String slug, String summary, String tags, String lineup) {
+        jdbc.update("""
+                UPDATE events SET
+                    summary = COALESCE(summary, ?),
+                    tags    = COALESCE(tags, ?),
+                    lineup  = COALESCE(lineup, ?)
+                WHERE slug = ?
+                """, summary, tags, lineup, slug);
     }
 
     /** Older seeds attached synthetic scale events to the demo organizer, drowning

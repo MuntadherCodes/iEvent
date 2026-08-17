@@ -42,7 +42,8 @@ public class CheckoutController {
     public record OrderView(String orderCode, String eventTitle, String eventSlug, String dateLine,
                             String venueLine, String buyerName, String buyerEmail, String statusLabel,
                             boolean pending, String subtotalLabel, String feeLabel, String totalLabel,
-                            String discountLabel, String promoCode, List<ItemView> items) {}
+                            String discountLabel, String promoCode, List<ItemView> items,
+                            String transferReference, String receiptName, String organizerName) {}
 
     public record ItemView(String name, int quantity, String unitLabel, String lineLabel) {}
 
@@ -150,6 +151,8 @@ public class CheckoutController {
                              @RequestParam(name = "receipt", required = false) MultipartFile receipt,
                              @RequestParam(name = "promo", required = false) String promo,
                              @RequestParam(name = "holderName", required = false) List<String> holderNames,
+                             @RequestParam(name = "holderEmail", required = false) List<String> holderEmails,
+                             @RequestParam(name = "keepUpdated", defaultValue = "false") boolean keepUpdated,
                              @AuthenticationPrincipal UserDetails principal,
                              RedirectAttributes redirect) {
         User user = currentUser(principal);
@@ -168,7 +171,7 @@ public class CheckoutController {
         try {
             Order order = orderService.checkout(user, slug, quantities,
                     buyerName, buyerEmail, buyerPhone, transferReference, receipt,
-                    promo, holderNames);
+                    promo, holderNames, holderEmails, keepUpdated);
             return "redirect:/orders/" + order.getOrderCode();
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
@@ -209,6 +212,20 @@ public class CheckoutController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
         }
         boolean pending = order.getStatus() == Order.Status.PENDING_CONFIRMATION;
+        boolean confirmed = order.getStatus() == Order.Status.CONFIRMED;
+
+        String statusLabel = switch (order.getStatus()) {
+            case PENDING_CONFIRMATION -> "Pending confirmation";
+            case CONFIRMED -> "Confirmed";
+            case REJECTED -> "Rejected";
+            case CANCELLED -> "Cancelled";
+            case REFUNDED -> "Refunded";
+        };
+        String receiptName = null;
+        if (order.getReceiptPath() != null) {
+            String p = order.getReceiptPath().replace('\\', '/');
+            receiptName = p.substring(p.lastIndexOf('/') + 1);
+        }
 
         List<ItemView> items = order.getItems().stream()
                 .map(i -> new ItemView(i.getTicketType().getName(), i.getQuantity(),
@@ -221,12 +238,14 @@ public class CheckoutController {
                 (order.getEvent().getVenueName() == null ? "" : order.getEvent().getVenueName() + ", ")
                         + order.getEvent().getCity(),
                 order.getBuyerName(), order.getBuyerEmail(),
-                pending ? "Pending confirmation" : "Confirmed",
+                statusLabel,
                 pending,
                 Format.iqd(order.getSubtotalIqd()), Format.iqd(order.getBookingFeeIqd()),
                 Format.iqd(order.getTotalIqd()),
                 order.getDiscountIqd() > 0 ? Format.iqd(order.getDiscountIqd()) : null,
-                order.getPromoCode(), items);
+                order.getPromoCode(), items,
+                order.getTransferReference(), receiptName,
+                order.getEvent().getOrganization().getName());
 
         List<TicketView> ticketViews = tickets.findByOrderIdOrderByIdAsc(order.getId()).stream()
                 .map(t -> new TicketView(t.getCode(), t.getTicketType().getName(), t.getHolderName(),
@@ -237,6 +256,8 @@ public class CheckoutController {
         model.addAttribute("order", view);
         model.addAttribute("tickets", ticketViews);
         model.addAttribute("pending", pending);
+        model.addAttribute("confirmed", confirmed);
+        model.addAttribute("closed", !pending && !confirmed);
         return "confirmation";
     }
 }

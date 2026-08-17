@@ -28,6 +28,14 @@
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
         Saved ✓ — your changes are live on the event page.
       </div>
+      <div th:if="${duplicated}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        <span th:text="${duplicated}">Duplicated as a draft one week later — review the details below, then publish.</span>
+      </div>
+      <div th:if="${actioned}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        <span th:text="${actioned}">Done.</span>
+      </div>
       <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
         <span th:text="${error}">Could not save — check the fields.</span>
@@ -93,8 +101,51 @@
             </div>
           </div>
           <div class="mt-5">
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-summary">Summary</label>
+            <textarea id="ev-summary" name="summary" rows="2" maxlength="160" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="One or two lines shown on your event card in the directory." th:text="${evEntity.summary()}"></textarea>
+            <p class="mt-1.5 text-right text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
+          </div>
+          <div class="mt-5">
             <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc">Description</label>
             <textarea id="ev-desc" name="description" rows="5" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="Line-up, schedule, what's included…" th:text="${evEntity.description()}"></textarea>
+          </div>
+          <div class="mt-5">
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup">Lineup / agenda</label>
+            <textarea id="ev-lineup" name="lineup" rows="4" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="One act per line, e.g. Sunset stage — 7:00 PM" th:text="${evEntity.lineup()}"></textarea>
+            <p class="mt-1.5 text-xs text-ink-400">One act or agenda item per line — shown on your event page.</p>
+          </div>
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund">Refund policy</label>
+              <div class="relative">
+                <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                  <option value="UP_TO_7_DAYS" th:selected="${evEntity.refundPolicy() == 'UP_TO_7_DAYS'}">Refunds up to 7 days before event</option>
+                  <option value="UP_TO_48H" th:selected="${evEntity.refundPolicy() == 'UP_TO_48H'}">Refunds up to 48 hours before event</option>
+                  <option value="NO_REFUNDS" th:selected="${evEntity.refundPolicy() == 'NO_REFUNDS'}">No refunds</option>
+                </select>
+                <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+              </div>
+            </div>
+            <div>
+              <span class="mb-1.5 block text-sm font-semibold text-ink-800">Visibility</span>
+              <div class="flex gap-2">
+                <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                  <input type="radio" name="visibility" value="PUBLIC" th:checked="${evEntity.visibility() != 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Public
+                </label>
+                <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                  <input type="radio" name="visibility" value="UNLISTED" th:checked="${evEntity.visibility() == 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Unlisted
+                </label>
+              </div>
+              <p class="mt-1.5 text-xs text-ink-400">Unlisted events are reachable only by people with the link.</p>
+            </div>
+          </div>
+          <div class="mt-5">
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags">Tags</label>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg></span>
+              <input id="ev-tags" name="tags" type="text" th:value="${evEntity.tags()}" placeholder="street food, basra, family" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <p class="mt-1.5 text-xs text-ink-400">Comma separated — tags help people find your event in search.</p>
           </div>
         </div>
 
@@ -216,6 +267,72 @@
         </div>
       </section>
 
+      <!-- Publish state -->
+      <section th:if="${canManage}" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8" aria-label="Publish state">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 class="font-display text-lg font-bold text-ink-900">Publishing</h3>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${isDraft}">This event is a draft — only you and your team can see it.</p>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${isLive}">This event is live and selling on the public site.</p>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${isCancelled}">This event is cancelled — buyers were notified and tickets are void.</p>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${!isDraft && !isLive && !isCancelled}">This event has ended.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <form th:if="${isDraft}" th:action="@{/host/events/{id}/publish(id=${ev.id()})}" method="post">
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish</button>
+            </form>
+            <form th:if="${isLive}" th:action="@{/host/events/{id}/unpublish(id=${ev.id()})}" method="post">
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-600 transition hover:border-rose-300 hover:text-rose-600">Unpublish</button>
+            </form>
+            <form th:action="@{/host/events/{id}/duplicate(id=${ev.id()})}" method="post">
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg>Duplicate</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Danger zone -->
+      <section th:if="${canManage && !isCancelled}" class="mt-6 rounded-2xl border border-rose-200 bg-white p-6 shadow-card sm:p-8" aria-label="Danger zone">
+        <h3 class="inline-flex items-center gap-2 font-display text-lg font-bold text-rose-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-triangle-alert"/></svg>Danger zone</h3>
+        <p class="mt-0.5 text-sm text-ink-500">These actions email every ticket holder. Handle with care.</p>
+
+        <div class="mt-5 rounded-2xl border border-ink-100 p-4 sm:p-5">
+          <p class="inline-flex items-center gap-2 text-sm font-bold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg>Postpone event</p>
+          <p class="mt-0.5 text-xs text-ink-500">Move the event to a new date — tickets stay valid and every buyer is emailed the new date.</p>
+          <form th:action="@{/host/events/{id}/postpone(id=${ev.id()})}" method="post" class="mt-3 flex flex-wrap items-end gap-3">
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-date">New date</label>
+              <input id="pp-date" name="date" type="date" required th:value="${postponeDate}" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-start">Starts</label>
+              <input id="pp-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <div>
+              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end">Ends</label>
+              <input id="pp-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <button type="submit" onclick="return confirm('Move this event to the new date? Every buyer will be emailed.')" class="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg>Postpone</button>
+          </form>
+        </div>
+
+        <div class="mt-4 flex flex-col gap-3 rounded-2xl border border-rose-100 bg-rose-50/50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div>
+            <p class="inline-flex items-center gap-2 text-sm font-bold text-rose-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg>Cancel event</p>
+            <p class="mt-0.5 text-xs text-ink-500">Stops sales immediately, voids tickets and emails every buyer. This cannot be undone.</p>
+          </div>
+          <form th:action="@{/host/events/{id}/cancel(id=${ev.id()})}" method="post" onsubmit="return confirm('Cancel this event? Sales stop, tickets are voided and every buyer is emailed. This cannot be undone.')">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg>Cancel event</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Cancelled state -->
+      <section th:if="${isCancelled}" class="mt-6 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800" aria-label="Cancelled">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+        This event is cancelled. Buyers have been notified and tickets are no longer valid. Duplicate it above to run it again.
+      </section>
+
     </div>
   </main>
 
@@ -223,5 +340,16 @@
 </div>
 </div>
 
+<script>
+  // Summary character counter
+  (function () {
+    var input = document.getElementById('ev-summary');
+    var count = document.getElementById('summaryCount');
+    if (!input || !count) return;
+    var update = function () { count.textContent = input.value.length; };
+    input.addEventListener('input', update);
+    update();
+  })();
+</script>
 </body>
 </html>

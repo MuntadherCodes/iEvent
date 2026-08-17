@@ -6,6 +6,8 @@ import iq.ievent.domain.Organization;
 import iq.ievent.domain.Ticket;
 import iq.ievent.domain.TicketType;
 import iq.ievent.domain.User;
+import iq.ievent.repo.EventRepository;
+import iq.ievent.repo.LikeCountRepository;
 import iq.ievent.repo.OrderRepository;
 import iq.ievent.repo.TicketRepository;
 import iq.ievent.repo.TicketTypeRepository;
@@ -57,7 +59,7 @@ public class HostController {
 
     public record EventRow(Long id, String slug, String title, String statusLabel, String dateLine,
                            String city, String venueName, long sold, long capacity, String salesLabel,
-                           String revenueLabel) {}
+                           String revenueLabel, String coverImageUrl, String coverTheme) {}
 
     public record OrderRow(Long id, String orderCode, String buyerName, String buyerEmail,
                            String eventTitle, String itemsLabel, String totalLabel, String methodLabel,
@@ -65,7 +67,12 @@ public class HostController {
                            String transferReference) {}
 
     public record TicketTypeRow(Long id, String name, String priceLabel, int quantity, int sold,
-                                String statusLabel) {}
+                                String statusLabel, String revenueLabel) {}
+
+    /** Compact order line for the per-event console (queried via JDBC). */
+    public record EventOrderRow(String orderCode, String buyerName, String itemsLabel,
+                                String totalLabel, String statusLabel, boolean pending,
+                                String createdLine) {}
 
     public record AttendeeRow(Long ticketId, String holderName, String typeName, String orderCode,
                               String code, boolean checkedIn, String checkedInLine) {}
@@ -78,12 +85,17 @@ public class HostController {
     private final OrderRepository orders;
     private final TicketRepository tickets;
     private final TicketTypeRepository ticketTypes;
+    private final EventRepository events;
+    private final LikeCountRepository likeCounts;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private final String baseUrl;
     private final iq.ievent.service.MailService mailService;
 
     public HostController(UserService userService, HostService hostService, OrderService orderService,
                           OrderRepository orders, TicketRepository tickets, TicketTypeRepository ticketTypes,
+                          EventRepository events, LikeCountRepository likeCounts,
+                          org.springframework.jdbc.core.JdbcTemplate jdbc,
                           iq.ievent.service.MailService mailService,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
@@ -92,6 +104,9 @@ public class HostController {
         this.orders = orders;
         this.tickets = tickets;
         this.ticketTypes = ticketTypes;
+        this.events = events;
+        this.likeCounts = likeCounts;
+        this.jdbc = jdbc;
         this.mailService = mailService;
         this.baseUrl = baseUrl;
     }
@@ -133,7 +148,9 @@ public class HostController {
 
     @GetMapping({"", "/"})
     @Transactional(readOnly = true)
-    public String dashboard(@AuthenticationPrincipal UserDetails principal, Model model) {
+    public String dashboard(@AuthenticationPrincipal UserDetails principal,
+                            @RequestParam(defaultValue = "30") int range,
+                            Model model) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
@@ -146,12 +163,27 @@ public class HostController {
 
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
+        model.addAttribute("todayLine", LocalDate.now(Format.BAGHDAD).format(
+                java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", java.util.Locale.ENGLISH)));
         model.addAttribute("stats", stats);
         model.addAttribute("revenueLabel", Format.iqd(stats.revenueIqd()));
         model.addAttribute("upcoming", upcoming);
         model.addAttribute("recentOrders", recent.getContent().stream().map(this::toRow).toList());
         model.addAttribute("pendingCount", stats.pendingOrders());
-        List<HostService.DayPoint> salesPoints = hostService.dailySales(org.getId());
+
+        // Movement chips + audience stats
+        model.addAttribute("deltas", hostService.statDeltas(org.getId()));
+        model.addAttribute("viewsLabel", Format.compactCount(hostService.totalViews(org.getId())));
+        model.addAttribute("followersLabel",
+                Format.compactCount(likeCounts.followersForOrganization(org.getId())));
+
+        // First-steps checklist (hidden by the template when allDone())
+        model.addAttribute("checklist", hostService.checklist(org));
+
+        // Sales chart with 7d/30d/90d range pills
+        int days = (range == 7 || range == 90) ? range : 30;
+        List<HostService.DayPoint> salesPoints = hostService.dailySales(org.getId(), days);
+        model.addAttribute("salesRange", days);
         model.addAttribute("salesPoints", salesPoints);
         model.addAttribute("salesMax", salesPoints.stream()
                 .mapToLong(HostService.DayPoint::amountIqd).max().orElse(0L));
@@ -162,13 +194,26 @@ public class HostController {
 
     @GetMapping("/events")
     @Transactional(readOnly = true)
-    public String events(@AuthenticationPrincipal UserDetails principal, Model model) {
+    public String events(@AuthenticationPrincipal UserDetails principal,
+                         @RequestParam(required = false) String q,
+                         @RequestParam(required = false, defaultValue = "all") String status,
+                         Model model) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        List<Event> all = hostService.eventsOf(org.getId());
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
-        model.addAttribute("eventRows", hostService.eventsOf(org.getId()).stream().map(this::toRow).toList());
+        model.addAttribute("eventRows",
+                hostService.eventsOf(org.getId(), q, status).stream().map(this::toRow).toList());
+        model.addAttribute("q", q == null ? "" : q);
+        model.addAttribute("statusFilter", status == null || status.isBlank() ? "all" : status.toLowerCase());
+        model.addAttribute("countAll", (long) all.size());
+        model.addAttribute("countLive", all.stream().filter(e -> e.getStatus() == Event.Status.LIVE).count());
+        model.addAttribute("countDraft", all.stream().filter(e -> e.getStatus() == Event.Status.DRAFT).count());
+        model.addAttribute("countEnded", all.stream().filter(e -> e.getStatus() == Event.Status.ENDED).count());
+        model.addAttribute("countCancelled", all.stream().filter(e -> e.getStatus() == Event.Status.CANCELLED).count());
+        model.addAttribute("canManage", hostService.accessOf(u).map(a -> a.canManage()).orElse(false));
         model.addAttribute("pendingCount", hostService.stats(org.getId()).pendingOrders());
         return "host/events";
     }
@@ -196,6 +241,11 @@ public class HostController {
                               @RequestParam String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
+                              @RequestParam(required = false) String summary,
+                              @RequestParam(required = false) String tags,
+                              @RequestParam(required = false) String lineup,
+                              @RequestParam(required = false) String visibility,
+                              @RequestParam(required = false) String refundPolicy,
                               @RequestParam(name = "ttName", required = false) List<String> ttNames,
                               @RequestParam(name = "ttPrice", required = false) List<String> ttPrices,
                               @RequestParam(name = "ttQty", required = false) List<String> ttQtys,
@@ -224,6 +274,7 @@ public class HostController {
                     venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
                     description, forms);
+            applyExtras(created, summary, tags, lineup, visibility, refundPolicy);
             hostService.applyCoverTheme(created, coverTheme);
             String coverError = hostService.storeCover(created, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
@@ -251,18 +302,55 @@ public class HostController {
         List<TicketTypeRow> ttRows = ticketTypes.findByEventIdOrderBySortOrderAsc(ev.getId()).stream()
                 .map(tt -> new TicketTypeRow(tt.getId(), tt.getName(),
                         Format.priceLabel(tt.getPriceIqd()), tt.getQuantity(), tt.getSold(),
-                        statusLabel(tt.getStatus().name())))
+                        statusLabel(tt.getStatus().name()),
+                        Format.iqd((long) tt.getSold() * tt.getPriceIqd())))
                 .toList();
+        long sold = ttRows.stream().mapToLong(TicketTypeRow::sold).sum();
+        long views = ev.getViewCount();
+        long likes = likeCounts.likesForEvents(List.of(ev.getId())).getOrDefault(ev.getId(), 0L);
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
         model.addAttribute("ev", toRow(ev));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
+        model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
+        model.addAttribute("canManage", hostService.accessOf(u).map(a -> a.canManage()).orElse(false));
         model.addAttribute("ticketRows", ttRows);
         model.addAttribute("checkedIn", tickets.countByEventIdAndStatus(ev.getId(), Ticket.Status.CHECKED_IN));
         model.addAttribute("ticketsTotal", tickets.countByEventId(ev.getId()));
+        model.addAttribute("viewsLabel", Format.compactCount(views));
+        model.addAttribute("likesLabel", Format.compactCount(likes));
+        model.addAttribute("conversionLabel", views > 0
+                ? String.format(java.util.Locale.ENGLISH, "%.1f%% conversion", 100.0 * sold / views)
+                : "no views yet");
+        model.addAttribute("eventOrders", ordersForEvent(ev.getId()));
+        java.time.ZonedDateTime zc = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
+        model.addAttribute("postponeDate", zc.toLocalDate().toString());
+        model.addAttribute("postponeStart", zc.toLocalTime().toString().substring(0, 5));
+        model.addAttribute("postponeEnd", ev.getEndsAt() == null ? ""
+                : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalTime().toString().substring(0, 5));
         model.addAttribute("shareBase", baseUrl);
         return "host/event-console";
+    }
+
+    /** Latest orders for one event — read-only JDBC (no repo method needed). */
+    private List<EventOrderRow> ordersForEvent(Long eventId) {
+        return jdbc.query("""
+                SELECT o.order_code, o.buyer_name, o.total_iqd, o.status, o.created_at,
+                       COALESCE((SELECT string_agg(oi.quantity || '× ' || tt.name, ', ')
+                                   FROM order_items oi JOIN ticket_types tt ON tt.id = oi.ticket_type_id
+                                  WHERE oi.order_id = o.id), '—') AS items
+                FROM orders o
+                WHERE o.event_id = ?
+                ORDER BY o.created_at DESC
+                LIMIT 6
+                """,
+                (rs, i) -> new EventOrderRow(
+                        rs.getString(1), rs.getString(2), rs.getString(6),
+                        Format.iqd(rs.getLong(3)), statusLabel(rs.getString(4)),
+                        "PENDING_CONFIRMATION".equals(rs.getString(4)),
+                        Format.cardDateLine(rs.getObject(5, java.time.OffsetDateTime.class))),
+                eventId);
     }
 
     @GetMapping("/events/{id}/edit")
@@ -283,7 +371,16 @@ public class HostController {
                 z.toLocalDate().toString(), z.toLocalTime().toString().substring(0, 5),
                 ev.getEndsAt() == null ? "" : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD)
                         .toLocalTime().toString().substring(0, 5),
-                ev.getDescription()));
+                ev.getDescription(),
+                ev.getSummary() == null ? "" : ev.getSummary(),
+                ev.getTags() == null ? "" : ev.getTags(),
+                ev.getLineup() == null ? "" : ev.getLineup(),
+                ev.getVisibility() == null ? "PUBLIC" : ev.getVisibility(),
+                ev.getRefundPolicy() == null ? "UP_TO_7_DAYS" : ev.getRefundPolicy()));
+        model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
+        model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
+        model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
+        model.addAttribute("canManage", hostService.accessOf(u).map(a -> a.canManage()).orElse(false));
         model.addAttribute("ticketRows",
                 ticketTypes.findByEventIdOrderBySortOrderAsc(ev.getId()).stream()
                         .map(tt -> new TicketTypeEditRow(tt.getId(), tt.getName(), tt.getPriceIqd(),
@@ -295,12 +392,14 @@ public class HostController {
         model.addAttribute("hasCoverImage", ev.getCoverImagePath() != null);
         model.addAttribute("coverImageUrl",
                 ev.getCoverImagePath() == null ? null : "/media/event-cover/" + ev.getId());
+        model.addAttribute("postponeDate", z.toLocalDate().toString());
         return "host/event-edit";
     }
 
     public record EventEditView(String title, String category, String city, String venueName,
                                 String venueAddress, String date, String startTime, String endTime,
-                                String description) {}
+                                String description, String summary, String tags, String lineup,
+                                String visibility, String refundPolicy) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -317,6 +416,11 @@ public class HostController {
                               @RequestParam String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
+                              @RequestParam(required = false) String summary,
+                              @RequestParam(required = false) String tags,
+                              @RequestParam(required = false) String lineup,
+                              @RequestParam(required = false) String visibility,
+                              @RequestParam(required = false) String refundPolicy,
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
@@ -332,6 +436,7 @@ public class HostController {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
                     venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy);
             hostService.applyCoverTheme(ev, coverTheme);
             if (removeCover) hostService.removeCover(ev);
             String coverError = hostService.storeCover(ev, coverImage);
@@ -370,6 +475,77 @@ public class HostController {
         }
     }
 
+    /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy). */
+    private void applyExtras(Event ev, String summary, String tags, String lineup,
+                             String visibility, String refundPolicy) {
+        String s = summary == null || summary.isBlank() ? null : summary.strip();
+        ev.setSummary(s != null && s.length() > 160 ? s.substring(0, 160) : s);
+        ev.setTags(tags == null || tags.isBlank() ? null : tags.strip());
+        ev.setLineup(lineup == null || lineup.isBlank() ? null : lineup.strip());
+        ev.setVisibility("UNLISTED".equalsIgnoreCase(visibility) ? "UNLISTED" : "PUBLIC");
+        ev.setRefundPolicy(
+                "NO_REFUNDS".equals(refundPolicy) || "UP_TO_48H".equals(refundPolicy)
+                        ? refundPolicy : "UP_TO_7_DAYS");
+        events.save(ev);
+    }
+
+    // ---------- lifecycle: duplicate / cancel / postpone ----------
+
+    @PostMapping("/events/{id}/duplicate")
+    public String duplicate(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                            RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Event copy = hostService.duplicateEvent(ev);
+        redirect.addFlashAttribute("duplicated",
+                "Duplicated as a draft one week later — review the details below, then publish.");
+        return "redirect:/host/events/" + copy.getId() + "/edit";
+    }
+
+    @PostMapping("/events/{id}/cancel")
+    public String cancel(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                         RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (ev.getStatus() != Event.Status.CANCELLED) {
+            hostService.cancelEvent(ev);
+            redirect.addFlashAttribute("actioned",
+                    "Event cancelled — every buyer has been emailed.");
+        }
+        return "redirect:/host/events/" + id;
+    }
+
+    @PostMapping("/events/{id}/postpone")
+    public String postpone(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                           @RequestParam String date,
+                           @RequestParam String startTime,
+                           @RequestParam(required = false) String endTime,
+                           RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        try {
+            hostService.postponeEvent(ev, LocalDate.parse(date), LocalTime.parse(startTime),
+                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime));
+            redirect.addFlashAttribute("actioned",
+                    "New date saved — every buyer has been emailed. Tickets stay valid.");
+        } catch (Exception e) {
+            redirect.addFlashAttribute("error", "Could not postpone — check the new date and time.");
+        }
+        return "redirect:/host/events/" + id;
+    }
+
     @PostMapping("/events/{id}/publish")
     public String publish(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal) {
         User u = user(principal);
@@ -398,22 +574,13 @@ public class HostController {
                          @RequestParam(required = false) String status,
                          @RequestParam(defaultValue = "0") int page,
                          Model model) {
-        User u = user(principal);
-        Organization org = hostService.organizationOf(u).orElse(null);
-        if (org == null) return "redirect:/host/start";
-        Order.Status filter = null;
-        if ("pending".equalsIgnoreCase(status)) filter = Order.Status.PENDING_CONFIRMATION;
-        else if ("confirmed".equalsIgnoreCase(status)) filter = Order.Status.CONFIRMED;
-        else if ("rejected".equalsIgnoreCase(status)) filter = Order.Status.REJECTED;
-        Page<Order> result = orders.findForOrganization(org.getId(), filter,
-                PageRequest.of(Math.max(0, page), 20));
-        model.addAttribute("currentUser", u);
-        model.addAttribute("org", org);
-        model.addAttribute("orders", result.map(this::toRow));
-        model.addAttribute("statusFilter", status == null ? "" : status);
-        model.addAttribute("pendingCount",
-                orders.countForOrganizationByStatus(org.getId(), Order.Status.PENDING_CONFIRMATION));
-        return "host/orders";
+        // The enriched orders view (filters, stats, export) lives in
+        // HostExtrasController behind params="f" — always funnel into it so the
+        // template renders under exactly one model shape.
+        String target = "redirect:/host/orders?f=1";
+        if (status != null && !status.isBlank()) target += "&status=" + status;
+        if (page > 0) target += "&page=" + page;
+        return target;
     }
 
     @PostMapping("/orders/{id}/approve")
@@ -672,7 +839,9 @@ public class HostController {
         long revenue = tts.stream().mapToLong(t -> t.getSold() * t.getPriceIqd()).sum();
         return new EventRow(e.getId(), e.getSlug(), e.getTitle(), statusLabel(e.getStatus().name()),
                 Format.cardDateLine(e.getStartsAt()), e.getCity(), e.getVenueName(),
-                sold, cap, sold + " / " + cap, Format.iqd(revenue));
+                sold, cap, sold + " / " + cap, Format.iqd(revenue),
+                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                e.getCoverTheme());
     }
 
     private OrderRow toRow(Order o) {
@@ -701,6 +870,7 @@ public class HostController {
             case "PENDING_CONFIRMATION" -> "Pending confirmation";
             case "CONFIRMED" -> "Confirmed";
             case "REJECTED" -> "Rejected";
+            case "REFUNDED" -> "Refunded";
             case "CANCELLED" -> "Cancelled";
             case "DRAFT" -> "Draft";
             case "LIVE" -> "Live";

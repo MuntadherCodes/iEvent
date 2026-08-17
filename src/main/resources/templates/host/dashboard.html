@@ -29,7 +29,7 @@
       <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl">Salam, <span th:text="${currentUser.fullName}">Fahad</span> 👋</h2>
-          <p class="mt-1 text-sm text-ink-500">Here's how <span th:text="${org.name}">Zain Events Co.</span> is doing.</p>
+          <p class="mt-1 text-sm text-ink-500"><span th:text="${todayLine}">Friday, August 15, 2026</span> · Here's how <span th:text="${org.name}">Zain Events Co.</span> is doing.</p>
         </div>
         <div class="flex flex-wrap gap-2">
           <a th:href="@{/host/events/new}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
@@ -44,16 +44,32 @@
       </div>
 
       <!-- Stat cards -->
-      <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
+          <p class="text-sm text-ink-500">Ticket sales</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${revenueLabel}">4,280,000 IQD</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold" th:classappend="${deltas.revenueUp()} ? 'text-green-600' : 'text-rose-600'">
+            <svg class="h-3.5 w-3.5" th:style="${deltas.revenueUp()} ? null : 'transform:scaleY(-1)'" aria-hidden="true"><use href="#i-trending-up"/></svg>
+            <span th:text="${deltas.revenueDelta()}">+18%</span><span class="font-medium text-ink-400">vs prev. 30 days</span>
+          </p>
+        </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
           <p class="text-sm text-ink-500">Tickets sold</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${stats.ticketsSold()}">312</p>
-          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ticket"/></svg>confirmed orders</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold" th:classappend="${deltas.soldUp()} ? 'text-green-600' : 'text-rose-600'">
+            <svg class="h-3.5 w-3.5" th:style="${deltas.soldUp()} ? null : 'transform:scaleY(-1)'" aria-hidden="true"><use href="#i-trending-up"/></svg>
+            <span th:text="${deltas.soldDelta()}">+12%</span><span class="font-medium text-ink-400">vs prev. 30 days</span>
+          </p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
-          <p class="text-sm text-ink-500">Revenue</p>
-          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${revenueLabel}">4,280,000 IQD</p>
-          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-trending-up"/></svg>gross ticket sales</p>
+          <p class="text-sm text-ink-500">Page views</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${viewsLabel}">8.9K</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-eye"/></svg>across all events</p>
+        </div>
+        <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card sm:p-5">
+          <p class="text-sm text-ink-500">Followers</p>
+          <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900 sm:text-3xl" th:text="${followersLabel}">12.4K</p>
+          <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-users"/></svg>follow your page</p>
         </div>
         <a th:href="@{/host/orders(status='pending')}" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-card transition hover:border-amber-300 sm:p-5">
           <p class="text-sm text-amber-800">Pending confirmations</p>
@@ -70,9 +86,18 @@
       <!-- Sales chart (renders only when the controller provides salesPoints) -->
       <section th:if="${salesPoints != null && !#lists.isEmpty(salesPoints)}" class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="Ticket sales chart"
                th:with="mx=${salesMax}">
-        <h3 class="font-display text-lg font-bold text-ink-900">Ticket sales</h3>
-        <p class="text-sm text-ink-500">Daily gross sales</p>
-        <div class="mt-4 flex h-40 items-end gap-1">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-display text-lg font-bold text-ink-900">Ticket sales</h3>
+            <p class="text-sm text-ink-500">Daily gross sales, last <span th:text="${salesRange}">30</span> days</p>
+          </div>
+          <div class="flex rounded-full border border-ink-200 bg-ink-50 p-1 text-xs font-semibold" role="group" aria-label="Chart range">
+            <a th:href="@{/host(range=7)}" class="rounded-full px-4 py-1.5 transition" th:classappend="${salesRange == 7} ? 'bg-white text-brand-700 shadow-sm' : 'text-ink-500 hover:text-ink-800'" th:attr="aria-current=${salesRange == 7} ? 'true' : null">7d</a>
+            <a th:href="@{/host(range=30)}" class="rounded-full px-4 py-1.5 transition" th:classappend="${salesRange == 30} ? 'bg-white text-brand-700 shadow-sm' : 'text-ink-500 hover:text-ink-800'" th:attr="aria-current=${salesRange == 30} ? 'true' : null">30d</a>
+            <a th:href="@{/host(range=90)}" class="rounded-full px-4 py-1.5 transition" th:classappend="${salesRange == 90} ? 'bg-white text-brand-700 shadow-sm' : 'text-ink-500 hover:text-ink-800'" th:attr="aria-current=${salesRange == 90} ? 'true' : null">90d</a>
+          </div>
+        </div>
+        <div class="mt-4 flex h-40 items-end gap-1" th:classappend="${salesRange == 90} ? 'gap-px' : ''">
           <div th:each="p : ${salesPoints}" class="group relative flex-1">
             <div class="w-full rounded-t bg-brand-400 transition group-hover:bg-brand-500" th:style="'height:' + (${mx} > 0 ? ${100 * p.amountIqd() / mx} : 0) + '%; min-height:2px'"></div>
             <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-900 px-2 py-1 text-[10px] font-semibold text-white group-hover:block" th:text="${p.label()}">Aug 15</span>
@@ -145,6 +170,62 @@
           </ul>
         </section>
       </div>
+
+      <!-- First-steps to-do checklist (hidden once everything is done) -->
+      <section th:unless="${checklist.allDone()}" class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="To-do checklist">
+        <h3 class="font-display text-lg font-bold text-ink-900">To-do</h3>
+        <p class="text-sm text-ink-500">Finish setting up your organizer account</p>
+        <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+          <li>
+            <a th:href="@{/host/events/new}" class="group flex items-center gap-3 rounded-xl border border-ink-100 px-4 py-3.5 transition hover:border-brand-300 hover:bg-brand-50/50">
+              <span th:if="${checklist.hasLiveEvent()}" class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-check"/></svg></span>
+              <span th:unless="${checklist.hasLiveEvent()}" class="h-5 w-5 shrink-0 rounded-md border-2 border-ink-300" aria-hidden="true"></span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-rocket"/></svg></span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-semibold text-ink-900 group-hover:text-brand-700">Publish your first event</span>
+                <span class="block text-xs text-ink-500">Create an event and take it live in minutes</span>
+              </span>
+              <svg class="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-500" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/host/settings/payments}" class="group flex items-center gap-3 rounded-xl border border-ink-100 px-4 py-3.5 transition hover:border-brand-300 hover:bg-brand-50/50">
+              <span th:if="${checklist.paymentsSetup()}" class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-check"/></svg></span>
+              <span th:unless="${checklist.paymentsSetup()}" class="h-5 w-5 shrink-0 rounded-md border-2 border-ink-300" aria-hidden="true"></span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-wallet"/></svg></span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-semibold text-ink-900 group-hover:text-brand-700">Set up payments</span>
+                <span class="block text-xs text-ink-500">Add card or wallet details to receive your sales</span>
+              </span>
+              <svg class="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-500" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/host/settings}" class="group flex items-center gap-3 rounded-xl border border-ink-100 px-4 py-3.5 transition hover:border-brand-300 hover:bg-brand-50/50">
+              <span th:if="${checklist.brandingDone()}" class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-check"/></svg></span>
+              <span th:unless="${checklist.brandingDone()}" class="h-5 w-5 shrink-0 rounded-md border-2 border-ink-300" aria-hidden="true"></span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-user"/></svg></span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-semibold text-ink-900 group-hover:text-brand-700">Complete organizer profile</span>
+                <span class="block text-xs text-ink-500">Add a bio and links so followers can find you</span>
+              </span>
+              <svg class="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-500" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/host/settings#team}" class="group flex items-center gap-3 rounded-xl border border-ink-100 px-4 py-3.5 transition hover:border-brand-300 hover:bg-brand-50/50">
+              <span th:if="${checklist.teamInvited()}" class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-check"/></svg></span>
+              <span th:unless="${checklist.teamInvited()}" class="h-5 w-5 shrink-0 rounded-md border-2 border-ink-300" aria-hidden="true"></span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-users"/></svg></span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-semibold text-ink-900 group-hover:text-brand-700">Invite a team member</span>
+                <span class="block text-xs text-ink-500">Give staff access to check-in and orders</span>
+              </span>
+              <svg class="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-500" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+            </a>
+          </li>
+        </ul>
+      </section>
 
     </div>
   </main>

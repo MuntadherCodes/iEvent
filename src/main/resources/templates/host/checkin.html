@@ -25,6 +25,17 @@
         <span th:if="${ev != null}" class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-users"/></svg>Checked in <span class="font-display font-extrabold tabular-nums" th:text="${checkedIn}">87</span><span class="tabular-nums">/<span th:text="${ticketsTotal}">218</span></span></span>
       </form>
 
+      <!-- Check-in progress bar -->
+      <div th:if="${ev != null && ticketsTotal > 0}" class="mt-4 rounded-2xl border border-ink-100 bg-white px-5 py-4 shadow-card">
+        <div class="flex items-center justify-between text-xs font-semibold">
+          <span class="uppercase tracking-wide text-ink-400">Check-in progress</span>
+          <span class="tabular-nums text-brand-700" th:text="${(checkedIn * 100 / ticketsTotal)} + '%'">40%</span>
+        </div>
+        <div class="mt-2 h-2 rounded-full bg-ink-100" role="progressbar" th:attr="aria-valuenow=${checkedIn},aria-valuemax=${ticketsTotal}" aria-valuemin="0">
+          <div class="h-2 rounded-full bg-brand-500 transition-all" th:style="'width:' + ${(checkedIn * 100 / ticketsTotal)} + '%'"></div>
+        </div>
+      </div>
+
       <!-- Result flash -->
       <div th:if="${result != null && result.ok()}" class="mt-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4" role="status" aria-live="polite">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span>
@@ -114,8 +125,15 @@
           <button type="submit" class="shrink-0 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Search</button>
         </form>
 
-        <ul class="mt-3 divide-y divide-ink-50">
-          <li th:each="r : ${doorList}" class="flex items-center gap-3 py-3">
+        <!-- Filter tabs -->
+        <div class="mt-3 flex gap-1 rounded-xl bg-ink-50 p-1 text-sm font-semibold" role="tablist" aria-label="Door list filter">
+          <button type="button" class="dl-tab flex-1 rounded-lg bg-white px-3 py-2 text-ink-900 shadow-card" data-filter="all" role="tab" aria-selected="true">All</button>
+          <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="pending" role="tab" aria-selected="false">Not arrived</button>
+          <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="in" role="tab" aria-selected="false">Checked in</button>
+        </div>
+
+        <ul id="door-list" class="mt-3 divide-y divide-ink-50">
+          <li th:each="r : ${doorList}" class="door-row flex items-center gap-3 py-3" th:attr="data-state=${r.checkedIn()} ? 'in' : 'pending'">
             <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold text-ink-900" th:text="${r.holderName()}">Ali Hassan</p>
@@ -230,6 +248,28 @@
   });
 
   if (qrStopBtn) qrStopBtn.addEventListener('click', qrStopCamera);
+
+  // Door list filter tabs (client-side; state comes from server-rendered data attributes)
+  var dlTabs = document.querySelectorAll('.dl-tab');
+  function applyDoorFilter(f) {
+    document.querySelectorAll('.door-row').forEach(function (row) {
+      var st = row.getAttribute('data-state');
+      var show = f === 'all' || st === f;
+      row.classList.toggle('hidden', !show);
+      row.classList.toggle('flex', show);
+    });
+  }
+  dlTabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      dlTabs.forEach(function (t) {
+        t.className = 'dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800';
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.className = 'dl-tab flex-1 rounded-lg bg-white px-3 py-2 text-ink-900 shadow-card';
+      tab.setAttribute('aria-selected', 'true');
+      applyDoorFilter(tab.getAttribute('data-filter'));
+    });
+  });
 </script>
 </body>
 </html>

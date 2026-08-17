@@ -57,6 +57,32 @@ public final class Views {
 
     public record CityCount(String city, long count) {}
 
+    /** One act/row of the event lineup ("Name — 10:00 PM" parsed server-side). */
+    public record LineupItem(String name, String note) {}
+
+    /** Past event card on the organizer profile (Past tab). */
+    public record PastEventCard(
+            String slug,
+            String title,
+            String coverTheme,
+            String coverImageUrl,
+            String city,
+            String venueName,
+            String dateLine,
+            String attendedLine) {}   // "2,140 attended" or null
+
+    /** Extra organizer-profile data (contact block, logo, past events). */
+    public record OrganizerExtras(
+            long orgId,
+            String logoUrl,          // "/media/org-logo/{id}" or null → initials avatar
+            String contactEmail,
+            String contactPhone,
+            String website,          // display text, e.g. "zainevents.iq"
+            String websiteHref,      // absolute URL
+            String instagram,        // display text, e.g. "instagram.com/zainevents"
+            String instagramHref,    // absolute URL
+            java.util.List<PastEventCard> pastEvents) {}
+
     /** Organizer direct-transfer payment details shown at checkout (null when not enabled). */
     public record DirectPayInfo(String cardNumber, String accountName, String walletBank, String instructions) {}
 }

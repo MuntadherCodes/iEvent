@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -26,8 +27,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {"app.seed.demo=true"})
 class SmokeTest {
 
+    /** Seeded demo host (owner of @zainevents) — loaded by the demo seed. */
+    private static final String DEMO_HOST_EMAIL = "fahad@zainevents.iq";
+
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private iq.ievent.repo.EventRepository events;
 
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
@@ -150,8 +157,77 @@ class SmokeTest {
                         .param("fullName", "Smoke Tester")
                         .param("email", uniqueEmail)
                         .param("phone", "")
-                        .param("password", "SmokePassw0rd!"))
+                        .param("password", "SmokePassw0rd!")
+                        .param("terms", "true"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/auth/login?registered"));
+    }
+
+    // ---- wireframe-parity round ----
+
+    @Test
+    void registrationWithoutTermsReRendersForm() throws Exception {
+        String uniqueEmail = "smoke-noterms+" + System.currentTimeMillis() + "@test.iq";
+        mockMvc.perform(post("/auth/register")
+                        .with(csrf())
+                        .param("fullName", "Smoke NoTerms")
+                        .param("email", uniqueEmail)
+                        .param("phone", "")
+                        .param("password", "SmokePassw0rd!"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Please accept the Terms of Service")));
+    }
+
+    @Test
+    void forgotPasswordPageRenders() throws Exception {
+        mockMvc.perform(get("/auth/forgot"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Forgot your password")));
+    }
+
+    @Test
+    void resetWithBadTokenShowsExpiredState() throws Exception {
+        mockMvc.perform(get("/auth/reset").param("token", "bogus-token"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("This link has expired")));
+    }
+
+    @Test
+    void unknownTrackingLinkRedirectsToBrowse() throws Exception {
+        mockMvc.perform(get("/l/nope"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/browse"));
+    }
+
+    @Test
+    void browseWithSortAndPriceFiltersRenders() throws Exception {
+        mockMvc.perform(get("/browse")
+                        .param("sort", "popular")
+                        .param("price", "paid"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Browse events")));
+    }
+
+    @Test
+    void enrichedHostOrdersViewRendersForHost() throws Exception {
+        mockMvc.perform(get("/host/orders")
+                        .param("f", "1")
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Gross sales")))
+                .andExpect(content().string(containsString("Refunded")));
+    }
+
+    @Test
+    void attendeesCsvExportsForHost() throws Exception {
+        Long eventId = events.findBySlug("baghdad-nights-music-festival")
+                .orElseThrow(() -> new IllegalStateException("demo seed missing"))
+                .getId();
+        mockMvc.perform(get("/host/attendees/export.csv")
+                        .param("event", String.valueOf(eventId))
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(content().string(containsString("Name,Email,Ticket type,Order code")));
     }
 }

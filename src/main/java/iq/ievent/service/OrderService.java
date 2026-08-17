@@ -72,7 +72,8 @@ public class OrderService {
     public Order checkout(User buyer, String slug, Map<Long, Integer> quantities,
                           String buyerName, String buyerEmail, String buyerPhone,
                           String transferReference, MultipartFile receipt,
-                          String promoCode, List<String> holderNames) {
+                          String promoCode, List<String> holderNames, List<String> holderEmails,
+                          boolean keepUpdated) {
         Event event = events.findBySlug(slug)
                 .filter(e -> e.getStatus() == Event.Status.LIVE)
                 .orElseThrow(() -> new CheckoutException("This event is not on sale."));
@@ -161,15 +162,68 @@ public class OrderService {
             item.setUnitPriceIqd(entry.getKey().getPriceIqd());
             order.addItem(item);
         }
-        order.setHolderNames(String.join("\n", sanitizeHolders(holderNames, totalQty, buyerName)));
+        List<String> names = sanitizeHolders(holderNames, totalQty, buyerName);
+        List<String> emails = sanitizeHolderEmails(holderEmails, totalQty);
+        StringBuilder holderLines = new StringBuilder();
+        for (int i = 0; i < totalQty; i++) {
+            if (i > 0) holderLines.append("\n");
+            holderLines.append(names.get(i)).append("\t").append(emails.get(i));
+        }
+        order.setHolderNames(holderLines.toString());
         order = orders.save(order);
+        if (keepUpdated && !buyer.isNotifyEvents()) {
+            jdbc.update("UPDATE users SET notify_events = TRUE WHERE id = ?", buyer.getId());
+        }
 
         if (free) {
             List<Ticket> issued = issueTickets(order);
             mail.sendOrderConfirmed(order, issued);
         } else {
             mail.sendOrderPending(order);
+            Organization org = event.getOrganization();
+            if (org.isNotifyPendingOrders()) {
+                jdbc.query("SELECT email FROM users WHERE id = ?",
+                        rs -> { mail.sendPendingOrderAlert(rs.getString(1), order); },
+                        org.getOwnerUserId());
+            }
         }
+        return order;
+    }
+
+    /** CONFIRMED → REFUNDED: voids tickets, releases inventory, notifies the buyer.
+     *  (For direct transfers the money itself is returned by the organizer offline.) */
+    @Transactional
+    public Order refund(Long orderId, Long hostOrgId) {
+        Order order = orders.findById(orderId)
+                .orElseThrow(() -> new CheckoutException("Order not found."));
+        if (!order.getEvent().getOrganization().getId().equals(hostOrgId)) {
+            throw new CheckoutException("Order does not belong to your organization.");
+        }
+        if (order.getStatus() != Order.Status.CONFIRMED) {
+            throw new CheckoutException("Only confirmed orders can be refunded.");
+        }
+        order.setStatus(Order.Status.REFUNDED);
+        for (OrderItem item : order.getItems()) {
+            jdbc.update("UPDATE ticket_types SET sold = GREATEST(0, sold - ?) WHERE id = ?",
+                    item.getQuantity(), item.getTicketType().getId());
+        }
+        jdbc.update("UPDATE tickets SET status = 'VOID' WHERE order_id = ?", order.getId());
+        order.getEvent().getTitle(); // init for async mail
+        mail.sendOrderRefunded(order);
+        return orders.save(order);
+    }
+
+    /** Re-sends the confirmation email with tickets. */
+    @Transactional(readOnly = true)
+    public Order resend(Long orderId, Long hostOrgId) {
+        Order order = orders.findById(orderId)
+                .filter(o -> o.getEvent().getOrganization().getId().equals(hostOrgId))
+                .filter(o -> o.getStatus() == Order.Status.CONFIRMED)
+                .orElseThrow(() -> new CheckoutException("Only confirmed orders can be re-sent."));
+        List<Ticket> list = tickets.findByOrderIdOrderByIdAsc(order.getId());
+        list.forEach(t -> t.getTicketType().getName());
+        order.getEvent().getTitle();
+        mail.sendOrderConfirmed(order, list);
         return order;
     }
 
@@ -220,13 +274,29 @@ public class OrderService {
                 t.setOrder(order);
                 t.setTicketType(item.getTicketType());
                 t.setEvent(order.getEvent());
-                t.setHolderName(n < holders.size() ? holders.get(n) : order.getBuyerName());
+                String line = n < holders.size() ? holders.get(n) : order.getBuyerName();
+                String[] parts = line.split("\\t", 2);
+                t.setHolderName(parts[0].isBlank() ? order.getBuyerName() : parts[0]);
+                t.setHolderEmail(parts.length > 1 && !parts[1].isBlank() ? parts[1] : null);
                 t.setStatus(Ticket.Status.VALID);
                 issued.add(tickets.save(t));
                 n++;
             }
         }
         return issued;
+    }
+
+    private static List<String> sanitizeHolderEmails(List<String> raw, int totalQty) {
+        List<String> out = new ArrayList<>();
+        if (raw != null) {
+            for (String r : raw) {
+                if (out.size() >= totalQty) break;
+                String v = r == null ? "" : r.trim();
+                out.add(v.contains("@") && v.length() <= 255 ? v : "");
+            }
+        }
+        while (out.size() < totalQty) out.add("");
+        return out;
     }
 
     private static List<String> sanitizeHolders(List<String> raw, int totalQty, String buyerName) {

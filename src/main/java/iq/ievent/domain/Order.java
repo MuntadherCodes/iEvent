@@ -11,7 +11,7 @@ public class Order {
 
     public enum PaymentMethod { FREE, DIRECT_TRANSFER }
 
-    public enum Status { PENDING_CONFIRMATION, CONFIRMED, REJECTED, CANCELLED }
+    public enum Status { PENDING_CONFIRMATION, CONFIRMED, REJECTED, CANCELLED, REFUNDED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

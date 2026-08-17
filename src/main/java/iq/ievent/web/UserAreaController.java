@@ -1,18 +1,23 @@
 package iq.ievent.web;
 
+import iq.ievent.domain.Event;
+import iq.ievent.domain.Order;
 import iq.ievent.domain.Organization;
 import iq.ievent.domain.Ticket;
 import iq.ievent.domain.User;
 import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.LikeCountRepository;
+import iq.ievent.repo.OrderRepository;
 import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.TicketRepository;
+import iq.ievent.repo.UserRepository;
 import iq.ievent.service.CatalogService;
 import iq.ievent.service.Format;
 import iq.ievent.service.InteractionService;
 import iq.ievent.service.QrService;
 import iq.ievent.service.UserService;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -26,23 +31,49 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Signed-in user area + public organizer page + public ticket status.
  *
  * Template contracts:
- *  tickets.html:   groups (List<TicketGroup{eventTitle,eventSlug,dateLine,venueLine,tickets:List<CheckoutController.TicketView>}>), currentUser
- *  favorites.html: events (List<Views.EventCard>), currentUser
- *  profile.html:   currentUser, saved (flash Boolean), error (flash String)
+ *  tickets.html:   upcomingOrders/pastOrders (List<OrderCard>), currentUser
+ *  favorites.html: events (List<Views.EventCard>), orgs (List<OrgCard>), currentUser
+ *  profile.html:   currentUser, cities (List<String>), interestOptions (List<InterestOption>),
+ *                  saved (flash Boolean), error (flash String)
  *  organizer.html: org (OrganizerPage), events (List<Views.EventCard>), following (boolean), currentUser
  *  ticket-status.html: t (TicketStatus{code,eventTitle,dateLine,typeName,holderName,status,checkedInAt}), qrSvg
  */
 @Controller
 public class UserAreaController {
 
-    public record TicketGroup(String eventTitle, String eventSlug, String dateLine, String venueLine,
-                              List<CheckoutController.TicketView> tickets) {}
+    /** Iraqi cities offered in the profile "City" select. */
+    public static final List<String> CITIES = List.of(
+            "Baghdad", "Erbil", "Basra", "Sulaymaniyah", "Najaf",
+            "Karbala", "Mosul", "Duhok", "Kirkuk", "Anbar");
+
+    /** One order on the "My tickets" page (grouped per order, per wireframe). */
+    public record OrderCard(String orderCode, String eventTitle, String eventSlug,
+                            String dateLine, String venueLine,
+                            String coverTheme, String coverImageUrl,
+                            String statusKey, String statusLabel, boolean confirmed,
+                            List<String> itemLines, List<TicketRow> tickets) {}
+
+    /** One ticket row inside an order card (rendered only for confirmed orders). */
+    public record TicketRow(String code, String typeName, String holderName) {}
+
+    /** Followed organizer card on the favorites "Organizers" tab. */
+    public record OrgCard(String name, String handle, String bio, boolean verified,
+                          String logoUrl, String initials,
+                          String followersDisplay, long eventsHosted) {}
+
+    /** One category chip in the profile interests picker. */
+    public record InterestOption(String key, String label, String icon, boolean selected) {}
 
     public record OrganizerPage(String name, String handle, String bio, String city, boolean verified,
                                 String followersDisplay, long eventsHosted, String initials) {}
@@ -58,10 +89,14 @@ public class UserAreaController {
     private final OrganizationRepository organizations;
     private final LikeCountRepository counts;
     private final QrService qr;
+    private final OrderRepository orders;
+    private final UserRepository users;
+    private final JdbcTemplate jdbc;
 
     public UserAreaController(UserService userService, TicketRepository tickets, CatalogService catalog,
                               InteractionService interactions, EventRepository events,
-                              OrganizationRepository organizations, LikeCountRepository counts, QrService qr) {
+                              OrganizationRepository organizations, LikeCountRepository counts, QrService qr,
+                              OrderRepository orders, UserRepository users, JdbcTemplate jdbc) {
         this.userService = userService;
         this.tickets = tickets;
         this.catalog = catalog;
@@ -70,6 +105,9 @@ public class UserAreaController {
         this.organizations = organizations;
         this.counts = counts;
         this.qr = qr;
+        this.orders = orders;
+        this.users = users;
+        this.jdbc = jdbc;
     }
 
     private User required(UserDetails principal) {
@@ -82,37 +120,82 @@ public class UserAreaController {
     @Transactional(readOnly = true)
     public String myTickets(@AuthenticationPrincipal UserDetails principal, Model model) {
         User user = required(principal);
-        List<Ticket> all = tickets.findForBuyer(user.getId());
-        List<TicketGroup> groups = new java.util.ArrayList<>();
-        String currentSlug = null;
-        List<CheckoutController.TicketView> bucket = null;
-        for (Ticket t : all) {
-            if (!t.getEvent().getSlug().equals(currentSlug)) {
-                currentSlug = t.getEvent().getSlug();
-                bucket = new java.util.ArrayList<>();
-                groups.add(new TicketGroup(
-                        t.getEvent().getTitle(), currentSlug,
-                        Format.longDateLine(t.getEvent().getStartsAt(), t.getEvent().getEndsAt()),
-                        (t.getEvent().getVenueName() == null ? "" : t.getEvent().getVenueName() + ", ")
-                                + t.getEvent().getCity(),
-                        bucket));
-            }
-            bucket.add(new CheckoutController.TicketView(
-                    t.getCode(), t.getTicketType().getName(), t.getHolderName(),
-                    qr.ticketQrSvg(t.getCode()), t.getStatus().name()));
+        OffsetDateTime now = OffsetDateTime.now();
+        record Dated(OffsetDateTime startsAt, OrderCard card) {}
+        List<Dated> upcoming = new ArrayList<>();
+        List<Dated> past = new ArrayList<>();
+        for (Order o : orders.findByBuyerUserIdOrderByCreatedAtDesc(user.getId())) {
+            Event e = o.getEvent();
+            OffsetDateTime cutoff = e.getEndsAt() != null ? e.getEndsAt() : e.getStartsAt();
+            Dated d = new Dated(e.getStartsAt(), toOrderCard(o, e));
+            if (cutoff.isAfter(now)) upcoming.add(d);
+            else past.add(d);
         }
+        // Upcoming soonest-first; past most-recent-first. Sorted here — never in the template.
+        upcoming.sort(Comparator.comparing(Dated::startsAt));
+        past.sort(Comparator.comparing(Dated::startsAt).reversed());
         model.addAttribute("currentUser", user);
-        model.addAttribute("groups", groups);
+        model.addAttribute("upcomingOrders", upcoming.stream().map(Dated::card).toList());
+        model.addAttribute("pastOrders", past.stream().map(Dated::card).toList());
         return "tickets";
+    }
+
+    private OrderCard toOrderCard(Order o, Event e) {
+        boolean confirmed = o.getStatus() == Order.Status.CONFIRMED;
+        List<String> itemLines = o.getItems().stream()
+                .map(i -> i.getQuantity() + " × " + i.getTicketType().getName())
+                .toList();
+        List<TicketRow> rows = !confirmed ? List.of()
+                : tickets.findByOrderIdOrderByIdAsc(o.getId()).stream()
+                        .map(t -> new TicketRow(t.getCode(), t.getTicketType().getName(), t.getHolderName()))
+                        .toList();
+        return new OrderCard(o.getOrderCode(), e.getTitle(), e.getSlug(),
+                Format.cardDateLine(e.getStartsAt()),
+                (e.getVenueName() == null ? "" : e.getVenueName() + ", ") + e.getCity(),
+                Format.coverTheme(e.getCategory()),
+                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows);
+    }
+
+    private static String statusLabel(Order.Status s) {
+        return switch (s) {
+            case PENDING_CONFIRMATION -> "Pending confirmation";
+            case CONFIRMED -> "Confirmed";
+            case REJECTED -> "Rejected";
+            case CANCELLED -> "Cancelled";
+            case REFUNDED -> "Refunded";
+        };
     }
 
     @GetMapping("/favorites")
     @Transactional(readOnly = true)
-    public String favorites(@AuthenticationPrincipal UserDetails principal, Model model) {
+    public String favorites(@AuthenticationPrincipal UserDetails principal,
+                            @RequestParam(name = "tab", required = false) String tab,
+                            Model model) {
         User user = required(principal);
         List<Long> ids = interactions.likedEventIds(user.getId());
+        List<OrgCard> orgs = jdbc.query("""
+                SELECT o.id, o.name, o.handle, o.bio, o.verified, o.logo_path
+                FROM follows f JOIN organizations o ON o.id = f.organization_id
+                WHERE f.user_id = ?
+                ORDER BY o.name ASC
+                """,
+                (rs, i) -> {
+                    long orgId = rs.getLong("id");
+                    String name = rs.getString("name");
+                    String logo = rs.getString("logo_path");
+                    return new OrgCard(name, rs.getString("handle"), rs.getString("bio"),
+                            rs.getBoolean("verified"),
+                            logo == null ? null : "/media/org-logo/" + orgId,
+                            initials(name),
+                            Format.compactCount(counts.followersForOrganization(orgId)),
+                            counts.eventsHostedForOrganization(orgId));
+                },
+                user.getId());
         model.addAttribute("currentUser", user);
         model.addAttribute("events", catalog.cardsForIds(ids));
+        model.addAttribute("orgs", orgs);
+        model.addAttribute("activeTab", "organizers".equals(tab) ? "organizers" : "events");
         return "favorites";
     }
 
@@ -148,32 +231,93 @@ public class UserAreaController {
 
     @PostMapping("/organizers/{handle}/follow")
     public String toggleFollow(@PathVariable String handle,
-                               @AuthenticationPrincipal UserDetails principal) {
+                               @AuthenticationPrincipal UserDetails principal,
+                               @RequestHeader(value = "Referer", required = false) String referer) {
         User user = principal == null ? null : userService.byEmail(principal.getUsername());
         if (user == null) return "redirect:/auth/login";
         organizations.findByHandle(handle)
                 .ifPresent(o -> interactions.toggleFollow(user.getId(), o.getId()));
+        // Unfollow from the favorites "Organizers" tab returns there; otherwise back to the organizer page.
+        if (referer != null && referer.contains("/favorites")) return "redirect:/favorites?tab=organizers";
         return "redirect:/organizers/" + handle;
     }
 
     @GetMapping("/me/profile")
     public String profile(@AuthenticationPrincipal UserDetails principal, Model model) {
-        model.addAttribute("currentUser", required(principal));
+        User user = required(principal);
+        model.addAttribute("currentUser", user);
+        model.addAttribute("cities", CITIES);
+        model.addAttribute("interestOptions", interestOptions(user.getInterests()));
         return "profile";
+    }
+
+    private static List<InterestOption> interestOptions(String stored) {
+        Set<String> selected = new LinkedHashSet<>();
+        if (stored != null && !stored.isBlank()) {
+            for (String part : stored.split(",")) {
+                if (!part.isBlank()) selected.add(part.trim().toUpperCase());
+            }
+        }
+        List<InterestOption> options = new ArrayList<>();
+        for (Event.Category c : Event.Category.values()) {
+            options.add(new InterestOption(c.name(), Format.categoryLabel(c),
+                    categoryIcon(c), selected.contains(c.name())));
+        }
+        return options;
+    }
+
+    private static String categoryIcon(Event.Category c) {
+        return switch (c) {
+            case MUSIC -> "i-music";
+            case TECH -> "i-laptop";
+            case BUSINESS -> "i-briefcase";
+            case ARTS -> "i-palette";
+            case FOOD -> "i-utensils";
+            case SPORTS -> "i-volleyball";
+            case COMMUNITY -> "i-heart-handshake";
+            case EDUCATION -> "i-graduation-cap";
+            case FILM -> "i-clapperboard";
+            case FAMILY -> "i-baby";
+        };
     }
 
     @PostMapping("/me/profile")
     public String updateProfile(@AuthenticationPrincipal UserDetails principal,
                                 @RequestParam String fullName,
                                 @RequestParam(required = false) String phone,
+                                @RequestParam(required = false) String city,
                                 RedirectAttributes redirect) {
         User user = required(principal);
         if (fullName == null || fullName.isBlank()) {
             redirect.addFlashAttribute("error", "Name cannot be empty.");
         } else {
             userService.updateProfile(user, fullName, phone);
+            String cleanCity = (city == null || city.isBlank() || !CITIES.contains(city)) ? null : city;
+            user.setCity(cleanCity);
+            users.save(user);
             redirect.addFlashAttribute("saved", true);
         }
+        return "redirect:/me/profile";
+    }
+
+    @PostMapping("/me/profile/interests")
+    public String updateInterests(@AuthenticationPrincipal UserDetails principal,
+                                  @RequestParam(name = "interests", required = false) List<String> interests,
+                                  RedirectAttributes redirect) {
+        User user = required(principal);
+        List<String> clean = new ArrayList<>();
+        if (interests != null) {
+            for (String raw : interests) {
+                if (raw == null) continue;
+                try {
+                    Event.Category c = Event.Category.valueOf(raw.trim().toUpperCase());
+                    if (!clean.contains(c.name())) clean.add(c.name());
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
+        user.setInterests(clean.isEmpty() ? null : String.join(",", clean));
+        users.save(user);
+        redirect.addFlashAttribute("saved", true);
         return "redirect:/me/profile";
     }
 

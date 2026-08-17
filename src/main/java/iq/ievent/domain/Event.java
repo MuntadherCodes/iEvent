@@ -57,6 +57,21 @@ public class Event {
     @Column(name = "cover_image_path")
     private String coverImagePath;
 
+    @Column(name = "view_count", nullable = false)
+    private long viewCount;
+
+    private String summary;
+
+    private String tags;
+
+    private String lineup;
+
+    @Column(nullable = false)
+    private String visibility = "PUBLIC";
+
+    @Column(name = "refund_policy", nullable = false)
+    private String refundPolicy = "UP_TO_7_DAYS";
+
     @Column(nullable = false)
     private String language = "en";
 
@@ -93,6 +108,18 @@ public class Event {
     public void setCoverTheme(String coverTheme) { this.coverTheme = coverTheme; }
     public String getCoverImagePath() { return coverImagePath; }
     public void setCoverImagePath(String coverImagePath) { this.coverImagePath = coverImagePath; }
+    public long getViewCount() { return viewCount; }
+    public void setViewCount(long viewCount) { this.viewCount = viewCount; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
+    public String getLineup() { return lineup; }
+    public void setLineup(String lineup) { this.lineup = lineup; }
+    public String getVisibility() { return visibility; }
+    public void setVisibility(String visibility) { this.visibility = visibility; }
+    public String getRefundPolicy() { return refundPolicy; }
+    public void setRefundPolicy(String refundPolicy) { this.refundPolicy = refundPolicy; }
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

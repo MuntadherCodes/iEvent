@@ -98,6 +98,13 @@
             <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Mosul" aria-pressed="false">Mosul</button>
             <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Duhok" aria-pressed="false">Duhok</button>
           </div>
+          <h2 class="mt-10 font-display text-lg font-bold text-ink-900">How many people do you expect at a typical event?</h2>
+          <div class="mt-4 flex flex-wrap gap-3">
+            <button type="button" class="ob-chip aud-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold tabular-nums text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Under 50" aria-pressed="false">Under 50</button>
+            <button type="button" class="ob-chip aud-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold tabular-nums text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="50–200" aria-pressed="false">50–200</button>
+            <button type="button" class="ob-chip aud-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold tabular-nums text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="200–1,000" aria-pressed="false">200–1,000</button>
+            <button type="button" class="ob-chip aud-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold tabular-nums text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="1,000+" aria-pressed="false">1,000+</button>
+          </div>
         </section>
 
         <!-- STEP 4 · The real profile form -->
@@ -105,6 +112,25 @@
           <p class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-party-popper"/></svg>Almost there</p>
           <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Set up your organizer profile</h1>
           <p id="summaryLine" class="mt-4 max-w-lg rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 text-sm leading-relaxed text-brand-900">You'll host events in Baghdad.</p>
+
+          <!-- Value props -->
+          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-zap"/></svg></span>
+              <h3 class="mt-2.5 font-display text-sm font-bold text-ink-900">Publish in minutes</h3>
+              <p class="mt-1 text-xs leading-relaxed text-ink-500">A beautiful event page — no design skills needed.</p>
+            </div>
+            <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-wallet"/></svg></span>
+              <h3 class="mt-2.5 font-display text-sm font-bold text-ink-900">Get paid your way</h3>
+              <p class="mt-1 text-xs leading-relaxed text-ink-500">Direct card or wallet transfers, confirmed by you.</p>
+            </div>
+            <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-scan-line"/></svg></span>
+              <h3 class="mt-2.5 font-display text-sm font-bold text-ink-900">Free check-in tools</h3>
+              <p class="mt-1 text-xs leading-relaxed text-ink-500">Scan tickets at the door with any phone.</p>
+            </div>
+          </div>
 
           <div class="mt-6 max-w-lg space-y-5">
             <div>
@@ -265,6 +291,14 @@
   freqChips.forEach(function (btn) {
     btn.addEventListener('click', function () {
       freqChips.forEach(function (b) { setChip(b, b === btn); });
+    });
+  });
+
+  // Step 3: audience chips — single-select, visual only
+  var audChips = document.querySelectorAll('.aud-chip');
+  audChips.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      audChips.forEach(function (b) { setChip(b, b === btn); });
     });
   });
 

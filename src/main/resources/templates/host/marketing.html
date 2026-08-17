@@ -32,8 +32,10 @@
       <div class="relative mt-5 min-w-0 overflow-x-auto">
         <div class="flex min-w-max gap-1 rounded-xl bg-white p-1 shadow-card ring-1 ring-ink-100" role="tablist" aria-label="Marketing tools">
           <button class="mk-tab inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white" data-tab="promo" role="tab" aria-selected="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>Promo codes</button>
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="email" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg>Email attendees</button>
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="share" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg>Share &amp; embed</button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="email" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg>Email campaigns</button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="links" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-link"/></svg>Tracking links</button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="social" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg>Social</button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="share" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>Widgets</button>
         </div>
       </div>
 
@@ -133,44 +135,180 @@
         </div>
       </section>
 
-      <!-- ===== TAB: Email attendees ===== -->
-      <section id="tab-email" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Email attendees">
-        <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-          <h3 class="font-display text-lg font-bold text-ink-900">Email attendees</h3>
-          <p class="mt-1 text-sm text-ink-500">Goes to confirmed attendees who allow event updates.</p>
+      <!-- ===== TAB: Email campaigns ===== -->
+      <section id="tab-email" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Email campaigns">
+        <div class="grid gap-6 lg:grid-cols-[1fr_340px]">
 
-          <form th:if="${canManage}" th:action="@{/host/marketing/email}" method="post" class="mt-4 max-w-2xl">
-            <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-event">Event</label>
-              <div class="relative">
-                <select id="em-event" name="eventId" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                  <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
-                </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          <!-- Composer -->
+          <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+            <h3 class="font-display text-lg font-bold text-ink-900">New email campaign</h3>
+            <p class="mt-1 text-sm text-ink-500">A link to your event page (or organizer profile) is added automatically.</p>
+
+            <form th:if="${canManage}" th:action="@{/host/marketing/email}" method="post" class="mt-4">
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-audience">To</label>
+                <div class="relative">
+                  <select id="em-audience" name="audience" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="EVENT_ATTENDEES">Attendees of one event</option>
+                    <option value="PAST_ATTENDEES" th:text="'Past attendees · ' + ${pastCount != null ? pastCount : 0}">Past attendees · 3,120</option>
+                    <option value="FOLLOWERS" th:text="'Followers · ' + ${followersCount != null ? followersCount : 0}">Followers · 12,384</option>
+                  </select>
+                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </div>
+              </div>
+              <div class="mt-4" id="em-event-wrap">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-event">Event <span class="text-xs font-normal text-ink-400">(required for event attendees, optional otherwise)</span></label>
+                <div class="relative">
+                  <select id="em-event" name="eventId" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="">— No specific event —</option>
+                    <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
+                  </select>
+                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </div>
+              </div>
+              <div class="mt-4">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-subject">Subject <span class="text-rose-500">*</span></label>
+                <input id="em-subject" name="subject" type="text" required placeholder="One week to go — gates open 5:00 PM" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              </div>
+              <div class="mt-4">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-body">Message <span class="text-rose-500">*</span></label>
+                <textarea id="em-body" name="message" rows="7" required placeholder="Salam! A quick update about your upcoming event…" class="w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+              </div>
+              <div class="mt-4 flex items-center gap-3">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg>Send campaign</button>
+                <p class="text-xs text-ink-400">Followers only receive it if they allow marketing email.</p>
+              </div>
+            </form>
+
+            <p th:unless="${canManage}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>
+              Only owners and managers can send campaigns.
+            </p>
+          </div>
+
+          <!-- History -->
+          <aside>
+            <h3 class="font-display text-lg font-bold text-ink-900">Sent campaigns</h3>
+            <div class="mt-4 space-y-4">
+              <div th:each="c : ${campaignRows}" class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
+                <div class="flex items-start justify-between gap-2">
+                  <p class="text-sm font-semibold text-ink-900" th:text="${c.subject()}">Tickets are live — Baghdad Nights</p>
+                  <span class="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Sent</span>
+                </div>
+                <p class="mt-1 text-xs text-ink-500">To <span th:text="${#strings.toLowerCase(c.audienceLabel())}">followers</span> · <span th:text="${c.sentLine()}">Jul 14</span> · <span class="tabular-nums" th:text="${c.recipients()}">12,384</span> recipient<span th:if="${c.recipients() != 1}">s</span></p>
+                <p th:if="${c.eventTitle() != null}" class="mt-1 truncate text-xs text-ink-400" th:text="${c.eventTitle()}">Baghdad Nights Music Festival</p>
+              </div>
+              <div th:if="${#lists.isEmpty(campaignRows)}" class="rounded-2xl border border-ink-100 bg-white p-6 text-center shadow-card">
+                <p class="text-sm font-semibold text-ink-700">Nothing sent yet</p>
+                <p class="mt-1 text-xs text-ink-500">Your last 20 campaigns will appear here with their audience and reach.</p>
               </div>
             </div>
-            <div class="mt-4">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-subject">Subject <span class="text-rose-500">*</span></label>
-              <input id="em-subject" name="subject" type="text" required placeholder="One week to go — gates open 5:00 PM" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-            </div>
-            <div class="mt-4">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-body">Message <span class="text-rose-500">*</span></label>
-              <textarea id="em-body" name="message" rows="6" required placeholder="Salam! A quick update about your upcoming event…" class="w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
-            </div>
-            <div class="mt-4 flex items-center gap-3">
-              <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg>Send update</button>
-              <p class="text-xs text-ink-400">A link to the event page is added automatically.</p>
-            </div>
-          </form>
-
-          <p th:unless="${canManage}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
-            <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>
-            Only owners and managers can email attendees.
-          </p>
+          </aside>
         </div>
       </section>
 
-      <!-- ===== TAB: Share & embed ===== -->
+      <!-- ===== TAB: Tracking links ===== -->
+      <section id="tab-links" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Tracking links">
+        <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+          <h3 class="font-display text-lg font-bold text-ink-900">Create a tracking link</h3>
+          <p class="mt-1 text-sm text-ink-500">See exactly which channel sells tickets — each short link counts its clicks.</p>
+          <form th:if="${canManage}" th:action="@{/host/marketing/links}" method="post" class="mt-4 flex flex-col gap-3 sm:flex-row">
+            <div class="relative sm:w-72">
+              <select name="eventId" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Destination event">
+                <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
+              </select>
+              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </div>
+            <div class="relative sm:w-56">
+              <select name="channel" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Channel">
+                <option value="instagram">Instagram</option>
+                <option value="facebook">Facebook</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="telegram">Telegram</option>
+                <option value="twitter">Twitter / X</option>
+                <option value="other">Other</option>
+              </select>
+              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </div>
+            <button type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Generate</button>
+          </form>
+          <p th:unless="${canManage}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>
+            Only owners and managers can manage tracking links.
+          </p>
+          <p th:if="${#lists.isEmpty(events)}" class="mt-3 text-sm text-ink-500">Create an event first — then generate channel links for it.</p>
+        </div>
+
+        <div class="relative mt-6 min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
+          <table class="w-full min-w-[680px] text-sm">
+            <thead>
+              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <th class="px-4 py-3">Link</th>
+                <th class="px-3 py-3">Event</th>
+                <th class="px-3 py-3">Channel</th>
+                <th class="px-3 py-3">Clicks</th>
+                <th class="px-3 py-3 text-right"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="l : ${linkRows}" class="border-b border-ink-50 last:border-0 hover:bg-brand-50/40">
+                <td class="px-4 py-3 font-mono text-xs tabular-nums text-brand-600"><span th:id="'tl-' + ${l.id()}" th:text="${l.url()}">https://ievent.iq/l/abc1234</span></td>
+                <td class="px-3 py-3 max-w-[220px] truncate text-ink-600" th:text="${l.eventTitle()}">Baghdad Nights Music Festival</td>
+                <td class="px-3 py-3">
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        th:classappend="${l.channel() == 'instagram'} ? 'bg-fuchsia-100 text-fuchsia-700' : (${l.channel() == 'whatsapp'} ? 'bg-green-100 text-green-700' : (${l.channel() == 'facebook'} ? 'bg-sky-100 text-sky-700' : (${l.channel() == 'telegram'} ? 'bg-blue-100 text-blue-700' : 'bg-ink-100 text-ink-600')))"
+                        th:text="${l.channel()}">instagram</span>
+                </td>
+                <td class="px-3 py-3 font-semibold tabular-nums text-ink-900" th:text="${l.clicks()}">4,218</td>
+                <td class="px-3 py-3 text-right">
+                  <div class="flex items-center justify-end gap-1">
+                    <button type="button" th:attr="data-copy='tl-' + ${l.id()}" class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50">Copy</button>
+                    <form th:if="${canManage}" th:action="@{/host/marketing/links/{id}/delete(id=${l.id()})}" method="post" class="inline">
+                      <button type="submit" class="grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label="Delete tracking link"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-trash-2"/></svg></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(linkRows)}">
+                <td colspan="5" class="px-5 py-12 text-center">
+                  <p class="text-sm font-semibold text-ink-700">No tracking links yet</p>
+                  <p class="mt-1 text-xs text-ink-500">Generate one per channel — Instagram bio, WhatsApp status, posters — and see which one converts.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== TAB: Social ===== -->
+      <section id="tab-social" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Social">
+        <h3 class="font-display text-lg font-bold text-ink-900">Share on social</h3>
+        <p class="mt-1 text-sm text-ink-500">One-tap share links for every event — pre-filled with the title and ticket link.</p>
+
+        <div class="mt-4 space-y-4">
+          <div th:each="s : ${shareRows}" class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="min-w-0">
+                <p class="truncate font-display text-base font-bold text-ink-900" th:text="${s.title()}">Baghdad Nights Music Festival</p>
+                <p class="text-xs text-ink-500"><span th:text="${s.dateLine()}">Sat, Sep 12 · 7:00 PM</span> · <span class="font-mono tabular-nums text-brand-600" th:id="'su-' + ${s.eventId()}" th:text="${s.url()}">https://ievent.iq/events/baghdad-nights</span></p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <a th:href="${s.waHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3.5 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-message-circle"/></svg>WhatsApp</a>
+                <a th:href="${s.tgHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-send"/></svg>Telegram</a>
+                <a th:href="${s.fbHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-share-2"/></svg>Facebook</a>
+                <a th:href="${s.xHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 py-2 text-xs font-semibold text-ink-700 transition hover:border-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg>X</a>
+                <button type="button" th:attr="data-copy='su-' + ${s.eventId()}" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 py-2 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-copy"/></svg>Copy link</button>
+              </div>
+            </div>
+          </div>
+          <div th:if="${#lists.isEmpty(shareRows)}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
+            <p class="text-sm font-semibold text-ink-700">No events to share yet</p>
+            <p class="mt-1 text-xs text-ink-500">Publish an event and its share buttons appear here.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: Widgets (share & embed) ===== -->
       <section id="tab-share" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Share and embed">
         <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
 
@@ -230,6 +368,10 @@
                 </div>
               </div>
             </div>
+            <div class="mt-5 flex items-start gap-2.5 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-info"/></svg>
+              <p>Works on any website — WordPress, Wix, custom. The widget opens iEvent checkout with your event pre-loaded.</p>
+            </div>
           </aside>
         </div>
       </section>
@@ -242,24 +384,29 @@
 </div>
 
 <script>
-  // Tabs
+  // Tabs (with ?tab= deep link, e.g. /host/marketing?tab=email)
   var mkTabs = document.querySelectorAll('.mk-tab');
   var mkPanels = document.querySelectorAll('.mk-panel');
   var ON = ['bg-brand-500', 'text-white'];
   var OFF = ['text-ink-500', 'hover:bg-ink-50', 'hover:text-ink-800'];
-  mkTabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      mkTabs.forEach(function (t) {
-        var on = t === tab;
-        ON.forEach(function (c) { t.classList.toggle(c, on); });
-        OFF.forEach(function (c) { t.classList.toggle(c, !on); });
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      mkPanels.forEach(function (p) {
-        p.classList.toggle('hidden', p.id !== 'tab-' + tab.getAttribute('data-tab'));
-      });
+  function openTab(tab) {
+    mkTabs.forEach(function (t) {
+      var on = t === tab;
+      ON.forEach(function (c) { t.classList.toggle(c, on); });
+      OFF.forEach(function (c) { t.classList.toggle(c, !on); });
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    mkPanels.forEach(function (p) {
+      p.classList.toggle('hidden', p.id !== 'tab-' + tab.getAttribute('data-tab'));
+    });
+  }
+  mkTabs.forEach(function (tab) {
+    tab.addEventListener('click', function () { openTab(tab); });
   });
+  var wanted = new URLSearchParams(window.location.search).get('tab');
+  if (wanted) {
+    mkTabs.forEach(function (t) { if (t.getAttribute('data-tab') === wanted) openTab(t); });
+  }
 
   // Copy buttons
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
