@@ -65,17 +65,55 @@
               <input id="ev-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
             </div>
           </div>
+          <!-- Where is it? — location type toggle + dependent fields -->
+          <div class="mt-5">
+            <span class="mb-1.5 block text-sm font-semibold text-ink-800">Where is it?</span>
+            <div class="grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" aria-label="Location type">
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
+                <input type="radio" name="locationType" value="VENUE" th:checked="${evEntity.locationType() == 'VENUE'}" class="loc-type sr-only">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg>Venue
+              </label>
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
+                <input type="radio" name="locationType" value="ONLINE" th:checked="${evEntity.locationType() == 'ONLINE'}" class="loc-type sr-only">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>Online
+              </label>
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
+                <input type="radio" name="locationType" value="TBA" th:checked="${evEntity.locationType() == 'TBA'}" class="loc-type sr-only">
+                <span class="truncate">To be announced</span>
+              </label>
+            </div>
+
+            <!-- VENUE fields -->
+            <div id="locVenueFields" class="mt-4 grid gap-4 sm:grid-cols-2" th:classappend="${evEntity.locationType() != 'VENUE'} ? 'hidden' : ''">
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue <span class="text-rose-500">*</span></label>
+                <input id="ev-venue" name="venueName" type="text" th:value="${evEntity.locationType() == 'VENUE' ? evEntity.venueName() : ''}" placeholder="e.g. Al-Zawraa Park" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              </div>
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address">Address</label>
+                <input id="ev-address" name="venueAddress" type="text" th:value="${evEntity.locationType() == 'VENUE' ? evEntity.venueAddress() : ''}" placeholder="Street, district, landmark…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-maps">Google Maps link (exact pin) <span class="font-normal text-ink-400">(optional)</span></label>
+                <input id="ev-maps" name="mapsUrl" type="url" th:value="${evEntity.mapsUrl()}" placeholder="https://maps.app.goo.gl/…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <p class="mt-1.5 text-xs text-ink-400">Paste the share link from Google Maps so buyers find the exact spot.</p>
+              </div>
+            </div>
+
+            <!-- ONLINE fields -->
+            <div id="locOnlineFields" class="mt-4" th:classappend="${evEntity.locationType() != 'ONLINE'} ? 'hidden' : ''">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-online">Meeting link</label>
+              <input id="ev-online" name="onlineUrl" type="url" th:value="${evEntity.onlineUrl()}" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Only people with confirmed tickets can see this link.</p>
+            </div>
+
+            <!-- TBA note -->
+            <p id="locTbaNote" class="mt-4 rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600" th:classappend="${evEntity.locationType() != 'TBA'} ? 'hidden' : ''">You can add the venue later — ticket buyers will be notified.</p>
+          </div>
+
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue</label>
-              <input id="ev-venue" name="venueName" type="text" th:value="${evEntity.venueName()}" placeholder="e.g. Al-Zawraa Park" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address">Address</label>
-              <input id="ev-address" name="venueAddress" type="text" th:value="${evEntity.venueAddress()}" placeholder="Street, district, landmark…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city">City <span class="text-rose-500">*</span></label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city"><span id="cityLabel" th:text="${evEntity.locationType() == 'ONLINE'} ? 'Organizer city' : 'City'">City</span> <span class="text-rose-500">*</span></label>
               <div class="relative">
                 <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                   <option value="Baghdad" th:selected="${evEntity.city() == 'Baghdad'}">Baghdad</option>
@@ -349,6 +387,34 @@
     var update = function () { count.textContent = input.value.length; };
     input.addEventListener('input', update);
     update();
+  })();
+
+  // Location type toggle: show only the fields of the selected type
+  (function () {
+    var venueFields = document.getElementById('locVenueFields');
+    var onlineFields = document.getElementById('locOnlineFields');
+    var tbaNote = document.getElementById('locTbaNote');
+    var cityLabel = document.getElementById('cityLabel');
+    function render() {
+      var checked = document.querySelector('input[name="locationType"]:checked');
+      var t = checked ? checked.value : 'VENUE';
+      if (venueFields) venueFields.classList.toggle('hidden', t !== 'VENUE');
+      if (onlineFields) onlineFields.classList.toggle('hidden', t !== 'ONLINE');
+      if (tbaNote) tbaNote.classList.toggle('hidden', t !== 'TBA');
+      if (cityLabel) cityLabel.textContent = t === 'ONLINE' ? 'Organizer city' : 'City';
+      document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
+        var pill = r.closest('label');
+        if (!pill) return;
+        pill.classList.toggle('bg-white', r.checked);
+        pill.classList.toggle('shadow-sm', r.checked);
+        pill.classList.toggle('text-brand-700', r.checked);
+        pill.classList.toggle('text-ink-500', !r.checked);
+      });
+    }
+    document.querySelectorAll('input[name="locationType"]').forEach(function (radio) {
+      radio.addEventListener('change', render);
+    });
+    render();
   })();
 </script>
 </body>

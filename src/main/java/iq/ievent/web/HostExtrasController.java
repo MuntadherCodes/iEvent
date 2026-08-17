@@ -17,6 +17,7 @@ import iq.ievent.service.Format;
 import iq.ievent.service.HostService;
 import iq.ievent.service.MailService;
 import iq.ievent.service.OrderService;
+import iq.ievent.service.PaymentMethodService;
 import iq.ievent.service.PromoService;
 import iq.ievent.service.TeamService;
 import iq.ievent.service.TrackingService;
@@ -108,6 +109,7 @@ public class HostExtrasController {
     private final OrderService orderService;
     private final CampaignService campaignService;
     private final TrackingService trackingService;
+    private final PaymentMethodService paymentMethodService;
     private final CampaignRepository campaigns;
     private final OrderRepository orders;
     private final TicketRepository tickets;
@@ -119,6 +121,7 @@ public class HostExtrasController {
                                 PromoService promoService, TeamService teamService,
                                 MailService mailService, OrderService orderService,
                                 CampaignService campaignService, TrackingService trackingService,
+                                PaymentMethodService paymentMethodService,
                                 CampaignRepository campaigns, OrderRepository orders,
                                 TicketRepository tickets, TicketTypeRepository ticketTypes,
                                 JdbcTemplate jdbc,
@@ -131,6 +134,7 @@ public class HostExtrasController {
         this.orderService = orderService;
         this.campaignService = campaignService;
         this.trackingService = trackingService;
+        this.paymentMethodService = paymentMethodService;
         this.campaigns = campaigns;
         this.orders = orders;
         this.tickets = tickets;
@@ -317,10 +321,26 @@ public class HostExtrasController {
         int p = Math.max(0, page);
         int fromIdx = Math.min(p * 20, filtered.size());
         int toIdx = Math.min(fromIdx + 20, filtered.size());
-        List<HostController.OrderRow> rows = filtered.subList(fromIdx, toIdx).stream()
+        List<Order> pageOrders = filtered.subList(fromIdx, toIdx);
+        List<HostController.OrderRow> rows = pageOrders.stream()
                 .map(this::toOrderRow).toList();
         Page<HostController.OrderRow> pageOut =
                 new PageImpl<>(rows, PageRequest.of(p, 20), filtered.size());
+
+        // Which uploaded receipts are images (vs PDFs) — lets the template
+        // inline-preview them in the expanded pending-order detail.
+        Set<Long> receiptImageIds = new java.util.HashSet<>();
+        for (Order o : pageOrders) {
+            String rp = o.getReceiptPath();
+            if (rp != null) {
+                String lower = rp.toLowerCase();
+                if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                        || lower.endsWith(".png") || lower.endsWith(".webp")) {
+                    receiptImageIds.add(o.getId());
+                }
+            }
+        }
+        model.addAttribute("receiptImageIds", receiptImageIds);
 
         model.addAttribute("currentUser", user(principal));
         model.addAttribute("org", access.org());
@@ -622,6 +642,8 @@ public class HostExtrasController {
         model.addAttribute("members", teamService.members(access.org()));
         model.addAttribute("logoUrl", access.org().getLogoPath() == null ? null
                 : "/media/org-logo/" + access.org().getId());
+        model.addAttribute("coverUrl", access.org().getCoverImagePath() == null ? null
+                : "/media/org-cover/" + access.org().getId());
         model.addAttribute("brandColorValue", access.org().getBrandColor() == null
                 ? "#8f7ac9" : access.org().getBrandColor());
         return "host/settings";
@@ -643,7 +665,7 @@ public class HostExtrasController {
         return "redirect:/host/settings";
     }
 
-    /** Branding: logo, brand color, contact & socials. One POST → HostService.saveBranding. */
+    /** Branding: logo, cover, brand color, contact & socials. One POST → HostService.saveBranding. */
     @PostMapping("/settings/branding")
     public String saveBranding(@AuthenticationPrincipal UserDetails principal,
                                @RequestParam(required = false) String contactEmail,
@@ -652,13 +674,14 @@ public class HostExtrasController {
                                @RequestParam(required = false) String instagram,
                                @RequestParam(required = false) String brandColor,
                                @RequestParam(name = "logo", required = false) MultipartFile logo,
+                               @RequestParam(name = "cover", required = false) MultipartFile cover,
                                RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
         requireManage(access);
         String error = hostService.saveBranding(access.org(), contactEmail, contactPhone,
                 website, instagram, brandColor,
-                access.org().isNotifyPendingOrders(), logo);
+                access.org().isNotifyPendingOrders(), logo, cover);
         if (error != null) redirect.addFlashAttribute("brandError", error);
         else redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings?tab=brand";
@@ -675,9 +698,74 @@ public class HostExtrasController {
         var org = access.org();
         hostService.saveBranding(org, org.getContactEmail(), org.getContactPhone(),
                 org.getWebsite(), org.getInstagram(), org.getBrandColor(),
-                notifyPendingOrders, null);
+                notifyPendingOrders, null, null);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings?tab=notif";
+    }
+
+    // ============================================================
+    // Direct-payment methods (Payments settings page)
+    // ============================================================
+
+    /** Adds a payment method (ZainCash, Qi Card, bank…) with optional QR/photo. */
+    @PostMapping("/settings/payments/methods")
+    public String addPaymentMethod(@AuthenticationPrincipal UserDetails principal,
+                                   @RequestParam(required = false) String label,
+                                   @RequestParam(required = false) String accountNumber,
+                                   @RequestParam(required = false) String accountName,
+                                   @RequestParam(required = false) String instructions,
+                                   @RequestParam(name = "qrImage", required = false) MultipartFile qrImage,
+                                   RedirectAttributes redirect) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        requireManage(access);
+        String error = paymentMethodService.add(access.org(), label, accountNumber,
+                accountName, instructions, qrImage);
+        if (error != null) redirect.addFlashAttribute("pmError", error);
+        else redirect.addFlashAttribute("pmSuccess",
+                "Payment method \"" + label.trim() + "\" added — buyers will see it at checkout.");
+        return "redirect:/host/settings/payments";
+    }
+
+    @PostMapping("/settings/payments/methods/{id}/toggle")
+    public String togglePaymentMethod(@PathVariable Long id,
+                                      @AuthenticationPrincipal UserDetails principal) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        requireManage(access);
+        paymentMethodService.toggle(id, access.org().getId());
+        return "redirect:/host/settings/payments";
+    }
+
+    @PostMapping("/settings/payments/methods/{id}/delete")
+    public String deletePaymentMethod(@PathVariable Long id,
+                                      @AuthenticationPrincipal UserDetails principal,
+                                      RedirectAttributes redirect) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        requireManage(access);
+        paymentMethodService.delete(id, access.org().getId());
+        redirect.addFlashAttribute("pmSuccess", "Payment method deleted.");
+        return "redirect:/host/settings/payments";
+    }
+
+    /** Uploads or replaces the QR/photo on an existing payment method. */
+    @PostMapping("/settings/payments/methods/{id}/qr")
+    public String uploadPaymentMethodQr(@PathVariable Long id,
+                                        @AuthenticationPrincipal UserDetails principal,
+                                        @RequestParam(name = "qrImage", required = false) MultipartFile qrImage,
+                                        RedirectAttributes redirect) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        requireManage(access);
+        if (qrImage == null || qrImage.isEmpty()) {
+            redirect.addFlashAttribute("pmError", "Choose a QR image to upload first.");
+            return "redirect:/host/settings/payments";
+        }
+        String error = paymentMethodService.updateQr(id, access.org().getId(), qrImage);
+        if (error != null) redirect.addFlashAttribute("pmError", error);
+        else redirect.addFlashAttribute("pmSuccess", "QR image updated.");
+        return "redirect:/host/settings/payments";
     }
 
     @PostMapping("/settings/team/invite")

@@ -93,6 +93,16 @@ public class SeedRunner implements CommandLineRunner {
                     brand_color   = COALESCE(brand_color, '#8f7ac9')
                 WHERE handle = ?
                 """, DEMO_HANDLE);
+        // second demo payment method so checkout shows a real choice (idempotent)
+        jdbc.update("""
+                INSERT INTO payment_methods (organization_id, label, account_number, account_name, instructions, sort_order)
+                SELECT o.id, 'ZainCash wallet', '0770 123 4567', 'Fahad Al-Thakur',
+                       'Send to this ZainCash number, then upload the confirmation screenshot.', 1
+                FROM organizations o
+                WHERE o.handle = ?
+                  AND NOT EXISTS (SELECT 1 FROM payment_methods pm
+                                   WHERE pm.organization_id = o.id AND pm.label = 'ZainCash wallet')
+                """, DEMO_HANDLE);
         enrich("baghdad-nights-music-festival",
                 "One night, three stages, the best of Iraq's live music scene under the open sky.",
                 "music, festival, live, family-friendly, baghdad",

@@ -105,9 +105,27 @@
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <h3 class="font-display text-lg font-bold text-ink-900">Where is it?</h3>
-            <div class="mt-4 space-y-4">
+
+            <!-- Location type segmented toggle (wireframe: Venue / Online / To be announced) -->
+            <div class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" aria-label="Location type">
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
+                <input type="radio" name="locationType" value="VENUE" checked class="loc-type sr-only">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg>Venue
+              </label>
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
+                <input type="radio" name="locationType" value="ONLINE" class="loc-type sr-only">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>Online
+              </label>
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
+                <input type="radio" name="locationType" value="TBA" class="loc-type sr-only">
+                <span class="truncate">To be announced</span>
+              </label>
+            </div>
+
+            <!-- VENUE fields -->
+            <div id="locVenueFields" class="mt-5 space-y-4">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue <span class="text-rose-500">*</span></label>
                 <div class="relative">
                   <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
                   <input id="ev-venue" name="venueName" type="text" placeholder="e.g. Al-Zawraa Park" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
@@ -117,22 +135,44 @@
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address">Location details</label>
                 <input id="ev-address" name="venueAddress" type="text" placeholder="Street, district, hall, gate, parking…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
-              <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city">City <span class="text-rose-500">*</span></label>
-                  <div class="relative">
-                    <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                      <option value="Baghdad">Baghdad</option>
-                      <option value="Basra">Basra</option>
-                      <option value="Erbil">Erbil</option>
-                      <option value="Sulaymaniyah">Sulaymaniyah</option>
-                      <option value="Najaf">Najaf</option>
-                      <option value="Karbala">Karbala</option>
-                      <option value="Mosul">Mosul</option>
-                      <option value="Duhok">Duhok</option>
-                    </select>
-                    <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-                  </div>
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-maps">Google Maps link (exact pin) <span class="font-normal text-ink-400">(optional)</span></label>
+                <div class="relative">
+                  <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-link"/></svg></span>
+                  <input id="ev-maps" name="mapsUrl" type="url" placeholder="https://maps.app.goo.gl/…" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                </div>
+                <p class="mt-1.5 text-xs text-ink-400">Paste the share link from Google Maps so buyers find the exact spot.</p>
+              </div>
+            </div>
+
+            <!-- ONLINE fields -->
+            <div id="locOnlineFields" class="mt-5 hidden">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-online">Meeting link</label>
+              <div class="relative">
+                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg></span>
+                <input id="ev-online" name="onlineUrl" type="url" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              </div>
+              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Only people with confirmed tickets can see this link. You can also add it later.</p>
+            </div>
+
+            <!-- TBA note -->
+            <p id="locTbaNote" class="mt-5 hidden rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600">You can add the venue later — ticket buyers will be notified.</p>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city"><span id="cityLabel">City</span> <span class="text-rose-500">*</span></label>
+                <div class="relative">
+                  <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="Baghdad">Baghdad</option>
+                    <option value="Basra">Basra</option>
+                    <option value="Erbil">Erbil</option>
+                    <option value="Sulaymaniyah">Sulaymaniyah</option>
+                    <option value="Najaf">Najaf</option>
+                    <option value="Karbala">Karbala</option>
+                    <option value="Mosul">Mosul</option>
+                    <option value="Duhok">Duhok</option>
+                  </select>
+                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
             </div>
@@ -449,6 +489,12 @@
     wizError.classList.add('flex');
   }
 
+  // Location type: which pill is checked (VENUE default)
+  function locType() {
+    var checked = document.querySelector('input[name="locationType"]:checked');
+    return checked ? checked.value : 'VENUE';
+  }
+
   function fillReview() {
     var title = document.getElementById('ev-title').value.trim();
     var date = document.getElementById('ev-date').value;
@@ -462,7 +508,11 @@
     document.getElementById('rv-title').textContent = title || 'Your event title';
     document.getElementById('rv-date').textContent = date || '—';
     document.getElementById('rv-time').textContent = start ? (start + (end ? ' – ' + end : '')) : '—';
-    document.getElementById('rv-place').textContent = venue ? venue + ', ' + city : city;
+    var lt = locType();
+    document.getElementById('rv-place').textContent =
+      lt === 'ONLINE' ? 'Online event'
+      : lt === 'TBA' ? 'Location to be announced · ' + city
+      : (venue ? venue + ', ' + city : city);
     document.getElementById('rv-category').textContent = catLabel;
 
     var summary = document.getElementById('ev-summary').value.trim();
@@ -508,6 +558,11 @@
           required[i].focus();
           return false;
         }
+      }
+      if (locType() === 'VENUE' && !document.getElementById('ev-venue').value.trim()) {
+        showError('Add a venue name — or switch the location to Online / To be announced.');
+        document.getElementById('ev-venue').focus();
+        return false;
       }
     }
     if (n === 3) {
@@ -593,6 +648,31 @@
   summaryInput.addEventListener('input', function () {
     summaryCount.textContent = summaryInput.value.length;
   });
+
+  // Location type toggle: show only the fields of the selected type
+  var locVenueFields = document.getElementById('locVenueFields');
+  var locOnlineFields = document.getElementById('locOnlineFields');
+  var locTbaNote = document.getElementById('locTbaNote');
+  var cityLabel = document.getElementById('cityLabel');
+  function renderLoc() {
+    var t = locType();
+    if (locVenueFields) locVenueFields.classList.toggle('hidden', t !== 'VENUE');
+    if (locOnlineFields) locOnlineFields.classList.toggle('hidden', t !== 'ONLINE');
+    if (locTbaNote) locTbaNote.classList.toggle('hidden', t !== 'TBA');
+    if (cityLabel) cityLabel.textContent = t === 'ONLINE' ? 'Organizer city' : 'City';
+    document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
+      var pill = r.closest('label');
+      if (!pill) return;
+      pill.classList.toggle('bg-white', r.checked);
+      pill.classList.toggle('shadow-sm', r.checked);
+      pill.classList.toggle('text-brand-700', r.checked);
+      pill.classList.toggle('text-ink-500', !r.checked);
+    });
+  }
+  document.querySelectorAll('input[name="locationType"]').forEach(function (radio) {
+    radio.addEventListener('change', renderLoc);
+  });
+  renderLoc();
 
   // Cover theme live preview
   var GRAD_BASE = 'relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 ';

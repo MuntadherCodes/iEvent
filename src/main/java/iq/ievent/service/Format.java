@@ -65,6 +65,19 @@ public final class Format {
         return String.format(Locale.ENGLISH, "%dK", n / 1000);
     }
 
+    /** "just now", "5m ago", "3h ago", "2d ago", else a short date. */
+    public static String timeAgo(OffsetDateTime when) {
+        if (when == null) return "";
+        long mins = java.time.Duration.between(when, OffsetDateTime.now()).toMinutes();
+        if (mins < 1) return "just now";
+        if (mins < 60) return mins + "m ago";
+        long hours = mins / 60;
+        if (hours < 24) return hours + "h ago";
+        long days = hours / 24;
+        if (days < 7) return days + "d ago";
+        return cardDateLine(when);
+    }
+
     public static String categoryLabel(Event.Category c) {
         return switch (c) {
             case MUSIC -> "Music";

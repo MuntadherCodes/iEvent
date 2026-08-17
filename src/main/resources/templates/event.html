@@ -144,26 +144,50 @@
           </ul>
         </section>
 
-        <!-- Location -->
+        <!-- Location (VENUE: address + embedded map · ONLINE: join-link teaser · TBA: announcement note) -->
         <section class="mt-10">
           <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl">Location</h2>
-          <div class="mt-4 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${event.venueName}">Al-Zawraa Park — Main Amphitheatre</span></p>
-              <p class="mt-0.5 pl-6 text-sm text-ink-500" th:text="${event.venueAddress != null ? event.venueAddress : event.city}">Zawraa Park Main Gate, Al-Mansour District, Baghdad</p>
+
+          <!-- Physical venue -->
+          <th:block th:if="${event.locationType() == 'VENUE'}"
+                    th:with="mapQuery=${(event.venueName != null ? event.venueName + ', ' : '') + (event.venueAddress != null ? event.venueAddress + ', ' : '') + event.city}">
+            <div class="mt-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${event.venueName}">Al-Zawraa Park — Main Amphitheatre</span></p>
+                <p class="mt-0.5 pl-6 text-sm text-ink-500" th:text="${event.venueAddress != null ? event.venueAddress : event.city}">Zawraa Park Main Gate, Al-Mansour District, Baghdad</p>
+              </div>
+              <a th:href="${event.mapsUrl() != null ? event.mapsUrl() : directionsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Open in Google Maps<svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg></a>
             </div>
-            <a th:href="${directionsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Get directions<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+            <!-- Live embedded map: keyed Embed API when a Google Maps key is configured, keyless fallback otherwise -->
+            <iframe th:if="${mapsKey != null}"
+                    th:src="@{https://www.google.com/maps/embed/v1/place(key=${mapsKey},q=${mapQuery})}"
+                    class="mt-4 h-64 w-full rounded-2xl border-0 ring-1 ring-inset ring-black/5"
+                    loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen
+                    th:attr="title='Map of ' + ${event.venueName != null ? event.venueName : event.city}"></iframe>
+            <iframe th:if="${mapsKey == null}"
+                    th:src="${'https://maps.google.com/maps?q=' + #uris.escapeQueryParam(mapQuery) + '&amp;output=embed'}"
+                    class="mt-4 h-64 w-full rounded-2xl border-0 ring-1 ring-inset ring-black/5"
+                    loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                    th:attr="title='Map of ' + ${event.venueName != null ? event.venueName : event.city}"></iframe>
+          </th:block>
+
+          <!-- Online event: the join link itself is never shown publicly -->
+          <div th:if="${event.locationType() == 'ONLINE'}" class="mt-4 flex items-start gap-3.5 rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:p-6">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-brand-600 shadow-card"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-laptop"/></svg></span>
+            <div>
+              <p class="font-display font-bold text-ink-900">Online event</p>
+              <p class="mt-1 text-sm leading-relaxed text-ink-600">This event happens online — the join link is shared with confirmed ticket holders.</p>
+              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Hosted from <span th:text="${event.city}">Baghdad</span> · link unlocks after your order is confirmed</p>
+            </div>
           </div>
-          <!-- Live map when a Google Maps key is configured -->
-          <iframe th:if="${mapsKey != null}"
-                  th:src="@{https://www.google.com/maps/embed/v1/place(key=${mapsKey},q=${(event.venueName != null ? event.venueName + ', ' : '') + event.city})}"
-                  class="mt-4 h-56 w-full rounded-2xl border-0"
-                  loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen
-                  th:attr="title='Map of ' + ${event.venueName != null ? event.venueName : event.city}"></iframe>
-          <!-- Placeholder map when no key is configured -->
-          <div th:if="${mapsKey == null}" class="relative mt-4 h-56 overflow-hidden rounded-2xl border border-ink-100 bg-[#e8ecf1] ring-1 ring-inset ring-black/5">
-            <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="evmap" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#cbd5e1" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#evmap)"/><path d="M0 120 C 120 80, 240 160, 480 110" stroke="#94a3b8" stroke-width="10" fill="none" opacity=".5"/><path d="M60 0 C 90 120, 70 180, 130 260" stroke="#b6c2d1" stroke-width="7" fill="none" opacity=".6"/></svg>
-            <span class="absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-full place-items-center rounded-full bg-brand-500 text-white shadow-pop"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
+
+          <!-- Location to be announced -->
+          <div th:if="${event.locationType() == 'TBA'}" class="mt-4 flex items-start gap-3.5 rounded-2xl border border-ink-200 bg-ink-50 p-5 sm:p-6">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-ink-500 shadow-card"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
+            <div>
+              <p class="font-display font-bold text-ink-900">Location to be announced</p>
+              <p class="mt-1 text-sm leading-relaxed text-ink-600">The venue in <span class="font-semibold" th:text="${event.city}">Baghdad</span> hasn't been locked in yet — follow the event to get notified as soon as it's announced.</p>
+            </div>
           </div>
         </section>
 

@@ -11,6 +11,8 @@
   html{scroll-behavior:smooth}
   body{font-family:Inter,sans-serif;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
   :focus-visible{outline:2px solid #8f7ac9;outline-offset:2px;border-radius:6px}
+  /* Inputs inside search pills own no ring — the container shows focus via focus-within. */
+  .outline-none:focus-visible{outline:none}
   ::selection{background:#dcd4f0}
   .icon{width:1em;height:1em;flex:none}
   .no-scrollbar{scrollbar-width:none}
@@ -90,9 +92,26 @@ Responsive behavior:
   </a>
   <h1 class="font-display text-base font-bold text-ink-900 sm:text-lg" th:text="${title}">Overview</h1>
   <div class="ml-auto flex items-center gap-2">
-    <button class="relative grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Notifications">
-      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-bell"/></svg>
-    </button>
+    <div th:if="${currentUser != null}" class="relative">
+      <button id="nbBtn" type="button" class="relative grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">
+        <svg class="h-5 w-5" aria-hidden="true"><use href="#i-bell"/></svg>
+        <span id="nbBadge" class="absolute -right-1 -top-1 hidden rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-white ring-2 ring-white">3</span>
+      </button>
+      <div id="nbPanel" class="absolute right-0 top-full z-50 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-cardHover">
+        <div class="flex items-center justify-between border-b border-ink-100 px-4 py-3">
+          <p class="font-display text-sm font-bold text-ink-900">Notifications</p>
+          <span id="nbUnreadLine" class="text-xs font-semibold tabular-nums text-brand-600"></span>
+        </div>
+        <ul id="nbList" class="max-h-96 divide-y divide-ink-50 overflow-y-auto"></ul>
+        <p id="nbEmpty" class="hidden px-4 py-8 text-center text-sm text-ink-500">You're all caught up.</p>
+        <div class="flex items-center justify-between border-t border-ink-100 bg-ink-50/60 px-4 py-2.5">
+          <form th:action="@{/me/notifications/read-all}" method="post">
+            <button type="submit" class="text-xs font-semibold text-ink-600 transition hover:text-brand-600">Mark all read</button>
+          </form>
+          <a th:href="@{/me/notifications}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 transition hover:text-brand-700">View all<svg class="h-3 w-3" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        </div>
+      </div>
+    </div>
     <span class="grid h-10 w-10 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${currentUser.initials()}" th:attr="aria-label=${currentUser.fullName}">FA</span>
     <form th:action="@{/auth/logout}" method="post">
       <button type="submit" class="grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Sign out" title="Sign out">
@@ -100,6 +119,7 @@ Responsive behavior:
       </button>
     </form>
   </div>
+  <th:block th:if="${currentUser != null}"><script th:replace="~{fragments/layout :: bellScript}"></script></th:block>
 </header>
 
 <!-- ============ MOBILE BOTTOM TAB BAR FRAGMENT (<md only) ============ -->

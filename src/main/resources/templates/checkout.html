@@ -176,61 +176,71 @@
             Free registration — tickets are issued instantly.
           </div>
 
-          <!-- Direct transfer panel -->
-          <div th:if="${directPay != null}" id="directPanel" class="mt-5 rounded-xl border border-ink-200 bg-ink-50 p-5" th:classappend="${isFree} ? 'hidden' : ''">
+          <!-- Direct transfer panel: one selectable card per organizer payment method -->
+          <div th:if="${hasPayment}" id="directPanel" class="mt-5 rounded-xl border border-ink-200 bg-ink-50 p-5" th:classappend="${isFree} ? 'hidden' : ''">
             <p class="flex items-center gap-2 text-sm font-bold text-ink-900"><svg class="h-4 w-4 text-ink-500" aria-hidden="true"><use href="#i-qr-code"/></svg>Direct transfer to organizer</p>
-            <div class="mt-4 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
-              <!-- QR placeholder -->
-              <div class="mx-auto w-fit rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 sm:mx-0">
-                <svg class="h-36 w-36" viewBox="0 0 21 21" role="img" aria-label="Organizer payment QR code">
-                  <rect width="21" height="21" fill="white"/>
-                  <path fill="#23222f" d="M0 0h7v7H0zM2 2h3v3H2zM14 0h7v7h-7zM16 2h3v3h-3zM0 14h7v7H0zM2 16h3v3H2zM9 1h1v2H9zM11 0h1v3h-1zM12 4h1v1h-1zM9 4h2v1H9zM10 6h2v2h-2zM0 9h1v2H0zM2 9h1v1H2zM4 8h2v2H4zM7 9h2v1H7zM10 9h1v2h-1zM12 9h2v1h-2zM15 8h1v2h-1zM17 9h2v1h-2zM20 9h1v2h-1zM1 12h2v1H1zM4 11h1v2H4zM6 12h2v1H6zM9 12h1v2H9zM11 12h2v2h-2zM14 11h2v2h-2zM17 12h2v1h-2zM20 12h1v2h-1zM8 14h1v2H8zM10 15h1v2h-1zM12 15h2v1h-2zM15 14h1v2h-1zM17 15h2v2h-2zM20 15h1v2h-1zM8 17h2v2H8zM11 18h2v2h-2zM14 17h2v2h-2zM17 18h1v2h-1zM19 18h2v2h-2zM9 20h1v1H9zM13 20h1v1h-1z"/>
-                </svg>
-                <p class="mt-2 max-w-[9rem] text-center text-[10px] font-semibold uppercase tracking-wide text-ink-400">Scan with your banking / wallet app</p>
-              </div>
 
-              <div class="min-w-0 space-y-4">
-                <!-- Organizer card number -->
-                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
-                  <div class="min-w-0">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="${directPay.walletBank}">Organizer card</p>
-                    <p class="mt-0.5 text-sm font-bold tabular-nums text-ink-900"><span th:text="${directPay.cardNumber}">5061 63•• •••• 4821</span> <span class="font-medium text-ink-500" th:text="'— ' + ${directPay.accountName}">— Zain Events Co.</span></p>
+            <!-- Method picker -->
+            <div th:if="${!paymentMethods.isEmpty()}" class="mt-4 space-y-3">
+              <p class="text-sm text-ink-600">Pay with <strong>any</strong> of these methods — pick the one you'll use:</p>
+              <label th:each="m, it : ${paymentMethods}" class="block cursor-pointer rounded-xl border border-ink-200 bg-white p-4 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                <div class="flex flex-wrap items-start gap-4">
+                  <input type="radio" name="paymentMethodLabel" th:value="${m.label()}" th:checked="${it.index == 0}" class="mt-1 h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400" th:attr="aria-label='Pay with ' + ${m.label()}">
+                  <div class="min-w-0 flex-1 space-y-2">
+                    <p class="text-sm font-bold text-ink-900" th:text="${m.label()}">ZainCash</p>
+                    <div th:if="${m.accountNumber() != null}" class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2">
+                      <p class="min-w-0 text-sm font-bold tabular-nums text-ink-900"><span th:text="${m.accountNumber()}">5061 63•• •••• 4821</span><span th:if="${m.accountName() != null}" class="font-medium text-ink-500" th:text="' — ' + ${m.accountName()}"> — Zain Events Co.</span></p>
+                      <button type="button" class="copy-acct inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:attr="data-copy=${m.accountNumber()},aria-label='Copy ' + ${m.label()} + ' account number'">
+                        <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label">Copy</span>
+                      </button>
+                    </div>
+                    <p th:if="${m.accountNumber() == null && m.accountName() != null}" class="text-sm font-medium text-ink-700" th:text="${m.accountName()}">Zain Events Co.</p>
+                    <p th:if="${m.instructions() != null}" class="text-xs leading-relaxed text-ink-500" th:text="${m.instructions()}">Send the exact amount, then upload the receipt below.</p>
                   </div>
-                  <button id="copyCardBtn" type="button" th:attr="data-card=${directPay.cardNumber}" class="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" aria-label="Copy organizer card number">
-                    <svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg><span id="copyCardLabel">Copy</span>
-                  </button>
+                  <span th:if="${m.qrUrl() != null}" class="mx-auto shrink-0 rounded-xl bg-white p-2 shadow-card ring-1 ring-black/5 sm:mx-0">
+                    <img th:src="${m.qrUrl()}" th:alt="'Payment QR code for ' + ${m.label()}" class="w-28 rounded-lg" loading="lazy">
+                  </span>
                 </div>
-
-                <!-- Amount callout -->
-                <div class="flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
-                  <p class="text-sm font-semibold text-brand-800">Amount to transfer</p>
-                  <p class="sum-total font-display text-lg font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</p>
-                </div>
-
-                <!-- Instructions -->
-                <p th:if="${directPay.instructions != null}" class="text-sm leading-relaxed text-ink-600" th:text="${directPay.instructions}">Transfer the exact amount and upload your receipt below.</p>
-
-                <!-- Transfer reference -->
-                <div>
-                  <label for="transferReference" class="mb-1.5 block text-sm font-semibold text-ink-800">Transfer reference <span class="font-normal text-ink-400">(optional)</span></label>
-                  <input id="transferReference" name="transferReference" type="text" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                </div>
-
-                <!-- Receipt upload dropzone -->
-                <label class="flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink-200 bg-white px-4 py-5 text-sm font-semibold text-ink-500 transition hover:border-brand-400 hover:text-brand-600">
-                  <svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-upload"/></svg>
-                  <span id="receiptLabel">Upload transfer receipt (screenshot or PDF)</span>
-                  <input id="receiptInput" type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only">
-                </label>
-
-                <!-- Info note -->
-                <p class="flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-800"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>The organizer reviews your transfer and confirms your tickets — usually within a few hours. You'll get an email once confirmed.</p>
-              </div>
+              </label>
             </div>
+
+            <!-- Legacy single-method fallback (orgs that predate multi-method payments) -->
+            <div th:if="${paymentMethods.isEmpty() && directPay != null}" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3">
+              <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="${directPay.walletBank}">Organizer card</p>
+                <p class="mt-0.5 text-sm font-bold tabular-nums text-ink-900"><span th:text="${directPay.cardNumber}">5061 63•• •••• 4821</span> <span class="font-medium text-ink-500" th:text="'— ' + ${directPay.accountName}">— Zain Events Co.</span></p>
+              </div>
+              <button type="button" class="copy-acct inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:attr="data-copy=${directPay.cardNumber}" aria-label="Copy organizer card number">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label">Copy</span>
+              </button>
+            </div>
+            <p th:if="${paymentMethods.isEmpty() && directPay != null && directPay.instructions != null}" class="mt-3 text-sm leading-relaxed text-ink-600" th:text="${directPay.instructions}">Transfer the exact amount and upload your receipt below.</p>
+
+            <!-- Amount callout -->
+            <div class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
+              <p class="text-sm font-semibold text-brand-800">Amount to transfer</p>
+              <p class="sum-total font-display text-lg font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</p>
+            </div>
+
+            <!-- Transfer reference -->
+            <div class="mt-4">
+              <label for="transferReference" class="mb-1.5 block text-sm font-semibold text-ink-800">Transfer reference <span class="font-normal text-ink-400">(optional)</span></label>
+              <input id="transferReference" name="transferReference" type="text" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+
+            <!-- Receipt upload dropzone -->
+            <label class="mt-4 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink-200 bg-white px-4 py-5 text-sm font-semibold text-ink-500 transition hover:border-brand-400 hover:text-brand-600">
+              <svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-upload"/></svg>
+              <span id="receiptLabel">Upload transfer receipt (screenshot or PDF)</span>
+              <input id="receiptInput" type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only">
+            </label>
+
+            <!-- Info note -->
+            <p class="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-800"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${!paymentMethods.isEmpty()} ? 'Pay with any of the methods above, then enter your transfer reference and upload the receipt. The organizer reviews your transfer and confirms your tickets — usually within a few hours.' : 'The organizer reviews your transfer and confirms your tickets — usually within a few hours. You will get an email once confirmed.'">The organizer reviews your transfer and confirms your tickets — usually within a few hours.</span></p>
           </div>
 
           <!-- No payments enabled -->
-          <div th:if="${directPay == null}" id="noPayCard" class="mt-5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm font-medium text-amber-800" th:classappend="${isFree} ? 'hidden' : ''">
+          <div th:if="${!hasPayment}" id="noPayCard" class="mt-5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm font-medium text-amber-800" th:classappend="${isFree} ? 'hidden' : ''">
             <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
             This organizer hasn't enabled payments yet — paid tickets can't be ordered right now. Check back soon.
           </div>
@@ -252,7 +262,7 @@
         <div>
           <button id="submitBtn" type="submit"
                   class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-4 text-lg font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
-                  th:attr="disabled=${totalQty == 0 || (!isFree && directPay == null)} ? 'disabled' : null">
+                  th:attr="disabled=${totalQty == 0 || (!isFree && !hasPayment)} ? 'disabled' : null">
             <svg class="h-5 w-5" aria-hidden="true"><use href="#i-lock"/></svg><span id="submitLabel" th:text="${isFree} ? 'Register free' : 'Submit order for confirmation'">Submit order for confirmation</span>
           </button>
           <p class="mt-3 text-center text-xs text-ink-500">By continuing you agree to iEvent's <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700">Terms</a> and the organizer's <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700">refund policy</a>.</p>
@@ -271,7 +281,7 @@
             <div class="min-w-0">
               <p class="text-[11px] font-bold uppercase tracking-wide text-brand-600" th:text="${event.dateLine}">Sat, Sep 12 · 7:00 PM</p>
               <p class="truncate font-display text-sm font-bold leading-snug text-ink-900" th:text="${event.title}">Baghdad Nights Music Festival</p>
-              <p class="flex items-center gap-1 truncate text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${event.venueName != null ? event.venueName + ', ' + event.city : event.city}">Al-Zawraa Park, Baghdad</span></p>
+              <p class="flex items-center gap-1 truncate text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use th:attr="href=${event.locationType() == 'ONLINE'} ? '#i-laptop' : '#i-map-pin'"/></svg><span th:text="${event.locationType() == 'ONLINE' ? 'Online event' : (event.locationType() == 'TBA' ? 'Location to be announced' : (event.venueName != null ? event.venueName + ', ' + event.city : event.city))}">Al-Zawraa Park, Baghdad</span></p>
             </div>
           </div>
 
@@ -462,17 +472,19 @@
     msChev.style.transform = open ? 'rotate(180deg)' : '';
   });
 
-  // Copy organizer card number
-  var copyCardBtn = document.getElementById('copyCardBtn');
-  var copyCardLabel = document.getElementById('copyCardLabel');
-  if (copyCardBtn) copyCardBtn.addEventListener('click', function () {
-    try { navigator.clipboard.writeText(copyCardBtn.getAttribute('data-card') || ''); } catch (e) {}
-    copyCardLabel.textContent = 'Copied';
-    copyCardBtn.classList.add('border-green-500', 'text-green-700');
-    setTimeout(function () {
-      copyCardLabel.textContent = 'Copy';
-      copyCardBtn.classList.remove('border-green-500', 'text-green-700');
-    }, 1500);
+  // Copy an organizer account/card number (one button per payment method)
+  document.querySelectorAll('.copy-acct').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); // buttons live inside the method-picker <label> — don't toggle the radio
+      try { navigator.clipboard.writeText(btn.getAttribute('data-copy') || ''); } catch (err) {}
+      var label = btn.querySelector('.copy-label');
+      if (label) label.textContent = 'Copied';
+      btn.classList.add('border-green-500', 'text-green-700');
+      setTimeout(function () {
+        if (label) label.textContent = 'Copy';
+        btn.classList.remove('border-green-500', 'text-green-700');
+      }, 1500);
+    });
   });
 
   // Receipt file name feedback

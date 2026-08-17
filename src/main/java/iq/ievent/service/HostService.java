@@ -51,6 +51,7 @@ public class HostService {
     private final JdbcTemplate jdbc;
     private final TeamService teamService;
     private final MailService mail;
+    private final NotificationService notifications;
     private final String baseUrl;
     private final java.nio.file.Path uploadDir;
 
@@ -65,6 +66,7 @@ public class HostService {
                        JdbcTemplate jdbc,
                        TeamService teamService,
                        MailService mail,
+                       NotificationService notifications,
                        @Value("${app.base-url}") String baseUrl,
                        @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.organizations = organizations;
@@ -74,6 +76,7 @@ public class HostService {
         this.jdbc = jdbc;
         this.teamService = teamService;
         this.mail = mail;
+        this.notifications = notifications;
         this.baseUrl = baseUrl;
         this.uploadDir = java.nio.file.Path.of(uploadDir);
     }
@@ -388,6 +391,17 @@ public class HostService {
         for (String email : emails) {
             mail.sendCampaign(email, subject, body, event.getTitle(), url);
         }
+        // in-app notifications for buyers who have accounts
+        List<Long> userIds = jdbc.queryForList("""
+                SELECT DISTINCT o.buyer_user_id FROM orders o
+                WHERE o.event_id = ? AND o.status IN ('CONFIRMED', 'PENDING_CONFIRMATION')
+                """, Long.class, event.getId());
+        String type = event.getStatus() == Event.Status.CANCELLED ? "EVENT_CANCELLED" : "EVENT_POSTPONED";
+        for (Long uid : userIds) {
+            notifications.notify(uid, type, subject,
+                    body.length() > 380 ? body.substring(0, 380) : body,
+                    "/events/" + event.getSlug());
+        }
     }
 
     /** Copies an event (details, cover theme, ticket types) as a fresh DRAFT one week later. */
@@ -502,7 +516,7 @@ public class HostService {
     @Transactional
     public String saveBranding(Organization org, String contactEmail, String contactPhone,
                                String website, String instagram, String brandColor,
-                               boolean notifyPendingOrders, MultipartFile logo) {
+                               boolean notifyPendingOrders, MultipartFile logo, MultipartFile cover) {
         org.setContactEmail(blankToNull(contactEmail));
         org.setContactPhone(blankToNull(contactPhone));
         org.setWebsite(blankToNull(website));
@@ -528,6 +542,25 @@ public class HostService {
                 org.setLogoPath(target.toString());
             } catch (java.io.IOException e) {
                 return "Could not store the logo — try again.";
+            }
+        }
+        if (cover != null && !cover.isEmpty()) {
+            if (cover.getSize() > 3 * 1024 * 1024) return "Cover image is too large (max 3 MB).";
+            String original = cover.getOriginalFilename() == null ? "" : cover.getOriginalFilename();
+            String ext = original.contains(".")
+                    ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
+            if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
+                return "Cover must be a JPG, PNG or WEBP image.";
+            }
+            try {
+                java.nio.file.Path dir = uploadDir.resolve("org-covers");
+                java.nio.file.Files.createDirectories(dir);
+                java.nio.file.Path target = dir.resolve("org-" + org.getId() + "." + ext);
+                java.nio.file.Files.copy(cover.getInputStream(), target,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                org.setCoverImagePath(target.toString());
+            } catch (java.io.IOException e) {
+                return "Could not store the cover image — try again.";
             }
         }
         organizations.save(org);

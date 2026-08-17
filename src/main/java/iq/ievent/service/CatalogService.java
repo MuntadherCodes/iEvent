@@ -33,13 +33,16 @@ public class CatalogService {
     private final EventRepository events;
     private final TicketTypeRepository ticketTypes;
     private final LikeCountRepository likeCounts;
+    private final iq.ievent.repo.PaymentMethodRepository paymentMethods;
 
     public CatalogService(EventRepository events,
                           TicketTypeRepository ticketTypes,
-                          LikeCountRepository likeCounts) {
+                          LikeCountRepository likeCounts,
+                          iq.ievent.repo.PaymentMethodRepository paymentMethods) {
         this.events = events;
         this.ticketTypes = ticketTypes;
         this.likeCounts = likeCounts;
+        this.paymentMethods = paymentMethods;
     }
 
     public List<EventCard> upcomingThisWeek(int limit) {
@@ -143,6 +146,26 @@ public class CatalogService {
                 orgId, Event.Status.LIVE, OffsetDateTime.now(), PageRequest.of(0, limit)));
     }
 
+    /** Checkout view of one payment method the buyer can pick. */
+    public record PaymentMethodView(Long id, String label, String accountNumber,
+                                    String accountName, String instructions, String qrUrl) {}
+
+    /** All enabled direct-payment methods of the event's organizer (empty when
+     *  direct payments are off). */
+    public List<PaymentMethodView> paymentMethodsFor(String slug) {
+        return events.findBySlug(slug)
+                .map(Event::getOrganization)
+                .filter(Organization::isDirectPaymentsEnabled)
+                .map(o -> paymentMethods.findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(o.getId())
+                        .stream()
+                        .map(m -> new PaymentMethodView(
+                                m.getId(), m.getLabel(), m.getAccountNumber(), m.getAccountName(),
+                                m.getInstructions(),
+                                m.getQrImagePath() == null ? null : "/media/payment-qr/" + m.getId()))
+                        .toList())
+                .orElse(List.of());
+    }
+
     public java.util.Optional<iq.ievent.web.dto.Views.DirectPayInfo> directPayInfo(String slug) {
         return events.findBySlug(slug)
                 .map(Event::getOrganization)
@@ -231,7 +254,9 @@ public class CatalogService {
                 minPrice == null ? "Free" : Format.priceLineFromMin(minPrice),
                 likes,
                 organizer,
-                ttViews);
+                ttViews,
+                e.getLocationType(),
+                e.getMapsUrl());
     }
 
     private static String initialsOf(String name) {

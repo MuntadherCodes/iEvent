@@ -72,6 +72,15 @@ public class Event {
     @Column(name = "refund_policy", nullable = false)
     private String refundPolicy = "UP_TO_7_DAYS";
 
+    @Column(name = "location_type", nullable = false)
+    private String locationType = "VENUE";
+
+    @Column(name = "online_url")
+    private String onlineUrl;
+
+    @Column(name = "maps_url")
+    private String mapsUrl;
+
     @Column(nullable = false)
     private String language = "en";
 
@@ -118,6 +127,12 @@ public class Event {
     public void setLineup(String lineup) { this.lineup = lineup; }
     public String getVisibility() { return visibility; }
     public void setVisibility(String visibility) { this.visibility = visibility; }
+    public String getLocationType() { return locationType; }
+    public void setLocationType(String locationType) { this.locationType = locationType; }
+    public String getOnlineUrl() { return onlineUrl; }
+    public void setOnlineUrl(String onlineUrl) { this.onlineUrl = onlineUrl; }
+    public String getMapsUrl() { return mapsUrl; }
+    public void setMapsUrl(String mapsUrl) { this.mapsUrl = mapsUrl; }
     public String getRefundPolicy() { return refundPolicy; }
     public void setRefundPolicy(String refundPolicy) { this.refundPolicy = refundPolicy; }
     public String getLanguage() { return language; }

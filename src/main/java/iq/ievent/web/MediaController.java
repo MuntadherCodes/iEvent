@@ -22,10 +22,13 @@ public class MediaController {
 
     private final EventRepository events;
     private final OrganizationRepository organizations;
+    private final iq.ievent.repo.PaymentMethodRepository paymentMethods;
 
-    public MediaController(EventRepository events, OrganizationRepository organizations) {
+    public MediaController(EventRepository events, OrganizationRepository organizations,
+                           iq.ievent.repo.PaymentMethodRepository paymentMethods) {
         this.events = events;
         this.organizations = organizations;
+        this.paymentMethods = paymentMethods;
     }
 
     @GetMapping("/media/event-cover/{eventId}")
@@ -48,9 +51,23 @@ public class MediaController {
 
     @GetMapping("/media/org-logo/{orgId}")
     public ResponseEntity<FileSystemResource> orgLogo(@PathVariable Long orgId) {
-        String stored = organizations.findById(orgId)
-                .map(o -> o.getLogoPath())
-                .orElse(null);
+        return serve(organizations.findById(orgId).map(o -> o.getLogoPath()).orElse(null));
+    }
+
+    @GetMapping("/media/org-cover/{orgId}")
+    public ResponseEntity<FileSystemResource> orgCover(@PathVariable Long orgId) {
+        return serve(organizations.findById(orgId).map(o -> o.getCoverImagePath()).orElse(null));
+    }
+
+    @GetMapping("/media/payment-qr/{methodId}")
+    public ResponseEntity<FileSystemResource> paymentQr(@PathVariable Long methodId) {
+        return serve(paymentMethods.findById(methodId)
+                .filter(m -> m.isEnabled())
+                .map(m -> m.getQrImagePath())
+                .orElse(null));
+    }
+
+    private ResponseEntity<FileSystemResource> serve(String stored) {
         if (stored == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         Path path = Path.of(stored);
         if (!Files.isReadable(path)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);

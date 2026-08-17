@@ -53,7 +53,9 @@ public final class Views {
             String priceFromLabel,  // "25,000" (IQD suffix rendered by template) or "Free"
             long likes,
             OrganizerView organizer,
-            List<TicketTypeView> ticketTypes) {}
+            List<TicketTypeView> ticketTypes,
+            String locationType,     // VENUE | ONLINE | TBA
+            String mapsUrl) {}       // organizer-provided exact-pin link, or null
 
     public record CityCount(String city, long count) {}
 
@@ -75,6 +77,7 @@ public final class Views {
     public record OrganizerExtras(
             long orgId,
             String logoUrl,          // "/media/org-logo/{id}" or null → initials avatar
+            String coverUrl,         // "/media/org-cover/{id}" or null → gradient banner
             String contactEmail,
             String contactPhone,
             String website,          // display text, e.g. "zainevents.iq"

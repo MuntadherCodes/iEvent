@@ -62,7 +62,8 @@ public class UserAreaController {
                             String dateLine, String venueLine,
                             String coverTheme, String coverImageUrl,
                             String statusKey, String statusLabel, boolean confirmed,
-                            List<String> itemLines, List<TicketRow> tickets) {}
+                            List<String> itemLines, List<TicketRow> tickets,
+                            boolean online, String onlineUrl) {}
 
     /** One ticket row inside an order card (rendered only for confirmed orders). */
     public record TicketRow(String code, String typeName, String holderName) {}
@@ -149,12 +150,21 @@ public class UserAreaController {
                 : tickets.findByOrderIdOrderByIdAsc(o.getId()).stream()
                         .map(t -> new TicketRow(t.getCode(), t.getTicketType().getName(), t.getHolderName()))
                         .toList();
+        // Join link is SECRET until the organizer confirms the order — null otherwise.
+        String locType = e.getLocationType();
+        boolean online = "ONLINE".equals(locType);
+        String venueLine = online ? "Online event"
+                : "TBA".equals(locType) ? "Location to be announced"
+                : (e.getVenueName() == null ? "" : e.getVenueName() + ", ") + e.getCity();
+        String joinUrl = confirmed && online
+                && e.getOnlineUrl() != null && !e.getOnlineUrl().isBlank() ? e.getOnlineUrl() : null;
         return new OrderCard(o.getOrderCode(), e.getTitle(), e.getSlug(),
                 Format.cardDateLine(e.getStartsAt()),
-                (e.getVenueName() == null ? "" : e.getVenueName() + ", ") + e.getCity(),
+                venueLine,
                 Format.coverTheme(e.getCategory()),
                 e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
-                o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows);
+                o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows,
+                online, joinUrl);
     }
 
     private static String statusLabel(Order.Status s) {

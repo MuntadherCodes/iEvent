@@ -237,6 +237,9 @@ public class HostController {
                               @RequestParam String city,
                               @RequestParam(required = false) String venueName,
                               @RequestParam(required = false) String venueAddress,
+                              @RequestParam(required = false) String locationType,
+                              @RequestParam(required = false) String onlineUrl,
+                              @RequestParam(required = false) String mapsUrl,
                               @RequestParam String date,
                               @RequestParam String startTime,
                               @RequestParam(required = false) String endTime,
@@ -257,6 +260,11 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        LocationForm loc = locationForm(locationType, venueName, venueAddress, onlineUrl, mapsUrl);
+        if (loc.error() != null) {
+            redirect.addFlashAttribute("error", loc.error());
+            return "redirect:/host/events/new";
+        }
         try {
             List<HostService.TicketTypeForm> forms = new ArrayList<>();
             if (ttNames != null) {
@@ -271,9 +279,12 @@ public class HostController {
                 }
             }
             Event created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
-                    venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
+                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
                     description, forms);
+            created.setLocationType(loc.type());
+            created.setOnlineUrl(loc.onlineUrl());
+            created.setMapsUrl(loc.mapsUrl());
             applyExtras(created, summary, tags, lineup, visibility, refundPolicy);
             hostService.applyCoverTheme(created, coverTheme);
             String coverError = hostService.storeCover(created, coverImage);
@@ -376,7 +387,10 @@ public class HostController {
                 ev.getTags() == null ? "" : ev.getTags(),
                 ev.getLineup() == null ? "" : ev.getLineup(),
                 ev.getVisibility() == null ? "PUBLIC" : ev.getVisibility(),
-                ev.getRefundPolicy() == null ? "UP_TO_7_DAYS" : ev.getRefundPolicy()));
+                ev.getRefundPolicy() == null ? "UP_TO_7_DAYS" : ev.getRefundPolicy(),
+                ev.getLocationType() == null ? "VENUE" : ev.getLocationType(),
+                ev.getOnlineUrl() == null ? "" : ev.getOnlineUrl(),
+                ev.getMapsUrl() == null ? "" : ev.getMapsUrl()));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
         model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
@@ -399,7 +413,8 @@ public class HostController {
     public record EventEditView(String title, String category, String city, String venueName,
                                 String venueAddress, String date, String startTime, String endTime,
                                 String description, String summary, String tags, String lineup,
-                                String visibility, String refundPolicy) {}
+                                String visibility, String refundPolicy,
+                                String locationType, String onlineUrl, String mapsUrl) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -412,6 +427,9 @@ public class HostController {
                               @RequestParam String city,
                               @RequestParam(required = false) String venueName,
                               @RequestParam(required = false) String venueAddress,
+                              @RequestParam(required = false) String locationType,
+                              @RequestParam(required = false) String onlineUrl,
+                              @RequestParam(required = false) String mapsUrl,
                               @RequestParam String date,
                               @RequestParam String startTime,
                               @RequestParam(required = false) String endTime,
@@ -432,10 +450,18 @@ public class HostController {
         requireManage(u);
         Event ev = hostService.eventOf(org.getId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        LocationForm loc = locationForm(locationType, venueName, venueAddress, onlineUrl, mapsUrl);
+        if (loc.error() != null) {
+            redirect.addFlashAttribute("error", loc.error());
+            return "redirect:/host/events/" + id + "/edit";
+        }
         try {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
-                    venueName, venueAddress, LocalDate.parse(date), LocalTime.parse(startTime),
+                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+            ev.setLocationType(loc.type());
+            ev.setOnlineUrl(loc.onlineUrl());
+            ev.setMapsUrl(loc.mapsUrl());
             applyExtras(ev, summary, tags, lineup, visibility, refundPolicy);
             hostService.applyCoverTheme(ev, coverTheme);
             if (removeCover) hostService.removeCover(ev);
@@ -473,6 +499,44 @@ public class HostController {
         if (hostService.accessOf(u).map(a -> !a.canManage()).orElse(true)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
+    }
+
+    /** Normalised "Where is it?" form values (wizard + edit). error() != null → reject the post. */
+    private record LocationForm(String type, String venueName, String venueAddress,
+                                String onlineUrl, String mapsUrl, String error) {}
+
+    /**
+     * Whitelists the location type (VENUE/ONLINE/TBA, default VENUE) and derives the
+     * dependent fields: VENUE requires a venue name and may carry a Google Maps link;
+     * ONLINE stores the meeting link (revealed to confirmed buyers only) and a
+     * "Online event" venue placeholder; TBA stores "To be announced".
+     */
+    private static LocationForm locationForm(String locationType, String venueName,
+                                             String venueAddress, String onlineUrl, String mapsUrl) {
+        String type = "ONLINE".equals(locationType) || "TBA".equals(locationType) ? locationType : "VENUE";
+        String online = onlineUrl == null || onlineUrl.isBlank() ? null : onlineUrl.trim();
+        String maps = mapsUrl == null || mapsUrl.isBlank() ? null : mapsUrl.trim();
+        if ("VENUE".equals(type)) {
+            if (venueName == null || venueName.isBlank()) {
+                return new LocationForm(type, null, null, null, null,
+                        "Add a venue name — or switch the location to Online / To be announced.");
+            }
+            if (maps != null && !(maps.startsWith("http://") || maps.startsWith("https://"))) {
+                return new LocationForm(type, null, null, null, null,
+                        "The Google Maps link must start with http:// or https://.");
+            }
+            return new LocationForm(type, venueName.trim(),
+                    venueAddress == null || venueAddress.isBlank() ? null : venueAddress.trim(),
+                    null, maps, null);
+        }
+        if ("ONLINE".equals(type)) {
+            if (online != null && !(online.startsWith("http://") || online.startsWith("https://"))) {
+                return new LocationForm(type, null, null, null, null,
+                        "The meeting link must start with http:// or https://.");
+            }
+            return new LocationForm(type, "Online event", null, online, null, null);
+        }
+        return new LocationForm(type, "To be announced", null, null, null, null);
     }
 
     /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy). */
@@ -596,7 +660,7 @@ public class HostController {
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/host/orders?status=pending";
+        return "redirect:/host/orders?f=1&status=pending"; // direct to enriched view so flash survives
     }
 
     @PostMapping("/orders/{id}/reject")
@@ -612,7 +676,7 @@ public class HostController {
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/host/orders?status=pending";
+        return "redirect:/host/orders?f=1&status=pending"; // direct to enriched view so flash survives
     }
 
     @GetMapping("/orders/{id}/receipt")

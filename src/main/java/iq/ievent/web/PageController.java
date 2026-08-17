@@ -232,7 +232,9 @@ public class PageController {
                 "Free",
                 likes,
                 organizer,
-                List.of());
+                List.of(),
+                e.getLocationType(),
+                e.getMapsUrl());
     }
 
     static List<String> parseTags(String raw) {
@@ -288,7 +290,7 @@ public class PageController {
     public OrganizerExtras organizerExtras(String handle) {
         Organization org = organizations.findByHandle(handle).orElse(null);
         if (org == null) {
-            return new OrganizerExtras(0L, null, null, null, null, null, null, null, List.of());
+            return new OrganizerExtras(0L, null, null, null, null, null, null, null, null, List.of());
         }
         List<Event> all = events.findByOrganizationIdOrderByStartsAtDesc(org.getId());
         OffsetDateTime now = OffsetDateTime.now();
@@ -323,6 +325,7 @@ public class PageController {
         return new OrganizerExtras(
                 org.getId(),
                 org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId(),
+                org.getCoverImagePath() == null || org.getCoverImagePath().isBlank() ? null : "/media/org-cover/" + org.getId(),
                 clean(org.getContactEmail()),
                 clean(org.getContactPhone()),
                 website == null ? null : website.replaceFirst("^https?://", "").replaceAll("/+$", ""),

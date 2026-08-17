@@ -64,6 +64,9 @@ public class Organization {
     @Column(name = "notify_pending_orders", nullable = false)
     private boolean notifyPendingOrders = true;
 
+    @Column(name = "cover_image_path")
+    private String coverImagePath;
+
     public Long getId() { return id; }
     public Long getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(Long ownerUserId) { this.ownerUserId = ownerUserId; }
@@ -102,4 +105,6 @@ public class Organization {
     public void setBrandColor(String brandColor) { this.brandColor = brandColor; }
     public boolean isNotifyPendingOrders() { return notifyPendingOrders; }
     public void setNotifyPendingOrders(boolean notifyPendingOrders) { this.notifyPendingOrders = notifyPendingOrders; }
+    public String getCoverImagePath() { return coverImagePath; }
+    public void setCoverImagePath(String coverImagePath) { this.coverImagePath = coverImagePath; }
 }

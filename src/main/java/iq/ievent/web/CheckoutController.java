@@ -43,7 +43,8 @@ public class CheckoutController {
                             String venueLine, String buyerName, String buyerEmail, String statusLabel,
                             boolean pending, String subtotalLabel, String feeLabel, String totalLabel,
                             String discountLabel, String promoCode, List<ItemView> items,
-                            String transferReference, String receiptName, String organizerName) {}
+                            String transferReference, String receiptName, String organizerName,
+                            boolean online, String onlineUrl) {}
 
     public record ItemView(String name, int quantity, String unitLabel, String lineLabel) {}
 
@@ -137,7 +138,13 @@ public class CheckoutController {
         model.addAttribute("promoMsg", promoMsg);
         model.addAttribute("totalLabel", Format.iqd(total));
         model.addAttribute("isFreeOrder", total == 0 && totalQty > 0);
-        model.addAttribute("directPay", catalog.directPayInfo(slug).orElse(null));
+        // Multi-method direct payments: the buyer picks any of the organizer's methods.
+        // The legacy single-method block renders only when no methods exist (older orgs).
+        List<CatalogService.PaymentMethodView> paymentMethods = catalog.paymentMethodsFor(slug);
+        var directPay = catalog.directPayInfo(slug).orElse(null);
+        model.addAttribute("paymentMethods", paymentMethods);
+        model.addAttribute("directPay", directPay);
+        model.addAttribute("hasPayment", !paymentMethods.isEmpty() || directPay != null);
         return "checkout";
     }
 
@@ -232,11 +239,22 @@ public class CheckoutController {
                         Format.priceLabel(i.getUnitPriceIqd()),
                         Format.iqd(i.getUnitPriceIqd() * i.getQuantity())))
                 .toList();
+        // Location-aware venue line. The join link is SECRET: it leaves the server
+        // only for CONFIRMED orders — never while pending/rejected/cancelled.
+        String locType = order.getEvent().getLocationType();
+        boolean online = "ONLINE".equals(locType);
+        String venueLine = online ? "Online event"
+                : "TBA".equals(locType) ? "Location to be announced"
+                : (order.getEvent().getVenueName() == null ? "" : order.getEvent().getVenueName() + ", ")
+                        + order.getEvent().getCity();
+        String joinUrl = confirmed && online
+                && order.getEvent().getOnlineUrl() != null && !order.getEvent().getOnlineUrl().isBlank()
+                ? order.getEvent().getOnlineUrl() : null;
+
         OrderView view = new OrderView(order.getOrderCode(), order.getEvent().getTitle(),
                 order.getEvent().getSlug(),
                 Format.longDateLine(order.getEvent().getStartsAt(), order.getEvent().getEndsAt()),
-                (order.getEvent().getVenueName() == null ? "" : order.getEvent().getVenueName() + ", ")
-                        + order.getEvent().getCity(),
+                venueLine,
                 order.getBuyerName(), order.getBuyerEmail(),
                 statusLabel,
                 pending,
@@ -245,7 +263,8 @@ public class CheckoutController {
                 order.getDiscountIqd() > 0 ? Format.iqd(order.getDiscountIqd()) : null,
                 order.getPromoCode(), items,
                 order.getTransferReference(), receiptName,
-                order.getEvent().getOrganization().getName());
+                order.getEvent().getOrganization().getName(),
+                online, joinUrl);
 
         List<TicketView> ticketViews = tickets.findByOrderIdOrderByIdAsc(order.getId()).stream()
                 .map(t -> new TicketView(t.getCode(), t.getTicketType().getName(), t.getHolderName(),

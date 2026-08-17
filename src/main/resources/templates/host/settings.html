@@ -190,6 +190,19 @@
                     </div>
                   </div>
                   <div>
+                    <p class="mb-1.5 block text-sm font-semibold text-ink-800">Profile cover</p>
+                    <div class="rounded-2xl border-2 border-dashed border-ink-200 p-4 transition hover:border-brand-400">
+                      <img th:if="${coverUrl != null}" th:src="${coverUrl}" alt="Current profile cover" class="h-24 w-full rounded-xl object-cover ring-1 ring-ink-100">
+                      <div th:if="${coverUrl == null}" class="grid h-24 w-full place-items-center rounded-xl bg-gradient-to-r from-brand-100 via-brand-50 to-sky-100 text-brand-400">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-image"/></svg>No cover yet</span>
+                      </div>
+                      <div class="mt-3 min-w-0">
+                        <input type="file" name="cover" accept="image/png,image/jpeg,image/webp" th:disabled="${!canManage}" class="block w-full text-xs text-ink-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3.5 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100" aria-label="Upload profile cover">
+                        <p class="mt-1 text-xs text-ink-400">Shown across the top of your organizer page · recommended ≥1600×400 · JPG, PNG or WEBP · max 3 MB</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="brand-color">Brand color</label>
                     <div class="flex items-center gap-3">
                       <input id="brand-color" name="brandColor" type="color" th:value="${brandColorValue}" th:disabled="${!canManage}" class="h-11 w-16 cursor-pointer rounded-lg border border-ink-200 bg-white p-1">

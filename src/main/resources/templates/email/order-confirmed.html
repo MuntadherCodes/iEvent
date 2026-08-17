@@ -13,8 +13,16 @@
     <div style="border:1px solid #ececf1;border-radius:10px;padding:16px;margin-bottom:18px;">
       <p style="margin:0;font-weight:700;font-size:16px;" th:text="${event.title}">Event title</p>
       <p style="margin:6px 0 0;color:#6b6a80;font-size:13px;" th:text="${dateLine}">Date</p>
-      <p style="margin:2px 0 0;color:#6b6a80;font-size:13px;"
-         th:text="${(event.venueName != null ? event.venueName + ', ' : '') + event.city}">Venue</p>
+      <p th:if="${event.locationType != 'ONLINE'}" style="margin:2px 0 0;color:#6b6a80;font-size:13px;"
+         th:text="${event.locationType == 'TBA' ? 'Location will be announced by the organizer'
+                   : (event.venueName != null ? event.venueName + ', ' : '') + event.city}">Venue</p>
+      <p th:if="${event.locationType == 'ONLINE'}" style="margin:2px 0 0;color:#6b6a80;font-size:13px;">
+        Online event
+        <span th:if="${event.onlineUrl != null}">
+          — join link: <a th:href="${event.onlineUrl}" style="color:#7b64b6;font-weight:700;"
+                          th:text="${event.onlineUrl}">link</a>
+        </span>
+      </p>
     </div>
     <p style="margin:0 0 8px;font-weight:700;font-size:14px;">Your tickets</p>
     <table style="width:100%;border-collapse:collapse;font-size:13px;" th:if="${tickets != null}">

@@ -11,6 +11,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -29,6 +30,9 @@ class SmokeTest {
 
     /** Seeded demo host (owner of @zainevents) — loaded by the demo seed. */
     private static final String DEMO_HOST_EMAIL = "fahad@zainevents.iq";
+
+    /** Seeded demo buyer (plain USER) — loaded by the demo seed. */
+    private static final String DEMO_BUYER_EMAIL = "amira@example.iq";
 
     @Autowired
     private MockMvc mockMvc;
@@ -229,5 +233,65 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("Name,Email,Ticket type,Order code")));
+    }
+
+    // ---- round 8: notification center, payment methods, location types ----
+
+    @Test
+    void notificationsSummaryReturnsJsonWithUnreadCount() throws Exception {
+        mockMvc.perform(get("/api/notifications/summary").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(content().string(containsString("unread")));
+    }
+
+    @Test
+    void notificationsPageRendersForAuthenticatedUser() throws Exception {
+        mockMvc.perform(get("/me/notifications").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Notifications")));
+    }
+
+    @Test
+    void notificationsReadAllRedirects() throws Exception {
+        mockMvc.perform(post("/me/notifications/read-all")
+                        .with(csrf())
+                        .with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/me/notifications"));
+    }
+
+    @Test
+    void hostPaymentsSettingsListSeededMethod() throws Exception {
+        mockMvc.perform(get("/host/settings/payments").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Your payment methods")))
+                .andExpect(content().string(containsString("ZainCash wallet")));
+    }
+
+    @Test
+    void unknownPaymentQrIs404() throws Exception {
+        mockMvc.perform(get("/media/payment-qr/999999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void checkoutShowsPaymentMethodPickerForSignedInBuyer() throws Exception {
+        // Fresh databases seed exactly one enabled direct-payment method for
+        // @zainevents ("ZainCash wallet") — checkout must render it in the picker.
+        mockMvc.perform(get("/events/baghdad-nights-music-festival/checkout")
+                        .with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Direct transfer to organizer")))
+                .andExpect(content().string(containsString("ZainCash wallet")));
+    }
+
+    @Test
+    void addPaymentMethodWithoutLabelRedirectsBackWithErrorFlash() throws Exception {
+        mockMvc.perform(multipart("/host/settings/payments/methods")
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/host/settings/payments"));
     }
 }

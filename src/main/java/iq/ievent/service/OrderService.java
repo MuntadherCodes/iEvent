@@ -41,6 +41,7 @@ public class OrderService {
     private final JdbcTemplate jdbc;
     private final MailService mail;
     private final PromoService promoService;
+    private final NotificationService notifications;
     private final SecureRandom random = new SecureRandom();
     private final Path uploadDir;
 
@@ -51,6 +52,7 @@ public class OrderService {
                         JdbcTemplate jdbc,
                         MailService mail,
                         PromoService promoService,
+                        NotificationService notifications,
                         @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.orders = orders;
         this.tickets = tickets;
@@ -59,6 +61,7 @@ public class OrderService {
         this.jdbc = jdbc;
         this.mail = mail;
         this.promoService = promoService;
+        this.notifications = notifications;
         this.uploadDir = Path.of(uploadDir);
     }
 
@@ -178,9 +181,23 @@ public class OrderService {
         if (free) {
             List<Ticket> issued = issueTickets(order);
             mail.sendOrderConfirmed(order, issued);
+            notifications.notify(buyer.getId(), "ORDER_CONFIRMED",
+                    "Tickets confirmed — " + event.getTitle(),
+                    "Order " + order.getOrderCode() + " · your tickets are ready.",
+                    "/me/tickets");
         } else {
             mail.sendOrderPending(order);
+            notifications.notify(buyer.getId(), "ORDER_PENDING",
+                    "Order received — " + event.getTitle(),
+                    "Order " + order.getOrderCode()
+                            + " is waiting for the organizer to confirm your transfer.",
+                    "/me/tickets");
             Organization org = event.getOrganization();
+            notifications.notify(org.getOwnerUserId(), "NEW_ORDER",
+                    "New order to confirm — " + event.getTitle(),
+                    order.getBuyerName() + " · " + Format.iqd(order.getTotalIqd())
+                            + " · " + order.getOrderCode(),
+                    "/host/orders?f=1&status=pending");
             if (org.isNotifyPendingOrders()) {
                 final Order saved = order;
                 jdbc.query("SELECT email FROM users WHERE id = ?",
@@ -211,6 +228,10 @@ public class OrderService {
         jdbc.update("UPDATE tickets SET status = 'VOID' WHERE order_id = ?", order.getId());
         order.getEvent().getTitle(); // init for async mail
         mail.sendOrderRefunded(order);
+        notifications.notify(order.getBuyerUserId(), "ORDER_REFUNDED",
+                "Order refunded — " + order.getEvent().getTitle(),
+                "Order " + order.getOrderCode() + " was refunded; tickets are no longer valid.",
+                "/me/tickets");
         return orders.save(order);
     }
 
@@ -235,6 +256,10 @@ public class OrderService {
         order.setConfirmedAt(OffsetDateTime.now());
         List<Ticket> issued = issueTickets(order);
         mail.sendOrderConfirmed(order, issued);
+        notifications.notify(order.getBuyerUserId(), "ORDER_CONFIRMED",
+                "Order confirmed — " + order.getEvent().getTitle(),
+                "The organizer confirmed " + order.getOrderCode() + "; your tickets are ready.",
+                "/me/tickets");
         return order;
     }
 
@@ -247,6 +272,10 @@ public class OrderService {
                     item.getQuantity(), item.getTicketType().getId());
         }
         mail.sendOrderRejected(order);
+        notifications.notify(order.getBuyerUserId(), "ORDER_REJECTED",
+                "Order could not be confirmed — " + order.getEvent().getTitle(),
+                "The organizer could not verify the transfer for " + order.getOrderCode() + ".",
+                "/me/tickets");
         return order;
     }
 

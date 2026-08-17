@@ -14,17 +14,25 @@
   <!-- ============ COVER + PROFILE HEAD ============ -->
   <section>
     <div class="relative h-44 overflow-hidden bg-gradient-to-r from-brand-700 via-brand-500 to-fuchsia-500 md:h-56">
-      <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="orgcover" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#orgcover)"/></svg>
-      <div class="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden="true"></div>
-      <div class="pointer-events-none absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-brand-950/30 blur-3xl" aria-hidden="true"></div>
+      <!-- Uploaded cover image when present; decorative gradient pattern otherwise -->
+      <th:block th:if="${ox.coverUrl() != null}">
+        <img th:src="${ox.coverUrl()}" th:alt="${org.name} + ' cover'" class="absolute inset-0 h-full w-full object-cover">
+        <div class="absolute inset-0 bg-ink-900 opacity-15" aria-hidden="true"></div>
+      </th:block>
+      <th:block th:if="${ox.coverUrl() == null}">
+        <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="orgcover" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#orgcover)"/></svg>
+        <div class="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-brand-950/30 blur-3xl" aria-hidden="true"></div>
+      </th:block>
     </div>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="relative -mt-14 flex flex-col gap-5 md:-mt-16 md:flex-row md:items-end md:justify-between">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <!-- Only the avatar is pulled up over the banner; name/handle/stats stay fully below it on white. -->
+      <div class="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row">
           <img th:if="${ox.logoUrl() != null}" th:src="${ox.logoUrl()}" th:alt="${org.name} + ' logo'"
-               class="h-28 w-28 shrink-0 rounded-full border-4 border-white bg-white object-cover shadow-cardHover md:h-32 md:w-32">
-          <span th:if="${ox.logoUrl() == null}" class="grid h-28 w-28 shrink-0 place-items-center rounded-full border-4 border-white bg-brand-500 font-display text-3xl font-extrabold text-white shadow-cardHover md:h-32 md:w-32" th:text="${org.initials}">ZE</span>
-          <div class="pb-1">
+               class="-mt-14 h-28 w-28 shrink-0 self-start rounded-full border-4 border-white bg-white object-cover shadow-cardHover md:-mt-16 md:h-32 md:w-32">
+          <span th:if="${ox.logoUrl() == null}" class="-mt-14 grid h-28 w-28 shrink-0 place-items-center self-start rounded-full border-4 border-white bg-brand-500 font-display text-3xl font-extrabold text-white shadow-cardHover md:-mt-16 md:h-32 md:w-32" th:text="${org.initials}">ZE</span>
+          <div class="pb-1 sm:pt-2">
             <h1 class="flex flex-wrap items-center gap-2 font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl"><span th:text="${org.name}">Zain Events Co.</span><svg th:if="${org.verified}" class="h-6 w-6 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${org.verified}" class="sr-only">Verified organizer</span></h1>
             <p class="mt-0.5 text-sm font-medium text-ink-500" th:text="'@' + ${org.handle}">@zainevents</p>
             <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-600">
