@@ -82,7 +82,7 @@
                     : (c.value == 'FAMILY'    ? 'i-baby'
                     :                           'i-heart-handshake'))))))))}">
           <span class="grid h-16 w-16 place-items-center rounded-full transition group-hover:scale-110 group-hover:shadow-card md:h-20 md:w-20" th:classappend="${tile}"><svg class="h-7 w-7 md:h-8 md:w-8" aria-hidden="true"><use th:attr="href='#'+${tileIcon}"/></svg></span>
-          <span class="text-center text-xs font-semibold text-ink-700 transition group-hover:text-brand-600 md:text-sm" th:text="${c.label}">Music</span>
+          <span class="text-center text-xs font-semibold text-ink-700 transition group-hover:text-brand-600 md:text-sm" th:text="${@t.category(c.value)}">Music</span>
         </a>
       </div>
     </div>

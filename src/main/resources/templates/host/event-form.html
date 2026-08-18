@@ -195,7 +195,7 @@
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat"><span th:text="#{wizard.kind.category}">Category</span> <span class="text-rose-500">*</span></label>
                 <div class="relative">
                   <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${c.label()}">Music</option>
+                    <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${@t.category(c.value())}">Music</option>
                   </select>
                   <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
@@ -348,11 +348,11 @@
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" checked class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="fee-note-pass text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}" th:attr="data-tpl=#{wizard.fee.passNoteDyn},data-currency=#{common.iqd}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
               </label>
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="ABSORB" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}">You receive 33,500 IQD per 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="fee-note-absorb text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}" th:attr="data-tpl=#{wizard.fee.absorbNoteDyn},data-currency=#{common.iqd}">You receive 33,500 IQD per 35,000 ticket</span></span>
               </label>
             </div>
           </div>
@@ -796,7 +796,35 @@
     });
     feeCard.classList.toggle('hidden', on);
     feeFreeNote.classList.toggle('hidden', !on);
+    updateFeeExample();
   });
+
+  // Dynamic booking-fee example (R12 #2): reflect the real top ticket price.
+  function fmtIqdFee(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
+  function updateFeeExample() {
+    if (!feeCard) return;
+    var top = 0;
+    document.querySelectorAll('input[name="ttPrice"]').forEach(function (inp) {
+      var v = parseInt(inp.value, 10) || 0;
+      if (v > top) top = v;
+    });
+    if (freeToggle.checked) return; // card already hidden
+    if (top <= 0) return;           // keep the generic example until a price is typed
+    var pass = feeCard.querySelector('.fee-note-pass');
+    var abs = feeCard.querySelector('.fee-note-absorb');
+    [ [pass, top + 1500], [abs, Math.max(0, top - 1500)] ].forEach(function (pair) {
+      var el = pair[0];
+      if (!el || !el.dataset.tpl) return;
+      var cur = el.dataset.currency || 'IQD';
+      el.textContent = el.dataset.tpl
+          .replace('{0}', fmtIqdFee(pair[1], cur))
+          .replace('{1}', top.toLocaleString('en-US'));
+    });
+  }
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.name === 'ttPrice') updateFeeExample();
+  });
+  updateFeeExample();
 
   // iOS-robust submit: the sticky-bar buttons live outside the <form> and rely
   // on form="createForm". If that association is missing, submit manually and

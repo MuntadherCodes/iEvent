@@ -42,6 +42,7 @@
       </div>
 
       <!-- Autosave restore banner (hidden unless a local draft exists; never auto-applies) -->
+      <p id="autosaveTick" class="mt-3 hidden items-center gap-1.5 text-xs font-medium text-green-700" role="status"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{wizard.autosave.savedTick}">Draft saved on this device</span></p>
       <div id="autosaveBanner" class="mt-6 hidden flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
         <div class="min-w-0 text-sm">
           <p class="font-semibold text-brand-900" th:text="#{wizard.autosave.restore}">Resume where you left off?</p>
@@ -142,7 +143,7 @@
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat"><span th:text="#{wizard.kind.category}">Category</span> <span class="text-rose-500">*</span></label>
               <div class="relative">
                 <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                  <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${c.label()}" th:selected="${evEntity.category() == c.value()}">Music</option>
+                  <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${@t.category(c.value())}" th:selected="${evEntity.category() == c.value()}">Music</option>
                 </select>
                 <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
@@ -196,18 +197,18 @@
             <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.tags.note}">Comma separated — tags help people find your event in search.</p>
           </div>
 
-          <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
-          <div class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
+          <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) — hidden for free events -->
+          <div id="editFeeCard" class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
             <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">1,500 IQD booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" th:checked="${evEntity.feeMode() != 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="fee-note-pass text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}" th:attr="data-tpl=#{wizard.fee.passNoteDyn},data-currency=#{common.iqd}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
               </label>
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="ABSORB" th:checked="${evEntity.feeMode() == 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}">You receive 33,500 IQD per 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="fee-note-absorb text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}" th:attr="data-tpl=#{wizard.fee.absorbNoteDyn},data-currency=#{common.iqd}">You receive 33,500 IQD per 35,000 ticket</span></span>
               </label>
             </div>
           </div>
@@ -534,6 +535,36 @@
     }
     toggle.addEventListener('change', apply);
     if (toggle.checked) apply();
+
+    // Dynamic booking-fee example (R12 #2): hide the card while the event is
+    // free; otherwise fill the pass/absorb notes from the real ticket price.
+    var feeCard = document.getElementById('editFeeCard');
+    function fmtIqd(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
+    function updateFeeExample() {
+      if (!feeCard) return;
+      var top = 0;
+      priceInputs().forEach(function (inp) {
+        var v = parseInt(inp.value, 10) || 0;
+        if (v > top) top = v;
+      });
+      feeCard.classList.toggle('hidden', top <= 0);
+      if (top <= 0) return;
+      var pass = feeCard.querySelector('.fee-note-pass');
+      var abs = feeCard.querySelector('.fee-note-absorb');
+      [ [pass, top + 1500], [abs, Math.max(0, top - 1500)] ].forEach(function (pair) {
+        var el = pair[0];
+        if (!el || !el.dataset.tpl) return;
+        var cur = el.dataset.currency || 'IQD';
+        el.textContent = el.dataset.tpl
+            .replace('{0}', fmtIqd(pair[1], cur))
+            .replace('{1}', top.toLocaleString('en-US'));
+      });
+    }
+    document.addEventListener('input', function (e) {
+      if (e.target && e.target.name === 'price') updateFeeExample();
+    });
+    toggle.addEventListener('change', updateFeeExample);
+    updateFeeExample();
   })();
 
   // ------------------------------------------------------------------
@@ -596,9 +627,17 @@
       if (restoring) return;
       try {
         var snap = JSON.stringify(collectFields());
-        if (snap === serverSnapshot) { localStorage.removeItem(KEY); return; }
+        if (snap === serverSnapshot) { localStorage.removeItem(KEY); tick(false); return; }
         localStorage.setItem(KEY, JSON.stringify({ f: collectFields() }));
+        tick(true);
       } catch (e) {}
+    }
+
+    function tick(show) {
+      var el = document.getElementById('autosaveTick');
+      if (!el) return;
+      el.classList.toggle('hidden', !show);
+      el.classList.toggle('inline-flex', show);
     }
 
     function scheduleSave() {

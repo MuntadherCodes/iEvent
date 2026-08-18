@@ -94,6 +94,13 @@ const PEND_EMAIL = `e2e-open+${RUN_ID}@test.iq`;
 const PEND_NAME = 'E2E OpenDetail';
 const PEND_PASSWORD = 'OpenPassw0rd!';
 
+// ---------- round 12 users ----------
+// Fresh host whose brand-new org proves the checklist LIFECYCLE (test bs):
+// round 12 shows the To-do card only until the org's FIRST event goes live.
+const HOST4_EMAIL = `e2e-host4+${RUN_ID}@test.iq`;
+const HOST4_NAME = 'E2E Lifecycle';
+const HOST4_PASSWORD = 'Host4Passw0rd!';
+
 // Online event created by HOST2 in test av. The join URL must NEVER appear in
 // public HTML — only on confirmed orders/tickets.
 const ONLINE_EVENT_TITLE = 'E2E Online Meetup';
@@ -1531,16 +1538,20 @@ test('ai. host dashboard: views/followers cards, delta chips, ?range=7, to-do ch
   await expect(page.locator('section[aria-label="Ticket sales chart"]')).toBeVisible();
   await expect(page.locator('a[href*="range=7"]')).toHaveAttribute('aria-current', 'true');
 
-  log('fahad\'s mature org hides or shows the To-do card without erroring');
+  log("round 12: fahad's org has live events → the To-do card is GONE (no dismiss needed)");
   const body = await page.locator('body').innerText();
   expect(body).not.toContain('Something went wrong');
+  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
 
-  log('the fresh E2E host org still shows the To-do checklist (payments not set up)');
+  log('round 12: HOST2 published "E2E Concert Night" in test m — its dashboard also hides the To-do checklist now');
   await signOut(page);
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
   await page.goto('/host');
-  await expect(page.getByRole('heading', { name: 'To-do' })).toBeVisible();
-  await expect(page.getByText('Set up payments')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Something went wrong');
+  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'To-do' })).toHaveCount(0);
+  // The pre-first-event To-do card itself is covered on brand-new orgs in
+  // tests be (dismiss) and bs (auto-hide after the first publish).
 });
 
 test('aj. host events list: q search filters rows, status filter works', async ({ page }) => {
@@ -2869,4 +2880,139 @@ test('bo. places picker fallback: without a Maps key the manual fields render an
   await expect(page.locator('#placesCfg')).toHaveCount(0);
   await expect(page.locator('script[src*="maps.googleapis"]')).toHaveCount(0);
   await expect(page.locator('#mapPreviewWrap')).toHaveCount(0);
+});
+
+// ---------- round 12: dynamic fee card, edit autosave tick, checklist lifecycle ----------
+// (bp — Arabic wizard category labels — lives in SmokeTest as
+//  wizardCategoryLabelsLocalize: cheaper than a no-cookie login dance here.)
+
+test('bq. edit fee card (R12): price-derived pass/absorb examples; free toggle hides #editFeeCard', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the edit page of "E2E Absorb Gala" (single GA type at 20,000 IQD)');
+  await page.goto('/host/events?q=E2E+Absorb');
+  await page.getByRole('link', { name: /E2E Absorb Gala/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await page.getByRole('link', { name: /Edit event/ }).click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+\/edit/);
+
+  log('#editFeeCard is visible for a paid event, with notes rewritten from the 20,000 top price');
+  const feeCard = page.locator('#editFeeCard');
+  await expect(feeCard).toBeVisible();
+  await expect(feeCard.locator('.fee-note-pass')).toContainText('21,500'); // 20,000 + 1,500
+  await expect(feeCard.locator('.fee-note-pass')).toContainText('20,000');
+  await expect(feeCard.locator('.fee-note-absorb')).toContainText('18,500'); // 20,000 − 1,500
+
+  log('"My event is free" zeroes + locks every price input and HIDES the fee card');
+  const firstPrice = page.locator('#ticketTypes input[name="price"]').first();
+  await expect(firstPrice).toHaveValue('20000');
+  await page.locator('label').filter({ has: page.locator('#freeToggle') }).click();
+  await expect(page.locator('#freeToggle')).toBeChecked();
+  await expect(firstPrice).toHaveValue('0');
+  await expect(firstPrice).toHaveJSProperty('readOnly', true);
+  await expect(feeCard).toBeHidden();
+
+  log('flipping the toggle back restores the remembered price and the fee card (nothing saved server-side)');
+  await page.locator('label').filter({ has: page.locator('#freeToggle') }).click();
+  await expect(page.locator('#freeToggle')).not.toBeChecked();
+  await expect(firstPrice).toHaveValue('20000');
+  await expect(firstPrice).toHaveJSProperty('readOnly', false);
+  await expect(feeCard).toBeVisible();
+  await expect(feeCard.locator('.fee-note-pass')).toContainText('21,500');
+});
+
+test('br. edit autosave (R12): #autosaveTick appears on changes, hides on revert; reload offers Discard', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the edit page of "E2E Concert Night (Updated)"');
+  await page.goto('/host/events?q=E2E+Concert');
+  await page.getByRole('link', { name: /E2E Concert Night/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await page.getByRole('link', { name: /Edit event/ }).click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+\/edit/);
+
+  const autosaveKey = await page.locator('#editForm').getAttribute('data-autosave-key');
+  expect(autosaveKey, 'edit form must carry its per-event autosave key').toContain('ievent-edit-');
+
+  log('pristine form: the "Draft saved on this device" tick is hidden');
+  const tick = page.locator('#autosaveTick');
+  await expect(tick).toBeHidden();
+
+  log('editing the summary → after the 1s debounce the tick becomes visible');
+  const summary = page.locator('#ev-summary');
+  const originalSummary = await summary.inputValue();
+  await summary.fill('E2E autosave probe — round 12');
+  await expect(tick).toBeVisible({ timeout: 10_000 });
+
+  log('reverting to the server value → the draft is dropped and the tick hides again');
+  await summary.fill(originalSummary);
+  await expect(tick).toBeHidden({ timeout: 10_000 });
+  await expect
+    .poll(async () => page.evaluate((k) => localStorage.getItem(k), autosaveKey), {
+      timeout: 10_000,
+      message: 'a draft equal to server state must be removed from localStorage',
+    })
+    .toBeNull();
+
+  log('changing again, then reloading → the restore banner appears (never auto-applies)');
+  await summary.fill('E2E autosave probe — round 12');
+  await expect(tick).toBeVisible({ timeout: 10_000 });
+  await page.reload();
+  await expect(page.locator('#autosaveBanner')).toBeVisible();
+  await expect(page.locator('#ev-summary')).toHaveValue(originalSummary); // not auto-applied
+
+  log('Discard → banner gone, server value kept, local draft removed');
+  await page.locator('#autosaveDiscardBtn').click();
+  await expect(page.locator('#autosaveBanner')).toBeHidden();
+  await expect(page.locator('#ev-summary')).toHaveValue(originalSummary);
+  await expect
+    .poll(async () => page.evaluate((k) => localStorage.getItem(k), autosaveKey), {
+      timeout: 5_000,
+      message: 'Discard must remove the local edit draft',
+    })
+    .toBeNull();
+});
+
+test('bs. checklist lifecycle (R12): To-do shows for a brand-new org and disappears after the FIRST publish', async ({ page }) => {
+  await signOut(page);
+  await registerUser(page, { name: HOST4_NAME, email: HOST4_EMAIL, password: HOST4_PASSWORD });
+  await login(page, HOST4_EMAIL, HOST4_PASSWORD);
+
+  log('running the onboarding funnel for the brand-new org');
+  await page.goto('/host');
+  await expect(page).toHaveURL(/\/host\/start/);
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click();
+  await page.locator('#orgName').fill('E2E Lifecycle Org');
+  await page.getByRole('button', { name: /Create organizer profile/ }).click();
+  await expect(page).toHaveURL(/\/host(\/)?$/);
+
+  log('no live event yet → the To-do checklist is visible (NOT dismissed in this test)');
+  const todo = page.locator('section[aria-label="To-do checklist"]');
+  await expect(todo).toBeVisible();
+  await expect(todo.getByText('Set up payments')).toBeVisible();
+
+  log('publishing the org\'s FIRST event (free — no payment setup needed)');
+  await wizardBasics(page, {
+    title: 'E2E Lifecycle Launch', daysAhead: 5, start: '18:30',
+    venue: 'E2E Lifecycle Hall', city: 'Baghdad', category: 'COMMUNITY',
+  });
+  await page.locator('#nextBtn').click(); // step 2 · banner — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+  await page.locator('input[name="ttName"]').first().fill('Entry');
+  await page.locator('input[name="ttPrice"]').first().fill('0');
+  await page.locator('input[name="ttQty"]').first().fill('20');
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click(); // step 4 · details — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+  await page.locator('#finalBtns button[value="publish"]').click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
+
+  log('back on the dashboard: the To-do card is GONE without any Dismiss click');
+  await page.goto('/host');
+  await expect(page.locator('body')).not.toContainText('Something went wrong');
+  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'To-do' })).toHaveCount(0);
 });

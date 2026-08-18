@@ -38,6 +38,16 @@ public class LocalizationHelper {
         return !"en".equals(LocaleContextHolder.getLocale().getLanguage());
     }
 
+    /** Localized label for an Event.Category enum name (e.g. "MUSIC" → "موسيقى"). */
+    public String category(String enumName) {
+        try {
+            return iq.ievent.service.Format.categoryLabel(
+                    iq.ievent.domain.Event.Category.valueOf(enumName));
+        } catch (Exception e) {
+            return enumName;
+        }
+    }
+
     /** Programmatic message lookup with the current locale. */
     public String msg(String code, Object... args) {
         return messages.getMessage(code, args, LocaleContextHolder.getLocale());

@@ -469,6 +469,24 @@ class SmokeTest {
     }
 
     @Test
+    void wizardCategoryLabelsLocalize() throws Exception {
+        // Round 12 (#1): category labels localize via @t.category(...) while the
+        // option VALUES stay the canonical enum names. (Covers the e2e "bp" slot —
+        // asserting the bare-path Arabic render here is cheaper than a cookie-less
+        // login dance in the Playwright suite.)
+        // Arabic (bare path): Format.categoryLabel(MUSIC) = "موسيقى", value="MUSIC".
+        mockMvc.perform(get("/host/events/new").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("موسيقى")))
+                .andExpect(content().string(containsString("value=\"MUSIC\"")));
+        // English under /en: same markup, English label.
+        mockMvc.perform(get("/en/host/events/new").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Music")))
+                .andExpect(content().string(containsString("value=\"MUSIC\"")));
+    }
+
+    @Test
     void ticketPdfRenders() throws Exception {
         // Round 11 regression (#2): the per-ticket PDF 500'd with a LazyInit error.
         // The demo seed creates EVT-DEMO orders with tickets for Baghdad Nights —
