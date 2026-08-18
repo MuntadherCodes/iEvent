@@ -54,7 +54,7 @@ Responsive behavior:
   <div class="flex h-16 items-center justify-center gap-2 border-b border-ink-100 px-3 lg:justify-start lg:px-5">
     <a th:href="@{/}" class="flex items-center gap-2" th:aria-label="#{host.nav.homeAria}" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
-      <span class="hidden font-display text-base font-extrabold tracking-tight text-ink-900 lg:block"><span class="text-brand-500">i</span>Event</span>
+      <span class="hidden font-display text-base font-extrabold tracking-tight text-ink-900 lg:block"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span>
     </a>
     <span class="hidden rounded-md bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700 lg:block" th:text="#{host.nav.hostBadge}">Host</span>
   </div>

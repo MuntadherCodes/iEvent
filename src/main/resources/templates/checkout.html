@@ -33,7 +33,7 @@
   <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
     <a th:href="@{/}" class="flex shrink-0 items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
-      <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
+      <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span>
     </a>
     <span class="hidden items-center gap-1.5 text-sm font-medium text-ink-500 sm:flex"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.event.secureCheckout}]]</span>
     <div class="ms-auto flex items-center gap-2 sm:gap-3">
@@ -270,7 +270,7 @@
             </label>
             <label class="flex items-start gap-2.5 text-sm text-ink-400">
               <input type="checkbox" disabled class="mt-0.5 h-4 w-4 rounded border-ink-200">
-              <span>[[#{public.checkout.smsReminder}]] <span class="ms-1 rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500" th:text="#{public.checkout.soon}">Soon</span></span>
+              <span>[[#{public.checkout.smsReminder}]]</span>
             </label>
           </div>
         </section>

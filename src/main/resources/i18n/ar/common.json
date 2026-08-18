@@ -1,15 +1,14 @@
 {
+  "common.arabic": "العربية",
+  "common.back": "رجوع",
+  "common.cancel": "إلغاء",
+  "common.close": "إغلاق",
+  "common.copy": "نسخ",
+  "common.english": "English",
   "common.free": "مجاني",
   "common.iqd": "د.ع",
-  "common.save": "حفظ",
-  "common.cancel": "إلغاء",
-  "common.back": "رجوع",
-  "common.next": "التالي",
-  "common.copy": "نسخ",
-  "common.close": "إغلاق",
-  "common.language": "اللغة",
-  "common.arabic": "العربية",
-  "common.english": "English",
   "common.kurdish": "کوردی",
-  "common.comingSoon": "قريباً"
+  "common.language": "اللغة",
+  "common.next": "التالي",
+  "common.save": "حفظ"
 }

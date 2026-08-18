@@ -3,7 +3,7 @@
 <body style="margin:0;padding:0;background:#f7f7fa;font-family:Arial,Helvetica,sans-serif;color:#23222f;">
 <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
   <div style="text-align:center;padding:8px 0 16px;">
-    <span dir="ltr" style="font-size:22px;font-weight:800;letter-spacing:.02em;"><span style="color:#8f7ac9;">i</span>Event</span>
+    <span th:dir="${(mailLang ?: 'ar') == 'en'} ? 'ltr' : 'rtl'" dir="ltr" style="font-size:22px;font-weight:800;letter-spacing:.02em;"><span style="color:#8f7ac9;">i</span><th:block th:if="${(mailLang ?: 'ar') == 'en'}">Event</th:block><span th:unless="${(mailLang ?: 'ar') == 'en'}" style="font-size:1.15em">ايفنت</span></span>
   </div>
   <div style="background:#ffffff;border:1px solid #ececf1;border-radius:14px;padding:28px;">
     <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#8f7ac9;text-transform:uppercase;"
