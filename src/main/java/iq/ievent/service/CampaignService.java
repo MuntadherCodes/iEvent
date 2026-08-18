@@ -4,6 +4,7 @@ import iq.ievent.domain.Campaign;
 import iq.ievent.domain.Event;
 import iq.ievent.domain.Organization;
 import iq.ievent.repo.CampaignRepository;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,8 +50,9 @@ public class CampaignService {
                     String subject, String body, String linkUrl) {
         List<String> to = recipients(org, eventOrNull, audience);
         String title = eventOrNull != null ? eventOrNull.getTitle() : org.getName();
-        final java.util.Locale locale =
-                org.springframework.context.i18n.LocaleContextHolder.getLocale();
+        // NOTE: the parameter named "org" shadows the org.* package root here,
+        // so the fully-qualified form doesn't compile — hence the import.
+        final java.util.Locale locale = LocaleContextHolder.getLocale();
         for (String email : to) {
             mail.sendCampaign(email, subject, body, title, linkUrl, locale);
         }
