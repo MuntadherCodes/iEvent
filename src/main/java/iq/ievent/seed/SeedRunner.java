@@ -96,7 +96,7 @@ public class SeedRunner implements CommandLineRunner {
         // second demo payment method so checkout shows a real choice (idempotent)
         jdbc.update("""
                 INSERT INTO payment_methods (organization_id, label, account_number, account_name, instructions, sort_order)
-                SELECT o.id, 'ZainCash wallet', '0770 123 4567', 'Fahad Al-Thakur',
+                SELECT o.id, 'ZainCash wallet', '0770 123 4567', 'Zain Events Finance',
                        'Send to this ZainCash number, then upload the confirmation screenshot.', 1
                 FROM organizations o
                 WHERE o.handle = ?
@@ -263,7 +263,7 @@ public class SeedRunner implements CommandLineRunner {
         org.setVerified(true);
         org.setDirectPaymentsEnabled(true);
         org.setPayCardNumber("5326 1102 4478 4821");
-        org.setPayAccountName("Fahad Al-Thakur");
+        org.setPayAccountName("Zain Events Finance");
         org.setPayWalletBank("ZainCash");
         org.setPayInstructions("Transfer the exact total, then upload a screenshot of the receipt. Write your order number in the transfer note.");
         org = organizations.save(org);

@@ -13,10 +13,13 @@
 
   <!-- ============ COVER + PROFILE HEAD ============ -->
   <section>
-    <div class="relative h-44 overflow-hidden bg-gradient-to-r from-brand-700 via-brand-500 to-fuchsia-500 md:h-56">
+    <!-- Brand color (when set) tints the gradient banner; hex+alpha "cc" softens the top stop. -->
+    <div class="relative h-44 overflow-hidden bg-gradient-to-r from-brand-700 via-brand-500 to-fuchsia-500 md:h-56"
+         th:style="${ox.brandColor() != null} ? ('background: linear-gradient(135deg, ' + ${ox.brandColor()} + 'cc, ' + ${ox.brandColor()} + ')') : null">
       <!-- Uploaded cover image when present; decorative gradient pattern otherwise -->
       <th:block th:if="${ox.coverUrl() != null}">
-        <img th:src="${ox.coverUrl()}" th:alt="${org.name} + ' cover'" class="absolute inset-0 h-full w-full object-cover">
+        <img th:src="${ox.coverUrl()}" th:alt="${org.name} + ' cover'" class="absolute inset-0 h-full w-full object-cover"
+             th:style="'object-position: 50% ' + ${ox.coverFocusY()} + '%'">
         <div class="absolute inset-0 bg-ink-900 opacity-15" aria-hidden="true"></div>
       </th:block>
       <th:block th:if="${ox.coverUrl() == null}">
@@ -45,10 +48,10 @@
         <div class="flex gap-3 pb-1">
           <!-- Follow: signed in → toggle form; signed out → link to login -->
           <form th:if="${currentUser != null}" th:action="@{/organizers/{h}/follow(h=${org.handle})}" method="post">
-            <button th:if="${!following}" type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" aria-pressed="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</button>
+            <button th:if="${!following}" type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null" aria-pressed="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</button>
             <button th:if="${following}" type="submit" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
           </form>
-          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</a>
+          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</a>
           <!-- Message button hidden until messaging ships (phase 2) -->
         </div>
       </div>

@@ -54,15 +54,15 @@
           <div class="mt-5 grid gap-4 sm:grid-cols-3">
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date">Date <span class="text-rose-500">*</span></label>
-              <input id="ev-date" name="date" type="date" required th:value="${evEntity.date()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="ev-date" name="date" type="date" required th:value="${evEntity.date()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start">Starts <span class="text-rose-500">*</span></label>
-              <input id="ev-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="ev-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end">Ends</label>
-              <input id="ev-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="ev-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
           </div>
           <!-- Where is it? — location type toggle + dependent fields -->
@@ -185,6 +185,22 @@
             </div>
             <p class="mt-1.5 text-xs text-ink-400">Comma separated — tags help people find your event in search.</p>
           </div>
+
+          <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
+          <div class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
+            <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg>Booking fee</p>
+            <p class="mt-1 text-sm text-brand-800">iEvent adds a <strong>1,500 IQD booking fee</strong> per paid ticket — you choose who pays it. Free tickets never carry a fee.</p>
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+                <input type="radio" name="feeMode" value="PASS" th:checked="${evEntity.feeMode() != 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span class="text-sm"><span class="font-semibold text-ink-900">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+              </label>
+              <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+                <input type="radio" name="feeMode" value="ABSORB" th:checked="${evEntity.feeMode() == 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span class="text-sm"><span class="font-semibold text-ink-900">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500">You receive 33,500 IQD per 35,000 ticket</span></span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Event cover -->
@@ -225,6 +241,11 @@
             <label class="mt-3 block text-sm font-semibold text-ink-800" for="cover-image" th:text="${hasCoverImage} ? 'Replace the cover photo' : '…or upload a cover photo'">…or upload a cover photo</label>
             <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-2 block w-full max-w-xs text-sm text-ink-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-600">
             <p class="mt-2 text-xs text-ink-400">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
+            <!-- Instant preview of the newly chosen file (before saving) -->
+            <div id="coverNewPreview" class="mx-auto mt-4 hidden max-w-md text-left">
+              <img id="coverNewPreviewImg" class="aspect-[16/9] w-full rounded-xl object-cover ring-1 ring-black/5" alt="New cover preview">
+              <p class="mt-2 text-xs font-semibold text-brand-700">New photo — applied when you click Save changes.</p>
+            </div>
           </div>
 
           <div class="mt-6 flex items-center gap-3 border-t border-ink-100 pt-5">
@@ -241,6 +262,19 @@
           <p class="mt-0.5 text-sm text-ink-500">Edit prices and quantities, pause sales, or add a new type. Quantity can't go below tickets already sold.</p>
         </div>
         <div class="space-y-4 p-6 sm:p-8">
+          <!-- Free toggle: zeroes + locks every price input below; save each row to apply -->
+          <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5">
+            <span>
+              <span class="block text-sm font-semibold text-ink-800">My event is free</span>
+              <span class="mt-0.5 block text-xs text-ink-500">Sets every ticket price to 0 — click Save on each ticket row to apply.</span>
+            </span>
+            <span class="relative inline-block h-6 w-11 shrink-0">
+              <input id="freeToggle" type="checkbox" class="peer sr-only">
+              <span class="absolute inset-0 rounded-full bg-ink-200 transition peer-checked:bg-brand-500"></span>
+              <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+            </span>
+          </label>
+
           <form th:each="t : ${ticketRows}" th:action="@{/host/events/{id}/tickets(id=${ev.id()})}" method="post" class="rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
             <input type="hidden" name="ttId" th:value="${t.id()}">
             <div class="grid gap-3 sm:grid-cols-[1fr_130px_100px_140px_auto] sm:items-end">
@@ -316,6 +350,7 @@
             <p class="mt-0.5 text-sm text-ink-500" th:if="${!isDraft && !isLive && !isCancelled}">This event has ended.</p>
           </div>
           <div class="flex flex-wrap gap-2">
+            <a th:if="${isDraft}" th:href="@{/events/{s}(s=${ev.slug()})}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-eye"/></svg>Preview event</a>
             <form th:if="${isDraft}" th:action="@{/host/events/{id}/publish(id=${ev.id()})}" method="post">
               <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish</button>
             </form>
@@ -338,19 +373,19 @@
           <p class="inline-flex items-center gap-2 text-sm font-bold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg>Postpone event</p>
           <p class="mt-0.5 text-xs text-ink-500">Move the event to a new date — tickets stay valid and every buyer is emailed the new date.</p>
           <form th:action="@{/host/events/{id}/postpone(id=${ev.id()})}" method="post" class="mt-3 flex flex-wrap items-end gap-3">
-            <div>
+            <div class="w-full sm:w-auto">
               <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-date">New date</label>
-              <input id="pp-date" name="date" type="date" required th:value="${postponeDate}" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="pp-date" name="date" type="date" required th:value="${postponeDate}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
-            <div>
+            <div class="w-[calc(50%-0.375rem)] sm:w-auto">
               <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-start">Starts</label>
-              <input id="pp-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="pp-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
-            <div>
+            <div class="w-[calc(50%-0.375rem)] sm:w-auto">
               <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end">Ends</label>
-              <input id="pp-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="pp-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
-            <button type="submit" onclick="return confirm('Move this event to the new date? Every buyer will be emailed.')" class="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg>Postpone</button>
+            <button type="submit" onclick="return confirm('Move this event to the new date? Every buyer will be emailed.')" class="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 sm:w-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg>Postpone</button>
           </form>
         </div>
 
@@ -415,6 +450,61 @@
       radio.addEventListener('change', render);
     });
     render();
+  })();
+
+  // Cover photo instant preview: FileReader → inline <img> before saving
+  (function () {
+    var input = document.getElementById('cover-image');
+    var box = document.getElementById('coverNewPreview');
+    var img = document.getElementById('coverNewPreviewImg');
+    if (!input || !box || !img) return;
+    input.addEventListener('change', function () {
+      var f = input.files && input.files[0];
+      if (!f) {
+        box.classList.add('hidden');
+        img.removeAttribute('src');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        box.classList.remove('hidden');
+      };
+      reader.readAsDataURL(f);
+    });
+  })();
+
+  // "My event is free": zero + lock the price input of every ticket row.
+  // Each row is its own form — the host still clicks Save per row to persist.
+  (function () {
+    var toggle = document.getElementById('freeToggle');
+    if (!toggle) return;
+    function priceInputs() {
+      return Array.prototype.slice.call(
+          document.querySelectorAll('section[aria-label="Ticket types"] input[name="price"]'));
+    }
+    var inputs = priceInputs();
+    // Start checked when every existing ticket price is already 0
+    toggle.checked = inputs.length > 0 && inputs.every(function (inp) {
+      return inp.value === '' || inp.value === '0';
+    });
+    function apply() {
+      var on = toggle.checked;
+      priceInputs().forEach(function (inp) {
+        if (on) {
+          if (inp.value !== '' && inp.value !== '0') inp.dataset.prev = inp.value;
+          inp.value = '0';
+          inp.readOnly = true;
+        } else {
+          inp.readOnly = false;
+          if (inp.dataset.prev) { inp.value = inp.dataset.prev; delete inp.dataset.prev; }
+        }
+        inp.classList.toggle('bg-ink-50', on);
+        inp.classList.toggle('text-ink-400', on);
+      });
+    }
+    toggle.addEventListener('change', apply);
+    if (toggle.checked) apply();
   })();
 </script>
 </body>

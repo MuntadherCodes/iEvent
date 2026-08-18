@@ -78,6 +78,8 @@ public final class Views {
             long orgId,
             String logoUrl,          // "/media/org-logo/{id}" or null → initials avatar
             String coverUrl,         // "/media/org-cover/{id}" or null → gradient banner
+            int coverFocusY,         // vertical focus for the cover crop, 0–100
+            String brandColor,       // "#8f7ac9"-style hex or null → default brand
             String contactEmail,
             String contactPhone,
             String website,          // display text, e.g. "zainevents.iq"

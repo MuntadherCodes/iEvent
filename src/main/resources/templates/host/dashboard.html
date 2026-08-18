@@ -171,10 +171,17 @@
         </section>
       </div>
 
-      <!-- First-steps to-do checklist (hidden once everything is done) -->
-      <section th:unless="${checklist.allDone()}" class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="To-do checklist">
-        <h3 class="font-display text-lg font-bold text-ink-900">To-do</h3>
-        <p class="text-sm text-ink-500">Finish setting up your organizer account</p>
+      <!-- First-steps to-do checklist (auto-hides when all done or after Dismiss) -->
+      <section th:if="${!org.checklistDismissed && !checklist.allDone()}" class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6" aria-label="To-do checklist">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 class="font-display text-lg font-bold text-ink-900">To-do</h3>
+            <p class="text-sm text-ink-500">Finish setting up your organizer account</p>
+          </div>
+          <form th:if="${canManage}" th:action="@{/host/checklist/dismiss}" method="post">
+            <button type="submit" class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-ink-400 transition hover:bg-ink-50 hover:text-ink-700" title="Hide this checklist permanently">Dismiss</button>
+          </form>
+        </div>
         <ul class="mt-4 grid gap-2 sm:grid-cols-2">
           <li>
             <a th:href="@{/host/events/new}" class="group flex items-center gap-3 rounded-xl border border-ink-100 px-4 py-3.5 transition hover:border-brand-300 hover:bg-brand-50/50">

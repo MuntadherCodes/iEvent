@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import iq.ievent.service.PasswordResetService;
 import iq.ievent.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -54,13 +55,52 @@ public class AuthController {
         this.passwordReset = passwordReset;
     }
 
+    /**
+     * Open-redirect-safe continuation target ("come back after sign-in").
+     * Only same-site absolute paths pass: must start with "/", never "//",
+     * never a scheme ("://") and no backslash tricks. Anything else → null.
+     * The success handler (SecurityConfig.HostAwareSuccessHandler) re-validates
+     * the session attribute before redirecting, so this is defense in depth.
+     */
+    static String safeNext(String next) {
+        if (next == null) return null;
+        String n = next.trim();
+        if (n.isEmpty() || !n.startsWith("/") || n.startsWith("//")
+                || n.contains("://") || n.contains("\\")) {
+            return null;
+        }
+        return n;
+    }
+
+    /**
+     * Stores a valid ?next= in the session as LOGIN_NEXT (picked up by the
+     * login success handler) and exposes it to the template as "nextParam"
+     * so login ⇄ register links can carry it. Without a fresh param, an
+     * already-stored LOGIN_NEXT keeps threading through (e.g. after a failed
+     * login attempt redirects back to /auth/login?error without the param).
+     */
+    private void rememberNext(String next, HttpSession session, Model model) {
+        String clean = safeNext(next);
+        if (clean != null) {
+            session.setAttribute("LOGIN_NEXT", clean);
+        } else {
+            Object existing = session.getAttribute("LOGIN_NEXT");
+            clean = existing instanceof String s ? safeNext(s) : null;
+        }
+        model.addAttribute("nextParam", clean == null ? "" : clean);
+    }
+
     @GetMapping("/login")
-    public String login() {
+    public String login(@RequestParam(required = false) String next,
+                        HttpSession session, Model model) {
+        rememberNext(next, session, model);
         return "auth/login";
     }
 
     @GetMapping("/register")
-    public String register(Model model) {
+    public String register(@RequestParam(required = false) String next,
+                           HttpSession session, Model model) {
+        rememberNext(next, session, model);
         model.addAttribute("form", new RegisterForm());
         return "auth/register";
     }
@@ -69,7 +109,9 @@ public class AuthController {
     public String register(@Valid @ModelAttribute("form") RegisterForm form,
                            BindingResult binding,
                            @RequestParam(name = "terms", required = false) String terms,
+                           HttpSession session,
                            Model model) {
+        rememberNext(null, session, model); // keep the "Sign in" link threading on error re-renders
         if (!binding.hasFieldErrors("email") && userService.emailTaken(form.getEmail())) {
             binding.rejectValue("email", "email.taken", "An account with this email already exists");
         }
@@ -81,7 +123,10 @@ public class AuthController {
             return "auth/register";
         }
         userService.register(form.getFullName(), form.getEmail(), form.getPhone(), form.getPassword());
-        return "redirect:/auth/login?registered";
+        Object attr = session.getAttribute("LOGIN_NEXT");
+        String next = attr instanceof String s ? safeNext(s) : null;
+        return "redirect:/auth/login?registered" + (next == null ? ""
+                : "&next=" + java.net.URLEncoder.encode(next, java.nio.charset.StandardCharsets.UTF_8));
     }
 
     // ---- Forgot password ----

@@ -37,14 +37,14 @@
       </div>
 
       <!-- Result flash -->
-      <div th:if="${result != null && result.ok()}" class="mt-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4" role="status" aria-live="polite">
+      <div th:if="${result != null && result.ok()}" id="ci-result-ok" class="mt-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4" role="status" aria-live="polite">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span>
         <div>
           <p class="font-display font-bold text-green-800"><span th:text="${result.holderName()}">Ali Hassan</span> — Checked in ✓</p>
           <p class="text-sm text-green-700" th:text="${result.typeName()}">General Admission</p>
         </div>
       </div>
-      <div th:if="${result != null && !result.ok()}" class="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4" role="status" aria-live="polite">
+      <div th:if="${result != null && !result.ok()}" id="ci-result-err" class="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4" role="status" aria-live="polite">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></span>
         <div>
           <p class="font-display font-bold text-rose-800" th:text="${result.message()}">Ticket not found for your events.</p>
@@ -248,6 +248,73 @@
   });
 
   if (qrStopBtn) qrStopBtn.addEventListener('click', qrStopCamera);
+
+  // ---- Check-in feedback sounds (Web Audio, no files; silence is a soft failure) ----
+  // Success → short pleasant two-tone chime (880 Hz → 1320 Hz); error → low buzz.
+  // iOS/Safari gate AudioContext behind a user gesture, so a one-time pointerdown
+  // unlock resumes the context and plays any sound that was queued on page load.
+  var ciAudio = null;
+  var ciPendingSound = null;
+
+  function ciContext() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      if (!ciAudio) ciAudio = new Ctx();
+      return ciAudio;
+    } catch (e) { return null; }
+  }
+
+  function ciTone(ctx, freq, at, dur, peak, type) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, at);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(peak, at + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + dur + 0.05);
+  }
+
+  function ciPlay(kind) {
+    var ctx = ciContext();
+    if (!ctx) return;
+    try {
+      var t = ctx.currentTime + 0.02;
+      if (kind === 'ok') {
+        ciTone(ctx, 880, t, 0.09, 0.25, 'sine');
+        ciTone(ctx, 1320, t + 0.08, 0.12, 0.25, 'sine');
+      } else {
+        ciTone(ctx, 160, t, 0.18, 0.2, 'square');
+      }
+    } catch (e) { /* no sound is fine */ }
+  }
+
+  function ciTrySound(kind) {
+    var ctx = ciContext();
+    if (!ctx) return;
+    if (ctx.state === 'running') { ciPlay(kind); return; }
+    ciPendingSound = kind;
+    try { ctx.resume().then(function () {
+      if (ctx.state === 'running' && ciPendingSound) { ciPlay(ciPendingSound); ciPendingSound = null; }
+    }).catch(function () {}); } catch (e) {}
+  }
+
+  // One-time unlock on the first interaction — also flushes a queued sound.
+  document.addEventListener('pointerdown', function ciUnlock() {
+    document.removeEventListener('pointerdown', ciUnlock);
+    var ctx = ciContext();
+    if (!ctx) return;
+    try { ctx.resume().then(function () {
+      if (ciPendingSound) { ciPlay(ciPendingSound); ciPendingSound = null; }
+    }).catch(function () {}); } catch (e) {}
+  }, { once: true });
+
+  if (document.getElementById('ci-result-ok')) ciTrySound('ok');
+  else if (document.getElementById('ci-result-err')) ciTrySound('err');
 
   // Door list filter tabs (client-side; state comes from server-rendered data attributes)
   var dlTabs = document.querySelectorAll('.dl-tab');

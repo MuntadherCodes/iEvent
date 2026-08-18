@@ -65,6 +65,16 @@ public class SecurityConfig {
         public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                 org.springframework.security.core.Authentication authentication)
                 throws IOException, ServletException {
+            // Explicit ?next= continuation (e.g. "sign in to finish checkout")
+            // beats everything: buyer returns to the exact page with their
+            // ticket selection intact. Set by AuthController, validated here.
+            var session = request.getSession(false);
+            Object next = session == null ? null : session.getAttribute("LOGIN_NEXT");
+            if (next instanceof String n && n.startsWith("/") && !n.startsWith("//") && !n.contains("://")) {
+                session.removeAttribute("LOGIN_NEXT");
+                getRedirectStrategy().sendRedirect(request, response, n);
+                return;
+            }
             var cache = new org.springframework.security.web.savedrequest.HttpSessionRequestCache();
             boolean hasSaved = cache.getRequest(request, response) != null;
             boolean host = authentication.getAuthorities().stream().anyMatch(a ->
@@ -96,7 +106,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // The embeddable event page (/e/**) must be frameable on ANY external
+        // site (that's the whole point of the sales widget's iframe mode), so
+        // the default X-Frame-Options: DENY is written for every path EXCEPT
+        // /e/**. All other pages stay clickjacking-protected.
+        org.springframework.security.web.util.matcher.RequestMatcher notEmbed =
+                request -> !request.getRequestURI().startsWith("/e/");
         http
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.disable())
+                .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
+                        notEmbed,
+                        new org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter(
+                                org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter.XFrameOptionsMode.DENY))))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",

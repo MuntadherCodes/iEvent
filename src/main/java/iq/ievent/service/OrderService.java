@@ -117,7 +117,10 @@ public class OrderService {
             subtotal += entry.getKey().getPriceIqd() * entry.getValue();
             if (entry.getKey().getPriceIqd() > 0) paidTickets += entry.getValue();
         }
-        long fee = paidTickets * BOOKING_FEE_PER_PAID_TICKET;
+        // ABSORB fee mode: the organizer swallows the booking fee (deducted in
+        // earnings), so the buyer pays face value only.
+        long fee = "ABSORB".equals(event.getFeeMode()) ? 0
+                : paidTickets * BOOKING_FEE_PER_PAID_TICKET;
 
         Applied applied = promoService.preview(event, promoCode, subtotal).orElse(null);
         if (promoCode != null && !promoCode.isBlank() && applied == null) {

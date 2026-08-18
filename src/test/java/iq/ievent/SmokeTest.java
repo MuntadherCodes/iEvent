@@ -41,6 +41,9 @@ class SmokeTest {
     @Autowired
     private iq.ievent.repo.EventRepository events;
 
+    @Autowired
+    private iq.ievent.repo.OrganizationRepository organizations;
+
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
         mockMvc.perform(get("/"))
@@ -101,9 +104,13 @@ class SmokeTest {
 
     @Test
     void checkoutPageRendersForAnonymousVisitor() throws Exception {
-        // Anonymous visitors get the sign-in prompt, but the page itself is 200.
+        // Round 10 (#11): anonymous checkout renders fully — the submit button is
+        // replaced by the "Sign in to complete your order" continuation, and the
+        // promo card (#promoSection) renders for anonymous buyers too.
         mockMvc.perform(get("/events/baghdad-nights-music-festival/checkout"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Sign in to complete your order")))
+                .andExpect(content().string(containsString("Promo code")));
     }
 
     @Test
@@ -320,6 +327,53 @@ class SmokeTest {
                 .andExpect(content().string(not(containsString("Ticket 1 ·"))));
     }
 
+    // ---- round 10: login-return, draft preview, checklist dismiss ----
+
+    @Test
+    void loginPageWithNextShowsContinuationHint() throws Exception {
+        // #11: a ?next= continuation renders the "take you right back" hint.
+        mockMvc.perform(get("/auth/login")
+                        .param("next", "/events/baghdad-nights-music-festival/checkout?qty-1=1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("take you right back")));
+    }
+
+    @Test
+    void draftEventIsHiddenFromEveryoneButTheOwningOrg() throws Exception {
+        // #15: DRAFT events 404 for anonymous visitors and non-member users, but
+        // render (with the preview banner) for members of the owning org.
+        var org = organizations.findByHandle("zainevents")
+                .orElseThrow(() -> new IllegalStateException("demo seed missing"));
+        String slug = "smoke-draft-" + System.currentTimeMillis();
+        var draft = new iq.ievent.domain.Event();
+        draft.setOrganization(org);
+        draft.setTitle("Smoke Draft Event");
+        draft.setSlug(slug);
+        draft.setCategory(iq.ievent.domain.Event.Category.COMMUNITY);
+        draft.setCity("Baghdad");
+        draft.setStartsAt(java.time.OffsetDateTime.now().plusDays(14));
+        draft.setStatus(iq.ievent.domain.Event.Status.DRAFT);
+        events.save(draft);
+
+        mockMvc.perform(get("/events/" + slug))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/events/" + slug).with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/events/" + slug).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Draft preview")));
+    }
+
+    @Test
+    void checklistDismissRedirectsBackToDashboard() throws Exception {
+        // #7: the To-do dismiss endpoint answers with a redirect to /host.
+        mockMvc.perform(post("/host/checklist/dismiss")
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/host"));
+    }
+
     @Test
     void marketingWidgetsTabRendersEventPickerAndSnippets() throws Exception {
         // Round 9 redesign: event dropdown + per-event panels with Button/Card
@@ -331,6 +385,10 @@ class SmokeTest {
                 .andExpect(content().string(containsString(
                         "data-event=&quot;baghdad-nights-music-festival&quot;")))
                 .andExpect(content().string(containsString("/js/widget.js")))
-                .andExpect(content().string(containsString("POWERED BY IEVENT")));
+                .andExpect(content().string(containsString("POWERED BY IEVENT")))
+                // round 10 rebuild: per-event share link + fixed Button/Card presets
+                .andExpect(content().string(containsString("share-link-")))
+                .andExpect(content().string(containsString("embed-btn-")))
+                .andExpect(content().string(containsString("embed-card-")));
     }
 }

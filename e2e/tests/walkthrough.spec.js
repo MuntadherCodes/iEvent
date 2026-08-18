@@ -59,6 +59,22 @@ const NOTIF_EMAIL = `e2e-notif+${RUN_ID}@test.iq`;
 const NOTIF_NAME = 'E2E Notifier';
 const NOTIF_PASSWORD = 'NotifPassw0rd!';
 
+// ---------- round 10 users ----------
+// Buyer who signs in MID-CHECKOUT via the #11 login-return continuation (test bb).
+const LR_EMAIL = `e2e-return+${RUN_ID}@test.iq`;
+const LR_NAME = 'E2E Returner';
+const LR_PASSWORD = 'ReturnPassw0rd!';
+
+// Fresh host whose brand-new org drives the To-do dismiss flow (test be).
+const HOST3_EMAIL = `e2e-host3+${RUN_ID}@test.iq`;
+const HOST3_NAME = 'E2E Dismisser';
+const HOST3_PASSWORD = 'Host3Passw0rd!';
+
+// Buyer whose pending order proves the open-by-default order detail (test bf).
+const PEND_EMAIL = `e2e-open+${RUN_ID}@test.iq`;
+const PEND_NAME = 'E2E OpenDetail';
+const PEND_PASSWORD = 'OpenPassw0rd!';
+
 // Online event created by HOST2 in test av. The join URL must NEVER appear in
 // public HTML — only on confirmed orders/tickets.
 const ONLINE_EVENT_TITLE = 'E2E Online Meetup';
@@ -156,6 +172,25 @@ async function signOut(page) {
   } else {
     log('already signed out');
   }
+}
+
+/**
+ * Drives wizard step 1 (basics) on /host/events/new and advances to step 2.
+ * The round 10 tests create several HOST2 events — this keeps them uniform.
+ */
+async function wizardBasics(page, { title, daysAhead, start, venue, city, category }) {
+  log(`wizard basics: "${title}" (+${daysAhead}d ${start}, ${venue}, ${city}, ${category})`);
+  await page.goto('/host/events/new');
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 1 of 5');
+  await page.locator('#ev-title').fill(title);
+  const date = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await page.locator('#ev-date').fill(date);
+  await page.locator('#ev-start').fill(start);
+  await page.locator('#ev-venue').fill(venue);
+  await page.locator('#ev-city').selectOption(city);
+  await page.locator('#ev-cat').selectOption(category);
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
 }
 
 /** True when the Mailpit API answers at MAILPIT_API. */
@@ -585,15 +620,18 @@ test('j. host approves the direct-transfer order; buyer receives the ticket', as
   const row = page.locator('tr').filter({ hasText: BUYER_EMAIL }).first();
   await expect(row).toBeVisible();
 
-  log('round 8: the row carries the sky "Receipt" chip; details expand to preview + reference');
+  log('round 10: PENDING rows render with their detail panel OPEN — receipt preview + reference are visible without any click');
   await expect(row.getByText('Receipt', { exact: true })).toBeVisible();
-  await row.locator('.detail-toggle').click();
+  // Do NOT click .detail-toggle here: the pending detail is server-rendered open,
+  // clicking would close it.
   const detailRow = row.locator('xpath=following-sibling::tr[1]');
+  await expect(detailRow).toBeVisible();
   await expect(detailRow.getByText('E2E-REF-1')).toBeVisible();
   await expect(detailRow.locator('img[src*="/receipt"]')).toBeVisible();
 
-  log('approving the order — the pending row must disappear from the queue');
-  await row.getByRole('button', { name: /Approve/ }).click();
+  log('approving from the detail panel ("Approve & issue tickets" — round 10: the ONLY approve control) — the pending row must disappear');
+  await expect(row.getByRole('button', { name: /Approve/ })).toHaveCount(0); // no row-level button anymore
+  await detailRow.getByRole('button', { name: /Approve/ }).click();
   await expect(page).toHaveURL(/status=pending/);
   await expect(page.locator('tr').filter({ hasText: BUYER_EMAIL })).toHaveCount(0);
 
@@ -642,6 +680,10 @@ test('k. host check-in: door list check-in + wrong-event code rejected', async (
   const manualForm = page.locator('form:has(input[name="code"])');
   await manualForm.locator('input[name="code"]').fill(rsvpTicketCode);
   await manualForm.getByRole('button', { name: /Check in/ }).click();
+  // Round 10: the result banners carry ids (#ci-result-ok/#ci-result-err) that
+  // also drive the Web Audio chime/buzz. The sound itself can't be asserted in
+  // headless CI — the banner id is the testable contract.
+  await expect(page.locator('#ci-result-err')).toBeVisible();
   await expect(page.getByText(/belongs to a different event/)).toBeVisible();
   await expect(page.getByText(/Startup Mixer Baghdad/).first()).toBeVisible();
 });
@@ -790,13 +832,16 @@ test('o. promo code EARLY20: apply at checkout, discount carries to order and ti
   await expect(page.getByText(/7,000 IQD/).first()).toBeVisible();
   await expect(page.getByText(/29,500\s*IQD/).first()).toBeVisible();
 
-  log('fahad approves the promo order');
+  log('fahad approves the promo order (round 10: Approve lives in the open detail panel of the pending row)');
   await signOut(page);
   await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
   await page.goto('/host/orders?status=pending');
   const row = page.locator('tr').filter({ hasText: BUYER_EMAIL }).first();
   await expect(row).toBeVisible();
-  await row.getByRole('button', { name: /Approve/ }).click();
+  await row
+    .locator('xpath=following-sibling::tr[1]')
+    .getByRole('button', { name: /Approve/ })
+    .click();
   // Round 8: /host/orders funnels through ?f=1, so assert the durable outcome
   // (row leaves the pending queue) instead of the redirect flash.
   await expect(page).toHaveURL(/status=pending/);
@@ -1633,13 +1678,16 @@ test('an. orders: enriched view, search, CSV, full refund flow voids the ticket 
   const refundOrderCode = page.url().match(/\/orders\/([A-Z0-9-]+)/)[1];
   log(`captured refund-flow order code: ${refundOrderCode}`);
 
-  log('host approves the order from the pending queue');
+  log('host approves the order from the pending queue (round 10: via the open detail panel)');
   await signOut(page);
   await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
   await page.goto('/host/orders?status=pending');
   const pendingRow = page.locator('tr').filter({ hasText: REFUND_EMAIL }).first();
   await expect(pendingRow).toBeVisible();
-  await pendingRow.getByRole('button', { name: /Approve/ }).click();
+  await pendingRow
+    .locator('xpath=following-sibling::tr[1]')
+    .getByRole('button', { name: /Approve/ })
+    .click();
   // Round 8: assert the durable outcome (row leaves the pending queue) — the
   // approve flash does not survive the /host/orders → ?f=1 funnel redirect.
   await expect(page).toHaveURL(/status=pending/);
@@ -1678,8 +1726,12 @@ test('an. orders: enriched view, search, CSV, full refund flow voids the ticket 
   await page.goto(`/host/orders?f=1&q=${encodeURIComponent(REFUND_EMAIL)}`);
   const orderRow = page.locator('tr').filter({ hasText: REFUND_EMAIL }).first();
   await expect(orderRow).toBeVisible();
+  // CONFIRMED orders still render their detail collapsed — the toggle click stays.
   await orderRow.locator('.detail-toggle').click();
-  await page.getByRole('button', { name: /Refund order/ }).click();
+  await orderRow
+    .locator('xpath=following-sibling::tr[1]')
+    .getByRole('button', { name: /Refund order/ })
+    .click();
   await expect(page.getByText(/refunded — tickets voided/).first()).toBeVisible();
 
   log('the order row now carries the Refunded badge');
@@ -1838,17 +1890,18 @@ test('ar. notification center: host bell badge, NEW_ORDER click-through, no-rece
   await newOrderItem.click();
   await expect(page).toHaveURL(/\/host\/orders\?f=1&status=pending/);
 
-  log('the receipt-less order shows NO chip and the amber "No receipt uploaded" note in its detail');
+  log('the receipt-less order shows NO chip; its OPEN detail (round 10 default for pending) carries the amber "No receipt uploaded" note');
   const row = page.locator('tr').filter({ hasText: NOTIF_EMAIL }).first();
   await expect(row).toBeVisible();
   await expect(row.getByText('Receipt', { exact: true })).toHaveCount(0);
-  await row.locator('.detail-toggle').click();
+  // Pending details are server-rendered open — no .detail-toggle click (it would close them).
   const detailRow = row.locator('xpath=following-sibling::tr[1]');
+  await expect(detailRow).toBeVisible();
   await expect(detailRow.getByText(/No receipt uploaded/)).toBeVisible();
   await expect(detailRow.getByText('E2E-REF-NOTIF')).toBeVisible();
 
-  log('approving the order — the pending row must disappear');
-  await row.getByRole('button', { name: /Approve/ }).click();
+  log('approving from the detail panel — the pending row must disappear');
+  await detailRow.getByRole('button', { name: /Approve/ }).click();
   await expect(page).toHaveURL(/status=pending/);
   await expect(page.locator('tr').filter({ hasText: NOTIF_EMAIL })).toHaveCount(0);
 });
@@ -2161,9 +2214,19 @@ test('ba. marketing Widgets tab: event picker swaps panels, embed snippets, live
   await expect(bnPanels.nth(1)).toBeVisible();
   await expect(page.locator('div[data-widget-panel]:visible')).toHaveCount(2);
 
-  log('share link carries /e/{slug}; Button + Card snippets carry data-event and /js/widget.js');
+  log('round 10 builder: the live embed snippet follows the controls (data-color/lang/price/rounded)');
   const snippetPanel = bnPanels.first();
+  const liveSnippet = page.locator(`#embed-snippet-${bnId}`);
+  await expect(liveSnippet).toContainText('data-event="baghdad-nights-music-festival"');
+  await expect(liveSnippet).toContainText('/js/widget.js');
+  await expect(liveSnippet).toContainText('data-color=');
+
+  log('share link #share-link-{id} carries /e/{slug} with its "Copy link" button');
+  await expect(page.locator(`#share-link-${bnId}`)).toContainText('/e/baghdad-nights-music-festival');
   await expect(snippetPanel.getByText(/\/e\/baghdad-nights-music-festival/).first()).toBeVisible();
+  await expect(snippetPanel.getByRole('button', { name: 'Copy link' })).toBeVisible();
+
+  log('fixed Button + Card presets live inside a collapsed <details> — toContainText still reads the DOM text');
   const btnSnippet = page.locator(`#embed-btn-${bnId}`);
   await expect(btnSnippet).toContainText('data-event="baghdad-nights-music-festival"');
   await expect(btnSnippet).toContainText('/js/widget.js');
@@ -2171,12 +2234,392 @@ test('ba. marketing Widgets tab: event picker swaps panels, embed snippets, live
   const cardSnippet = page.locator(`#embed-card-${bnId}`);
   await expect(cardSnippet).toContainText('data-event="baghdad-nights-music-festival"');
   await expect(cardSnippet).toContainText('data-type="card"');
-  await expect(snippetPanel.getByRole('button', { name: 'Copy link' })).toBeVisible();
 
-  log('the live preview reproduces the real widget: "Get tickets" button/card + POWERED BY IEVENT');
+  log('the live preview shows the type chips, the widget stage and exactly ONE "POWERED BY IEVENT"');
   const previewPanel = bnPanels.nth(1);
   await expect(previewPanel.getByText('Button widget')).toBeVisible();
   await expect(previewPanel.getByText('Card widget')).toBeVisible();
   await expect(previewPanel.getByText('Get tickets').first()).toBeVisible();
+  await expect(previewPanel.getByText('POWERED BY IEVENT')).toHaveCount(1);
   await expect(previewPanel.getByText('POWERED BY IEVENT')).toBeVisible();
+});
+
+// ---------- round 10: login-return, fee modes, free toggle, checklist dismiss,
+// ----------           open order details, draft preview, branding ----------
+
+test('bb. login-return (#11): anonymous checkout → sign in → land back with the selection → order completes', async ({ page }) => {
+  log('registering the return-flow buyer up front (the sign-in itself happens mid-checkout)');
+  await signOut(page);
+  await registerUser(page, { name: LR_NAME, email: LR_EMAIL, password: LR_PASSWORD });
+
+  log('ANONYMOUS: event page → Get tickets → the checkout still renders (no login wall)');
+  await page.goto('/events/baghdad-nights-music-festival');
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout\?/);
+
+  log('anonymous buyers get NO submit button — only "Sign in to complete your order" (#signInToOrder)');
+  await expect(page.locator('#submitBtn')).toHaveCount(0);
+  const signIn = page.locator('#signInToOrder');
+  await expect(signIn).toBeVisible();
+  await expect(signIn).toContainText('Sign in to complete your order');
+
+  log('the "Create an account" companion link also carries the ?next continuation');
+  const registerHref = await page.locator('#registerToOrder').getAttribute('href');
+  expect(registerHref, 'register link must carry ?next=').toContain('/auth/register?next=');
+
+  log('clicking through lands on the login page with the "take you right back" hint');
+  await signIn.click();
+  await expect(page).toHaveURL(/\/auth\/login\?next=/);
+  await expect(page.getByText(/take you right back/).first()).toBeVisible();
+
+  log('signing in from the continuation page');
+  await page.locator('input[name="email"]').fill(LR_EMAIL);
+  await page.locator('input[name="password"]').fill(LR_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+
+  log('LANDS BACK on the checkout URL with the qty params intact — selection preserved');
+  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout\?.*qty-/);
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await expect(page.locator('.sum-total').first()).toHaveText(/36,500\s*IQD/);
+  await expect(page.locator('#buyerEmail')).toHaveValue(LR_EMAIL);
+
+  log('the direct-transfer order now submits normally');
+  await page.locator('#transferReference').fill('E2E-REF-RETURN');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+  await expect(
+    page.getByRole('heading', { name: /pending organizer confirmation/i })
+  ).toBeVisible();
+});
+
+test('bc. fee mode (#17): ABSORB event charges the buyer face value; host earnings deduct the fee', async ({ page }) => {
+  await signOut(page);
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('HOST2 enables direct payments + adds a method (fresh orgs have none — paid checkout needs one)');
+  await page.goto('/host/settings/payments');
+  await page.locator('label[title="Enable direct payments"]').click();
+  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await page.getByRole('button', { name: 'Save toggle' }).click();
+  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await page.locator('#pm-label').fill('E2E Wallet');
+  await page.locator('#pm-number').fill('0781 000 1111');
+  await page.getByRole('button', { name: 'Add payment method' }).click();
+  await expect(page.getByText(/Payment method "E2E Wallet" added/)).toBeVisible();
+
+  log('creating a PAID event and switching the wizard fee card to "Absorb it"');
+  await wizardBasics(page, {
+    title: 'E2E Absorb Gala', daysAhead: 4, start: '19:00',
+    venue: 'E2E Absorb Hall', city: 'Basra', category: 'MUSIC',
+  });
+  await page.locator('#nextBtn').click(); // step 2 · banner — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+  await page.locator('input[name="ttName"]').first().fill('GA');
+  await page.locator('input[name="ttPrice"]').first().fill('20000');
+  await page.locator('input[name="ttQty"]').first().fill('40');
+
+  log('the fee card defaults to PASS — this event flips to ABSORB');
+  await expect(page.locator('input[name="feeMode"][value="PASS"]')).toBeChecked();
+  await page.locator('input[name="feeMode"][value="ABSORB"]').check();
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click(); // step 4 · details — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+  await expect(page.locator('#rv-fee')).toHaveText('Booking fee: absorbed by you');
+  await page.locator('#finalBtns button[value="publish"]').click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  const absorbHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+
+  log('buyer opens the ABSORB checkout — spec #17: total = 20,000 IQD FACE VALUE, no booking fee added');
+  await signOut(page);
+  await login(page, BUYER_EMAIL, buyerPassword);
+  await page.goto(absorbHref);
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/checkout/);
+  // Soft so the money-flow assertions below still run and pin the charge even
+  // if the checkout DISPLAY regresses — the test still fails on a soft miss.
+  await expect
+    .soft(page.locator('.sum-total').first(), '#17: ABSORB checkout total must be the face value (20,000 IQD, no +1,500 fee)')
+    .toHaveText(/20,000\s*IQD/);
+  await expect
+    .soft(page.locator('.sum-fee').first(), '#17: ABSORB checkout must not show a non-zero booking fee')
+    .toHaveText(/^0\s*IQD$/);
+
+  log('submitting — the CHARGED order total must be the 20,000 IQD face value');
+  await page.locator('#transferReference').fill('E2E-REF-ABSORB');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+  await expect(
+    page.getByRole('heading', { name: /pending organizer confirmation/i })
+  ).toBeVisible();
+  await expect(page.getByText(/20,000\s*IQD/).first()).toBeVisible();
+  const confirmationBody = await page.locator('body').innerText();
+  expect(confirmationBody, 'ABSORB order must NOT charge the 1,500 IQD booking fee').not.toMatch(/21,500/);
+
+  log('HOST2 approves the order from the open pending detail');
+  await signOut(page);
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+  await page.goto('/host/orders?status=pending');
+  const row = page.locator('tr').filter({ hasText: BUYER_EMAIL }).first();
+  await expect(row).toBeVisible();
+  await row
+    .locator('xpath=following-sibling::tr[1]')
+    .getByRole('button', { name: /Approve/ })
+    .click();
+  await expect(page.locator('tr').filter({ hasText: BUYER_EMAIL })).toHaveCount(0);
+
+  log('earnings: the Absorb Gala row shows gross 20,000, fee 1,500 deducted, net 18,500');
+  await page.goto('/host/earnings');
+  const earningsRow = page.locator('tr').filter({ hasText: 'E2E Absorb Gala' }).first();
+  await expect(earningsRow).toBeVisible();
+  await expect(earningsRow.getByText(/20,000\s*IQD/).first()).toBeVisible();
+  await expect(earningsRow.getByText(/1,500\s*IQD/).first()).toBeVisible();
+  await expect(earningsRow.getByText(/18,500\s*IQD/).first()).toBeVisible();
+});
+
+test('bd. free toggle (#16) + cover preview (#14): wizard zeroes prices, publishes a Free event', async ({ page }) => {
+  await signOut(page);
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  await wizardBasics(page, {
+    title: 'E2E Freebie Fair', daysAhead: 3, start: '17:00',
+    venue: 'E2E Garden', city: 'Baghdad', category: 'COMMUNITY',
+  });
+
+  log('round 10: the wizard is a focused flow — the host bottom tab bar is not rendered here');
+  await expect(page.locator('nav[aria-label="Dashboard tabs"]')).toHaveCount(0);
+
+  log('step 2 cover preview (#14): #coverPreviewImg exists but stays hidden until a file is chosen');
+  const previewImg = page.locator('#coverPreviewImg');
+  await expect(previewImg).toHaveCount(1);
+  await expect(previewImg).toBeHidden();
+
+  log('choosing a banner file → the FileReader preview appears instantly');
+  await page.locator('#cover-image').setInputFiles(RECEIPT_PNG);
+  await expect(previewImg).toBeVisible();
+
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+
+  log('step 3: typing a paid ticket first, then flipping "My event is free" (#16)');
+  await page.locator('input[name="ttName"]').first().fill('Entry');
+  await page.locator('input[name="ttPrice"]').first().fill('5000');
+  await page.locator('input[name="ttQty"]').first().fill('30');
+  await page.locator('label').filter({ has: page.locator('#freeToggle') }).click();
+  await expect(page.locator('#freeToggle')).toBeChecked();
+
+  log('every price input is zeroed AND locked; the fee card gives way to the free note');
+  const firstPrice = page.locator('input[name="ttPrice"]').first();
+  await expect(firstPrice).toHaveValue('0');
+  await expect(firstPrice).toHaveJSProperty('readOnly', true);
+  await expect(page.locator('#feeCard')).toBeHidden();
+  await expect(page.locator('#feeFreeNote')).toBeVisible();
+
+  log('the free toggle must not break step navigation — continuing to publish');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 4 of 5');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+  await expect(page.locator('#rv-fee')).toHaveText('Free event — no booking fee');
+  await expect(page.locator('#rv-tickets')).toContainText('Entry · Free · 30');
+  await page.locator('#finalBtns button[value="publish"]').click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
+  const freeHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+
+  log('the public page sells the event as Free (rail + uploaded cover)');
+  await page.goto(freeHref);
+  await expect(page.locator('h1')).toContainText('E2E Freebie Fair');
+  const rail = page.locator('form[action$="/checkout"]');
+  await expect(rail.getByText('Free', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await expect(page.locator('#railTotal')).toHaveText(/^0\s*IQD$/);
+  await expect(page.locator('img[src*="/media/event-cover/"]').first()).toBeVisible();
+});
+
+test('be. to-do dismiss (#7): fresh org sees the checklist, Dismiss hides it permanently', async ({ page }) => {
+  await signOut(page);
+  await registerUser(page, { name: HOST3_NAME, email: HOST3_EMAIL, password: HOST3_PASSWORD });
+  await login(page, HOST3_EMAIL, HOST3_PASSWORD);
+
+  log('running the onboarding funnel for a brand-new org');
+  await page.goto('/host');
+  await expect(page).toHaveURL(/\/host\/start/);
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click();
+  await page.locator('#orgName').fill('E2E Dismiss Org');
+  await page.getByRole('button', { name: /Create organizer profile/ }).click();
+  await expect(page).toHaveURL(/\/host(\/)?$/);
+
+  log('the fresh dashboard shows the To-do checklist with a Dismiss control');
+  const todo = page.locator('section[aria-label="To-do checklist"]');
+  await expect(todo).toBeVisible();
+  await expect(todo.getByText('Set up payments')).toBeVisible();
+  const dismissBtn = todo.getByRole('button', { name: 'Dismiss' });
+  await expect(dismissBtn).toBeVisible();
+
+  log('Dismiss → POST /host/checklist/dismiss → back on /host without the card');
+  await dismissBtn.click();
+  await expect(page).toHaveURL(/\/host(\/)?(\?.*)?$/);
+  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
+
+  log('the card stays gone after a full reload (persisted, not just hidden)');
+  await page.goto('/host');
+  await expect(page.locator('body')).not.toContainText('Something went wrong');
+  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
+});
+
+test('bf. orders UX (#1): pending details are open on arrival, exactly one Approve control per order', async ({ page }) => {
+  log('fresh buyer places a direct-transfer order with receipt + reference');
+  await signOut(page);
+  await registerUser(page, { name: PEND_NAME, email: PEND_EMAIL, password: PEND_PASSWORD });
+  await login(page, PEND_EMAIL, PEND_PASSWORD);
+  await page.goto('/events/baghdad-nights-music-festival');
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await page.locator('#transferReference').fill('E2E-REF-OPEN');
+  await page.locator('#receiptInput').setInputFiles(RECEIPT_PNG);
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+
+  log('host opens the pending queue — NO clicks anywhere yet');
+  await signOut(page);
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+  await page.goto('/host/orders?f=1&status=pending');
+
+  log('every pending order arrives with its detail row already open');
+  await expect(page.locator('tr.detail-row').first()).toBeVisible();
+  await expect(page.locator('tr.detail-row.hidden')).toHaveCount(0);
+
+  log('the fresh order: receipt preview + reference are readable immediately');
+  const row = page.locator('tr').filter({ hasText: PEND_EMAIL }).first();
+  await expect(row).toBeVisible();
+  await expect(row.locator('.detail-toggle')).toHaveAttribute('aria-expanded', 'true');
+  const detail = row.locator('xpath=following-sibling::tr[1]');
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('E2E-REF-OPEN')).toBeVisible();
+  await expect(detail.locator('img[src*="/receipt"]')).toBeVisible();
+
+  log('exactly ONE Approve (and one Reject) control per order — none left in the table row');
+  const orderCount = await page.locator('.detail-toggle').count();
+  expect(orderCount).toBeGreaterThan(0);
+  await expect(page.getByRole('button', { name: 'Approve & issue tickets' })).toHaveCount(orderCount);
+  await expect(page.getByRole('button', { name: 'Reject', exact: true })).toHaveCount(orderCount);
+  await expect(row.getByRole('button', { name: /Approve/ })).toHaveCount(0);
+  await expect(row.getByRole('button', { name: /Reject/ })).toHaveCount(0);
+
+  log('approving from the open detail clears the row (cleanup)');
+  await detail.getByRole('button', { name: /Approve/ }).click();
+  await expect(page.locator('tr').filter({ hasText: PEND_EMAIL })).toHaveCount(0);
+});
+
+test('bg. draft preview (#15): owner sees the amber banner, outsiders get a 404, browse stays clean', async ({ page }) => {
+  await signOut(page);
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('saving "E2E Draft Symposium" as a DRAFT from the wizard sticky bar');
+  await wizardBasics(page, {
+    title: 'E2E Draft Symposium', daysAhead: 6, start: '10:00',
+    venue: 'E2E Hall B', city: 'Erbil', category: 'TECH',
+  });
+  await page.locator('#nextBtn').click(); // step 3
+  await page.locator('input[name="ttName"]').first().fill('Pass');
+  await page.locator('input[name="ttPrice"]').first().fill('15000');
+  await page.locator('input[name="ttQty"]').first().fill('25');
+  await page.locator('#nextBtn').click(); // step 4
+  await page.locator('#nextBtn').click(); // step 5
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+  await page.locator('#finalBtns button[value="draft"]').click();
+
+  log('the console shows the Draft badge and a "Preview event" link');
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await expect(page.getByText('Draft', { exact: true }).first()).toBeVisible();
+  const previewLink = page.getByRole('link', { name: /Preview event/ });
+  await expect(previewLink).toBeVisible();
+  const draftHref = await previewLink.getAttribute('href');
+  expect(draftHref).toContain('/events/');
+
+  log('OWNER preview: 200 with the amber "Draft preview" banner and the not-on-sale rail');
+  const ownerRes = await page.goto(draftHref);
+  expect(ownerRes.status(), 'owner must reach the draft preview').toBe(200);
+  await expect(page.getByText(/Draft preview — only you can see this page/).first()).toBeVisible();
+  await expect(page.getByText('Draft — not on sale yet')).toBeVisible();
+  await expect(page.locator('h1')).toContainText('E2E Draft Symposium');
+
+  log('the draft never shows up on public browse');
+  await page.goto('/browse?q=E2E%20Draft%20Symposium');
+  await expect(page.locator('main a[href^="/events/"]')).toHaveCount(0);
+  await expect(page.getByText('No events match')).toBeVisible();
+
+  log('OUTSIDER (another signed-in user): the draft URL is a plain 404');
+  await signOut(page);
+  await login(page, E2E_EMAIL, E2E_PASSWORD);
+  const outsiderRes = await page.goto(draftHref);
+  expect(outsiderRes.status(), 'outsiders must get a 404 for drafts').toBe(404);
+  await expect(page.getByText(/Error 404/i).first()).toBeVisible();
+});
+
+test('bh. branding (#8/#9): brand color reaches the organizer banner; cover position appears only with a cover', async ({ page }) => {
+  await signOut(page);
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('reading the HOST2 organizer handle from settings');
+  await page.goto('/host/settings');
+  const handle = await page.locator('#org-handle').inputValue();
+  expect(handle.length, 'org handle must be present').toBeGreaterThan(0);
+
+  log('Branding tab: NO cover yet → the cover-position slider must NOT render (negative case)');
+  await page.goto('/host/settings?tab=brand');
+  await expect(page.locator('#st-brand')).toBeVisible();
+  await expect(page.getByText('No cover yet')).toBeVisible();
+  await expect(page.locator('#cover-focus')).toHaveCount(0);
+
+  log('picking brand color #22c55e (input[type=color] set via JS + input/change events)');
+  await page.locator('#brand-color').evaluate((el, v) => {
+    el.value = v;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, '#22c55e');
+  await expect(page.locator('#brand-hex')).toHaveText('#22c55e'); // live readout follows
+
+  log('uploading a profile cover and saving branding');
+  await page.locator('#st-brand input[name="cover"]').setInputFiles(RECEIPT_PNG);
+  await page.locator('#st-brand').getByRole('button', { name: 'Save changes' }).click();
+  await expect(page).toHaveURL(/tab=brand/);
+
+  log('with a cover saved the position slider appears, defaulting to 50');
+  await expect(page.locator('#cover-focus')).toBeVisible();
+  await expect(page.locator('#cover-focus')).toHaveValue('50');
+
+  log('public organizer banner: inline style carries the brand hex, cover crops at 50%');
+  await page.goto(`/organizers/${handle}`);
+  const banner = page.locator('div.h-44').first();
+  await expect(banner).toBeVisible();
+  const bannerStyle = (await banner.getAttribute('style')) || '';
+  expect(bannerStyle, 'banner inline style must contain the saved brand hex').toContain('22c55e');
+  const coverImg = banner.locator('img').first();
+  await expect(coverImg).toBeVisible();
+  expect(await coverImg.getAttribute('style')).toContain('50% 50%');
+
+  log('moving the crop focus to 20% and saving');
+  await page.goto('/host/settings?tab=brand');
+  await page.locator('#cover-focus').evaluate((el) => {
+    el.value = '20';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(page.locator('#cover-focus')).toHaveValue('20');
+  await page.locator('#st-brand').getByRole('button', { name: 'Save changes' }).click();
+  await expect(page).toHaveURL(/tab=brand/);
+  await expect(page.locator('#cover-focus')).toHaveValue('20');
+
+  log('the public cover now crops 20% from the top');
+  await page.goto(`/organizers/${handle}`);
+  expect(await page.locator('div.h-44 img').first().getAttribute('style')).toContain('50% 20%');
 });

@@ -29,7 +29,7 @@
 <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
 
 <!-- ============ MINIMAL CHECKOUT HEADER ============ -->
-<header class="sticky top-0 z-50 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+<header class="sticky top-0 z-50 border-b border-ink-100 bg-white backdrop-blur md:bg-white/95 md:supports-[backdrop-filter]:bg-white/80">
   <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
     <a th:href="@{/}" class="flex shrink-0 items-center gap-2" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
@@ -52,17 +52,14 @@
     <span th:text="${error}">Something went wrong with your order.</span>
   </div>
 
-  <!-- ===== Signed-out prompt ===== -->
-  <div th:if="${currentUser == null}" class="mx-auto max-w-md rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
-    <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-lock"/></svg></span>
-    <h1 class="mt-5 font-display text-2xl font-extrabold tracking-tight text-ink-900">Sign in to get tickets</h1>
-    <p class="mt-2 text-sm text-ink-500">You need an iEvent account to book tickets for <span class="font-semibold text-ink-800" th:text="${event.title}">this event</span>.</p>
-    <a th:href="@{/auth/login}" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Sign in to continue</a>
-    <p class="mt-4 text-sm text-ink-500">New here? <a th:href="@{/auth/register}" class="font-semibold text-brand-600 transition hover:text-brand-700">Create an account</a></p>
+  <!-- ===== Signed-out notice (#11: the page still renders — sign-in happens at the submit step and brings the buyer back here) ===== -->
+  <div th:if="${currentUser == null}" class="mb-6 flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">
+    <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
+    <span>Pick your tickets below — you'll sign in at the last step and come right back here with your selection.</span>
   </div>
 
   <!-- ===== Checkout form ===== -->
-  <form th:if="${currentUser != null}" method="post" th:action="@{/events/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
+  <form method="post" th:action="@{/events/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
     <!-- Applied promo code carries into the order -->
     <input type="hidden" name="promo" th:value="${promo}">
 
@@ -74,8 +71,9 @@
       </button>
       <div id="mobileSummaryBody" class="hidden border-t border-ink-100 px-5 py-4 text-sm">
         <div class="flex justify-between py-1"><span class="text-ink-500">Subtotal</span><span class="sum-sub font-semibold tabular-nums" th:text="${subtotalLabel}">0 IQD</span></div>
-        <div class="flex justify-between py-1"><span class="text-ink-500">Booking fee (1,500 IQD per paid ticket)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
+        <div th:if="${feePerPaidTicket > 0}" class="flex justify-between py-1"><span class="text-ink-500">Booking fee (1,500 IQD per paid ticket)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
         <div th:if="${discountLabel != null}" class="flex justify-between py-1 text-green-700"><span>Discount<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span><span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span></div>
+        <a th:if="${discountLabel == null}" href="#promoSection" class="mt-1 inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>Have a promo code?</a>
         <div class="mt-2 flex justify-between border-t border-dashed border-ink-200 pt-3"><span class="font-bold text-ink-900">Total</span><span class="sum-total font-display font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</span></div>
       </div>
     </div>
@@ -92,7 +90,7 @@
           <div class="mt-5 space-y-3">
             <div th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE'}"
                  class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3.5 transition hover:border-brand-400"
-                 data-ticket-row th:attr="data-id=${tt.id},data-price=${tt.priceIqd},data-fee=${tt.priceIqd > 0 ? 1500 : 0},data-name=${tt.name}">
+                 data-ticket-row th:attr="data-id=${tt.id},data-price=${tt.priceIqd},data-fee=${tt.priceIqd > 0 ? feePerPaidTicket : 0},data-name=${tt.name}">
               <div>
                 <p class="text-sm font-semibold text-ink-900" th:text="${tt.name}">General Admission</p>
                 <p class="text-xs tabular-nums text-ink-500" th:text="${tt.priceLabel}">35,000 IQD</p>
@@ -106,7 +104,7 @@
               </div>
             </div>
           </div>
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>Booking fee 1,500 IQD per paid ticket. Free tickets have no fee.</p>
+          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${feePerPaidTicket > 0} ? 'Booking fee 1,500 IQD per paid ticket. Free tickets have no fee.' : 'No booking fee — the organizer covers it.'">Booking fee 1,500 IQD per paid ticket. Free tickets have no fee.</span></p>
         </section>
 
         <!-- Ticket holders -->
@@ -130,13 +128,13 @@
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800">Full name</label>
                     <input type="text" name="holderName" placeholder="Ticket holder name"
-                           class="holder-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                           class="holder-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm"
                            th:attr="aria-label='Holder name for ticket ' + ${i} + ' — ' + ${tt.name}">
                   </div>
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800">Email <span class="font-normal text-ink-400">(optional)</span></label>
                     <input type="email" name="holderEmail" placeholder="Their email (optional)"
-                           class="holder-email w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                           class="holder-email w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm"
                            th:attr="aria-label='Holder email for ticket ' + ${i} + ' — ' + ${tt.name}">
                   </div>
                 </div>
@@ -152,17 +150,35 @@
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div class="sm:col-span-2">
               <label for="buyerName" class="mb-1.5 block text-sm font-semibold text-ink-800">Full name <span class="text-rose-500">*</span></label>
-              <input id="buyerName" name="buyerName" type="text" required th:value="${currentUser.fullName}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="buyerName" name="buyerName" type="text" required th:value="${currentUser != null ? currentUser.fullName : ''}" placeholder="e.g. Ali Hassan" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
               <label for="buyerEmail" class="mb-1.5 block text-sm font-semibold text-ink-800">Email <span class="text-rose-500">*</span></label>
-              <input id="buyerEmail" name="buyerEmail" type="email" required th:value="${currentUser.email}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="buyerEmail" name="buyerEmail" type="email" required th:value="${currentUser != null ? currentUser.email : ''}" placeholder="you@email.com" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
               <label for="buyerPhone" class="mb-1.5 block text-sm font-semibold text-ink-800">Phone</label>
-              <input id="buyerPhone" name="buyerPhone" type="tel" th:value="${currentUser.phone}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="buyerPhone" name="buyerPhone" type="tel" th:value="${currentUser != null ? currentUser.phone : ''}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
           </div>
+        </section>
+
+        <!-- Promo code (#6: one clearly visible spot on mobile AND desktop — this card
+             is full-width on phones and sits above the payment step on desktop).
+             The input/button target the standalone GET promoForm below (form attribute),
+             so applying a code reloads the page with the current quantities preserved. -->
+        <section id="promoSection" class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-7">
+          <h2 class="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight text-ink-900"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>Have a promo code?</h2>
+          <div class="mt-4 flex gap-2">
+            <input type="text" name="promo" form="promoForm" th:value="${promo}" placeholder="Promo code" aria-label="Promo code" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base uppercase outline-none placeholder:normal-case placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            <button type="submit" form="promoForm" class="min-h-[44px] shrink-0 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Apply</button>
+          </div>
+          <p th:if="${promoMsg != null}" class="mt-2.5 flex items-start gap-1.5 text-sm font-medium"
+             th:classappend="${promoOk} ? 'text-green-700' : 'text-rose-600'">
+            <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use th:attr="href=${promoOk} ? '#i-circle-check' : '#i-circle-alert'"/></svg>
+            <span th:text="${promoMsg}">SUMMER10 applied — you save 5,000 IQD.</span>
+          </p>
+          <p th:if="${promoMsg == null}" class="mt-2.5 text-xs text-ink-400">Applying a code keeps your ticket selection — the discount shows in the order summary.</p>
         </section>
 
         <!-- Payment -->
@@ -225,7 +241,7 @@
             <!-- Transfer reference -->
             <div class="mt-4">
               <label for="transferReference" class="mb-1.5 block text-sm font-semibold text-ink-800">Transfer reference <span class="font-normal text-ink-400">(optional)</span></label>
-              <input id="transferReference" name="transferReference" type="text" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="transferReference" name="transferReference" type="text" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
 
             <!-- Receipt upload dropzone -->
@@ -258,13 +274,20 @@
           </div>
         </section>
 
-        <!-- Submit -->
+        <!-- Submit (signed in) / Sign-in continuation (#11, anonymous) -->
         <div>
-          <button id="submitBtn" type="submit"
+          <button th:if="${currentUser != null}" id="submitBtn" type="submit"
                   class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-4 text-lg font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
                   th:attr="disabled=${totalQty == 0 || (!isFree && !hasPayment)} ? 'disabled' : null">
             <svg class="h-5 w-5" aria-hidden="true"><use href="#i-lock"/></svg><span id="submitLabel" th:text="${isFree} ? 'Register free' : 'Submit order for confirmation'">Submit order for confirmation</span>
           </button>
+          <th:block th:if="${currentUser == null}">
+            <a id="signInToOrder" th:href="@{/auth/login(next=${checkoutNext})}"
+               class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-4 text-lg font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
+              <svg class="h-5 w-5" aria-hidden="true"><use href="#i-lock"/></svg>Sign in to complete your order
+            </a>
+            <p class="mt-3 text-center text-sm text-ink-500">New to iEvent? <a id="registerToOrder" th:href="@{/auth/register(next=${checkoutNext})}" class="font-semibold text-brand-600 transition hover:text-brand-700">Create an account</a> — your ticket selection comes back with you.</p>
+          </th:block>
           <p class="mt-3 text-center text-xs text-ink-500">By continuing you agree to iEvent's <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700">Terms</a> and the organizer's <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700">refund policy</a>.</p>
         </div>
       </div>
@@ -293,22 +316,19 @@
               <span class="sum-line-amt font-semibold tabular-nums text-ink-800"></span>
             </div>
             <div class="flex justify-between"><span class="text-ink-500">Subtotal</span><span class="sum-sub font-semibold tabular-nums text-ink-800" th:text="${subtotalLabel}">0 IQD</span></div>
-            <div class="flex justify-between"><span class="text-ink-500">Booking fee (1,500 IQD × paid ticket)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
+            <div th:if="${feePerPaidTicket > 0}" class="flex justify-between"><span class="text-ink-500">Booking fee (1,500 IQD × paid ticket)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
             <div th:if="${discountLabel != null}" id="discountLine" th:attr="data-discount=${discountLabel}" class="flex justify-between text-green-700">
               <span>Discount<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span>
               <span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span>
             </div>
           </div>
 
-          <!-- Promo code (submits the separate GET form below via the form attribute) -->
+          <!-- Promo entry lives in the "Have a promo code?" card (one input for mobile + desktop);
+               the summary keeps a pointer so desktop buyers scanning the rail still find it. -->
           <div class="mt-4">
-            <div class="flex gap-2">
-              <input type="text" name="promo" form="promoForm" th:value="${promo}" placeholder="Promo code" aria-label="Promo code" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-              <button type="submit" form="promoForm" class="shrink-0 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Apply</button>
-            </div>
-            <p th:if="${promoMsg != null}" class="mt-2 flex items-start gap-1.5 text-xs font-medium"
-               th:classappend="${promoOk} ? 'text-green-700' : 'text-rose-600'">
-              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use th:attr="href=${promoOk} ? '#i-circle-check' : '#i-circle-alert'"/></svg>
+            <a th:if="${discountLabel == null}" href="#promoSection" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>Have a promo code?</a>
+            <p th:if="${discountLabel != null && promoOk}" class="flex items-start gap-1.5 text-xs font-medium text-green-700">
+              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
               <span th:text="${promoMsg}">SUMMER10 applied — you save 5,000 IQD.</span>
             </p>
           </div>
@@ -325,7 +345,7 @@
 
   <!-- Promo apply: standalone GET form (targeted from the rail via the form attribute; no nested forms).
        Hidden qty inputs mirror the steppers — kept in sync by the recompute() script. -->
-  <form th:if="${currentUser != null}" id="promoForm" method="get" th:action="@{/events/{s}/checkout(s=${event.slug})}" class="hidden">
+  <form id="promoForm" method="get" th:action="@{/events/{s}/checkout(s=${event.slug})}" class="hidden">
     <th:block th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE'}">
       <input type="hidden" class="promo-qty" th:attr="data-id=${tt.id}" th:name="'qty-' + ${tt.id}" th:value="${quantities.get(tt.id) ?: 0}">
     </th:block>
@@ -360,7 +380,7 @@
   var discount = discountLine ? parseInt((discountLine.getAttribute('data-discount') || '').replace(/[^0-9]/g, ''), 10) || 0 : 0;
 
   function recompute() {
-    var subtotal = 0, fees = 0, tickets = 0;
+    var subtotal = 0, fees = 0, tickets = 0, qtyPairs = [];
     rows.forEach(function (row) {
       var input = row.querySelector('.qty-input');
       var qty = parseInt(input.value, 10) || 0;
@@ -370,6 +390,7 @@
       subtotal += qty * price;
       fees += qty * fee;
       tickets += qty;
+      qtyPairs.push('qty-' + row.getAttribute('data-id') + '=' + qty);
       var line = document.querySelector('.sum-line[data-id="' + row.getAttribute('data-id') + '"]');
       if (line) {
         line.classList.toggle('hidden', qty === 0);
@@ -378,6 +399,15 @@
       }
       var mirror = document.querySelector('.promo-qty[data-id="' + row.getAttribute('data-id') + '"]');
       if (mirror) mirror.value = qty;
+    });
+    // #11: keep the anonymous "Sign in / Create an account" continuation links
+    // pointing at THIS checkout with the quantities the buyer just picked.
+    var nextUrl = window.location.pathname + (qtyPairs.length ? '?' + qtyPairs.join('&') : '');
+    ['signInToOrder', 'registerToOrder'].forEach(function (id) {
+      var link = document.getElementById(id);
+      if (!link) return;
+      var base = id === 'signInToOrder' ? '/auth/login' : '/auth/register';
+      link.href = base + '?next=' + encodeURIComponent(nextUrl);
     });
     var total = Math.max(0, subtotal - discount) + fees;
     setAll('.sum-sub', fmt(subtotal));
@@ -405,9 +435,9 @@
       '<input type="checkbox" class="copy-buyer h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">Copy from buyer details</label></div>' +
       '<div class="grid gap-4 px-5 py-5 sm:grid-cols-2">' +
       '<div><label class="mb-1.5 block text-sm font-semibold text-ink-800">Full name</label>' +
-      '<input type="text" name="holderName" placeholder="Ticket holder name" class="holder-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></div>' +
+      '<input type="text" name="holderName" placeholder="Ticket holder name" class="holder-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm"></div>' +
       '<div><label class="mb-1.5 block text-sm font-semibold text-ink-800">Email <span class="font-normal text-ink-400">(optional)</span></label>' +
-      '<input type="email" name="holderEmail" placeholder="Their email (optional)" class="holder-email w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></div></div>';
+      '<input type="email" name="holderEmail" placeholder="Their email (optional)" class="holder-email w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm"></div></div>';
   }
 
   function rebuildHolders() {

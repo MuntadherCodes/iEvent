@@ -81,6 +81,9 @@ public class Event {
     @Column(name = "maps_url")
     private String mapsUrl;
 
+    @Column(name = "fee_mode", nullable = false)
+    private String feeMode = "PASS";
+
     @Column(nullable = false)
     private String language = "en";
 
@@ -133,6 +136,8 @@ public class Event {
     public void setOnlineUrl(String onlineUrl) { this.onlineUrl = onlineUrl; }
     public String getMapsUrl() { return mapsUrl; }
     public void setMapsUrl(String mapsUrl) { this.mapsUrl = mapsUrl; }
+    public String getFeeMode() { return feeMode; }
+    public void setFeeMode(String feeMode) { this.feeMode = feeMode; }
     public String getRefundPolicy() { return refundPolicy; }
     public void setRefundPolicy(String refundPolicy) { this.refundPolicy = refundPolicy; }
     public String getLanguage() { return language; }

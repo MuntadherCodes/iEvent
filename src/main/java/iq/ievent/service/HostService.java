@@ -320,7 +320,9 @@ public class HostService {
                 d - 1, orgId);
     }
 
-    /** Per-event earnings: gross (confirmed subtotals - discounts), booking fees collected, net. */
+    /** Per-event earnings. Fee handling depends on events.fee_mode:
+     *  PASS   — buyers paid the booking fee on top; host nets the full gross.
+     *  ABSORB — host swallows 1,500 IQD per confirmed paid ticket; net = gross − absorbed. */
     @Transactional(readOnly = true)
     public List<EarningsRow> earnings(Long orgId) {
         return jdbc.query("""
@@ -331,14 +333,27 @@ public class HostService {
                        (SELECT COALESCE(SUM(o.subtotal_iqd - o.discount_iqd), 0) FROM orders o
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS gross,
                        (SELECT COALESCE(SUM(o.booking_fee_iqd), 0) FROM orders o
-                         WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS fees
+                         WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS buyer_fees,
+                       (SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi
+                          JOIN orders o ON o.id = oi.order_id
+                         WHERE o.event_id = e.id AND o.status = 'CONFIRMED'
+                           AND oi.unit_price_iqd > 0
+                           AND o.booking_fee_iqd = 0) AS absorbed_paid_sold
                 FROM events e
                 WHERE e.organization_id = ?
                 ORDER BY gross DESC, e.starts_at DESC
                 """,
-                (rs, i) -> new EarningsRow(rs.getLong(1), rs.getString(2), rs.getLong(3),
-                        Format.iqd(rs.getLong(4)), Format.iqd(rs.getLong(5)),
-                        Format.iqd(Math.max(0, rs.getLong(4)))),
+                (rs, i) -> {
+                    long gross = rs.getLong(4);
+                    long buyerFees = rs.getLong(5);
+                    // Each order self-describes the mode it was charged under:
+                    // paid tickets with booking_fee_iqd = 0 were absorbed by the
+                    // host — so flipping fee_mode later never rewrites history.
+                    long absorbed = rs.getLong(6) * iq.ievent.service.OrderService.BOOKING_FEE_PER_PAID_TICKET;
+                    long net = Math.max(0, gross - absorbed);
+                    return new EarningsRow(rs.getLong(1), rs.getString(2), rs.getLong(3),
+                            Format.iqd(gross), Format.iqd(buyerFees + absorbed), Format.iqd(net));
+                },
                 orgId);
     }
 
@@ -423,6 +438,10 @@ public class HostService {
         copy.setLineup(source.getLineup());
         copy.setVisibility(source.getVisibility());
         copy.setRefundPolicy(source.getRefundPolicy());
+        copy.setFeeMode(source.getFeeMode());
+        copy.setLocationType(source.getLocationType());
+        copy.setOnlineUrl(source.getOnlineUrl());
+        copy.setMapsUrl(source.getMapsUrl());
         copy.setStatus(Event.Status.DRAFT);
         copy.setCoverTheme(source.getCoverTheme());
         copy = events.save(copy);
@@ -488,7 +507,9 @@ public class HostService {
         return (pct >= 0 ? "+" : "") + pct + "%";
     }
 
-    /** Dashboard first-steps checklist. */
+    /** Dashboard first-steps checklist. Payments counts as set up when the org
+     *  has at least one ENABLED payment method (the multi-method table — the
+     *  legacy single-method columns alone no longer count as complete). */
     @Transactional(readOnly = true)
     public Checklist checklist(Organization org) {
         Long live = jdbc.queryForObject(
@@ -497,11 +518,22 @@ public class HostService {
         Long team = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM org_members WHERE organization_id = ?",
                 Long.class, org.getId());
-        boolean paymentsSetup = org.isDirectPaymentsEnabled() && org.getPayCardNumber() != null;
+        Long methods = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM payment_methods WHERE organization_id = ? AND enabled = TRUE",
+                Long.class, org.getId());
+        boolean paymentsSetup = nz(methods) > 0
+                || (org.isDirectPaymentsEnabled() && org.getPayCardNumber() != null);
         boolean brandingDone = org.getBio() != null
                 && (org.getContactEmail() != null || org.getContactPhone() != null || org.getWebsite() != null
                     || org.getInstagram() != null || org.getLogoPath() != null);
         return new Checklist(nz(live) > 0, paymentsSetup, brandingDone, nz(team) > 0);
+    }
+
+    /** Permanently hides the dashboard first-steps checklist for this org. */
+    @Transactional
+    public void dismissChecklist(Organization org) {
+        org.setChecklistDismissed(true);
+        organizations.save(org);
     }
 
     @Transactional

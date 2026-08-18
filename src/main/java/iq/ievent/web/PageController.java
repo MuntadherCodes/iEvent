@@ -63,6 +63,7 @@ public class PageController {
     private final CatalogService catalog;
     private final UserService userService;
     private final iq.ievent.service.InteractionService interactions;
+    private final iq.ievent.service.TeamService teamService;
     private final iq.ievent.repo.EventRepository events;
     private final iq.ievent.repo.OrganizationRepository organizations;
     private final iq.ievent.repo.LikeCountRepository likeCounts;
@@ -70,6 +71,7 @@ public class PageController {
 
     public PageController(CatalogService catalog, UserService userService,
                           iq.ievent.service.InteractionService interactions,
+                          iq.ievent.service.TeamService teamService,
                           iq.ievent.repo.EventRepository events,
                           iq.ievent.repo.OrganizationRepository organizations,
                           iq.ievent.repo.LikeCountRepository likeCounts,
@@ -77,6 +79,7 @@ public class PageController {
         this.catalog = catalog;
         this.userService = userService;
         this.interactions = interactions;
+        this.teamService = teamService;
         this.events = events;
         this.organizations = organizations;
         this.likeCounts = likeCounts;
@@ -169,13 +172,29 @@ public class PageController {
                         @AuthenticationPrincipal UserDetails principal,
                         Model model) {
         Event entity = events.findBySlug(slug)
-                .filter(e -> e.getStatus() != Event.Status.DRAFT)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 
-        EventDetail detail = catalog.eventDetail(slug)
-                .orElseGet(() -> fallbackDetail(entity)); // CANCELLED events still render (with banner)
+        // #15 draft preview: a DRAFT renders only for signed-in members of the
+        // owning organization (owner/manager/staff via TeamService). Everyone
+        // else keeps getting the same 404 as before, so drafts stay unguessable.
+        boolean previewMode = false;
+        if (entity.getStatus() == Event.Status.DRAFT) {
+            iq.ievent.domain.User viewer = principal == null ? null : userService.byEmail(principal.getUsername());
+            boolean allowed = viewer != null && teamService.accessOf(viewer)
+                    .map(a -> a.org().getId().equals(entity.getOrganization().getId()))
+                    .orElse(false);
+            if (!allowed) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
+            }
+            previewMode = true;
+        }
 
-        catalog.recordView(slug); // fire-and-forget view counter
+        EventDetail detail = catalog.eventDetail(slug)
+                .orElseGet(() -> fallbackDetail(entity)); // CANCELLED/DRAFT events still render (with banner)
+
+        if (!previewMode) {
+            catalog.recordView(slug); // fire-and-forget view counter; previews don't count
+        }
 
         boolean liked = false;
         boolean followingOrganizer = false;
@@ -186,6 +205,7 @@ public class PageController {
                 followingOrganizer = interactions.isFollowing(user.getId(), entity.getOrganization().getId());
             }
         }
+        model.addAttribute("previewMode", previewMode);
 
         model.addAttribute("event", detail);
         model.addAttribute("liked", liked);
@@ -196,6 +216,9 @@ public class PageController {
         String statusName = entity.getStatus().name();
         model.addAttribute("eventStatus", statusName);
         model.addAttribute("purchasable", entity.getStatus() == Event.Status.LIVE);
+        model.addAttribute("feePerPaidTicket",
+                "ABSORB".equals(entity.getFeeMode()) ? 0L
+                        : iq.ievent.service.OrderService.BOOKING_FEE_PER_PAID_TICKET);
         // First buyable ticket type defaults to qty 1 in the rail (user request R9).
         model.addAttribute("defaultQtyTypeId", detail.ticketTypes().stream()
                 .filter(t -> "ON_SALE".equals(t.status()) && t.remaining() > 0)
@@ -295,7 +318,7 @@ public class PageController {
     public OrganizerExtras organizerExtras(String handle) {
         Organization org = organizations.findByHandle(handle).orElse(null);
         if (org == null) {
-            return new OrganizerExtras(0L, null, null, null, null, null, null, null, null, List.of());
+            return new OrganizerExtras(0L, null, null, 50, null, null, null, null, null, null, null, List.of());
         }
         List<Event> all = events.findByOrganizationIdOrderByStartsAtDesc(org.getId());
         OffsetDateTime now = OffsetDateTime.now();
@@ -331,6 +354,8 @@ public class PageController {
                 org.getId(),
                 org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId(),
                 org.getCoverImagePath() == null || org.getCoverImagePath().isBlank() ? null : "/media/org-cover/" + org.getId(),
+                Math.max(0, Math.min(100, org.getCoverFocusY())),
+                org.getBrandColor() != null && org.getBrandColor().matches("#[0-9a-fA-F]{6}") ? org.getBrandColor() : null,
                 clean(org.getContactEmail()),
                 clean(org.getContactPhone()),
                 website == null ? null : website.replaceFirst("^https?://", "").replaceAll("/+$", ""),

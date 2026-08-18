@@ -98,6 +98,10 @@ public class HostExtrasController {
     public record ShareRow(String title, String dateLine, String url, String waHref,
                            String tgHref, String fbHref, String xHref, Long eventId) {}
 
+    /** Per-event data for the Widgets builder tab (snippet + live preview). */
+    public record WidgetRow(Long id, String title, String slug, String dateLine,
+                            String venueLine, String priceFromLabel) {}
+
     private static final Set<String> CHANNELS =
             Set.of("instagram", "facebook", "whatsapp", "telegram", "twitter", "other");
 
@@ -470,6 +474,13 @@ public class HostExtrasController {
         model.addAttribute("linkRows", trackingService.forOrganization(orgId).stream()
                 .map(this::toLinkRow).toList());
         model.addAttribute("shareRows", events.stream().map(this::toShareRow).toList());
+
+        // Widgets builder: per-event preview/snippet data + the org brand color
+        // (preselects the matching swatch when set).
+        model.addAttribute("widgetRows", events.stream().map(this::toWidgetRow).toList());
+        String orgColor = access.org().getBrandColor();
+        model.addAttribute("orgBrandColor",
+                orgColor != null && orgColor.matches("#[0-9a-fA-F]{6}") ? orgColor : null);
         return "host/marketing";
     }
 
@@ -673,12 +684,18 @@ public class HostExtrasController {
                                @RequestParam(required = false) String website,
                                @RequestParam(required = false) String instagram,
                                @RequestParam(required = false) String brandColor,
+                               @RequestParam(required = false) Integer coverFocusY,
                                @RequestParam(name = "logo", required = false) MultipartFile logo,
                                @RequestParam(name = "cover", required = false) MultipartFile cover,
                                RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
         requireManage(access);
+        if (coverFocusY != null) {
+            // Cover crop position (0 = top, 100 = bottom). Set on the entity before
+            // saveBranding — it persists the org in the same transaction.
+            access.org().setCoverFocusY(Math.max(0, Math.min(100, coverFocusY)));
+        }
         String error = hostService.saveBranding(access.org(), contactEmail, contactPhone,
                 website, instagram, brandColor,
                 access.org().isNotifyPendingOrders(), logo, cover);
@@ -701,6 +718,16 @@ public class HostExtrasController {
                 notifyPendingOrders, null, null);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings?tab=notif";
+    }
+
+    /** Permanently hides the dashboard first-steps checklist card. */
+    @PostMapping("/checklist/dismiss")
+    public String dismissChecklist(@AuthenticationPrincipal UserDetails principal) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        requireManage(access);
+        hostService.dismissChecklist(access.org());
+        return "redirect:/host";
     }
 
     // ============================================================
@@ -904,6 +931,17 @@ public class HostExtrasController {
                 "https://www.facebook.com/sharer/sharer.php?u=" + encUrl,
                 "https://twitter.com/intent/tweet?text=" + encTitle + "&url=" + encUrl,
                 e.getId());
+    }
+
+    /** Widgets-builder row: date/venue lines for the preview card + "from" price. */
+    private WidgetRow toWidgetRow(Event e) {
+        long min = ticketTypes.findByEventIdOrderBySortOrderAsc(e.getId()).stream()
+                .mapToLong(TicketType::getPriceIqd).min().orElse(0L);
+        String venueLine = e.getVenueName() != null && !e.getVenueName().isBlank()
+                ? e.getVenueName() + ", " + e.getCity() : e.getCity();
+        return new WidgetRow(e.getId(), e.getTitle(), e.getSlug(),
+                Format.cardDateLine(e.getStartsAt()), venueLine,
+                min > 0 ? Format.iqd(min) : null);
     }
 
     /** Soonest upcoming events first, then past events (most recent first). */

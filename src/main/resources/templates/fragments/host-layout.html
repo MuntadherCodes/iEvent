@@ -17,6 +17,13 @@
   .icon{width:1em;height:1em;flex:none}
   .no-scrollbar{scrollbar-width:none}
   .no-scrollbar::-webkit-scrollbar{display:none}
+  /* iOS Safari: native date/time inputs collapse to a short blank box when empty
+     and zoom the page on focus when font-size < 16px. Give them an explicit
+     height, left-aligned value and text-input styling. */
+  input[type=date],input[type=time],input[type=datetime-local]{min-height:48px;-webkit-appearance:none;appearance:none;background-color:#fff;text-align:left}
+  input::-webkit-date-and-time-value{text-align:left}
+  input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit{display:inline-flex;align-items:center}
+  @media (max-width:767px){input,select,textarea{font-size:16px}}
 </style>
 </head>
 <body>
@@ -90,7 +97,7 @@ Responsive behavior:
   <a th:href="@{/}" class="flex items-center gap-2 md:hidden" aria-label="iEvent home">
     <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-8 w-auto">
   </a>
-  <h1 class="font-display text-base font-bold text-ink-900 sm:text-lg" th:text="${title}">Overview</h1>
+  <h1 class="min-w-0 truncate font-display text-base font-bold text-ink-900 sm:text-lg" th:text="${title}">Overview</h1>
   <div class="ml-auto flex items-center gap-2">
     <div th:if="${currentUser != null}" class="relative">
       <button id="nbBtn" type="button" class="relative grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">

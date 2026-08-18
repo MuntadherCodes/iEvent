@@ -67,6 +67,12 @@ public class Organization {
     @Column(name = "cover_image_path")
     private String coverImagePath;
 
+    @Column(name = "checklist_dismissed", nullable = false)
+    private boolean checklistDismissed;
+
+    @Column(name = "cover_focus_y", nullable = false)
+    private int coverFocusY = 50;
+
     public Long getId() { return id; }
     public Long getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(Long ownerUserId) { this.ownerUserId = ownerUserId; }
@@ -107,4 +113,8 @@ public class Organization {
     public void setNotifyPendingOrders(boolean notifyPendingOrders) { this.notifyPendingOrders = notifyPendingOrders; }
     public String getCoverImagePath() { return coverImagePath; }
     public void setCoverImagePath(String coverImagePath) { this.coverImagePath = coverImagePath; }
+    public boolean isChecklistDismissed() { return checklistDismissed; }
+    public void setChecklistDismissed(boolean checklistDismissed) { this.checklistDismissed = checklistDismissed; }
+    public int getCoverFocusY() { return coverFocusY; }
+    public void setCoverFocusY(int coverFocusY) { this.coverFocusY = coverFocusY; }
 }

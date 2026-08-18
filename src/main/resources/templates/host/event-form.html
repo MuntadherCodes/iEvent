@@ -90,15 +90,15 @@
             <div class="mt-4 grid gap-4 sm:grid-cols-3">
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date">Date <span class="text-rose-500">*</span></label>
-                <input id="ev-date" name="date" type="date" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <input id="ev-date" name="date" type="date" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start">Starts <span class="text-rose-500">*</span></label>
-                <input id="ev-start" name="startTime" type="time" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <input id="ev-start" name="startTime" type="time" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end">Ends</label>
-                <input id="ev-end" name="endTime" type="time" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <input id="ev-end" name="endTime" type="time" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
             </div>
           </div>
@@ -219,6 +219,7 @@
             <div id="coverPreview" class="relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5">
               <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-cover" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-cover)"/></svg>
               <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use href="#i-image"/></svg>
+              <img id="coverPreviewImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
               <span class="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800">Cover preview</span>
             </div>
 
@@ -264,6 +265,16 @@
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Set up your tickets</h2>
             <p class="mt-1 text-sm text-ink-500">Fill in the rows you need — leave the rest empty. Price 0 = free ticket.</p>
+
+            <!-- Free toggle (wireframe: "My event is free") -->
+            <label class="mt-5 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5">
+              <span class="text-sm font-semibold text-ink-800">My event is free</span>
+              <span class="relative inline-block h-6 w-11 shrink-0">
+                <input id="freeToggle" type="checkbox" name="freeEvent" value="true" class="peer sr-only">
+                <span class="absolute inset-0 rounded-full bg-ink-200 transition peer-checked:bg-brand-500"></span>
+                <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+              </span>
+            </label>
 
             <div class="mt-5 space-y-4">
               <div class="ticket-row rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
@@ -320,11 +331,23 @@
             </div>
           </div>
 
-          <!-- Fee note -->
-          <div class="rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:p-6">
+          <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
+          <div id="feeCard" class="rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:p-6">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg>Booking fee</p>
-            <p class="mt-1 text-sm text-brand-800">iEvent adds a <strong>1,500 IQD booking fee</strong> per paid ticket — paid by the buyer at checkout. Free tickets never carry a fee.</p>
+            <p class="mt-1 text-sm text-brand-800">iEvent adds a <strong>1,500 IQD booking fee</strong> per paid ticket — you choose who pays it. Free tickets never carry a fee.</p>
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+                <input type="radio" name="feeMode" value="PASS" checked class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span class="text-sm"><span class="font-semibold text-ink-900">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+              </label>
+              <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+                <input type="radio" name="feeMode" value="ABSORB" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span class="text-sm"><span class="font-semibold text-ink-900">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500">You receive 33,500 IQD per 35,000 ticket</span></span>
+              </label>
+            </div>
           </div>
+          <!-- Free events carry no fee — shown instead of the fee card when the toggle is on -->
+          <p id="feeFreeNote" class="hidden rounded-2xl border border-ink-100 bg-white px-5 py-4 text-sm text-ink-500 shadow-card">Free events never carry a booking fee — attendees pay nothing.</p>
         </section>
 
         <!-- ============ STEP 4 · DETAILS ============ -->
@@ -402,6 +425,7 @@
               <div id="reviewCover" class="relative aspect-[16/9] bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5 sm:aspect-[3/1]">
                 <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-review" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-review)"/></svg>
                 <svg class="absolute inset-0 m-auto h-16 w-16 text-white/40" aria-hidden="true"><use href="#i-ticket"/></svg>
+                <img id="rv-coverImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
                 <span id="rv-category" class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800">Category</span>
               </div>
               <div class="space-y-3 p-5">
@@ -410,14 +434,11 @@
                 <p class="flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-map-pin"/></svg><span id="rv-place">City</span></p>
                 <p id="rv-summary" class="hidden text-sm text-ink-600"></p>
                 <div id="rv-tickets" class="flex flex-wrap gap-2 pt-1 text-xs"></div>
-                <p class="text-xs text-ink-400">Booking fee: passed to buyer · <span id="rv-policy">Refunds up to 7 days before event</span> · <span id="rv-visibility">Public</span></p>
+                <p class="text-xs text-ink-400"><span id="rv-fee">Booking fee: passed to buyer</span> · <span id="rv-policy">Refunds up to 7 days before event</span> · <span id="rv-visibility">Public</span></p>
               </div>
             </div>
 
-            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button type="submit" name="action" value="publish" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-rocket"/></svg>Publish event</button>
-              <button type="submit" name="action" value="draft" class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-5 py-4 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Save as draft</button>
-            </div>
+            <p class="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-eye"/></svg>This card is a preview of your public event page. Use <strong class="font-semibold text-ink-700">Publish event</strong> or <strong class="font-semibold text-ink-700">Save draft</strong> in the bar below.</p>
           </div>
 
           <!-- After you publish -->
@@ -447,20 +468,20 @@
     </div>
   </main>
 
-  <!-- Sticky wizard action bar -->
-  <div class="fixed inset-x-0 bottom-[66px] z-30 border-t border-ink-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 md:bottom-0 md:left-20 lg:left-64">
-    <div class="mx-auto flex max-w-3xl items-center justify-between gap-3">
-      <button type="button" id="backBtn" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40" disabled><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back</button>
-      <p id="stepIndicator" class="text-xs font-semibold tabular-nums text-ink-500 sm:text-sm">Step 1 of 5</p>
-      <button type="button" id="nextBtn" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
-      <div id="finalBtns" class="hidden items-center gap-2">
-        <button type="submit" form="createForm" name="action" value="draft" class="rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Save draft</button>
-        <button type="submit" form="createForm" name="action" value="publish" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish event</button>
+  <!-- Sticky wizard action bar. Focused flow: the host bottom tab bar is NOT
+       rendered on this page, so the bar pins to the true bottom edge and pads
+       for the iPhone home indicator (safe-area-inset-bottom). -->
+  <div class="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:px-6 md:left-20 lg:left-64">
+    <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
+      <button type="button" id="backBtn" class="inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40" disabled><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back</button>
+      <p id="stepIndicator" class="flex-1 text-center text-xs font-semibold tabular-nums text-ink-500 sm:text-sm">Step 1 of 5</p>
+      <button type="button" id="nextBtn" class="inline-flex min-h-[48px] items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+      <div id="finalBtns" class="hidden w-full items-center gap-2 sm:w-auto">
+        <button type="submit" form="createForm" name="action" value="draft" class="min-h-[48px] flex-1 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 sm:flex-none">Save draft</button>
+        <button type="submit" form="createForm" name="action" value="publish" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:flex-none"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish event</button>
       </div>
     </div>
   </div>
-
-  <nav th:replace="~{fragments/host-layout :: bottomTabs('events')}"></nav>
 </div>
 </div>
 
@@ -545,6 +566,28 @@
       none.className = 'rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-700';
       none.textContent = 'No tickets yet';
       box.appendChild(none);
+    }
+
+    // Booking fee line reflects the free toggle + feeMode selection
+    var freeOn = document.getElementById('freeToggle').checked;
+    var fm = document.querySelector('input[name="feeMode"]:checked');
+    document.getElementById('rv-fee').textContent = freeOn
+      ? 'Free event — no booking fee'
+      : (fm && fm.value === 'ABSORB' ? 'Booking fee: absorbed by you' : 'Booking fee: passed to buyer');
+
+    // Review cover mirrors the uploaded photo or the chosen theme gradient
+    var rvImg = document.getElementById('rv-coverImg');
+    if (coverDataUrl) {
+      rvImg.src = coverDataUrl;
+      rvImg.classList.remove('hidden');
+    } else {
+      rvImg.classList.add('hidden');
+      var theme = document.querySelector('.cover-theme:checked');
+      if (theme) {
+        document.getElementById('reviewCover').className =
+          'relative aspect-[16/9] bg-gradient-to-br ring-1 ring-inset ring-black/5 sm:aspect-[3/1] ' +
+          theme.getAttribute('data-grad');
+      }
     }
   }
 
@@ -680,6 +723,67 @@
   document.querySelectorAll('.cover-theme').forEach(function (radio) {
     radio.addEventListener('change', function () {
       if (radio.checked) preview.className = GRAD_BASE + radio.getAttribute('data-grad');
+    });
+  });
+
+  // Cover photo instant preview: FileReader → <img> laid over the gradient
+  var coverDataUrl = null;
+  var coverInput = document.getElementById('cover-image');
+  var coverImg = document.getElementById('coverPreviewImg');
+  coverInput.addEventListener('change', function () {
+    var f = coverInput.files && coverInput.files[0];
+    if (!f) {
+      coverDataUrl = null;
+      coverImg.classList.add('hidden');
+      coverImg.removeAttribute('src');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      coverDataUrl = e.target.result;
+      coverImg.src = coverDataUrl;
+      coverImg.classList.remove('hidden');
+    };
+    reader.readAsDataURL(f);
+  });
+
+  // "My event is free": zero + lock every price input, hide the fee card
+  var freeToggle = document.getElementById('freeToggle');
+  var feeCard = document.getElementById('feeCard');
+  var feeFreeNote = document.getElementById('feeFreeNote');
+  freeToggle.addEventListener('change', function () {
+    var on = freeToggle.checked;
+    document.querySelectorAll('input[name="ttPrice"]').forEach(function (inp) {
+      if (on) {
+        if (inp.value !== '' && inp.value !== '0') inp.dataset.prev = inp.value;
+        inp.value = '0';
+        inp.readOnly = true;
+      } else {
+        inp.readOnly = false;
+        if (inp.dataset.prev) { inp.value = inp.dataset.prev; delete inp.dataset.prev; }
+        else if (inp.value === '0') inp.value = '';
+      }
+      inp.classList.toggle('bg-ink-50', on);
+      inp.classList.toggle('text-ink-400', on);
+    });
+    feeCard.classList.toggle('hidden', on);
+    feeFreeNote.classList.toggle('hidden', !on);
+  });
+
+  // iOS-robust submit: the sticky-bar buttons live outside the <form> and rely
+  // on form="createForm". If that association is missing, submit manually and
+  // carry the button's action value.
+  var createForm = document.getElementById('createForm');
+  document.querySelectorAll('#finalBtns button[type="submit"]').forEach(function (btn) {
+    btn.addEventListener('click', function (ev) {
+      if (btn.form === createForm) return; // native association works — let it submit
+      ev.preventDefault();
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'action';
+      hidden.value = btn.value;
+      createForm.appendChild(hidden);
+      if (createForm.requestSubmit) createForm.requestSubmit(); else createForm.submit();
     });
   });
 })();

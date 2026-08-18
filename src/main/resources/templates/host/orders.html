@@ -147,20 +147,14 @@
               <td class="px-3 py-3 whitespace-nowrap text-ink-500" th:text="${o.createdLine()}">Aug 4</td>
               <td class="px-3 py-3 text-right">
                 <div class="flex flex-wrap items-center justify-end gap-1.5">
-                  <div th:if="${o.pending()}" class="flex flex-wrap items-center justify-end gap-1.5">
-                    <form th:action="@{/host/orders/{id}/approve(id=${o.id()})}" method="post">
-                      <button type="submit" class="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg>Approve</button>
-                    </form>
-                    <form th:action="@{/host/orders/{id}/reject(id=${o.id()})}" method="post">
-                      <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg>Reject</button>
-                    </form>
-                  </div>
-                  <button type="button" class="detail-toggle grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-50 hover:text-ink-700" th:attr="aria-label='Details for order ' + ${o.orderCode()},aria-expanded='false'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                  <!-- Approve/Reject live ONCE in the detail panel, next to the receipt preview.
+                       Pending rows render with the detail open, so the decision is one glance away. -->
+                  <button type="button" class="detail-toggle grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-50 hover:text-ink-700" th:classappend="${o.pending()} ? 'rotate-180' : ''" th:attr="aria-label='Details for order ' + ${o.orderCode()},aria-expanded=${o.pending()} ? 'true' : 'false'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
                 </div>
               </td>
             </tr>
-            <!-- Expandable order detail -->
-            <tr class="detail-row hidden border-b border-ink-50 bg-ink-50/50">
+            <!-- Expandable order detail (pending orders start OPEN — server-rendered) -->
+            <tr class="detail-row border-b border-ink-50 bg-ink-50/50" th:classappend="${o.pending()} ? '' : 'hidden'">
               <td colspan="9" class="px-6 py-5">
                 <div class="grid gap-5 lg:grid-cols-3">
                   <div>

@@ -86,10 +86,19 @@ public class CheckoutController {
     public String checkout(@PathVariable String slug,
                            @RequestParam Map<String, String> params,
                            @AuthenticationPrincipal UserDetails principal,
+                           jakarta.servlet.http.HttpServletRequest request,
                            Model model) {
         User user = currentUser(principal);
         EventDetail event = catalog.eventDetail(slug)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+
+        // #11 sign-in continuation: the current checkout URL (path + query, incl.
+        // qty-* selection) becomes the ?next= target of the "Sign in to complete
+        // your order" link for anonymous buyers. Built server-side; @{...(next=...)}
+        // URL-encodes it in the template, and AuthController validates it again.
+        String qs = request.getQueryString();
+        model.addAttribute("checkoutNext",
+                request.getRequestURI() + (qs == null || qs.isEmpty() ? "" : "?" + qs));
 
         Map<Long, Integer> quantities = new HashMap<>();
         boolean explicitQty = false;
@@ -124,7 +133,12 @@ public class CheckoutController {
             if (tt.priceIqd() > 0) paidCount += q;
             totalQty += q;
         }
-        long fee = paidCount * OrderService.BOOKING_FEE_PER_PAID_TICKET;
+        // ABSORB fee mode: organizer swallows the booking fee — buyer pays face
+        // value, so the DISPLAYED total must match what OrderService will charge.
+        boolean absorbFee = eventRepo.findBySlug(slug)
+                .map(e -> "ABSORB".equals(e.getFeeMode())).orElse(false);
+        long feePerPaidTicket = absorbFee ? 0 : OrderService.BOOKING_FEE_PER_PAID_TICKET;
+        long fee = paidCount * feePerPaidTicket;
 
         // promo preview (?promo=CODE)
         String promo = params.get("promo");
@@ -151,6 +165,7 @@ public class CheckoutController {
         model.addAttribute("totalQty", totalQty);
         model.addAttribute("subtotalLabel", Format.iqd(subtotal));
         model.addAttribute("feeLabel", Format.iqd(fee));
+        model.addAttribute("feePerPaidTicket", feePerPaidTicket);
         model.addAttribute("discountLabel", discount > 0 ? Format.iqd(discount) : null);
         model.addAttribute("promo", promo == null ? "" : promo.trim());
         model.addAttribute("promoOk", promoOk);
@@ -182,9 +197,6 @@ public class CheckoutController {
                              @AuthenticationPrincipal UserDetails principal,
                              RedirectAttributes redirect) {
         User user = currentUser(principal);
-        if (user == null) {
-            return "redirect:/auth/login";
-        }
         Map<Long, Integer> quantities = new HashMap<>();
         for (Map.Entry<String, String> entry : params.entrySet()) {
             if (entry.getKey().startsWith("qty-")) {
@@ -193,6 +205,17 @@ public class CheckoutController {
                             Integer.parseInt(entry.getValue()));
                 } catch (NumberFormatException ignored) {}
             }
+        }
+        if (user == null) {
+            // #11 safety net: the session expired (or JS was bypassed) and an
+            // anonymous POST arrived. Send the buyer to sign in with a ?next=
+            // that reconstructs this checkout GET including the picked quantities.
+            StringBuilder nextQs = new StringBuilder();
+            quantities.forEach((id, q) -> nextQs.append(nextQs.length() == 0 ? "?" : "&")
+                    .append("qty-").append(id).append("=").append(Math.max(0, Math.min(10, q))));
+            String next = "/events/" + slug + "/checkout" + nextQs;
+            return "redirect:/auth/login?next="
+                    + java.net.URLEncoder.encode(next, java.nio.charset.StandardCharsets.UTF_8);
         }
         try {
             Order order = orderService.checkout(user, slug, quantities,

@@ -38,9 +38,18 @@
         <li aria-hidden="true"><svg class="h-3.5 w-3.5 text-ink-300"><use href="#i-chevron-right"/></svg></li>
         <li><a th:href="@{/browse}" class="transition hover:text-brand-600">Browse events</a></li>
         <li aria-hidden="true"><svg class="h-3.5 w-3.5 text-ink-300"><use href="#i-chevron-right"/></svg></li>
-        <li class="font-semibold text-ink-800" th:text="${event.title}">Baghdad Nights Music Festival</li>
+        <li class="min-w-0 max-w-full truncate font-semibold text-ink-800" th:text="${event.title}">Baghdad Nights Music Festival</li>
       </ol>
     </nav>
+
+    <!-- Draft preview banner (#15: only org members ever reach this page for a DRAFT) -->
+    <div th:if="${previewMode}" class="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4" role="status">
+      <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true"><use href="#i-eye"/></svg>
+      <div>
+        <p class="font-display font-extrabold text-amber-800">Draft preview — only you can see this page.</p>
+        <p class="mt-0.5 text-sm text-amber-700">Publish to make it public.</p>
+      </div>
+    </div>
 
     <!-- Ended / cancelled banner -->
     <div th:if="${eventStatus == 'CANCELLED'}" class="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4" role="alert">
@@ -249,9 +258,9 @@
         <!-- Sales closed notice (ended / cancelled) -->
         <div th:if="${!purchasable}" class="sticky top-24 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
           <span class="grid h-12 w-12 place-items-center rounded-2xl bg-ink-100 text-ink-500"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-ticket"/></svg></span>
-          <p class="mt-4 font-display text-lg font-extrabold text-ink-900" th:text="${eventStatus == 'CANCELLED'} ? 'Event cancelled' : 'Ticket sales closed'">Ticket sales closed</p>
-          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="${eventStatus == 'CANCELLED'} ? 'This event was cancelled by the organizer. Any paid tickets will be refunded.' : 'This event has already taken place.'">This event has already taken place.</p>
-          <a th:href="@{/browse}" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse more events</a>
+          <p class="mt-4 font-display text-lg font-extrabold text-ink-900" th:text="${previewMode ? 'Draft — not on sale yet' : (eventStatus == 'CANCELLED' ? 'Event cancelled' : 'Ticket sales closed')}">Ticket sales closed</p>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="${previewMode ? 'This is how the ticket rail will look. Tickets go on sale when you publish the event.' : (eventStatus == 'CANCELLED' ? 'This event was cancelled by the organizer. Any paid tickets will be refunded.' : 'This event has already taken place.')}">This event has already taken place.</p>
+          <a th:if="${!previewMode}" th:href="@{/browse}" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse more events</a>
         </div>
         <form th:if="${purchasable}" method="get" th:action="@{/events/{s}/checkout(s=${event.slug})}" class="sticky top-24 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
           <p class="text-sm text-ink-500">Tickets from</p>
@@ -268,7 +277,7 @@
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${t.status == 'ENDED' ? 'Sales ended' : 'Sold out'}">Sold out</span></span>
               </div>
               <!-- On sale row -->
-              <div th:if="${t.status == 'ON_SALE'}" class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3.5 transition hover:border-brand-400" data-ticket-row th:attr="data-price=${t.priceIqd},data-fee=${t.priceIqd > 0 ? 1500 : 0}">
+              <div th:if="${t.status == 'ON_SALE'}" class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3.5 transition hover:border-brand-400" data-ticket-row th:attr="data-price=${t.priceIqd},data-fee=${t.priceIqd > 0 ? feePerPaidTicket : 0}">
                 <div>
                   <p class="text-sm font-semibold text-ink-900" th:text="${t.name}">General Admission</p>
                   <p class="text-xs tabular-nums text-ink-500" th:text="${t.priceLabel}">35,000 IQD</p>
@@ -285,7 +294,7 @@
             </th:block>
           </div>
 
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>Booking fee 1,500 IQD per paid ticket.</p>
+          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${feePerPaidTicket > 0} ? 'Booking fee 1,500 IQD per paid ticket.' : 'No booking fee — the organizer covers it.'">Booking fee 1,500 IQD per paid ticket.</span></p>
 
           <div class="mt-4 flex items-center justify-between border-t border-ink-100 pt-4">
             <span class="text-sm font-semibold text-ink-600">Total</span>
@@ -327,6 +336,9 @@
 </div>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<!-- Spacer so the fixed mobile CTA bar never covers the footer's last line -->
+<div th:if="${purchasable}" class="h-20 lg:hidden" aria-hidden="true"></div>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
 <script>

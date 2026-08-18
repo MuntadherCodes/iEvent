@@ -249,6 +249,8 @@ public class HostController {
                               @RequestParam(required = false) String lineup,
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
+                              @RequestParam(required = false) String feeMode,
+                              @RequestParam(name = "freeEvent", defaultValue = "false") boolean freeEvent,
                               @RequestParam(name = "ttName", required = false) List<String> ttNames,
                               @RequestParam(name = "ttPrice", required = false) List<String> ttPrices,
                               @RequestParam(name = "ttQty", required = false) List<String> ttQtys,
@@ -275,6 +277,7 @@ public class HostController {
                     int qty = 0;
                     try { price = Long.parseLong(ttPrices.get(i).replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
                     try { qty = Integer.parseInt(ttQtys.get(i).replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
+                    if (freeEvent) price = 0; // "My event is free" wins over any typed price
                     forms.add(new HostService.TicketTypeForm(name, price, qty));
                 }
             }
@@ -285,7 +288,7 @@ public class HostController {
             created.setLocationType(loc.type());
             created.setOnlineUrl(loc.onlineUrl());
             created.setMapsUrl(loc.mapsUrl());
-            applyExtras(created, summary, tags, lineup, visibility, refundPolicy);
+            applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode);
             hostService.applyCoverTheme(created, coverTheme);
             String coverError = hostService.storeCover(created, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
@@ -390,7 +393,8 @@ public class HostController {
                 ev.getRefundPolicy() == null ? "UP_TO_7_DAYS" : ev.getRefundPolicy(),
                 ev.getLocationType() == null ? "VENUE" : ev.getLocationType(),
                 ev.getOnlineUrl() == null ? "" : ev.getOnlineUrl(),
-                ev.getMapsUrl() == null ? "" : ev.getMapsUrl()));
+                ev.getMapsUrl() == null ? "" : ev.getMapsUrl(),
+                ev.getFeeMode() == null ? "PASS" : ev.getFeeMode()));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
         model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
@@ -414,7 +418,8 @@ public class HostController {
                                 String venueAddress, String date, String startTime, String endTime,
                                 String description, String summary, String tags, String lineup,
                                 String visibility, String refundPolicy,
-                                String locationType, String onlineUrl, String mapsUrl) {}
+                                String locationType, String onlineUrl, String mapsUrl,
+                                String feeMode) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -439,6 +444,7 @@ public class HostController {
                               @RequestParam(required = false) String lineup,
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
+                              @RequestParam(required = false) String feeMode,
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
@@ -462,7 +468,7 @@ public class HostController {
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
-            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy);
+            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode);
             hostService.applyCoverTheme(ev, coverTheme);
             if (removeCover) hostService.removeCover(ev);
             String coverError = hostService.storeCover(ev, coverImage);
@@ -539,9 +545,9 @@ public class HostController {
         return new LocationForm(type, "To be announced", null, null, null, null);
     }
 
-    /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy). */
+    /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy, fee mode). */
     private void applyExtras(Event ev, String summary, String tags, String lineup,
-                             String visibility, String refundPolicy) {
+                             String visibility, String refundPolicy, String feeMode) {
         String s = summary == null || summary.isBlank() ? null : summary.strip();
         ev.setSummary(s != null && s.length() > 160 ? s.substring(0, 160) : s);
         ev.setTags(tags == null || tags.isBlank() ? null : tags.strip());
@@ -550,6 +556,8 @@ public class HostController {
         ev.setRefundPolicy(
                 "NO_REFUNDS".equals(refundPolicy) || "UP_TO_48H".equals(refundPolicy)
                         ? refundPolicy : "UP_TO_7_DAYS");
+        // Booking fee mode, whitelisted: ABSORB (organizer swallows the fee) or PASS (buyer pays it).
+        ev.setFeeMode("ABSORB".equals(feeMode) ? "ABSORB" : "PASS");
         events.save(ev);
     }
 
