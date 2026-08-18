@@ -15,6 +15,18 @@
   :focus-visible{outline:2px solid #8f7ac9;outline-offset:2px;border-radius:6px}
   /* Inputs inside search pills own no ring — the container shows focus via focus-within. */
   .outline-none:focus-visible{outline:none}
+  .rich-text p{margin:0 0 1rem}
+  .rich-text ul{list-style:disc;padding-inline-start:1.5rem;margin:0 0 1rem}
+  .rich-text ol{list-style:decimal;padding-inline-start:1.5rem;margin:0 0 1rem}
+  .rich-text li{margin:.25rem 0}
+  .rich-text h3{font-weight:800;font-size:1.15rem;color:#23222f;margin:1.25rem 0 .5rem}
+  .rich-text h4{font-weight:700;font-size:1rem;color:#23222f;margin:1rem 0 .4rem}
+  .rich-text blockquote{border-inline-start:3px solid #d8d2ec;padding-inline-start:1rem;color:#6b6a80;margin:0 0 1rem}
+  .rich-text a{color:#7b64b6;text-decoration:underline}
+  .rich-text :last-child{margin-bottom:0}
+  [contenteditable][data-placeholder]:empty::before{content:attr(data-placeholder);color:#908fa3;pointer-events:none}
+  .rt-btn{min-width:2rem;height:2rem;border-radius:.5rem;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#6b6a80;transition:background .15s,color .15s}
+  .rt-btn:hover{background:#f2f1f7;color:#23222f}
   ::selection{background:#dcd4f0}
   .icon{width:1em;height:1em;flex:none}
   .no-scrollbar{scrollbar-width:none}

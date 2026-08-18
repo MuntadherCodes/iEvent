@@ -236,6 +236,8 @@ public class PageController {
                 .filter(t -> "ON_SALE".equals(t.status()) && t.remaining() > 0)
                 .map(t -> t.id())
                 .findFirst().orElse(null));
+        model.addAttribute("descriptionHtml",
+                iq.ievent.service.RichText.toDisplayHtml(entity.getDescription()));
         model.addAttribute("summary",
                 entity.getSummary() == null || entity.getSummary().isBlank() ? null : entity.getSummary().trim());
         model.addAttribute("tags", parseTags(entity.getTags()));

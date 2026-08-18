@@ -1538,20 +1538,26 @@ test('ai. host dashboard: views/followers cards, delta chips, ?range=7, to-do ch
   await expect(page.locator('section[aria-label="Ticket sales chart"]')).toBeVisible();
   await expect(page.locator('a[href*="range=7"]')).toHaveAttribute('aria-current', 'true');
 
-  log("round 12: fahad's org has live events → the To-do card is GONE (no dismiss needed)");
+  log("round 13: fahad's org has EVERY checklist item done (live+payments+branding+team) → no To-do card");
   const body = await page.locator('body').innerText();
   expect(body).not.toContain('Something went wrong');
   await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
 
-  log('round 12: HOST2 published "E2E Concert Night" in test m — its dashboard also hides the To-do checklist now');
+  log('round 13: HOST2 (live event ✓, but no payments/branding/team yet) DOES see the card, pinned at the TOP');
   await signOut(page);
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
   await page.goto('/host');
-  await expect(page.locator('body')).not.toContainText('Something went wrong');
-  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'To-do' })).toHaveCount(0);
-  // The pre-first-event To-do card itself is covered on brand-new orgs in
-  // tests be (dismiss) and bs (auto-hide after the first publish).
+  const todo = page.locator('section[aria-label="To-do checklist"]');
+  await expect(todo).toBeVisible();
+  await expect(todo.getByText('Set up payments')).toBeVisible();
+  // exactly ONE completed item so far: the live event published in test m
+  await expect(todo.locator('span.bg-green-600')).toHaveCount(1);
+  // R13 placement: the card renders ABOVE the stat cards
+  const todoBox = await todo.boundingBox();
+  const statsBox = await page.getByText('Page views').first().boundingBox();
+  expect(todoBox, 'To-do card must have a bounding box').toBeTruthy();
+  expect(statsBox, 'stat card must have a bounding box').toBeTruthy();
+  expect(todoBox.y, 'To-do card must sit above the stat cards').toBeLessThan(statsBox.y);
 });
 
 test('aj. host events list: q search filters rows, status filter works', async ({ page }) => {
@@ -2973,7 +2979,7 @@ test('br. edit autosave (R12): #autosaveTick appears on changes, hides on revert
     .toBeNull();
 });
 
-test('bs. checklist lifecycle (R12): To-do shows for a brand-new org and disappears after the FIRST publish', async ({ page }) => {
+test('bs. checklist (R13): pinned at the top for a new org and STAYS after the first publish until allDone', async ({ page }) => {
   await signOut(page);
   await registerUser(page, { name: HOST4_NAME, email: HOST4_EMAIL, password: HOST4_PASSWORD });
   await login(page, HOST4_EMAIL, HOST4_PASSWORD);
@@ -2988,10 +2994,16 @@ test('bs. checklist lifecycle (R12): To-do shows for a brand-new org and disappe
   await page.getByRole('button', { name: /Create organizer profile/ }).click();
   await expect(page).toHaveURL(/\/host(\/)?$/);
 
-  log('no live event yet → the To-do checklist is visible (NOT dismissed in this test)');
+  log('brand-new org: To-do card visible ABOVE the stat cards, zero items checked');
   const todo = page.locator('section[aria-label="To-do checklist"]');
   await expect(todo).toBeVisible();
   await expect(todo.getByText('Set up payments')).toBeVisible();
+  await expect(todo.locator('span.bg-green-600')).toHaveCount(0);
+  let todoBox = await todo.boundingBox();
+  let statsBox = await page.getByText('Page views').first().boundingBox();
+  expect(todoBox, 'To-do card must have a bounding box').toBeTruthy();
+  expect(statsBox, 'stat card must have a bounding box').toBeTruthy();
+  expect(todoBox.y, 'To-do card must sit above the stat cards').toBeLessThan(statsBox.y);
 
   log('publishing the org\'s FIRST event (free — no payment setup needed)');
   await wizardBasics(page, {
@@ -3010,9 +3022,145 @@ test('bs. checklist lifecycle (R12): To-do shows for a brand-new org and disappe
   await expect(page).toHaveURL(/\/host\/events\/\d+/);
   await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
 
-  log('back on the dashboard: the To-do card is GONE without any Dismiss click');
+  log('round 13: after the FIRST publish the card STAYS (payments/branding/team still open), publish item now checked');
   await page.goto('/host');
   await expect(page.locator('body')).not.toContainText('Something went wrong');
-  await expect(page.locator('section[aria-label="To-do checklist"]')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'To-do' })).toHaveCount(0);
+  const todoAfter = page.locator('section[aria-label="To-do checklist"]');
+  await expect(todoAfter).toBeVisible();
+  await expect(todoAfter.locator('span.bg-green-600')).toHaveCount(1);
+  await expect(todoAfter.getByText('Set up payments')).toBeVisible();
+  todoBox = await todoAfter.boundingBox();
+  statsBox = await page.getByText('Page views').first().boundingBox();
+  expect(todoBox, 'To-do card must still have a bounding box').toBeTruthy();
+  expect(statsBox, 'stat card must still have a bounding box').toBeTruthy();
+  expect(todoBox.y, 'To-do card stays pinned above the stat cards').toBeLessThan(statsBox.y);
+  // The dismissal path for this card is covered separately in test be.
+});
+
+// ---------- round 13: payment-readiness warnings, rich text, fee-card gating ----------
+
+test('bt. payment warnings (R13): review #rvPayWarn, publish flash, persistent console banner until payments exist', async ({ page }) => {
+  // HOST3 (from test be) owns an org with NO payment setup — exactly the warning case.
+  await login(page, HOST3_EMAIL, HOST3_PASSWORD);
+
+  log('wizard with a PAID ticket for a payments-less org');
+  await wizardBasics(page, {
+    title: 'E2E PayWarn Concert', daysAhead: 6, start: '20:30',
+    venue: 'E2E PayWarn Hall', city: 'Baghdad', category: 'MUSIC',
+  });
+  await page.locator('#nextBtn').click(); // step 2 · banner — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+
+  log('the wizard form carries data-payments-ready="0" for this org');
+  await expect(page.locator('#createForm')).toHaveAttribute('data-payments-ready', '0');
+  await page.locator('input[name="ttName"]').first().fill('GA');
+  await page.locator('input[name="ttPrice"]').first().fill('15000');
+  await page.locator('input[name="ttQty"]').first().fill('30');
+  await page.locator('#nextBtn').click();
+  await page.locator('#nextBtn').click(); // step 4 · details — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+
+  log('review step shows the #rvPayWarn soft warning (paid tickets + payments not ready)');
+  await expect(page.locator('#rvPayWarn')).toBeVisible();
+
+  log('publishing anyway → the amber warning FLASH lands on the console');
+  await page.locator('#finalBtns button[value="publish"]').click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  const payWarnEventId = page.url().match(/\/host\/events\/(\d+)/)[1];
+  await expect(page.getByText(/payments aren't set up yet/).first()).toBeVisible();
+
+  log('the PERSISTENT banner + "Set up payments" CTA survive a plain reload (not just the flash)');
+  await page.goto(`/host/events/${payWarnEventId}`);
+  await expect(
+    page.getByText(/This event has paid tickets but you haven't set up payments/).first()
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Set up payments' })).toBeVisible();
+
+  log('setting up payments (enable + first method) …');
+  await page.goto('/host/settings/payments');
+  await page.locator('label[title="Enable direct payments"]').click();
+  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await page.getByRole('button', { name: 'Save toggle' }).click();
+  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await page.locator('#pm-label').fill('BT Wallet');
+  await page.locator('#pm-number').fill('0790 222 3333');
+  await page.getByRole('button', { name: 'Add payment method' }).click();
+  await expect(page.getByText(/Payment method "BT Wallet" added/)).toBeVisible();
+
+  log('… clears the console banner (event stays Live)');
+  await page.goto(`/host/events/${payWarnEventId}`);
+  await expect(page.getByText(/haven't set up payments/)).toHaveCount(0);
+  await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
+});
+
+test('bu. rich text (R13): bullet list authored in #ev-desc-editor reaches the public page as real markup', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the E2E Freebie Fair edit page');
+  await page.goto('/host/events?q=Freebie');
+  await page.getByRole('link', { name: /E2E Freebie Fair/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  await page.getByRole('link', { name: /Edit event/ }).click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+\/edit/);
+
+  log('R13: the plain description textarea is hidden; contenteditable editor + toolbar render instead');
+  await expect(page.locator('textarea[name="description"]')).toBeHidden();
+  const editor = page.locator('#ev-desc-editor');
+  await expect(editor).toBeVisible();
+  await expect(page.locator('[data-rt-for="ev-desc-editor"][data-cmd="bold"]')).toBeVisible();
+
+  log('authoring a bullet list (needs no selection): list button, then two typed lines');
+  await editor.click();
+  await page.locator('[data-rt-for="ev-desc-editor"][data-cmd="insertUnorderedList"]').click();
+  await page.keyboard.type('First E2E point');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Second E2E point');
+
+  log('the editor mirrors its HTML into the hidden textarea on input');
+  await expect
+    .poll(async () => page.locator('textarea[name="description"]').inputValue(), {
+      timeout: 5_000,
+      message: 'hidden description textarea should receive the list markup',
+    })
+    .toContain('<li>');
+
+  log('saving the edit form');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+
+  log('the public page renders the sanitized list inside div.rich-text');
+  await page.goto(publicHref);
+  await expect(page.locator('.rich-text li')).toHaveCount(2);
+  await expect(page.locator('.rich-text li').first()).toHaveText('First E2E point');
+  await expect(page.locator('.rich-text li').nth(1)).toHaveText('Second E2E point');
+});
+
+test('bv. wizard fee card gating (R13): hidden until a positive price, dynamic example, hidden again at zero', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('reaching wizard step 3 with minimal basics');
+  await wizardBasics(page, {
+    title: 'E2E Fee Gate Probe', daysAhead: 8, start: '19:00',
+    venue: 'E2E Gate Hall', city: 'Baghdad', category: 'MUSIC',
+  });
+  await page.locator('#nextBtn').click(); // step 2 · banner — skip
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+
+  log('R13: with no price typed yet #feeCard is hidden (no generic example anymore)');
+  await expect(page.locator('#feeCard')).toBeHidden();
+  await expect(page.locator('#feeFreeNote')).toBeHidden(); // free toggle is off → no free note either
+
+  log('typing ttPrice 20000 → the card appears with the price-derived notes');
+  await page.locator('input[name="ttPrice"]').first().fill('20000');
+  await expect(page.locator('#feeCard')).toBeVisible();
+  await expect(page.locator('#feeCard .fee-note-pass')).toContainText('21,500'); // 20,000 + 1,500
+  await expect(page.locator('#feeCard .fee-note-pass')).toContainText('20,000');
+  await expect(page.locator('#feeCard .fee-note-absorb')).toContainText('18,500'); // 20,000 − 1,500
+
+  log('clearing the price back to 0 hides the card again (this wizard is abandoned — nothing published)');
+  await page.locator('input[name="ttPrice"]').first().fill('0');
+  await expect(page.locator('#feeCard')).toBeHidden();
 });

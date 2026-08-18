@@ -132,8 +132,9 @@
         <!-- About -->
         <section class="mt-10">
           <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.about}">About this event</h2>
-          <div class="mt-4 space-y-4 leading-relaxed text-ink-600">
-            <p th:each="para : ${event.paragraphs}" th:text="${para}">Baghdad Nights returns for its third — and biggest — edition.</p>
+          <!-- descriptionHtml is SANITIZED server-side (RichText: save + render) -->
+          <div class="rich-text mt-4 leading-relaxed text-ink-600" th:utext="${descriptionHtml}">
+            <p>Baghdad Nights returns for its third — and biggest — edition.</p>
           </div>
         </section>
 

@@ -156,7 +156,23 @@
           </div>
           <div class="mt-5">
             <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc" th:text="#{wizard.edit.description}">Description</label>
-            <textarea id="ev-desc" name="description" rows="5" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.edit.descPlaceholder}" placeholder="Line-up, schedule, what's included…" th:text="${evEntity.description()}"></textarea>
+            <div class="rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+              <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
+                  <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
+                  <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
+                  <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
+                </div>
+              <div id="ev-desc-editor" class="rich-text min-h-[140px] px-4 py-3 text-sm outline-none" contenteditable="true" th:attr="data-placeholder=#{wizard.edit.descPlaceholder}" role="textbox" aria-multiline="true"></div>
+            </div>
+            <textarea id="ev-desc" name="description" class="hidden" aria-hidden="true" tabindex="-1" th:text="${evEntity.description()}"></textarea>
           </div>
           <div class="mt-5">
             <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup" th:text="#{wizard.lineup.title}">Lineup / agenda</label>
@@ -690,6 +706,7 @@
       restoring = true;
       try {
         applyFields(data.f);
+        if (window.__syncDescEditor) window.__syncDescEditor();
         document.querySelectorAll('#editForm input[name="locationType"]').forEach(function (r) {
           if (r.checked) fire(r, 'change');
         });
@@ -831,6 +848,54 @@
       if (m2) showPreview(m2[1] + ',' + m2[2]);
     });
   })();
+
+  // ---- Rich text editor (R13 #3): contenteditable + hidden textarea sync ----
+  (function () {
+    var ed = document.getElementById('ev-desc-editor');
+    var ta = document.querySelector('textarea[name="description"]');
+    if (!ed || !ta) return;
+    // Seed the editor from the (possibly plain-text) stored value
+    var v = ta.value || '';
+    if (v && v.indexOf('<') === -1) {
+      ed.textContent = '';
+      v.split(/\n\n+/).forEach(function (para) {
+        if (!para.trim()) return;
+        var p = document.createElement('p');
+        p.textContent = para.trim();
+        ed.appendChild(p);
+      });
+    } else if (v) {
+      ed.innerHTML = v; // server-sanitized on save AND render
+    }
+    function sync() {
+      var html = ed.innerHTML.trim();
+      ta.value = (html === '<br>' || html === '<p><br></p>') ? '' : html;
+      try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    }
+    ed.addEventListener('input', sync);
+    ed.addEventListener('blur', sync);
+    document.querySelectorAll('[data-rt-for="ev-desc-editor"]').forEach(function (btn) {
+      btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep selection
+      btn.addEventListener('click', function () {
+        ed.focus();
+        var cmd = btn.getAttribute('data-cmd');
+        try {
+          if (cmd === 'link') {
+            var url = prompt(btn.getAttribute('data-prompt') || 'https://');
+            if (url && /^https?:\/\//i.test(url)) document.execCommand('createLink', false, url);
+          } else if (cmd === 'h3' || cmd === 'p') {
+            document.execCommand('formatBlock', false, cmd);
+          } else {
+            document.execCommand(cmd, false, null);
+          }
+        } catch (e) {}
+        sync();
+      });
+    });
+    // Autosave restore writes the textarea directly — mirror it back into the editor
+    window.__syncDescEditor = function () { ed.innerHTML = ta.value || ''; };
+  })();
+
 </script>
 </body>
 </html>

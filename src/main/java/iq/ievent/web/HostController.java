@@ -239,6 +239,7 @@ public class HostController {
         model.addAttribute("org", org);
         model.addAttribute("categories", PageController.CATEGORIES);
         model.addAttribute("coverThemes", HostService.COVER_THEMES);
+        model.addAttribute("paymentsReady", hostService.paymentsReady(org));
         return "host/event-form";
     }
 
@@ -331,6 +332,9 @@ public class HostController {
                         Format.iqd((long) tt.getSold() * tt.getPriceIqd())))
                 .toList();
         long sold = ttRows.stream().mapToLong(TicketTypeRow::sold).sum();
+        // Paid event without a working payment setup → persistent console warning
+        model.addAttribute("paymentsReady", hostService.paymentsReady(org));
+        model.addAttribute("evHasPaid", hasPaidTickets(ev.getId()));
         long views = ev.getViewCount();
         long likes = likeCounts.likesForEvents(List.of(ev.getId())).getOrDefault(ev.getId(), 0L);
         model.addAttribute("currentUser", u);
@@ -628,13 +632,27 @@ public class HostController {
     }
 
     @PostMapping("/events/{id}/publish")
-    public String publish(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal) {
+    public String publish(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                          RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
         requireManage(u);
-        hostService.eventOf(org.getId(), id).ifPresent(hostService::publish);
+        hostService.eventOf(org.getId(), id).ifPresent(e -> {
+            hostService.publish(e);
+            if (hasPaidTickets(e.getId()) && !hostService.paymentsReady(org)) {
+                redirect.addFlashAttribute("warning", msg("flash.event.publishedNoPayments"));
+            }
+        });
         return "redirect:/host/events/" + id;
+    }
+
+    /** Any ticket type with a positive price on this event? */
+    private boolean hasPaidTickets(Long eventId) {
+        Long n = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ticket_types WHERE event_id = ? AND price_iqd > 0",
+                Long.class, eventId);
+        return n != null && n > 0;
     }
 
     @PostMapping("/events/{id}/unpublish")

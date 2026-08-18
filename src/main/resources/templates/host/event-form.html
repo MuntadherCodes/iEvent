@@ -86,7 +86,7 @@
         <span id="wizErrorText" th:text="#{wizard.error.completeRequired}">Please complete the required fields.</span>
       </div>
 
-      <form id="createForm" th:action="@{/host/events/new}" method="post" enctype="multipart/form-data">
+      <form id="createForm" th:action="@{/host/events/new}" method="post" enctype="multipart/form-data" th:attr="data-payments-ready=${paymentsReady} ? '1' : '0'">
 
         <!-- ============ STEP 1 · BASICS ============ -->
         <section class="step-panel mt-8 space-y-6" data-panel="1">
@@ -366,7 +366,23 @@
             <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
               <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.details.title}">Tell people more</h2>
               <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.details.subtitle}">A rich description helps your event stand out in the directory.</p>
-              <textarea name="description" rows="9" class="mt-4 w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.details.descPlaceholder}" placeholder="Describe the vibe, the lineup, what's included…" th:attr="aria-label=#{wizard.details.descAria}" aria-label="Event description"></textarea>
+              <div class="mt-4 rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+                <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
+                  <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
+                  <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
+                  <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
+                </div>
+                <div id="ev-desc-editor" class="rich-text min-h-[160px] px-4 py-3 text-sm outline-none" contenteditable="true" th:attr="data-placeholder=#{wizard.details.descPlaceholder},aria-label=#{wizard.details.descAria}" role="textbox" aria-multiline="true"></div>
+              </div>
+              <textarea name="description" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
             </div>
             <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
               <div class="rounded-2xl border border-brand-100 bg-brand-50 p-5">
@@ -445,6 +461,10 @@
                 <p id="rv-summary" class="hidden text-sm text-ink-600"></p>
                 <div id="rv-tickets" class="flex flex-wrap gap-2 pt-1 text-xs"></div>
                 <p class="text-xs text-ink-400"><span id="rv-fee" th:text="#{wizard.js.feePass}">Booking fee: passed to buyer</span> · <span id="rv-policy" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</span> · <span id="rv-visibility" th:text="#{wizard.vis.public}">Public</span></p>
+                <div id="rvPayWarn" class="mt-3 hidden items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+                  <span><span th:text="#{wizard.paywarn.review}">Your tickets are paid but payments aren't set up yet — buyers won't be able to pay. You can publish now and add a payment method right after.</span> <a th:href="@{/host/settings/payments}" target="_blank" class="font-semibold underline" th:text="#{host.paywarn.cta}">Set up payments</a></span>
+                </div>
               </div>
             </div>
 
@@ -604,6 +624,19 @@
     document.getElementById('rv-fee').textContent = freeOn
       ? msg('fee-free')
       : (fm && fm.value === 'ABSORB' ? msg('fee-absorb') : msg('fee-pass'));
+
+    // Paid tickets + payments not set up → soft warning on the review step (R13 #2)
+    var payWarn = document.getElementById('rvPayWarn');
+    if (payWarn) {
+      var anyPaid = false;
+      document.querySelectorAll('input[name="ttPrice"]').forEach(function (inp) {
+        if ((parseInt(inp.value, 10) || 0) > 0) anyPaid = true;
+      });
+      var ready = document.getElementById('createForm').getAttribute('data-payments-ready') === '1';
+      var show = anyPaid && !freeOn && !ready;
+      payWarn.classList.toggle('hidden', !show);
+      payWarn.classList.toggle('flex', show);
+    }
 
     // Review cover mirrors the uploaded photo or the chosen theme gradient
     var rvImg = document.getElementById('rv-coverImg');
@@ -808,8 +841,10 @@
       var v = parseInt(inp.value, 10) || 0;
       if (v > top) top = v;
     });
-    if (freeToggle.checked) return; // card already hidden
-    if (top <= 0) return;           // keep the generic example until a price is typed
+    // The card only makes sense once there IS a paid ticket (R13 #2):
+    var showCard = !freeToggle.checked && top > 0;
+    feeCard.classList.toggle('hidden', !showCard);
+    if (!showCard) return;
     var pass = feeCard.querySelector('.fee-note-pass');
     var abs = feeCard.querySelector('.fee-note-absorb');
     [ [pass, top + 1500], [abs, Math.max(0, top - 1500)] ].forEach(function (pair) {
@@ -928,6 +963,7 @@
     restoring = true;
     try {
       applyFields(data.f || {});
+      if (window.__syncDescEditor) window.__syncDescEditor();
       // Re-run dependent UI by dispatching real change events
       document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
         if (r.checked) fire(r, 'change');
@@ -1096,6 +1132,54 @@
     });
   })();
 })();
+
+  // ---- Rich text editor (R13 #3): contenteditable + hidden textarea sync ----
+  (function () {
+    var ed = document.getElementById('ev-desc-editor');
+    var ta = document.querySelector('textarea[name="description"]');
+    if (!ed || !ta) return;
+    // Seed the editor from the (possibly plain-text) stored value
+    var v = ta.value || '';
+    if (v && v.indexOf('<') === -1) {
+      ed.textContent = '';
+      v.split(/\n\n+/).forEach(function (para) {
+        if (!para.trim()) return;
+        var p = document.createElement('p');
+        p.textContent = para.trim();
+        ed.appendChild(p);
+      });
+    } else if (v) {
+      ed.innerHTML = v; // server-sanitized on save AND render
+    }
+    function sync() {
+      var html = ed.innerHTML.trim();
+      ta.value = (html === '<br>' || html === '<p><br></p>') ? '' : html;
+      try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    }
+    ed.addEventListener('input', sync);
+    ed.addEventListener('blur', sync);
+    document.querySelectorAll('[data-rt-for="ev-desc-editor"]').forEach(function (btn) {
+      btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep selection
+      btn.addEventListener('click', function () {
+        ed.focus();
+        var cmd = btn.getAttribute('data-cmd');
+        try {
+          if (cmd === 'link') {
+            var url = prompt(btn.getAttribute('data-prompt') || 'https://');
+            if (url && /^https?:\/\//i.test(url)) document.execCommand('createLink', false, url);
+          } else if (cmd === 'h3' || cmd === 'p') {
+            document.execCommand('formatBlock', false, cmd);
+          } else {
+            document.execCommand(cmd, false, null);
+          }
+        } catch (e) {}
+        sync();
+      });
+    });
+    // Autosave restore writes the textarea directly — mirror it back into the editor
+    window.__syncDescEditor = function () { ed.innerHTML = ta.value || ''; };
+  })();
+
 </script>
 </body>
 </html>

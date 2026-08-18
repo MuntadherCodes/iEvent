@@ -487,6 +487,48 @@ class SmokeTest {
     }
 
     @Test
+    void descriptionSanitizedOnSave() throws Exception {
+        // Round 13: rich-text descriptions are sanitized on SAVE (jsoup safelist in
+        // RichText) and rendered via th:utext inside div.rich-text. Script tags and
+        // javascript: URLs must never survive to the rendered page. Repo-created
+        // draft + edit POST, mirroring the draftEventIsHidden... pattern.
+        var org = organizations.findByHandle("zainevents")
+                .orElseThrow(() -> new IllegalStateException("demo seed missing"));
+        String slug = "smoke-richtext-" + System.currentTimeMillis();
+        var draft = new iq.ievent.domain.Event();
+        draft.setOrganization(org);
+        draft.setTitle("Smoke Rich Text Event");
+        draft.setSlug(slug);
+        draft.setCategory(iq.ievent.domain.Event.Category.COMMUNITY);
+        draft.setCity("Baghdad");
+        draft.setStartsAt(java.time.OffsetDateTime.now().plusDays(12));
+        draft.setStatus(iq.ievent.domain.Event.Status.DRAFT);
+        Long id = events.save(draft).getId();
+
+        mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                        .param("title", "Smoke Rich Text Event")
+                        .param("category", "COMMUNITY")
+                        .param("city", "Baghdad")
+                        .param("locationType", "TBA")
+                        .param("date", java.time.LocalDate.now().plusDays(12).toString())
+                        .param("startTime", "18:00")
+                        .param("description",
+                                "<p>ok-rich</p><script>alert(1)</script><a href=\"javascript:x\">bad</a>")
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+
+        // Owner render of the draft: allowed markup survives, the payload doesn't.
+        // (The page legitimately contains <script> tags of its own, so the negative
+        // assertions target the PAYLOAD, not the tag name.)
+        mockMvc.perform(get("/en/events/" + slug).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<p>ok-rich</p>")))
+                .andExpect(content().string(not(containsString("alert(1)"))))
+                .andExpect(content().string(not(containsString("javascript:"))));
+    }
+
+    @Test
     void ticketPdfRenders() throws Exception {
         // Round 11 regression (#2): the per-ticket PDF 500'd with a LazyInit error.
         // The demo seed creates EVT-DEMO orders with tickets for Baghdad Nights —

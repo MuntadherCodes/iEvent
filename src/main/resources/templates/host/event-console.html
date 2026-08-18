@@ -27,6 +27,18 @@
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
         <span th:text="${actioned}">Done.</span>
       </div>
+      <div th:if="${warning}" class="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+        <span th:text="${warning}">Warning.</span>
+      </div>
+      <!-- Persistent: LIVE paid event but buyers cannot pay (no payment setup) -->
+      <div th:if="${ev.statusKey() == 'LIVE' && evHasPaid && !paymentsReady}" class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="flex items-start gap-2.5 text-sm font-medium text-amber-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+          <span th:text="#{host.paywarn.console}">This event has paid tickets but you haven't set up payments — buyers can't complete checkout.</span>
+        </p>
+        <a th:href="@{/host/settings/payments}" class="inline-flex items-center gap-1.5 self-start rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 sm:self-auto"><span th:text="#{host.paywarn.cta}">Set up payments</span><svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </div>
       <div th:if="${error}" class="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
         <span th:text="${error}">Something went wrong.</span>

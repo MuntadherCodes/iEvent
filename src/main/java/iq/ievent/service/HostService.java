@@ -243,7 +243,7 @@ public class HostService {
         e.setEndsAt(end == null ? null
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
-        e.setDescription(description == null ? "" : description.strip());
+        e.setDescription(RichText.forStorage(description));
         e.setStatus(Event.Status.DRAFT);
         e.setCoverTheme(Format.coverTheme(category));
         e = events.save(e);
@@ -277,7 +277,7 @@ public class HostService {
         e.setEndsAt(end == null ? null
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
-        e.setDescription(description == null ? "" : description.strip());
+        e.setDescription(RichText.forStorage(description));
         events.save(e);
         jdbc.update("UPDATE events SET updated_at = now() WHERE id = ?", e.getId());
     }
@@ -575,6 +575,17 @@ public class HostService {
                 && (org.getContactEmail() != null || org.getContactPhone() != null || org.getWebsite() != null
                     || org.getInstagram() != null || org.getLogoPath() != null);
         return new Checklist(nz(live) > 0, paymentsSetup, brandingDone, nz(team) > 0);
+    }
+
+    /** True when buyers can actually pay this org at checkout: direct payments
+     *  enabled AND at least one enabled method (or the legacy card fields). */
+    @Transactional(readOnly = true)
+    public boolean paymentsReady(Organization org) {
+        if (!org.isDirectPaymentsEnabled()) return false;
+        Long m = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM payment_methods WHERE organization_id = ? AND enabled = TRUE",
+                Long.class, org.getId());
+        return nz(m) > 0 || org.getPayCardNumber() != null;
     }
 
     /** Permanently hides the dashboard first-steps checklist for this org. */
