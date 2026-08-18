@@ -35,7 +35,8 @@ public final class Views {
             boolean verified,
             String followersDisplay, // "12.4K"
             long eventsHosted,
-            String initials) {}
+            String initials,
+            String logoUrl) {}       // "/media/org-logo/{id}" or null → initials avatar
 
     public record EventDetail(
             String slug,

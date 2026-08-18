@@ -301,6 +301,7 @@
             <div class="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ring-1 ring-black/5" th:classappend="${grad}">
               <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="cop1" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#cop1)"/></svg>
               <svg class="absolute inset-0 m-auto h-7 w-7 text-white/40" aria-hidden="true"><use th:attr="href='#'+${coverIcon}"/></svg>
+              <img th:if="${event.coverImageUrl != null}" th:src="${event.coverImageUrl}" th:alt="${event.title}" class="absolute inset-0 h-full w-full object-cover">
             </div>
             <div class="min-w-0">
               <p class="text-[11px] font-bold uppercase tracking-wide text-brand-600" th:text="${event.dateLine}">Sat, Sep 12 · 7:00 PM</p>

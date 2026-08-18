@@ -116,7 +116,8 @@
         <!-- Organizer row -->
         <div class="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-100 bg-ink-50/70 px-5 py-4">
           <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="group flex items-center gap-3">
-            <span class="grid h-11 w-11 place-items-center rounded-full bg-brand-500 font-display text-sm font-extrabold text-white" th:text="${event.organizer.initials}">ZE</span>
+            <img th:if="${event.organizer.logoUrl != null}" th:src="${event.organizer.logoUrl}" th:alt="${event.organizer.name}" class="h-11 w-11 rounded-full object-cover ring-1 ring-black/5">
+            <span th:if="${event.organizer.logoUrl == null}" class="grid h-11 w-11 place-items-center rounded-full bg-brand-500 font-display text-sm font-extrabold text-white" th:text="${event.organizer.initials}">ZE</span>
             <span>
               <span class="block text-sm text-ink-500" th:text="#{public.event.hostedBy}">Hosted by</span>
               <span class="flex items-center gap-1.5 font-semibold text-ink-900 transition group-hover:text-brand-600"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only" th:text="#{public.event.verifiedOrganizer}">Verified organizer</span></span>
@@ -222,13 +223,14 @@
         <!-- Organizer card -->
         <section class="mt-10 rounded-2xl border border-ink-100 bg-brand-50/60 p-6 md:p-8">
           <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-4">
-              <span class="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-lg font-extrabold text-white" th:text="${event.organizer.initials}">ZE</span>
+            <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="group flex items-center gap-4">
+              <img th:if="${event.organizer.logoUrl != null}" th:src="${event.organizer.logoUrl}" th:alt="${event.organizer.name}" class="h-16 w-16 rounded-full object-cover ring-1 ring-black/5">
+              <span th:if="${event.organizer.logoUrl == null}" class="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-lg font-extrabold text-white" th:text="${event.organizer.initials}">ZE</span>
               <div>
-                <p class="flex items-center gap-1.5 font-display text-lg font-extrabold text-ink-900"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only" th:text="#{public.event.verifiedOrganizer}">Verified organizer</span></p>
+                <p class="flex items-center gap-1.5 font-display text-lg font-extrabold text-ink-900 transition group-hover:text-brand-700"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only" th:text="#{public.event.verifiedOrganizer}">Verified organizer</span></p>
                 <p class="mt-0.5 text-sm tabular-nums text-ink-500"><span th:text="${event.organizer.followersDisplay}">12.4K</span> [[#{public.event.followers}]] · <span th:text="${event.organizer.eventsHosted}">48</span> [[#{public.event.eventsHosted}]]</p>
               </div>
-            </div>
+            </a>
             <div class="flex gap-3">
               <form th:if="${currentUser != null}" th:action="@{/organizers/{h}/follow(h=${event.organizer.handle})}" method="post" class="contents">
                 <button th:if="${!followingOrganizer}" type="submit" class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" aria-pressed="false" th:text="#{public.event.follow}">Follow</button>

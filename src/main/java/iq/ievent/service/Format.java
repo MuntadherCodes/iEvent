@@ -97,6 +97,19 @@ public final class Format {
         return cardDateLine(when);
     }
 
+    /** Card-level venue text: localizes the ONLINE/TBA placeholders (stored
+     *  canonically in English) without touching real venue names. */
+    public static String venueDisplay(String venueName, String locationType) {
+        boolean en = isEnglish();
+        if ("ONLINE".equals(locationType) || "Online event".equals(venueName)) {
+            return en ? "Online event" : "فعالية عبر الإنترنت";
+        }
+        if ("TBA".equals(locationType) || "To be announced".equals(venueName)) {
+            return en ? "To be announced" : "يُعلن لاحقًا";
+        }
+        return venueName;
+    }
+
     public static String categoryLabel(Event.Category c) {
         if (isEnglish()) {
             return switch (c) {

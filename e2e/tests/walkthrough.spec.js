@@ -3164,3 +3164,51 @@ test('bv. wizard fee card gating (R13): hidden until a positive price, dynamic e
   await page.locator('input[name="ttPrice"]').first().fill('0');
   await expect(page.locator('#feeCard')).toBeHidden();
 });
+
+// ---------- round 14: org logo on event pages, checkout mini-card cover ----------
+
+test('bw. org logo + checkout cover (R14): logo renders on the event page, bottom card links to the profile, mini card shows the event cover', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('reading the HOST2 org handle, then uploading an org LOGO via Settings → Branding');
+  await page.goto('/host/settings');
+  const handle = await page.locator('#org-handle').inputValue();
+  expect(handle.length, 'org handle must be present').toBeGreaterThan(0);
+  await page.goto('/host/settings?tab=brand');
+  await expect(page.locator('#st-brand')).toBeVisible();
+  await page.locator('#st-brand input[name="logo"]').setInputFiles(RECEIPT_PNG);
+  await page.locator('#st-brand').getByRole('button', { name: 'Save changes' }).click();
+  await expect(page).toHaveURL(/tab=brand/);
+  await expect(page.locator('#st-brand img[src*="/media/org-logo/"]')).toBeVisible();
+
+  log('the E2E Freebie Fair public page now shows the org logo in BOTH organizer avatars (initials replaced)');
+  await page.goto('/host/events?q=Freebie');
+  await page.getByRole('link', { name: /E2E Freebie Fair/ }).first().click();
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  await page.goto(publicHref);
+  const logoImgs = page.locator('img[src*="/media/org-logo/"]');
+  await expect(logoImgs).toHaveCount(2); // "Hosted by" row + bottom organizer card
+  await expect(logoImgs.first()).toBeVisible();
+  const logoSrc = await logoImgs.first().getAttribute('src');
+  const logoRes = await page.request.get(logoSrc);
+  expect(logoRes.status(), 'org logo must be served').toBe(200);
+  expect(logoRes.headers()['content-type']).toContain('image/png');
+
+  log('R14: the BOTTOM organizer card name/avatar is a link — clicking it lands on the organizer profile');
+  await page
+    .locator('a[href*="/organizers/"]')
+    .filter({ hasText: 'E2E Test Events' })
+    .last()
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/organizers/${handle}`));
+  await expect(page.locator('h1')).toContainText('E2E Test Events');
+
+  log('checkout mini event card renders the uploaded event cover (bd uploaded one for the Freebie Fair)');
+  await page.goto(publicHref);
+  await expect(page.locator('.qty-input').first()).toHaveValue('1');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/checkout/);
+  await expect(page.locator('img[src*="/media/event-cover/"]').first()).toBeVisible();
+});

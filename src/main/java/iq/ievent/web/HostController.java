@@ -936,7 +936,7 @@ public class HostController {
         long revenue = tts.stream().mapToLong(t -> t.getSold() * t.getPriceIqd()).sum();
         return new EventRow(e.getId(), e.getSlug(), e.getTitle(), statusLabel(e.getStatus().name()),
                 e.getStatus().name(),
-                Format.cardDateLine(e.getStartsAt()), e.getCity(), e.getVenueName(),
+                Format.cardDateLine(e.getStartsAt()), e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                 sold, cap, sold + " / " + cap, Format.iqd(revenue),
                 e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
                 e.getCoverTheme());

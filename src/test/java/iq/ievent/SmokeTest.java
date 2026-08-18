@@ -529,6 +529,35 @@ class SmokeTest {
     }
 
     @Test
+    void arabicVenuePlaceholderRenders() throws Exception {
+        // Round 14: venue placeholders flow through Format.venueDisplay — English
+        // output unchanged ("To be announced"), Arabic localized ("يُعلن لاحقًا").
+        // Repo-created LIVE TBA event so the placeholder reliably exists.
+        var org = organizations.findByHandle("zainevents")
+                .orElseThrow(() -> new IllegalStateException("demo seed missing"));
+        String slug = "smoke-tba-" + System.currentTimeMillis();
+        var ev = new iq.ievent.domain.Event();
+        ev.setOrganization(org);
+        ev.setTitle("Smoke TBA Event");
+        ev.setSlug(slug);
+        ev.setCategory(iq.ievent.domain.Event.Category.COMMUNITY);
+        ev.setCity("Baghdad");
+        ev.setStartsAt(java.time.OffsetDateTime.now().plusDays(9));
+        ev.setStatus(iq.ievent.domain.Event.Status.LIVE);
+        ev.setLocationType("TBA");
+        events.save(ev);
+
+        // Bare path → Arabic placeholder (exact string from Format.venueDisplay).
+        mockMvc.perform(get("/events/" + slug))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("يُعلن لاحقًا")));
+        // /en → the familiar English placeholder, character-identical to before.
+        mockMvc.perform(get("/en/events/" + slug))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("To be announced")));
+    }
+
+    @Test
     void ticketPdfRenders() throws Exception {
         // Round 11 regression (#2): the per-ticket PDF 500'd with a LazyInit error.
         // The demo seed creates EVT-DEMO orders with tickets for Baghdad Nights —

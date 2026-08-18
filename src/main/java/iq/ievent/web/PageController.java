@@ -258,7 +258,8 @@ public class PageController {
                 org.getName(), org.getHandle(), org.getBio(), org.isVerified(),
                 Format.compactCount(likeCounts.followersForOrganization(org.getId())),
                 likeCounts.eventsHostedForOrganization(org.getId()),
-                initialsOf(org.getName()));
+                initialsOf(org.getName()),
+                org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId());
         List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
                 .map(String::trim).filter(p -> !p.isEmpty()).toList();
         return new EventDetail(
@@ -266,7 +267,7 @@ public class PageController {
                 Format.categoryLabel(e.getCategory()),
                 e.getCoverTheme(),
                 e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
-                e.getCity(), e.getVenueName(), e.getVenueAddress(),
+                e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
                 Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
                 Format.monthShort(e.getStartsAt()),
                 Format.dayOfMonth(e.getStartsAt()),
@@ -357,7 +358,7 @@ public class PageController {
             pastCards.add(new PastEventCard(
                     e.getSlug(), e.getTitle(), e.getCoverTheme(),
                     e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
-                    e.getCity(), e.getVenueName(),
+                    e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                     Format.cardDateLine(e.getStartsAt()),
                     n > 0 ? msg("page.attended", String.format(Locale.ENGLISH, "%,d", n)) : null));
         }
