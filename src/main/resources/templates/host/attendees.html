@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('Attendees — iEvent Host')}"></head>
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{host.title.attendees})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,9 +9,9 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('attendees')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('Attendees')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{host.nav.attendees})}"></header>
 
   <main id="main" class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
     <div class="mx-auto max-w-6xl 2xl:max-w-7xl">
@@ -29,9 +29,9 @@
       <!-- No events yet -->
       <div th:if="${ev == null}" class="rounded-2xl border border-ink-100 bg-white px-6 py-16 text-center shadow-card">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-users"/></svg></span>
-        <h3 class="mt-4 font-display text-lg font-bold text-ink-900">No events yet</h3>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">Create and publish an event first — confirmed attendees will appear here.</p>
-        <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Create event</a>
+        <h3 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{host.events.noEvents}">No events yet</h3>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{host.att.noEventsSub}">Create and publish an event first — confirmed attendees will appear here.</p>
+        <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{host.nav.createEvent}">Create event</span></a>
       </div>
 
       <div th:if="${ev != null}">
@@ -40,8 +40,8 @@
       <form id="filters-form" th:action="@{/host/attendees}" method="get">
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Attendees</h2>
-          <label class="sr-only" for="event-scope">Event</label>
+          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{host.nav.attendees}">Attendees</h2>
+          <label class="sr-only" for="event-scope" th:text="#{host.att.eventLabel}">Event</label>
           <select id="event-scope" name="event" class="rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
             <option th:each="opt : ${eventOptions}" th:value="${opt.id()}" th:text="${opt.title()}" th:selected="${ev.id() == opt.id()}">Baghdad Nights Music Festival</option>
           </select>
@@ -49,11 +49,11 @@
         <div class="flex flex-wrap items-center gap-2">
           <a th:href="@{/host/attendees/export.csv(event=${ev.id()},q=${q},type=${typeFilter},status=${statusFilter})}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-download"/></svg>
-            Export CSV
+            <span th:text="#{host.att.exportCsv}">Export CSV</span>
           </a>
           <a th:href="@{/host/marketing(tab='email')}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg>
-            Email attendees
+            <span th:text="#{host.att.emailAttendees}">Email attendees</span>
           </a>
         </div>
       </div>
@@ -61,28 +61,28 @@
       <!-- Search + filters -->
       <div class="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div class="relative w-full lg:max-w-sm">
-          <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="search" name="q" th:value="${q}" placeholder="Search name, email or order #…" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Search attendees">
+          <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" name="q" th:value="${q}" th:placeholder="#{host.att.searchPlaceholder}" placeholder="Search name, email or order #…" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.att.searchAria}" aria-label="Search attendees">
         </div>
-        <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter attendees">
-          <span class="hidden items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-400 sm:inline-flex"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-list-filter"/></svg>Filter</span>
+        <div class="flex flex-wrap items-center gap-2" role="group" th:aria-label="#{host.att.filterGroupAria}" aria-label="Filter attendees">
+          <span class="hidden items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-400 sm:inline-flex"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-list-filter"/></svg><span th:text="#{host.orders.filter}">Filter</span></span>
           <div class="relative">
-            <select name="type" data-autosubmit class="appearance-none rounded-full border border-ink-200 bg-white py-2 pl-4 pr-9 text-sm font-medium text-ink-700 outline-none hover:border-brand-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Filter by ticket type">
-              <option value="">All ticket types</option>
+            <select name="type" data-autosubmit class="appearance-none rounded-full border border-ink-200 bg-white py-2 ps-4 pe-9 text-sm font-medium text-ink-700 outline-none hover:border-brand-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.att.typeFilterAria}" aria-label="Filter by ticket type">
+              <option value="" th:text="#{host.att.allTypes}">All ticket types</option>
               <option th:each="tt : ${typeOptions}" th:value="${tt.id()}" th:text="${tt.title()}" th:selected="${typeFilter == tt.id().toString()}">General Admission</option>
             </select>
-            <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
           </div>
           <div class="relative">
-            <select name="status" data-autosubmit class="appearance-none rounded-full border border-ink-200 bg-white py-2 pl-4 pr-9 text-sm font-medium text-ink-700 outline-none hover:border-brand-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Filter by status">
-              <option value="">All statuses</option>
-              <option value="VALID" th:selected="${statusFilter == 'VALID'}">Not arrived</option>
-              <option value="CHECKED_IN" th:selected="${statusFilter == 'CHECKED_IN'}">Checked in</option>
-              <option value="VOID" th:selected="${statusFilter == 'VOID'}">Void / refunded</option>
+            <select name="status" data-autosubmit class="appearance-none rounded-full border border-ink-200 bg-white py-2 ps-4 pe-9 text-sm font-medium text-ink-700 outline-none hover:border-brand-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.att.statusFilterAria}" aria-label="Filter by status">
+              <option value="" th:text="#{host.att.allStatuses}">All statuses</option>
+              <option value="VALID" th:selected="${statusFilter == 'VALID'}" th:text="#{host.att.notArrived}">Not arrived</option>
+              <option value="CHECKED_IN" th:selected="${statusFilter == 'CHECKED_IN'}" th:text="#{host.att.checkedIn}">Checked in</option>
+              <option value="VOID" th:selected="${statusFilter == 'VOID'}" th:text="#{host.att.voidRefunded}">Void / refunded</option>
             </select>
-            <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
           </div>
-          <button type="submit" class="rounded-full border border-brand-500 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">Apply</button>
+          <button type="submit" class="rounded-full border border-brand-500 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100" th:text="#{host.att.apply}">Apply</button>
         </div>
       </div>
       </form>
@@ -90,19 +90,19 @@
       <!-- Summary strip -->
       <div th:if="${astats != null}" class="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
-          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">Total attendees</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.att.totalAttendees}">Total attendees</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${astats.total()}">218</p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
-          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">Checked in</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.att.checkedIn}">Checked in</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900"><span th:text="${astats.checkedIn()}">87</span> <span class="text-sm font-bold text-ink-400" th:text="'· ' + ${astats.pct()} + '%'">· 40%</span></p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
-          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">Remaining</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.att.remaining}">Remaining</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${astats.remaining()}">131</p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
-          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">Void / refunded</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.att.voidRefunded}">Void / refunded</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${astats.voided()}">3</p>
         </div>
       </div>
@@ -115,9 +115,9 @@
           <!-- Bulk action bar (hidden until selection) -->
           <form id="bulk-form" th:action="@{/host/attendees/bulk-checkin}" method="post">
             <div id="bulk-bar" class="mb-3 hidden items-center justify-between rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm shadow-card">
-              <p class="font-semibold text-brand-800"><span id="bulk-count">0</span> selected</p>
+              <p class="font-semibold text-brand-800"><span id="bulk-count">0</span> <span th:text="#{host.att.selected}">selected</span></p>
               <div class="flex items-center gap-1 text-sm font-semibold text-brand-700">
-                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition hover:bg-brand-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg>Check in selected</button>
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition hover:bg-brand-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{host.att.checkInSelected}">Check in selected</span></button>
               </div>
             </div>
           </form>
@@ -125,28 +125,28 @@
           <!-- Empty state -->
           <div th:if="${#lists.isEmpty(rows)}" class="rounded-2xl border border-ink-100 bg-white px-6 py-16 text-center shadow-card">
             <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-users"/></svg></span>
-            <h3 class="mt-4 font-display text-lg font-bold text-ink-900">No tickets found</h3>
-            <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">Attendees appear once orders are confirmed — or try a different search or filter.</p>
+            <h3 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{host.att.noTickets}">No tickets found</h3>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{host.att.noTicketsSub}">Attendees appear once orders are confirmed — or try a different search or filter.</p>
           </div>
 
           <div th:unless="${#lists.isEmpty(rows)}" class="relative overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
             <table class="w-full min-w-[640px] text-sm">
               <thead>
-                <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-                  <th class="w-10 px-4 py-3"><input id="check-all" type="checkbox" class="h-4 w-4 rounded border-ink-300 accent-brand-500" aria-label="Select all attendees"></th>
-                  <th class="px-3 py-3">Name</th>
-                  <th class="px-3 py-3">Ticket</th>
-                  <th class="px-3 py-3">Order #</th>
-                  <th class="hidden px-3 py-3 lg:table-cell">Purchased</th>
-                  <th class="px-3 py-3">Checked in</th>
-                  <th class="px-3 py-3 text-right">Actions</th>
+                <tr class="border-b border-ink-100 text-start text-xs font-semibold uppercase tracking-wide text-ink-500">
+                  <th class="w-10 px-4 py-3"><input id="check-all" type="checkbox" class="h-4 w-4 rounded border-ink-300 accent-brand-500" th:aria-label="#{host.att.selectAllAria}" aria-label="Select all attendees"></th>
+                  <th class="px-3 py-3 text-start" th:text="#{host.att.colName}">Name</th>
+                  <th class="px-3 py-3 text-start" th:text="#{host.att.colTicket}">Ticket</th>
+                  <th class="px-3 py-3 text-start" th:text="#{host.orders.colOrder}">Order #</th>
+                  <th class="hidden px-3 py-3 text-start lg:table-cell" th:text="#{host.att.colPurchased}">Purchased</th>
+                  <th class="px-3 py-3 text-start" th:text="#{host.att.checkedIn}">Checked in</th>
+                  <th class="px-3 py-3 text-end" th:text="#{host.orders.colActions}">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr th:each="r : ${rows}" class="border-b border-ink-50 last:border-0"
                     th:classappend="${r.voided()} ? 'bg-rose-50/40 hover:bg-rose-50/70' : 'hover:bg-brand-50/40'">
                   <td class="px-4 py-3">
-                    <input th:if="${!r.voided() && !r.checkedIn()}" type="checkbox" name="ids" form="bulk-form" th:value="${r.ticketId()}" class="row-check h-4 w-4 rounded border-ink-300 accent-brand-500" th:attr="aria-label='Select ' + ${r.holderName()}">
+                    <input th:if="${!r.voided() && !r.checkedIn()}" type="checkbox" name="ids" form="bulk-form" th:value="${r.ticketId()}" class="row-check h-4 w-4 rounded border-ink-300 accent-brand-500" th:attr="aria-label=#{host.att.selectAria(${r.holderName()})}">
                   </td>
                   <td class="px-3 py-3">
                     <div class="flex items-center gap-2.5">
@@ -159,11 +159,11 @@
                   </td>
                   <td class="px-3 py-3">
                     <span th:unless="${r.voided()}" class="whitespace-nowrap rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600" th:text="${r.typeName()}">GA</span>
-                    <span th:if="${r.voided()}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Void</span>
+                    <span th:if="${r.voided()}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.att.void}">Void</span></span>
                   </td>
                   <td class="px-3 py-3">
-                    <a th:href="@{/host/orders(f=1,q=${r.orderCode()})}" class="font-mono text-xs font-semibold tabular-nums text-brand-600 hover:underline" th:text="${r.orderCode()}">EVT-2026-04127</a>
-                    <p class="font-mono text-[11px] tabular-nums text-ink-400" th:text="${r.code()}">TKT-8841-A</p>
+                    <a th:href="@{/host/orders(f=1,q=${r.orderCode()})}" class="font-mono text-xs font-semibold tabular-nums text-brand-600 hover:underline"><span dir="ltr" th:text="${r.orderCode()}">EVT-2026-04127</span></a>
+                    <p class="font-mono text-[11px] tabular-nums text-ink-400"><span dir="ltr" th:text="${r.code()}">TKT-8841-A</span></p>
                   </td>
                   <td class="hidden px-3 py-3 whitespace-nowrap text-ink-500 lg:table-cell" th:text="${r.purchasedLine()}">Aug 2</td>
                   <td class="px-3 py-3">
@@ -173,13 +173,13 @@
                   <td class="px-3 py-3">
                     <div class="flex flex-wrap items-center justify-end gap-1">
                       <form th:if="${canManage && r.resendable()}" th:action="@{/host/attendees/{id}/resend(id=${r.ticketId()})}" method="post" class="inline">
-                        <button type="submit" class="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50">Resend ticket</button>
+                        <button type="submit" class="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50" th:text="#{host.att.resendTicket}">Resend ticket</button>
                       </form>
                       <form th:if="${!r.voided() && !r.checkedIn()}" th:action="@{/host/tickets/{id}/checkin(id=${r.ticketId()})}" method="post" class="inline">
-                        <button type="submit" class="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg>Check in</button>
+                        <button type="submit" class="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{host.att.checkIn}">Check in</span></button>
                       </form>
                       <form th:if="${r.checkedIn()}" th:action="@{/host/tickets/{id}/undo-checkin(id=${r.ticketId()})}" method="post" class="inline">
-                        <button type="submit" class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">Undo</button>
+                        <button type="submit" class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" th:text="#{host.att.undo}">Undo</button>
                       </form>
                     </div>
                   </td>
@@ -188,30 +188,30 @@
             </table>
           </div>
 
-          <p th:unless="${#lists.isEmpty(rows)}" class="mt-3 text-xs text-ink-500">Showing <span class="font-semibold tabular-nums text-ink-800" th:text="${#lists.size(rows)}">10</span> attendee<span th:if="${#lists.size(rows) != 1}">s</span> for <span class="font-semibold text-ink-800" th:text="${ev.title()}">Baghdad Nights</span>.</p>
+          <p th:unless="${#lists.isEmpty(rows)}" class="mt-3 text-xs text-ink-500"><span th:text="#{host.events.showing}">Showing</span> <span class="font-semibold tabular-nums text-ink-800" th:text="${#lists.size(rows)}">10</span> <span th:text="${#lists.size(rows) != 1} ? #{host.att.attendeesWord} : #{host.att.attendeeWord}">attendees</span> <span th:text="#{host.att.forWord}">for</span> <span class="font-semibold text-ink-800" th:text="${ev.title()}">Baghdad Nights</span>.</p>
         </div>
 
         <!-- Attendance insights -->
         <aside class="space-y-6" th:if="${astats != null}">
           <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-            <h3 class="font-display text-base font-bold text-ink-900">Attendance insights</h3>
+            <h3 class="font-display text-base font-bold text-ink-900" th:text="#{host.att.insights}">Attendance insights</h3>
             <div class="mt-4 flex items-center justify-center">
               <div class="relative">
-                <svg width="150" height="150" viewBox="0 0 150 150" role="img" th:attr="aria-label='Check-in progress: ' + ${astats.pct()} + ' percent'">
+                <svg width="150" height="150" viewBox="0 0 150 150" role="img" th:attr="aria-label=#{host.att.progressAria(${'' + astats.pct()})}">
                   <circle cx="75" cy="75" r="62" fill="none" stroke="#ececf1" stroke-width="14"/>
                   <circle cx="75" cy="75" r="62" fill="none" stroke="#8f7ac9" stroke-width="14" stroke-linecap="round" stroke-dasharray="389.6" th:attr="stroke-dashoffset=${astats.dashOffset()}" transform="rotate(-90 75 75)"/>
                 </svg>
                 <div class="absolute inset-0 grid place-items-center text-center">
                   <div>
                     <p class="font-display text-3xl font-extrabold tabular-nums text-ink-900" th:text="${astats.pct()} + '%'">0%</p>
-                    <p class="text-xs text-ink-500">checked in</p>
+                    <p class="text-xs text-ink-500" th:text="#{host.att.checkedInLower}">checked in</p>
                   </div>
                 </div>
               </div>
             </div>
-            <p class="mt-2 text-center text-xs text-ink-400"><span th:text="${astats.checkedIn()}">87</span> of <span th:text="${astats.total()}">218</span> attendees through the door · <span th:text="${evDateLine}">Sep 12 · 7:00 PM</span></p>
+            <p class="mt-2 text-center text-xs text-ink-400"><span th:text="${astats.checkedIn()}">87</span> <span th:text="#{host.events.of}">of</span> <span th:text="${astats.total()}">218</span> <span th:text="#{host.att.throughDoor}">attendees through the door</span> · <span th:text="${evDateLine}">Sep 12 · 7:00 PM</span></p>
             <div class="mt-5 border-t border-ink-100 pt-4" th:if="${typeCounts != null && !#lists.isEmpty(typeCounts)}">
-              <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">Tickets by type</p>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.att.ticketsByType}">Tickets by type</p>
               <div class="mt-3 space-y-3 text-sm">
                 <div th:each="tc : ${typeCounts}">
                   <div class="mb-1 flex items-center justify-between"><span class="font-medium text-ink-700" th:text="${tc.name()}">General Admission</span><span class="text-xs font-semibold tabular-nums text-ink-500" th:text="${tc.count()}">194</span></div>
@@ -221,9 +221,9 @@
             </div>
           </div>
           <div class="rounded-2xl border border-brand-100 bg-brand-50 p-5">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-brand-800"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg>Door-day tip</p>
-            <p class="mt-1 text-sm text-brand-700">Add your door staff as team members so they can scan tickets from their own phones.</p>
-            <a th:href="@{/host/settings(tab='team')}" class="mt-3 inline-block text-sm font-semibold text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-800"><span class="inline-flex items-center gap-1">Manage team<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></a>
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-brand-800"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{host.att.doorTip}">Door-day tip</span></p>
+            <p class="mt-1 text-sm text-brand-700" th:text="#{host.att.doorTipSub}">Add your door staff as team members so they can scan tickets from their own phones.</p>
+            <a th:href="@{/host/settings(tab='team')}" class="mt-3 inline-block text-sm font-semibold text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-800"><span class="inline-flex items-center gap-1"><span th:text="#{host.att.manageTeam}">Manage team</span><svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></a>
           </div>
         </aside>
       </div>

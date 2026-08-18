@@ -66,7 +66,9 @@ public class TicketPdfService {
         doc.add(new Paragraph(" ", new Font(Font.HELVETICA, 4)));
 
         doc.add(new Paragraph(e.getTitle(), new Font(Font.HELVETICA, 16, Font.BOLD, INK)));
-        doc.add(new Paragraph(Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
+        // English-pinned: Helvetica cannot render/shape Arabic (Arabic PDFs are a
+        // dedicated later work item with an embedded Arabic font).
+        doc.add(new Paragraph(Format.longDateLine(e.getStartsAt(), e.getEndsAt(), java.util.Locale.ENGLISH),
                 new Font(Font.HELVETICA, 10, Font.NORMAL, MUTED)));
         doc.add(new Paragraph((e.getVenueName() == null ? "" : e.getVenueName() + ", ") + e.getCity(),
                 new Font(Font.HELVETICA, 10, Font.NORMAL, MUTED)));

@@ -45,13 +45,15 @@ public class PasswordResetService {
     @Transactional
     public void requestReset(String email) {
         if (email == null || email.isBlank()) return;
+        final java.util.Locale locale =
+                org.springframework.context.i18n.LocaleContextHolder.getLocale();
         users.findByEmailIgnoreCase(email.trim()).ifPresent(user -> {
             PasswordResetToken t = new PasswordResetToken();
             t.setUser(user);
             t.setToken(randomToken(48));
             t.setExpiresAt(OffsetDateTime.now().plusMinutes(60));
             tokens.save(t);
-            mail.sendPasswordReset(user.getEmail(), baseUrl + "/auth/reset?token=" + t.getToken());
+            mail.sendPasswordReset(user.getEmail(), baseUrl + "/auth/reset?token=" + t.getToken(), locale);
         });
     }
 

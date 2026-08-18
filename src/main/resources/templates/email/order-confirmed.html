@@ -1,52 +1,53 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${mailLang} ?: 'ar'" th:dir="${mailDir} ?: 'rtl'" xmlns:th="http://www.thymeleaf.org">
 <body style="margin:0;padding:0;background:#f7f7fa;font-family:Arial,Helvetica,sans-serif;color:#23222f;">
 <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
   <div style="text-align:center;padding:8px 0 16px;">
-    <span style="font-size:22px;font-weight:800;letter-spacing:.02em;"><span style="color:#8f7ac9;">i</span>Event</span>
+    <span dir="ltr" style="font-size:22px;font-weight:800;letter-spacing:.02em;"><span style="color:#8f7ac9;">i</span>Event</span>
   </div>
   <div style="background:#ffffff;border:1px solid #ececf1;border-radius:14px;padding:28px;">
-    <h1 style="margin:0 0 6px;font-size:22px;">You're going! 🎉</h1>
+    <h1 style="margin:0 0 6px;font-size:22px;" th:text="#{emails.confirmed.title}">You're going! 🎉</h1>
     <p style="margin:0 0 18px;color:#6b6a80;font-size:14px;">
-      Your order <strong th:text="${order.orderCode}">EVT-2026-00000</strong> is confirmed.
+      <span th:text="#{emails.confirmed.orderPrefix}">Your order</span> <strong dir="ltr" th:text="${order.orderCode}">EVT-2026-00000</strong> <span th:text="#{emails.confirmed.orderSuffix}">is confirmed.</span>
     </p>
     <div style="border:1px solid #ececf1;border-radius:10px;padding:16px;margin-bottom:18px;">
       <p style="margin:0;font-weight:700;font-size:16px;" th:text="${event.title}">Event title</p>
       <p style="margin:6px 0 0;color:#6b6a80;font-size:13px;" th:text="${dateLine}">Date</p>
       <p th:if="${event.locationType != 'ONLINE'}" style="margin:2px 0 0;color:#6b6a80;font-size:13px;"
-         th:text="${event.locationType == 'TBA' ? 'Location will be announced by the organizer'
-                   : (event.venueName != null ? event.venueName + ', ' : '') + event.city}">Venue</p>
+         th:text="${event.locationType == 'TBA'} ? #{emails.confirmed.tba}
+                   : ${(event.venueName != null ? event.venueName + ', ' : '') + event.city}">Venue</p>
       <p th:if="${event.locationType == 'ONLINE'}" style="margin:2px 0 0;color:#6b6a80;font-size:13px;">
-        Online event
+        <span th:text="#{emails.confirmed.online}">Online event</span>
         <span th:if="${event.onlineUrl != null}">
-          — join link: <a th:href="${event.onlineUrl}" style="color:#7b64b6;font-weight:700;"
+          <span th:text="#{emails.confirmed.joinLink}">— join link:</span> <a th:href="${event.onlineUrl}" style="color:#7b64b6;font-weight:700;"
                           th:text="${event.onlineUrl}">link</a>
         </span>
       </p>
     </div>
-    <p style="margin:0 0 8px;font-weight:700;font-size:14px;">Your tickets</p>
+    <p style="margin:0 0 8px;font-weight:700;font-size:14px;" th:text="#{emails.confirmed.yourTickets}">Your tickets</p>
     <table style="width:100%;border-collapse:collapse;font-size:13px;" th:if="${tickets != null}">
       <tr th:each="t : ${tickets}" style="border-top:1px solid #ececf1;">
         <td style="padding:8px 0;" th:text="${t.ticketType.name}">Type</td>
         <td style="padding:8px 0;color:#6b6a80;" th:text="${t.holderName}">Holder</td>
-        <td style="padding:8px 0;text-align:right;">
-          <a th:href="${baseUrl + '/t/' + t.code}" style="color:#7b64b6;font-weight:700;text-decoration:none;"
+        <td style="padding:8px 0;" th:style="'padding:8px 0;text-align:' + (${mailDir} == 'ltr' ? 'right' : 'left') + ';'">
+          <a dir="ltr" th:href="${baseUrl + '/t/' + t.code}" style="color:#7b64b6;font-weight:700;text-decoration:none;"
              th:text="${t.code}">CODE</a>
         </td>
       </tr>
     </table>
     <p style="margin:16px 0 0;font-size:13px;color:#6b6a80;">
-      Total paid: <strong th:text="${totalLabel}">0 IQD</strong>
+      <span th:text="#{emails.confirmed.totalPaid}">Total paid:</span> <strong th:text="${totalLabel}">0 IQD</strong>
     </p>
     <div style="text-align:center;margin-top:22px;">
       <a th:href="${baseUrl + '/me/tickets'}"
-         style="display:inline-block;background:#8f7ac9;color:#ffffff;font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;text-decoration:none;">
+         style="display:inline-block;background:#8f7ac9;color:#ffffff;font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;text-decoration:none;"
+         th:text="#{emails.confirmed.cta}">
         View my tickets (QR codes)
       </a>
     </div>
   </div>
   <p style="text-align:center;color:#908fa3;font-size:11px;margin-top:16px;">
-    © 2026 iEvent · Show the QR code at the door · <a th:href="${baseUrl}" style="color:#8f7ac9;">ievent.iq</a>
+    <span th:text="#{emails.confirmed.footer}">© 2026 iEvent · Show the QR code at the door ·</span> <a th:href="${baseUrl}" style="color:#8f7ac9;">ievent.iq</a>
   </p>
 </div>
 </body>

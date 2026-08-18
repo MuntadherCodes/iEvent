@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('Orders — iEvent Host')}"></head>
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{host.title.orders})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,32 +9,32 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('orders')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('Orders')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{host.nav.orders})}"></header>
 
   <main id="main" class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
     <div class="mx-auto max-w-6xl 2xl:max-w-7xl">
 
       <!-- Page header: title + search + date range + export -->
       <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Orders</h2>
+        <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{host.nav.orders}">Orders</h2>
         <form th:action="@{/host/orders}" method="get" class="flex flex-wrap items-center gap-2">
           <input type="hidden" name="f" value="1">
           <input type="hidden" name="status" th:value="${statusFilter != null ? statusFilter : ''}">
           <div class="relative">
-            <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-            <input type="search" name="q" th:value="${q != null ? q : ''}" placeholder="Order # or buyer…" class="w-48 rounded-xl border border-ink-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-56" aria-label="Search orders">
+            <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" name="q" th:value="${q != null ? q : ''}" th:placeholder="#{host.orders.searchPlaceholder}" placeholder="Order # or buyer…" class="w-48 rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-56" th:aria-label="#{host.orders.searchAria}" aria-label="Search orders">
           </div>
-          <label class="sr-only" for="ord-from">From date</label>
-          <input id="ord-from" type="date" name="from" th:value="${from != null ? from : ''}" class="rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm tabular-nums text-ink-700 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="From date">
-          <span class="text-xs font-semibold text-ink-400">→</span>
-          <label class="sr-only" for="ord-to">To date</label>
-          <input id="ord-to" type="date" name="to" th:value="${to != null ? to : ''}" class="rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm tabular-nums text-ink-700 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="To date">
-          <button type="submit" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Filter</button>
+          <label class="sr-only" for="ord-from" th:text="#{host.orders.fromDate}">From date</label>
+          <input id="ord-from" type="date" name="from" th:value="${from != null ? from : ''}" class="rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm tabular-nums text-ink-700 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.orders.fromDate}" aria-label="From date">
+          <span class="inline-block text-xs font-semibold text-ink-400 rtl:rotate-180">→</span>
+          <label class="sr-only" for="ord-to" th:text="#{host.orders.toDate}">To date</label>
+          <input id="ord-to" type="date" name="to" th:value="${to != null ? to : ''}" class="rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm tabular-nums text-ink-700 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.orders.toDate}" aria-label="To date">
+          <button type="submit" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.orders.filter}">Filter</button>
           <a th:href="@{/host/orders/export.csv(status=${statusFilter},q=${q},from=${from},to=${to})}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-download"/></svg>
-            Export
+            <span th:text="#{host.orders.export}">Export</span>
           </a>
         </form>
       </div>
@@ -42,24 +42,24 @@
       <!-- Stat row -->
       <div th:if="${ostats != null}" class="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-          <p class="text-sm text-ink-500">Gross sales</p>
+          <p class="text-sm text-ink-500" th:text="#{host.orders.grossSales}">Gross sales</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${ostats.grossLabel()}">7,630,000 IQD</p>
-          <p class="mt-1 text-xs text-ink-400">confirmed orders, all time</p>
+          <p class="mt-1 text-xs text-ink-400" th:text="#{host.orders.grossSalesSub}">confirmed orders, all time</p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-          <p class="text-sm text-ink-500">Orders</p>
+          <p class="text-sm text-ink-500" th:text="#{host.nav.orders}">Orders</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${ostats.ordersCount()}">143</p>
-          <p class="mt-1 text-xs text-ink-400">across all statuses</p>
+          <p class="mt-1 text-xs text-ink-400" th:text="#{host.orders.ordersSub}">across all statuses</p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-          <p class="text-sm text-ink-500">Awaiting confirmation</p>
+          <p class="text-sm text-ink-500" th:text="#{host.orders.awaiting}">Awaiting confirmation</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${ostats.pendingCount()}">4</p>
-          <p class="mt-1 text-xs font-semibold text-amber-600">direct transfers to review</p>
+          <p class="mt-1 text-xs font-semibold text-amber-600" th:text="#{host.orders.awaitingSub}">direct transfers to review</p>
         </div>
         <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-          <p class="text-sm text-ink-500">Refunds</p>
+          <p class="text-sm text-ink-500" th:text="#{host.orders.refunds}">Refunds</p>
           <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-900" th:text="${ostats.refundsCount()}">3</p>
-          <p class="mt-1 text-xs font-semibold text-rose-500"><span th:text="${ostats.refundedLabel()}">140,000 IQD</span> refunded</p>
+          <p class="mt-1 text-xs font-semibold text-rose-500"><span th:text="${ostats.refundedLabel()}">140,000 IQD</span> <span th:text="#{host.orders.refundedWord}">refunded</span></p>
         </div>
       </div>
 
@@ -77,79 +77,79 @@
       <div th:if="${pendingCount > 0 && statusFilter != 'pending'}" class="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <p class="flex items-start gap-2 text-sm font-semibold text-amber-800">
           <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
-          <span><span class="tabular-nums" th:text="${pendingCount}">4</span> direct-transfer orders waiting for your confirmation</span>
+          <span><span class="tabular-nums" th:text="${pendingCount}">4</span> <span th:text="#{host.dash.pendingBanner}">direct-transfer orders waiting for your confirmation</span></span>
         </p>
-        <a th:href="@{/host/orders(f=1,status='pending')}" class="inline-flex items-center gap-1.5 self-start rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 active:scale-[.98] sm:self-auto">Review now<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/host/orders(f=1,status='pending')}" class="inline-flex items-center gap-1.5 self-start rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 active:scale-[.98] sm:self-auto"><span th:text="#{host.dash.reviewNow}">Review now</span><svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
 
       <!-- Status filter chips -->
-      <div class="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Filter orders by status">
-        <span class="hidden items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-400 sm:inline-flex"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-list-filter"/></svg>Filter</span>
+      <div class="mt-5 flex flex-wrap items-center gap-2" role="group" th:aria-label="#{host.orders.filterGroupAria}" aria-label="Filter orders by status">
+        <span class="hidden items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-400 sm:inline-flex"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-list-filter"/></svg><span th:text="#{host.orders.filter}">Filter</span></span>
         <a th:href="@{/host/orders(f=1,q=${q},from=${from},to=${to})}" class="rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${statusFilter == '' || statusFilter == null} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All</a>
+           th:classappend="${statusFilter == '' || statusFilter == null} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'" th:text="#{host.events.filterAll}">All</a>
         <a th:href="@{/host/orders(f=1,status='pending',q=${q},from=${from},to=${to})}" class="rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${statusFilter == 'pending'} ? 'border-amber-500 bg-amber-50 text-amber-800' : 'border-amber-400 bg-white text-amber-700 hover:border-amber-500'">Pending confirmation (<span class="font-bold tabular-nums" th:text="${pendingCount}">4</span>)</a>
+           th:classappend="${statusFilter == 'pending'} ? 'border-amber-500 bg-amber-50 text-amber-800' : 'border-amber-400 bg-white text-amber-700 hover:border-amber-500'"><span th:text="#{host.status.pendingConfirmation}">Pending confirmation</span> (<span class="font-bold tabular-nums" th:text="${pendingCount}">4</span>)</a>
         <a th:href="@{/host/orders(f=1,status='confirmed',q=${q},from=${from},to=${to})}" class="rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${statusFilter == 'confirmed'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Confirmed<span th:if="${confirmedCount != null}" class="ml-1 font-bold tabular-nums" th:text="${confirmedCount}">132</span></a>
+           th:classappend="${statusFilter == 'confirmed'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.confirmed}">Confirmed</span><span th:if="${confirmedCount != null}" class="ms-1 font-bold tabular-nums" th:text="${confirmedCount}">132</span></a>
         <a th:href="@{/host/orders(f=1,status='rejected',q=${q},from=${from},to=${to})}" class="rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${statusFilter == 'rejected'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Rejected<span th:if="${rejectedCount != null}" class="ml-1 font-bold tabular-nums" th:text="${rejectedCount}">2</span></a>
+           th:classappend="${statusFilter == 'rejected'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.rejected}">Rejected</span><span th:if="${rejectedCount != null}" class="ms-1 font-bold tabular-nums" th:text="${rejectedCount}">2</span></a>
         <a th:href="@{/host/orders(f=1,status='refunded',q=${q},from=${from},to=${to})}" class="rounded-full border px-4 py-2 text-sm font-medium transition"
-           th:classappend="${statusFilter == 'refunded'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Refunded<span th:if="${refundedCount != null}" class="ml-1 font-bold tabular-nums" th:text="${refundedCount}">3</span></a>
+           th:classappend="${statusFilter == 'refunded'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.refunded}">Refunded</span><span th:if="${refundedCount != null}" class="ms-1 font-bold tabular-nums" th:text="${refundedCount}">3</span></a>
       </div>
 
       <!-- Empty state -->
       <div th:if="${#lists.isEmpty(orders.content)}" class="mt-6 rounded-2xl border border-ink-100 bg-white px-6 py-16 text-center shadow-card">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-receipt"/></svg></span>
-        <h3 class="mt-4 font-display text-lg font-bold text-ink-900">No orders here</h3>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">Orders appear as soon as buyers check out. Try a different filter or share your event page.</p>
+        <h3 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{host.orders.noOrders}">No orders here</h3>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{host.orders.noOrdersSub}">Orders appear as soon as buyers check out. Try a different filter or share your event page.</p>
       </div>
 
       <!-- Orders table -->
       <div th:unless="${#lists.isEmpty(orders.content)}" class="relative mt-6 min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
         <table class="w-full min-w-[720px] text-sm">
           <thead>
-            <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-              <th class="px-4 py-3">Order #</th>
-              <th class="px-3 py-3">Buyer</th>
-              <th class="px-3 py-3">Event</th>
-              <th class="hidden px-3 py-3 2xl:table-cell">Tickets</th>
-              <th class="px-3 py-3">Total</th>
-              <th class="hidden px-3 py-3 xl:table-cell">Payment</th>
-              <th class="px-3 py-3">Status</th>
-              <th class="px-3 py-3">Date</th>
-              <th class="px-3 py-3 text-right"><span class="sr-only">Actions</span></th>
+            <tr class="border-b border-ink-100 text-start text-xs font-semibold uppercase tracking-wide text-ink-500">
+              <th class="px-4 py-3 text-start" th:text="#{host.orders.colOrder}">Order #</th>
+              <th class="px-3 py-3 text-start" th:text="#{host.orders.colBuyer}">Buyer</th>
+              <th class="px-3 py-3 text-start" th:text="#{host.orders.colEvent}">Event</th>
+              <th class="hidden px-3 py-3 text-start 2xl:table-cell" th:text="#{host.orders.colTickets}">Tickets</th>
+              <th class="px-3 py-3 text-start" th:text="#{host.orders.colTotal}">Total</th>
+              <th class="hidden px-3 py-3 text-start xl:table-cell" th:text="#{host.orders.colPayment}">Payment</th>
+              <th class="px-3 py-3 text-start" th:text="#{host.orders.colStatus}">Status</th>
+              <th class="px-3 py-3 text-start" th:text="#{host.orders.colDate}">Date</th>
+              <th class="px-3 py-3 text-end"><span class="sr-only" th:text="#{host.orders.colActions}">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             <th:block th:each="o : ${orders.content}">
             <tr class="border-b border-ink-50"
-                th:classappend="${o.pending()} ? 'bg-amber-50/40 hover:bg-amber-50/70' : (${#strings.equalsIgnoreCase(o.statusLabel(), 'refunded')} ? 'bg-rose-50/30 hover:bg-rose-50/60' : 'hover:bg-brand-50/40')">
-              <td class="px-4 py-3 font-mono text-xs font-semibold tabular-nums text-brand-600" th:text="${o.orderCode()}">EVT-2026-04131</td>
+                th:classappend="${o.pending()} ? 'bg-amber-50/40 hover:bg-amber-50/70' : (${o.statusKey() == 'REFUNDED'} ? 'bg-rose-50/30 hover:bg-rose-50/60' : 'hover:bg-brand-50/40')">
+              <td class="px-4 py-3 font-mono text-xs font-semibold tabular-nums text-brand-600"><span dir="ltr" th:text="${o.orderCode()}">EVT-2026-04131</span></td>
               <td class="px-3 py-3">
                 <p class="max-w-[180px] truncate font-semibold text-ink-900" th:text="${o.buyerName()}">Huda Nasser</p>
                 <p class="max-w-[180px] truncate text-xs text-ink-500" th:text="${o.buyerEmail()}">huda@example.com</p>
               </td>
               <td class="px-3 py-3"><p class="max-w-[200px] truncate text-ink-600" th:text="${o.eventTitle()}">Baghdad Nights Music Festival</p></td>
               <td class="hidden px-3 py-3 2xl:table-cell"><p class="max-w-[160px] truncate text-ink-600" th:text="${o.itemsLabel()}">2× General Admission</p></td>
-              <td class="whitespace-nowrap px-3 py-3 font-semibold tabular-nums" th:classappend="${#strings.equalsIgnoreCase(o.statusLabel(), 'refunded')} ? 'text-ink-500 line-through' : 'text-ink-900'" th:text="${o.totalLabel()}">73,000 IQD</td>
+              <td class="whitespace-nowrap px-3 py-3 font-semibold tabular-nums" th:classappend="${o.statusKey() == 'REFUNDED'} ? 'text-ink-500 line-through' : 'text-ink-900'" th:text="${o.totalLabel()}">73,000 IQD</td>
               <td class="hidden px-3 py-3 text-ink-600 xl:table-cell">
-                <span th:if="${o.methodLabel() == 'Direct transfer'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-qr-code"/></svg>Direct transfer</span>
-                <span th:if="${o.methodLabel() != 'Direct transfer'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="${o.methodLabel()}">Free</span></span>
+                <span th:if="${o.methodLabel() == 'Direct transfer'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-qr-code"/></svg><span th:text="#{host.orders.directTransfer}">Direct transfer</span></span>
+                <span th:if="${o.methodLabel() != 'Direct transfer'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="${o.methodLabel() == 'Free'} ? #{common.free} : ${o.methodLabel()}">Free</span></span>
               </td>
               <td class="px-3 py-3">
-                <span th:if="${o.pending()}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Pending confirmation</span>
-                <span th:if="${o.pending() && o.hasReceipt()}" class="mt-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700" title="Transfer receipt uploaded — open the details to review it"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-receipt"/></svg>Receipt</span>
-                <span th:if="${o.statusLabel() == 'Confirmed'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Confirmed</span>
-                <span th:if="${o.statusLabel() == 'Rejected'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Rejected</span>
-                <span th:if="${#strings.equalsIgnoreCase(o.statusLabel(), 'refunded')}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Refunded</span>
-                <span th:if="${!o.pending() && o.statusLabel() != 'Confirmed' && o.statusLabel() != 'Rejected' && !#strings.equalsIgnoreCase(o.statusLabel(), 'refunded')}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${o.statusLabel()}">Cancelled</span></span>
+                <span th:if="${o.pending()}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.pendingConfirmation}">Pending confirmation</span></span>
+                <span th:if="${o.pending() && o.hasReceipt()}" class="mt-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700" th:title="#{host.orders.receiptTitle}" title="Transfer receipt uploaded — open the details to review it"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-receipt"/></svg><span th:text="#{host.orders.receipt}">Receipt</span></span>
+                <span th:if="${o.statusKey() == 'CONFIRMED'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.confirmed}">Confirmed</span></span>
+                <span th:if="${o.statusKey() == 'REJECTED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.rejected}">Rejected</span></span>
+                <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.refunded}">Refunded</span></span>
+                <span th:if="${!o.pending() && o.statusKey() != 'CONFIRMED' && o.statusKey() != 'REJECTED' && !o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${o.statusKey() == 'CANCELLED'} ? #{host.status.cancelled} : ${o.statusLabel()}">Cancelled</span></span>
               </td>
               <td class="px-3 py-3 whitespace-nowrap text-ink-500" th:text="${o.createdLine()}">Aug 4</td>
-              <td class="px-3 py-3 text-right">
+              <td class="px-3 py-3 text-end">
                 <div class="flex flex-wrap items-center justify-end gap-1.5">
                   <!-- Approve/Reject live ONCE in the detail panel, next to the receipt preview.
                        Pending rows render with the detail open, so the decision is one glance away. -->
-                  <button type="button" class="detail-toggle grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-50 hover:text-ink-700" th:classappend="${o.pending()} ? 'rotate-180' : ''" th:attr="aria-label='Details for order ' + ${o.orderCode()},aria-expanded=${o.pending()} ? 'true' : 'false'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                  <button type="button" class="detail-toggle grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-50 hover:text-ink-700" th:classappend="${o.pending()} ? 'rotate-180' : ''" th:attr="aria-label=#{host.orders.detailsAria(${o.orderCode()})},aria-expanded=${o.pending()} ? 'true' : 'false'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
                 </div>
               </td>
             </tr>
@@ -158,7 +158,7 @@
               <td colspan="9" class="px-6 py-5">
                 <div class="grid gap-5 lg:grid-cols-3">
                   <div>
-                    <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500">Buyer</h4>
+                    <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.orders.colBuyer}">Buyer</h4>
                     <div class="mt-2 flex items-center gap-3 rounded-xl border border-ink-100 bg-white p-3.5">
                       <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${#strings.toUpperCase(#strings.substring(o.buyerName(), 0, 1))}">A</span>
                       <div class="min-w-0">
@@ -166,53 +166,53 @@
                         <p class="truncate text-xs text-ink-500" th:text="${o.buyerEmail()}">ali@example.com</p>
                       </div>
                     </div>
-                    <p class="mt-2 text-xs text-ink-500">Placed <span class="font-semibold text-ink-700" th:text="${o.createdLine()}">Aug 4 · 9:14 PM</span></p>
+                    <p class="mt-2 text-xs text-ink-500"><span th:text="#{host.orders.placed}">Placed</span> <span class="font-semibold text-ink-700" th:text="${o.createdLine()}">Aug 4 · 9:14 PM</span></p>
                   </div>
                   <div>
-                    <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500">Order</h4>
+                    <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.orders.orderHeading}">Order</h4>
                     <div class="mt-2 space-y-1.5 rounded-xl border border-ink-100 bg-white p-3.5 text-sm">
-                      <div class="flex justify-between gap-3"><span class="text-ink-500">Items</span><span class="text-right font-medium text-ink-800" th:text="${o.itemsLabel()}">2× GA</span></div>
-                      <div class="flex justify-between gap-3"><span class="text-ink-500">Total</span><span class="font-bold tabular-nums text-ink-900" th:text="${o.totalLabel()}">73,000 IQD</span></div>
-                      <div class="flex justify-between gap-3"><span class="text-ink-500">Payment</span><span class="font-medium text-ink-800" th:text="${o.methodLabel()}">Direct transfer</span></div>
-                      <div class="flex justify-between gap-3" th:if="${o.transferReference() != null}"><span class="text-ink-500">Transfer ref</span><span class="font-mono text-xs font-semibold tabular-nums text-ink-800" th:text="${o.transferReference()}">DT-88412-QRX</span></div>
+                      <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.items}">Items</span><span class="text-end font-medium text-ink-800" th:text="${o.itemsLabel()}">2× GA</span></div>
+                      <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.colTotal}">Total</span><span class="font-bold tabular-nums text-ink-900" th:text="${o.totalLabel()}">73,000 IQD</span></div>
+                      <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.colPayment}">Payment</span><span class="font-medium text-ink-800" th:text="${o.methodLabel() == 'Direct transfer'} ? #{host.orders.directTransfer} : (${o.methodLabel() == 'Free'} ? #{common.free} : ${o.methodLabel()})">Direct transfer</span></div>
+                      <div class="flex justify-between gap-3" th:if="${o.transferReference() != null}"><span class="text-ink-500" th:text="#{host.orders.transferRef}">Transfer ref</span><span dir="ltr" class="font-mono text-xs font-semibold tabular-nums text-ink-800" th:text="${o.transferReference()}">DT-88412-QRX</span></div>
                     </div>
                     <!-- Transfer receipt: inline image preview, PDF button, or missing-receipt warning -->
                     <div th:if="${o.hasReceipt()}" class="mt-3">
-                      <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500">Transfer receipt</h4>
-                      <a th:if="${receiptImageIds != null && receiptImageIds.contains(o.id())}" th:href="@{/host/orders/{id}/receipt(id=${o.id()})}" target="_blank" class="mt-2 block w-fit" th:attr="aria-label='Open receipt for order ' + ${o.orderCode()} + ' full size'">
-                        <img th:src="@{/host/orders/{id}/receipt(id=${o.id()})}" alt="Uploaded transfer receipt" class="max-h-64 w-auto rounded-xl border border-ink-200 bg-white object-contain shadow-sm transition hover:opacity-85">
+                      <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.orders.transferReceipt}">Transfer receipt</h4>
+                      <a th:if="${receiptImageIds != null && receiptImageIds.contains(o.id())}" th:href="@{/host/orders/{id}/receipt(id=${o.id()})}" target="_blank" class="mt-2 block w-fit" th:attr="aria-label=#{host.orders.openReceiptAria(${o.orderCode()})}">
+                        <img th:src="@{/host/orders/{id}/receipt(id=${o.id()})}" th:alt="#{host.orders.receiptAlt}" alt="Uploaded transfer receipt" class="max-h-64 w-auto rounded-xl border border-ink-200 bg-white object-contain shadow-sm transition hover:opacity-85">
                       </a>
-                      <p th:if="${receiptImageIds != null && receiptImageIds.contains(o.id())}" class="mt-1 text-xs text-ink-400">Click the receipt to open it full size.</p>
-                      <a th:if="${receiptImageIds == null || !receiptImageIds.contains(o.id())}" th:href="@{/host/orders/{id}/receipt(id=${o.id()})}" target="_blank" class="mt-2 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-xs font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-receipt"/></svg><span th:text="${receiptImageIds != null} ? 'Open receipt (PDF)' : 'Open transfer receipt'">Open receipt (PDF)</span></a>
+                      <p th:if="${receiptImageIds != null && receiptImageIds.contains(o.id())}" class="mt-1 text-xs text-ink-400" th:text="#{host.orders.receiptClickHint}">Click the receipt to open it full size.</p>
+                      <a th:if="${receiptImageIds == null || !receiptImageIds.contains(o.id())}" th:href="@{/host/orders/{id}/receipt(id=${o.id()})}" target="_blank" class="mt-2 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-xs font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-receipt"/></svg><span th:text="${receiptImageIds != null} ? #{host.orders.openReceiptPdf} : #{host.orders.openReceipt}">Open receipt (PDF)</span></a>
                     </div>
                     <div th:if="${o.pending() && !o.hasReceipt()}" class="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800">
                       <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
-                      <span><span class="font-semibold">No receipt uploaded</span> — ask the buyer for proof of transfer before approving.</span>
+                      <span><span class="font-semibold" th:text="#{host.orders.noReceipt}">No receipt uploaded</span><span th:text="#{host.orders.noReceiptSub}"> — ask the buyer for proof of transfer before approving.</span></span>
                     </div>
                   </div>
                   <div>
-                    <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500">Actions</h4>
+                    <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-500" th:text="#{host.orders.colActions}">Actions</h4>
                     <div class="mt-2 flex flex-wrap gap-2">
                       <div th:if="${o.pending()}" class="flex flex-wrap gap-2">
                         <form th:action="@{/host/orders/{id}/approve(id=${o.id()})}" method="post">
-                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-2.5 text-xs font-semibold text-white shadow-pop transition hover:bg-green-700 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg>Approve &amp; issue tickets</button>
+                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-2.5 text-xs font-semibold text-white shadow-pop transition hover:bg-green-700 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{host.orders.approve}">Approve &amp; issue tickets</span></button>
                         </form>
                         <form th:action="@{/host/orders/{id}/reject(id=${o.id()})}" method="post">
-                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg>Reject</button>
+                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg><span th:text="#{host.orders.reject}">Reject</span></button>
                         </form>
-                        <p class="w-full text-xs text-amber-700">Tickets are only issued after you approve — check the receipt against your wallet first.</p>
+                        <p class="w-full text-xs text-amber-700" th:text="#{host.orders.approveHint}">Tickets are only issued after you approve — check the receipt against your wallet first.</p>
                       </div>
-                      <div th:if="${o.statusLabel() == 'Confirmed' && canManage != null && canManage}" class="flex flex-wrap gap-2">
+                      <div th:if="${o.statusKey() == 'CONFIRMED' && canManage != null && canManage}" class="flex flex-wrap gap-2">
                         <form th:action="@{/host/orders/{id}/resend(id=${o.id()})}" method="post">
-                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-xs font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-send"/></svg>Resend confirmation</button>
+                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-xs font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-send"/></svg><span th:text="#{host.orders.resend}">Resend confirmation</span></button>
                         </form>
                         <form th:action="@{/host/orders/{id}/refund(id=${o.id()})}" method="post"
-                              th:attr="onsubmit='return confirm(&quot;Refund order ' + ${o.orderCode()} + ' (' + ${o.totalLabel()} + ')? Tickets will be cancelled and the buyer notified. Return the money to the buyer yourself — this cannot be undone.&quot;);'">
-                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg>Refund order</button>
+                              th:attr="onsubmit='return confirm(&quot;' + #{host.orders.refundConfirm(${o.orderCode()}, ${o.totalLabel()})} + '&quot;);'">
+                          <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg><span th:text="#{host.orders.refundOrder}">Refund order</span></button>
                         </form>
                       </div>
-                      <p th:if="${#strings.equalsIgnoreCase(o.statusLabel(), 'refunded')}" class="rounded-xl bg-rose-100 px-3.5 py-2 text-xs font-semibold text-rose-700">Refunded — tickets voided, buyer notified.</p>
-                      <p th:if="${o.statusLabel() == 'Rejected'}" class="rounded-xl bg-ink-100 px-3.5 py-2 text-xs font-semibold text-ink-600">Rejected — the buyer was notified.</p>
+                      <p th:if="${o.statusKey() == 'REFUNDED'}" class="rounded-xl bg-rose-100 px-3.5 py-2 text-xs font-semibold text-rose-700" th:text="#{host.orders.refundedNote}">Refunded — tickets voided, buyer notified.</p>
+                      <p th:if="${o.statusKey() == 'REJECTED'}" class="rounded-xl bg-ink-100 px-3.5 py-2 text-xs font-semibold text-ink-600" th:text="#{host.orders.rejectedNote}">Rejected — the buyer was notified.</p>
                     </div>
                   </div>
                 </div>
@@ -225,12 +225,12 @@
 
       <!-- Pagination -->
       <div th:unless="${#lists.isEmpty(orders.content)}" class="mt-4 flex items-center justify-between text-sm">
-        <p class="text-ink-500">Page <span class="font-semibold tabular-nums text-ink-800" th:text="${orders.number + 1}">1</span> of <span class="font-semibold tabular-nums text-ink-800" th:text="${orders.totalPages}">1</span> · <span class="tabular-nums" th:text="${orders.totalElements}">143</span> orders</p>
+        <p class="text-ink-500"><span th:text="#{host.orders.page}">Page</span> <span class="font-semibold tabular-nums text-ink-800" th:text="${orders.number + 1}">1</span> <span th:text="#{host.events.of}">of</span> <span class="font-semibold tabular-nums text-ink-800" th:text="${orders.totalPages}">1</span> · <span class="tabular-nums" th:text="${orders.totalElements}">143</span> <span th:text="#{host.orders.ordersWord}">orders</span></p>
         <div class="flex items-center gap-1.5">
-          <a th:if="${orders.hasPrevious()}" th:href="@{/host/orders(f=1,status=${statusFilter},q=${q},from=${from},to=${to},page=${orders.number - 1})}" class="inline-flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-left"/></svg>Previous</a>
-          <span th:unless="${orders.hasPrevious()}" class="inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-ink-100 bg-white px-3.5 py-2 font-semibold text-ink-300"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-left"/></svg>Previous</span>
-          <a th:if="${orders.hasNext()}" th:href="@{/host/orders(f=1,status=${statusFilter},q=${q},from=${from},to=${to},page=${orders.number + 1})}" class="inline-flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
-          <span th:unless="${orders.hasNext()}" class="inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-ink-100 bg-white px-3.5 py-2 font-semibold text-ink-300">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-chevron-right"/></svg></span>
+          <a th:if="${orders.hasPrevious()}" th:href="@{/host/orders(f=1,status=${statusFilter},q=${q},from=${from},to=${to},page=${orders.number - 1})}" class="inline-flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-left"/></svg><span th:text="#{host.orders.previous}">Previous</span></a>
+          <span th:unless="${orders.hasPrevious()}" class="inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-ink-100 bg-white px-3.5 py-2 font-semibold text-ink-300"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-left"/></svg><span th:text="#{host.orders.previous}">Previous</span></span>
+          <a th:if="${orders.hasNext()}" th:href="@{/host/orders(f=1,status=${statusFilter},q=${q},from=${from},to=${to},page=${orders.number + 1})}" class="inline-flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600"><span th:text="#{host.orders.next}">Next</span><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
+          <span th:unless="${orders.hasNext()}" class="inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-ink-100 bg-white px-3.5 py-2 font-semibold text-ink-300"><span th:text="#{host.orders.next}">Next</span><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-right"/></svg></span>
         </div>
       </div>
 

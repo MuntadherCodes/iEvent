@@ -4,6 +4,8 @@ import iq.ievent.domain.Organization;
 import iq.ievent.domain.PaymentMethod;
 import iq.ievent.repo.PaymentMethodRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,12 +17,20 @@ import java.util.List;
 public class PaymentMethodService {
 
     private final PaymentMethodRepository methods;
+    private final MessageSource messages;
     private final java.nio.file.Path uploadDir;
 
     public PaymentMethodService(PaymentMethodRepository methods,
+                                MessageSource messages,
                                 @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.methods = methods;
+        this.messages = messages;
         this.uploadDir = java.nio.file.Path.of(uploadDir);
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     @Transactional(readOnly = true)
@@ -37,10 +47,10 @@ public class PaymentMethodService {
     @Transactional
     public String add(Organization org, String label, String accountNumber, String accountName,
                       String instructions, MultipartFile qrImage) {
-        if (label == null || label.isBlank()) return "Give the payment method a name (e.g. ZainCash).";
+        if (label == null || label.isBlank()) return msg("pm.nameRequired");
         if ((accountNumber == null || accountNumber.isBlank())
                 && (qrImage == null || qrImage.isEmpty())) {
-            return "Add an account/card number or upload a QR image — buyers need one of them.";
+            return msg("pm.accountOrQrRequired");
         }
         PaymentMethod m = new PaymentMethod();
         m.setOrganization(org);
@@ -64,7 +74,7 @@ public class PaymentMethodService {
     @Transactional
     public String updateQr(Long methodId, Long orgId, MultipartFile qrImage) {
         PaymentMethod m = owned(methodId, orgId);
-        if (m == null) return "Unknown payment method.";
+        if (m == null) return msg("pm.unknown");
         return storeQr(m, qrImage);
     }
 
@@ -97,12 +107,12 @@ public class PaymentMethodService {
 
     private String storeQr(PaymentMethod m, MultipartFile qrImage) {
         if (qrImage == null || qrImage.isEmpty()) return null;
-        if (qrImage.getSize() > 2 * 1024 * 1024) return "QR image is too large (max 2 MB).";
+        if (qrImage.getSize() > 2 * 1024 * 1024) return msg("pm.qr.tooLarge");
         String original = qrImage.getOriginalFilename() == null ? "" : qrImage.getOriginalFilename();
         String ext = original.contains(".")
                 ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
         if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
-            return "QR must be a JPG, PNG or WEBP image.";
+            return msg("pm.qr.badType");
         }
         try {
             java.nio.file.Path dir = uploadDir.resolve("payment-qr");
@@ -114,7 +124,7 @@ public class PaymentMethodService {
             methods.save(m);
             return null;
         } catch (java.io.IOException e) {
-            return "Could not store the QR image — try again.";
+            return msg("pm.qr.storeFailed");
         }
     }
 

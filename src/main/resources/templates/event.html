@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${event.title} + ' — iEvent')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${event.title} + #{public.title.suffix})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -32,12 +32,12 @@
   <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 md:pt-8 lg:px-8">
 
     <!-- Breadcrumb -->
-    <nav class="text-sm text-ink-500" aria-label="Breadcrumb">
+    <nav class="text-sm text-ink-500" th:attr="aria-label=#{public.browse.breadcrumbAria}" aria-label="Breadcrumb">
       <ol class="flex flex-wrap items-center gap-1.5">
-        <li><a th:href="@{/}" class="transition hover:text-brand-600">Home</a></li>
-        <li aria-hidden="true"><svg class="h-3.5 w-3.5 text-ink-300"><use href="#i-chevron-right"/></svg></li>
-        <li><a th:href="@{/browse}" class="transition hover:text-brand-600">Browse events</a></li>
-        <li aria-hidden="true"><svg class="h-3.5 w-3.5 text-ink-300"><use href="#i-chevron-right"/></svg></li>
+        <li><a th:href="@{/}" class="transition hover:text-brand-600" th:text="#{public.browse.home}">Home</a></li>
+        <li aria-hidden="true"><svg class="h-3.5 w-3.5 text-ink-300 rtl:rotate-180"><use href="#i-chevron-right"/></svg></li>
+        <li><a th:href="@{/browse}" class="transition hover:text-brand-600" th:text="#{public.nav.browse}">Browse events</a></li>
+        <li aria-hidden="true"><svg class="h-3.5 w-3.5 text-ink-300 rtl:rotate-180"><use href="#i-chevron-right"/></svg></li>
         <li class="min-w-0 max-w-full truncate font-semibold text-ink-800" th:text="${event.title}">Baghdad Nights Music Festival</li>
       </ol>
     </nav>
@@ -46,8 +46,8 @@
     <div th:if="${previewMode}" class="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4" role="status">
       <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true"><use href="#i-eye"/></svg>
       <div>
-        <p class="font-display font-extrabold text-amber-800">Draft preview — only you can see this page.</p>
-        <p class="mt-0.5 text-sm text-amber-700">Publish to make it public.</p>
+        <p class="font-display font-extrabold text-amber-800" th:text="#{public.event.draftBanner}">Draft preview — only you can see this page.</p>
+        <p class="mt-0.5 text-sm text-amber-700" th:text="#{public.event.draftBannerSub}">Publish to make it public.</p>
       </div>
     </div>
 
@@ -55,15 +55,15 @@
     <div th:if="${eventStatus == 'CANCELLED'}" class="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4" role="alert">
       <svg class="mt-0.5 h-5 w-5 shrink-0 text-rose-500" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
       <div>
-        <p class="font-display font-extrabold text-rose-800">This event has been cancelled</p>
-        <p class="mt-0.5 text-sm text-rose-700">Tickets are no longer on sale. If you already bought tickets, the organizer will arrange your refund.</p>
+        <p class="font-display font-extrabold text-rose-800" th:text="#{public.event.cancelledBanner}">This event has been cancelled</p>
+        <p class="mt-0.5 text-sm text-rose-700" th:text="#{public.event.cancelledBannerSub}">Tickets are no longer on sale. If you already bought tickets, the organizer will arrange your refund.</p>
       </div>
     </div>
     <div th:if="${eventStatus == 'ENDED'}" class="mt-5 flex items-start gap-3 rounded-2xl border border-ink-200 bg-ink-50 px-5 py-4" role="status">
       <svg class="mt-0.5 h-5 w-5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg>
       <div>
-        <p class="font-display font-extrabold text-ink-800">This event has ended</p>
-        <p class="mt-0.5 text-sm text-ink-500">Ticket sales are closed. Follow the organizer to hear about their next event first.</p>
+        <p class="font-display font-extrabold text-ink-800" th:text="#{public.event.endedBanner}">This event has ended</p>
+        <p class="mt-0.5 text-sm text-ink-500" th:text="#{public.event.endedBannerSub}">Ticket sales are closed. Follow the organizer to hear about their next event first.</p>
       </div>
     </div>
 
@@ -72,18 +72,18 @@
       <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="evc" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#evc)"/></svg>
       <svg class="absolute inset-0 m-auto h-20 w-20 text-white/40 md:h-28 md:w-28" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
       <img th:if="${event.coverImageUrl != null}" th:src="${event.coverImageUrl}" th:alt="${event.title}" class="absolute inset-0 h-full w-full object-cover">
-      <span class="absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-bold text-ink-800 md:left-6 md:top-6" th:text="${event.categoryLabel}">Music</span>
-      <div class="absolute right-4 top-4 z-10 flex items-center gap-2 md:right-6 md:top-6">
+      <span class="absolute start-4 top-4 z-10 rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-bold text-ink-800 md:start-6 md:top-6" th:text="${event.categoryLabel}">Music</span>
+      <div class="absolute end-4 top-4 z-10 flex items-center gap-2 md:end-6 md:top-6">
         <form th:if="${currentUser != null}" th:action="@{/events/{s}/like(s=${event.slug})}" method="post" class="contents">
           <button type="submit" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-white/90 px-4 text-sm font-semibold tabular-nums transition hover:text-rose-500"
                   th:classappend="${liked} ? 'text-rose-500' : 'text-ink-700'"
-                  th:attr="aria-label='Like this event, ' + ${event.likes} + ' likes',aria-pressed=${liked} ? 'true' : 'false'"><svg class="h-4 w-4" th:classappend="${liked} ? 'fill-current' : ''" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${event.likes}">214</span></button>
+                  th:attr="aria-label=#{public.event.likeAria(${'' + event.likes})},aria-pressed=${liked} ? 'true' : 'false'"><svg class="h-4 w-4" th:classappend="${liked} ? 'fill-current' : ''" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${event.likes}">214</span></button>
         </form>
-        <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-white/90 px-4 text-sm font-semibold tabular-nums text-ink-700 transition hover:text-rose-500" th:attr="aria-label='Like this event, ' + ${event.likes} + ' likes'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${event.likes}">214</span></a>
-        <button id="shareBtn" type="button" class="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600" aria-label="Share event">
+        <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-white/90 px-4 text-sm font-semibold tabular-nums text-ink-700 transition hover:text-rose-500" th:attr="aria-label=#{public.event.likeAria(${'' + event.likes})}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${event.likes}">214</span></a>
+        <button id="shareBtn" type="button" class="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600" th:attr="aria-label=#{public.event.shareAria}" aria-label="Share event">
           <svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg>
         </button>
-        <span id="shareCopied" class="hidden rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-green-700" role="status">Link copied</span>
+        <span id="shareCopied" class="hidden rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-green-700" role="status" th:text="#{public.event.linkCopied}">Link copied</span>
       </div>
     </div>
 
@@ -102,7 +102,7 @@
             </span>
             <div>
               <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="${event.dateLine}">Saturday, September 12 · 7:00 PM – 12:00 AM</span></p>
-              <a th:href="@{/events/{s}/calendar.ics(s=${event.slug})}" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>Add to calendar</a>
+              <a th:href="@{/events/{s}/calendar.ics(s=${event.slug})}" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.event.addToCalendar}]]</a>
             </div>
           </div>
         </div>
@@ -118,20 +118,20 @@
           <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="group flex items-center gap-3">
             <span class="grid h-11 w-11 place-items-center rounded-full bg-brand-500 font-display text-sm font-extrabold text-white" th:text="${event.organizer.initials}">ZE</span>
             <span>
-              <span class="block text-sm text-ink-500">Hosted by</span>
-              <span class="flex items-center gap-1.5 font-semibold text-ink-900 transition group-hover:text-brand-600"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only">Verified organizer</span></span>
+              <span class="block text-sm text-ink-500" th:text="#{public.event.hostedBy}">Hosted by</span>
+              <span class="flex items-center gap-1.5 font-semibold text-ink-900 transition group-hover:text-brand-600"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only" th:text="#{public.event.verifiedOrganizer}">Verified organizer</span></span>
             </span>
           </a>
           <form th:if="${currentUser != null}" th:action="@{/organizers/{h}/follow(h=${event.organizer.handle})}" method="post">
-            <button th:if="${!followingOrganizer}" type="submit" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" aria-pressed="false">Follow</button>
-            <button th:if="${followingOrganizer}" type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-brand-500 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
+            <button th:if="${!followingOrganizer}" type="submit" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" aria-pressed="false" th:text="#{public.event.follow}">Follow</button>
+            <button th:if="${followingOrganizer}" type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-brand-500 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>[[#{public.event.following}]]</button>
           </form>
-          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Follow</a>
+          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.event.follow}">Follow</a>
         </div>
 
         <!-- About -->
         <section class="mt-10">
-          <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl">About this event</h2>
+          <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.about}">About this event</h2>
           <div class="mt-4 space-y-4 leading-relaxed text-ink-600">
             <p th:each="para : ${event.paragraphs}" th:text="${para}">Baghdad Nights returns for its third — and biggest — edition.</p>
           </div>
@@ -139,7 +139,7 @@
 
         <!-- Lineup -->
         <section class="mt-10" th:if="${!lineup.isEmpty()}">
-          <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl">Lineup</h2>
+          <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.lineup}">Lineup</h2>
           <ul class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             <li th:each="act, st : ${lineup}" class="flex items-center gap-3 rounded-2xl border border-ink-100 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-cardHover"
                 th:with="actGrad=${st.index % 3 == 0 ? 'from-violet-500 to-fuchsia-500' : (st.index % 3 == 1 ? 'from-brand-400 to-indigo-500' : 'from-amber-400 to-rose-400')},
@@ -155,7 +155,7 @@
 
         <!-- Location (VENUE: address + embedded map · ONLINE: join-link teaser · TBA: announcement note) -->
         <section class="mt-10">
-          <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl">Location</h2>
+          <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.location}">Location</h2>
 
           <!-- Physical venue -->
           <th:block th:if="${event.locationType() == 'VENUE'}"
@@ -163,30 +163,30 @@
             <div class="mt-4 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${event.venueName}">Al-Zawraa Park — Main Amphitheatre</span></p>
-                <p class="mt-0.5 pl-6 text-sm text-ink-500" th:text="${event.venueAddress != null ? event.venueAddress : event.city}">Zawraa Park Main Gate, Al-Mansour District, Baghdad</p>
+                <p class="mt-0.5 ps-6 text-sm text-ink-500" th:text="${event.venueAddress != null ? event.venueAddress : @t.city(event.city)}">Zawraa Park Main Gate, Al-Mansour District, Baghdad</p>
               </div>
-              <a th:href="${event.mapsUrl() != null ? event.mapsUrl() : directionsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Open in Google Maps<svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg></a>
+              <a th:href="${event.mapsUrl() != null ? event.mapsUrl() : directionsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">[[#{public.event.openInMaps}]]<svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg></a>
             </div>
             <!-- Live embedded map: keyed Embed API when a Google Maps key is configured, keyless fallback otherwise -->
             <iframe th:if="${mapsKey != null}"
                     th:src="@{https://www.google.com/maps/embed/v1/place(key=${mapsKey},q=${mapQuery})}"
                     class="mt-4 h-64 w-full rounded-2xl border-0 ring-1 ring-inset ring-black/5"
                     loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen
-                    th:attr="title='Map of ' + ${event.venueName != null ? event.venueName : event.city}"></iframe>
+                    th:attr="title=#{public.event.mapTitle(${event.venueName != null ? event.venueName : @t.city(event.city)})}"></iframe>
             <iframe th:if="${mapsKey == null}"
                     th:src="${'https://maps.google.com/maps?q=' + #uris.escapeQueryParam(mapQuery) + '&amp;output=embed'}"
                     class="mt-4 h-64 w-full rounded-2xl border-0 ring-1 ring-inset ring-black/5"
                     loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                    th:attr="title='Map of ' + ${event.venueName != null ? event.venueName : event.city}"></iframe>
+                    th:attr="title=#{public.event.mapTitle(${event.venueName != null ? event.venueName : @t.city(event.city)})}"></iframe>
           </th:block>
 
           <!-- Online event: the join link itself is never shown publicly -->
           <div th:if="${event.locationType() == 'ONLINE'}" class="mt-4 flex items-start gap-3.5 rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:p-6">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-brand-600 shadow-card"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-laptop"/></svg></span>
             <div>
-              <p class="font-display font-bold text-ink-900">Online event</p>
-              <p class="mt-1 text-sm leading-relaxed text-ink-600">This event happens online — the join link is shared with confirmed ticket holders.</p>
-              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Hosted from <span th:text="${event.city}">Baghdad</span> · link unlocks after your order is confirmed</p>
+              <p class="font-display font-bold text-ink-900" th:text="#{public.event.onlineEvent}">Online event</p>
+              <p class="mt-1 text-sm leading-relaxed text-ink-600" th:text="#{public.event.onlineSub}">This event happens online — the join link is shared with confirmed ticket holders.</p>
+              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.event.hostedFrom}]] <span th:text="${@t.city(event.city)}">Baghdad</span> [[#{public.event.hostedFromTail}]]</p>
             </div>
           </div>
 
@@ -194,8 +194,8 @@
           <div th:if="${event.locationType() == 'TBA'}" class="mt-4 flex items-start gap-3.5 rounded-2xl border border-ink-200 bg-ink-50 p-5 sm:p-6">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-ink-500 shadow-card"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
             <div>
-              <p class="font-display font-bold text-ink-900">Location to be announced</p>
-              <p class="mt-1 text-sm leading-relaxed text-ink-600">The venue in <span class="font-semibold" th:text="${event.city}">Baghdad</span> hasn't been locked in yet — follow the event to get notified as soon as it's announced.</p>
+              <p class="font-display font-bold text-ink-900" th:text="#{public.event.tbaTitle}">Location to be announced</p>
+              <p class="mt-1 text-sm leading-relaxed text-ink-600">[[#{public.event.tbaSubPrefix}]] <span class="font-semibold" th:text="${@t.city(event.city)}">Baghdad</span> [[#{public.event.tbaSubSuffix}]]</p>
             </div>
           </div>
         </section>
@@ -203,16 +203,16 @@
         <!-- Refund policy + tags -->
         <section class="mt-10 grid gap-8 sm:grid-cols-2">
           <div>
-            <h2 class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-receipt"/></svg>Refund policy</h2>
+            <h2 class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-receipt"/></svg>[[#{public.event.refundPolicy}]]</h2>
             <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="${refundPolicyText}">Full refund up to 7 days before the event. Booking fees are non-refundable.</p>
           </div>
           <div>
-            <h2 class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-tag"/></svg>Event tags</h2>
+            <h2 class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.event.tags}]]</h2>
             <div class="mt-3 flex flex-wrap gap-2">
               <a th:each="tag : ${tags}" th:href="@{/browse(q=${tag})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${tag}">#LiveMusic</a>
               <th:block th:if="${tags.isEmpty()}">
                 <a th:href="@{/browse}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${event.categoryLabel}">#LiveMusic</a>
-                <a th:href="@{/browse(city=${event.city})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${event.city}">#Baghdad</a>
+                <a th:href="@{/browse(city=${event.city})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${@t.city(event.city)}">#Baghdad</a>
               </th:block>
             </div>
           </div>
@@ -224,17 +224,17 @@
             <div class="flex items-center gap-4">
               <span class="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-lg font-extrabold text-white" th:text="${event.organizer.initials}">ZE</span>
               <div>
-                <p class="flex items-center gap-1.5 font-display text-lg font-extrabold text-ink-900"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only">Verified organizer</span></p>
-                <p class="mt-0.5 text-sm tabular-nums text-ink-500"><span th:text="${event.organizer.followersDisplay}">12.4K</span> followers · <span th:text="${event.organizer.eventsHosted}">48</span> events hosted</p>
+                <p class="flex items-center gap-1.5 font-display text-lg font-extrabold text-ink-900"><span th:text="${event.organizer.name}">Zain Events Co.</span><svg th:if="${event.organizer.verified}" class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${event.organizer.verified}" class="sr-only" th:text="#{public.event.verifiedOrganizer}">Verified organizer</span></p>
+                <p class="mt-0.5 text-sm tabular-nums text-ink-500"><span th:text="${event.organizer.followersDisplay}">12.4K</span> [[#{public.event.followers}]] · <span th:text="${event.organizer.eventsHosted}">48</span> [[#{public.event.eventsHosted}]]</p>
               </div>
             </div>
             <div class="flex gap-3">
               <form th:if="${currentUser != null}" th:action="@{/organizers/{h}/follow(h=${event.organizer.handle})}" method="post" class="contents">
-                <button th:if="${!followingOrganizer}" type="submit" class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" aria-pressed="false">Follow</button>
-                <button th:if="${followingOrganizer}" type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-brand-500 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
+                <button th:if="${!followingOrganizer}" type="submit" class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" aria-pressed="false" th:text="#{public.event.follow}">Follow</button>
+                <button th:if="${followingOrganizer}" type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-brand-500 bg-brand-50 px-5 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>[[#{public.event.following}]]</button>
               </form>
-              <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Follow</a>
-              <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">View profile</a>
+              <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.event.follow}">Follow</a>
+              <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.event.viewProfile}">View profile</a>
             </div>
           </div>
           <p class="mt-5 text-sm leading-relaxed text-ink-600" th:if="${event.organizer.bio != null}" th:text="${event.organizer.bio}">Baghdad's leading live-events crew.</p>
@@ -243,8 +243,8 @@
         <!-- More like this -->
         <section class="mt-14" th:if="${!related.isEmpty()}">
           <div class="mb-6 flex items-end justify-between">
-            <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl">More events like this</h2>
-            <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+            <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.moreLikeThis}">More events like this</h2>
+            <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           </div>
           <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             <th:block th:each="card : ${related}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
@@ -258,13 +258,13 @@
         <!-- Sales closed notice (ended / cancelled) -->
         <div th:if="${!purchasable}" class="sticky top-24 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
           <span class="grid h-12 w-12 place-items-center rounded-2xl bg-ink-100 text-ink-500"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-ticket"/></svg></span>
-          <p class="mt-4 font-display text-lg font-extrabold text-ink-900" th:text="${previewMode ? 'Draft — not on sale yet' : (eventStatus == 'CANCELLED' ? 'Event cancelled' : 'Ticket sales closed')}">Ticket sales closed</p>
-          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="${previewMode ? 'This is how the ticket rail will look. Tickets go on sale when you publish the event.' : (eventStatus == 'CANCELLED' ? 'This event was cancelled by the organizer. Any paid tickets will be refunded.' : 'This event has already taken place.')}">This event has already taken place.</p>
-          <a th:if="${!previewMode}" th:href="@{/browse}" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse more events</a>
+          <p class="mt-4 font-display text-lg font-extrabold text-ink-900" th:text="${previewMode} ? #{public.event.draftNotOnSale} : (${eventStatus == 'CANCELLED'} ? #{public.event.eventCancelled} : #{public.event.salesClosed})">Ticket sales closed</p>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="${previewMode} ? #{public.event.previewRailSub} : (${eventStatus == 'CANCELLED'} ? #{public.event.cancelledRailSub} : #{public.event.endedRailSub})">This event has already taken place.</p>
+          <a th:if="${!previewMode}" th:href="@{/browse}" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.event.browseMore}">Browse more events</a>
         </div>
         <form th:if="${purchasable}" method="get" th:action="@{/events/{s}/checkout(s=${event.slug})}" class="sticky top-24 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
-          <p class="text-sm text-ink-500">Tickets from</p>
-          <p class="mt-0.5 font-display text-3xl font-extrabold tabular-nums text-ink-900"><span th:text="${event.priceFromLabel}">25,000</span> <span th:if="${event.priceFromLabel != 'Free'}" class="text-lg font-bold text-ink-500">IQD</span></p>
+          <p class="text-sm text-ink-500" th:text="#{public.event.ticketsFrom}">Tickets from</p>
+          <p class="mt-0.5 font-display text-3xl font-extrabold tabular-nums text-ink-900"><span th:text="${event.priceFromLabel == 'Free'} ? #{common.free} : ${event.priceFromLabel}">25,000</span> <span th:if="${event.priceFromLabel != 'Free'}" class="text-lg font-bold text-ink-500" th:text="#{common.iqd}">IQD</span></p>
 
           <div class="mt-6 space-y-3">
             <th:block th:each="t : ${event.ticketTypes}">
@@ -274,7 +274,7 @@
                   <p class="text-sm font-semibold text-ink-500 line-through" th:text="${t.name}">Early Bird</p>
                   <p class="text-xs tabular-nums text-ink-400" th:text="${t.priceLabel}">25,000 IQD</p>
                 </div>
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${t.status == 'ENDED' ? 'Sales ended' : 'Sold out'}">Sold out</span></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${t.status == 'ENDED'} ? #{public.event.salesEnded} : #{public.event.soldOut}">Sold out</span></span>
               </div>
               <!-- On sale row -->
               <div th:if="${t.status == 'ON_SALE'}" class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3.5 transition hover:border-brand-400" data-ticket-row th:attr="data-price=${t.priceIqd},data-fee=${t.priceIqd > 0 ? feePerPaidTicket : 0}">
@@ -283,33 +283,33 @@
                   <p class="text-xs tabular-nums text-ink-500" th:text="${t.priceLabel}">35,000 IQD</p>
                 </div>
                 <div class="flex items-center gap-2">
-                  <button type="button" class="qty-minus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label='Remove one ' + ${t.name} + ' ticket'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-minus"/></svg></button>
+                  <button type="button" class="qty-minus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.event.removeOneAria(${t.name})}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-minus"/></svg></button>
                   <input type="number" th:name="'qty-' + ${t.id}" min="0" max="10" readonly
                          th:value="${defaultQtyTypeId != null && t.id == defaultQtyTypeId} ? '1' : '0'"
                          class="qty-input w-8 border-0 bg-transparent p-0 text-center font-bold tabular-nums text-ink-900 outline-none [appearance:textfield]"
-                         th:attr="aria-label=${t.name} + ' quantity'">
-                  <button type="button" class="qty-plus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label='Add one ' + ${t.name} + ' ticket'"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg></button>
+                         th:attr="aria-label=#{public.event.qtyAria(${t.name})}">
+                  <button type="button" class="qty-plus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.event.addOneAria(${t.name})}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg></button>
                 </div>
               </div>
             </th:block>
           </div>
 
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${feePerPaidTicket > 0} ? 'Booking fee 1,500 IQD per paid ticket.' : 'No booking fee — the organizer covers it.'">Booking fee 1,500 IQD per paid ticket.</span></p>
+          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${feePerPaidTicket > 0} ? #{public.event.bookingFee} : #{public.event.noBookingFee}">Booking fee 1,500 IQD per paid ticket.</span></p>
 
           <div class="mt-4 flex items-center justify-between border-t border-ink-100 pt-4">
-            <span class="text-sm font-semibold text-ink-600">Total</span>
-            <span id="railTotal" class="font-display text-xl font-extrabold tabular-nums text-ink-900">0 IQD</span>
+            <span class="text-sm font-semibold text-ink-600" th:text="#{public.event.total}">Total</span>
+            <span id="railTotal" class="font-display text-xl font-extrabold tabular-nums text-ink-900" th:attr="data-currency=#{common.iqd}" th:text="'0 ' + #{common.iqd}">0 IQD</span>
           </div>
 
-          <button type="submit" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg>Get tickets</button>
+          <button type="submit" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg>[[#{public.event.getTickets}]]</button>
           <!-- Save/like: submits the separate like form below via the form attribute (no nested forms) -->
           <button th:if="${currentUser != null}" type="submit" form="likeForm" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-5 py-3 font-semibold transition hover:border-brand-400 hover:text-brand-600"
                   th:classappend="${liked} ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-ink-200 bg-white text-ink-800'"
-                  th:attr="aria-pressed=${liked} ? 'true' : 'false'"><svg class="h-4 w-4" th:classappend="${liked} ? 'fill-current' : ''" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${liked} ? 'Saved' : 'Save'">Save</span></button>
-          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg>Save</a>
+                  th:attr="aria-pressed=${liked} ? 'true' : 'false'"><svg class="h-4 w-4" th:classappend="${liked} ? 'fill-current' : ''" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${liked} ? #{public.event.saved} : #{public.event.save}">Save</span></button>
+          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg>[[#{public.event.save}]]</a>
 
           <p class="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-ink-400">
-            <span class="inline-flex items-center gap-1"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-lock"/></svg>Secure checkout</span>·
+            <span class="inline-flex items-center gap-1"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.event.secureCheckout}]]</span>·
             <span class="inline-flex items-center gap-1"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-smartphone"/></svg>ZainCash</span>·
             <span class="inline-flex items-center gap-1"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-building-2"/></svg>FIB</span>·
             <span class="inline-flex items-center gap-1"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-credit-card"/></svg>Qi</span>
@@ -328,10 +328,10 @@
 <div th:if="${purchasable}" class="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/90 lg:hidden">
   <div class="mx-auto flex max-w-lg items-center justify-between gap-4">
     <div>
-      <p class="text-xs text-ink-500">From</p>
-      <p class="font-display text-lg font-extrabold tabular-nums text-ink-900"><span th:text="${event.priceFromLabel}">35,000</span> <span th:if="${event.priceFromLabel != 'Free'}">IQD</span></p>
+      <p class="text-xs text-ink-500" th:text="#{public.event.from}">From</p>
+      <p class="font-display text-lg font-extrabold tabular-nums text-ink-900"><span th:text="${event.priceFromLabel == 'Free'} ? #{common.free} : ${event.priceFromLabel}">35,000</span> <span th:if="${event.priceFromLabel != 'Free'}" th:text="#{common.iqd}">IQD</span></p>
     </div>
-    <a th:href="@{/events/{s}/checkout(s=${event.slug})}" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg>Get tickets</a>
+    <a th:href="@{/events/{s}/checkout(s=${event.slug})}" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg>[[#{public.event.getTickets}]]</a>
   </div>
 </div>
 
@@ -345,7 +345,8 @@
   // Ticket qty steppers + live total (prices/fees read from data-price/data-fee on each row).
   // Fee applies to paid tickets only (data-fee is 0 on free ticket types).
   var railTotal = document.getElementById('railTotal');
-  function fmt(n) { return n.toLocaleString('en-US') + ' IQD'; }
+  var railCurrency = railTotal ? (railTotal.getAttribute('data-currency') || 'IQD') : 'IQD';
+  function fmt(n) { return n.toLocaleString('en-US') + ' ' + railCurrency; }
   function updateTotal() {
     var total = 0;
     document.querySelectorAll('[data-ticket-row]').forEach(function (row) {

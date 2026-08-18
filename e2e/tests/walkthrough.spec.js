@@ -22,6 +22,25 @@ const path = require('path');
 
 test.describe.configure({ mode: 'serial' });
 
+// ---------- round 11: Arabic-first URLs ----------
+// Bare URLs now serve ARABIC (RTL); English lives under /en/** (a servlet
+// filter strips the prefix). The walkthrough asserts the character-identical
+// ENGLISH copy, so every test context gets the lang=en cookie up front: the
+// first bare page GET 302s onto /en/... and Thymeleaf keeps every rendered
+// link /en-prefixed from there. Controller redirects land bare and bounce back
+// to /en via the cookie on the next GET — page.goto()/clicks follow both hops.
+// API/asset/binary paths (/api, /js, /css, /media, /actuator, *.png, *.pdf,
+// *.ics, *.csv) are never language-redirected and keep working on bare paths.
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
+
+test.beforeEach(async ({ context }) => {
+  await context.addCookies([{ name: 'lang', value: 'en', url: BASE_URL }]);
+});
+
+// Public event-card links render as /en/events/... in English (and /events/...
+// on the Arabic side) — selectors must tolerate both.
+const EVENT_CARD_LINKS = 'main a[href^="/en/events/"], main a[href^="/events/"]';
+
 const RUN_ID = process.env.GITHUB_RUN_ID || String(Date.now());
 const E2E_EMAIL = `e2e+${RUN_ID}@test.iq`;
 const E2E_NAME = 'E2E Tester';
@@ -304,7 +323,7 @@ test('c. browse: scale volume, pagination, category / search / free filters', as
   await expect(page).toHaveURL(/\/browse/);
 
   log('with SEED_SCALE=300 the first page should be full: >= 12 event cards');
-  const cards = page.locator('main a[href^="/events/"]');
+  const cards = page.locator(EVENT_CARD_LINKS);
   await expect
     .poll(async () => cards.count(), { message: 'expected at least 12 event cards' })
     .toBeGreaterThanOrEqual(12);
@@ -327,7 +346,7 @@ test('c. browse: scale volume, pagination, category / search / free filters', as
   await page.goto('/browse?free=true');
   await expect(page).toHaveURL(/free=true/);
   await expect
-    .poll(async () => page.locator('main a[href^="/events/"]').count(), {
+    .poll(async () => page.locator(EVENT_CARD_LINKS).count(), {
       message: 'free filter should return event cards',
     })
     .toBeGreaterThan(0);
@@ -373,7 +392,10 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
     .poll(
       async () =>
         page
-          .locator('main a[href^="/events/"]:not([href*="baghdad-nights-music-festival"])')
+          .locator(
+            'main a[href^="/en/events/"]:not([href*="baghdad-nights-music-festival"]), ' +
+              'main a[href^="/events/"]:not([href*="baghdad-nights-music-festival"])'
+          )
           .count(),
       { message: 'expected related event cards' }
     )
@@ -438,7 +460,10 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
   const context = await browser.newContext();
   const freshPage = await context.newPage();
   try {
-    for (const url of ['/auth/login', '/auth/register']) {
+    // Cookie-less contexts land on the ARABIC side at bare URLs, so the English
+    // assertions below target /en explicitly (same CSRF-after-commit code path —
+    // the filter strips the prefix before rendering).
+    for (const url of ['/en/auth/login', '/en/auth/register']) {
       log(`fresh context (no cookies) → GET ${url}`);
       const response = await freshPage.goto(url);
       expect(response.status(), `${url} should answer 200`).toBe(200);
@@ -454,7 +479,7 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
     }
 
     log('Google OAuth is OFF in CI — the Google button must be a DISABLED button, not a link');
-    await freshPage.goto('/auth/login');
+    await freshPage.goto('/en/auth/login');
     await expect(
       freshPage.getByRole('button', { name: /Continue with Google/ })
     ).toBeDisabled();
@@ -1165,7 +1190,7 @@ test('y. browse "when" chips: Next 7 days has results, Today renders cleanly', a
 
   log('seeded events inside 7 days (Startup Mixer +3, Baghdad Nights +5) → cards > 0');
   await expect
-    .poll(async () => page.locator('main a[href^="/events/"]').count(), {
+    .poll(async () => page.locator(EVENT_CARD_LINKS).count(), {
       message: 'expected event cards within the next 7 days',
     })
     .toBeGreaterThan(0);
@@ -1175,7 +1200,7 @@ test('y. browse "when" chips: Next 7 days has results, Today renders cleanly', a
   await expect(page).toHaveURL(/when=today/);
   const body = await page.locator('body').innerText();
   expect(body).not.toContain('Something went wrong');
-  const cardCount = await page.locator('main a[href^="/events/"]').count();
+  const cardCount = await page.locator(EVENT_CARD_LINKS).count();
   if (cardCount === 0) {
     await expect(page.getByText('No events match')).toBeVisible();
   }
@@ -1285,7 +1310,7 @@ test('ab. browse parity: sort, price radios, when pills, numbered pagination, fi
   await expect(page).toHaveURL(/when=tomorrow/);
   let body = await page.locator('body').innerText();
   expect(body).not.toContain('Something went wrong');
-  if ((await page.locator('main a[href^="/events/"]').count()) === 0) {
+  if ((await page.locator(EVENT_CARD_LINKS).count()) === 0) {
     await expect(page.getByText('No events match')).toBeVisible();
   }
 
@@ -1293,7 +1318,7 @@ test('ab. browse parity: sort, price radios, when pills, numbered pagination, fi
   await page.getByRole('link', { name: 'This month', exact: true }).click();
   await expect(page).toHaveURL(/when=month/);
   await expect
-    .poll(async () => page.locator('main a[href^="/events/"]').count(), {
+    .poll(async () => page.locator(EVENT_CARD_LINKS).count(), {
       message: 'expected event cards within this month',
     })
     .toBeGreaterThan(0);
@@ -1363,7 +1388,11 @@ test('ad. organizer page: tabs, contact block, initials avatar, past events tab'
   log('Past events tab opens (cards or the "No past events yet" empty state)');
   await page.getByRole('tab', { name: 'Past events' }).click();
   await expect(page.locator('#tab-past')).toBeVisible();
-  if ((await page.locator('#tab-past a[href^="/events/"]').count()) === 0) {
+  if (
+    (await page
+      .locator('#tab-past a[href^="/en/events/"], #tab-past a[href^="/events/"]')
+      .count()) === 0
+  ) {
     await expect(page.getByText('No past events yet')).toBeVisible();
   }
 });
@@ -2554,7 +2583,7 @@ test('bg. draft preview (#15): owner sees the amber banner, outsiders get a 404,
 
   log('the draft never shows up on public browse');
   await page.goto('/browse?q=E2E%20Draft%20Symposium');
-  await expect(page.locator('main a[href^="/events/"]')).toHaveCount(0);
+  await expect(page.locator(EVENT_CARD_LINKS)).toHaveCount(0);
   await expect(page.getByText('No events match')).toBeVisible();
 
   log('OUTSIDER (another signed-in user): the draft URL is a plain 404');
@@ -2622,4 +2651,222 @@ test('bh. branding (#8/#9): brand color reaches the organizer banner; cover posi
   log('the public cover now crops 20% from the top');
   await page.goto(`/organizers/${handle}`);
   expect(await page.locator('div.h-44 img').first().getAttribute('style')).toContain('50% 20%');
+});
+
+// ---------- round 11: Arabic-first, /en prefix, governorates, TBA ticket PDF,
+// ----------           wizard autosave, places-picker fallback ----------
+
+// Arabic month names (JDK/CLDR "ar" locale — covers both Gregorian naming systems
+// used across Arabic locales). Dates render with Arabic words + Western digits.
+const ARABIC_MONTHS =
+  /(يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر|كانون|شباط|آذار|نيسان|أيار|حزيران|تموز|آب|أيلول|تشرين)/;
+
+test('bi. Arabic default: bare URLs render RTL Arabic with د.ع prices and Arabic governorates', async ({ browser }) => {
+  // Fresh context WITHOUT the lang cookie — the site must default to Arabic.
+  const context = await browser.newContext();
+  const p = await context.newPage();
+  try {
+    log('cookie-less GET / stays on the bare URL (no /en redirect)');
+    await p.goto('/');
+    await expect(p).not.toHaveURL(/\/en(\/|\?|$)/);
+
+    log('html carries lang="ar" dir="rtl"');
+    await expect(p.locator('html')).toHaveAttribute('lang', 'ar');
+    await expect(p.locator('html')).toHaveAttribute('dir', 'rtl');
+
+    log('the navbar shows the Arabic "Browse events" label (ar public.nav.browse)');
+    await expect(p.locator('header').getByText('تصفح الفعاليات').first()).toBeVisible();
+
+    log('prices on the home page use the Arabic dinar suffix د.ع');
+    await expect(p.getByText(/د\.ع/).first()).toBeVisible();
+
+    log('/browse (bare) renders the Arabic heading and Arabic governorate labels');
+    await p.goto('/browse');
+    await expect(p).not.toHaveURL(/\/en\//);
+    await expect(p.locator('h1').first()).toHaveText('تصفح الفعاليات');
+    await expect(
+      p.locator('select[name="city"] option[value="Baghdad"]').first()
+    ).toHaveText('بغداد');
+  } finally {
+    await context.close();
+  }
+});
+
+test('bj. language switching: EN switcher → /en LTR English, AR switcher → bare RTL, cookie persists', async ({ browser }) => {
+  const context = await browser.newContext(); // no lang cookie — start Arabic
+  const p = await context.newPage();
+  try {
+    log('Arabic home: the navbar language toggle links to /en');
+    await p.goto('/');
+    await expect(p.locator('html')).toHaveAttribute('lang', 'ar');
+    await p.locator('header a[href="/en"]').first().click();
+
+    log('now on /en: html lang="en" dir="ltr" with the English navbar');
+    await expect(p).toHaveURL(/\/en(\/|\?|$)/);
+    await expect(p.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(p.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(p.locator('header').getByText('Browse events').first()).toBeVisible();
+
+    log('the AR switcher (/set-lang?to=ar) returns to the bare Arabic home');
+    await p.locator('header a[href^="/set-lang?to=ar"]').first().click();
+    await expect(p).not.toHaveURL(/\/en(\/|\?|$)/);
+    await expect(p.locator('html')).toHaveAttribute('lang', 'ar');
+    await expect(p.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(p.locator('header').getByText('تصفح الفعاليات').first()).toBeVisible();
+
+    log('choosing EN again: the lang cookie makes a BARE goto(/browse) bounce onto /en/browse');
+    await p.locator('header a[href="/en"]').first().click();
+    await expect(p.locator('html')).toHaveAttribute('lang', 'en');
+    await p.goto('/browse');
+    await expect(p).toHaveURL(/\/en\/browse/);
+    await expect(p.locator('h1').first()).toHaveText('Browse events');
+  } finally {
+    await context.close();
+  }
+});
+
+test('bk. /en deep equivalence: the same event page renders English under /en and Arabic bare', async ({ page, browser }) => {
+  log('/en/events/... renders the familiar ENGLISH event page');
+  await page.goto('/en/events/baghdad-nights-music-festival');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
+  await expect(page.getByText('General Admission').first()).toBeVisible();
+  await expect(page.getByText(/35,000\s*IQD/).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Lineup' })).toBeVisible();
+
+  log('fresh cookie-less context: the BARE URL renders the ARABIC page with the same structure');
+  const context = await browser.newContext();
+  const p = await context.newPage();
+  try {
+    await p.goto('/events/baghdad-nights-music-festival');
+    await expect(p).not.toHaveURL(/\/en\//);
+    await expect(p.locator('html')).toHaveAttribute('lang', 'ar');
+    await expect(p.locator('html')).toHaveAttribute('dir', 'rtl');
+
+    log('title is user data — identical in Arabic');
+    await expect(p.locator('h1')).toContainText('Baghdad Nights Music Festival');
+
+    log('the date line uses an Arabic month name');
+    await expect(p.getByText(ARABIC_MONTHS).first()).toBeVisible();
+
+    log('same structural blocks: ticket price in د.ع, Arabic Lineup heading, tag chips');
+    await expect(p.getByText('General Admission').first()).toBeVisible();
+    await expect(p.getByText(/35,000\s*د\.ع/).first()).toBeVisible();
+    await expect(p.getByRole('heading', { name: 'برنامج العرض' })).toBeVisible();
+    await expect(p.getByText('DJ Rafi')).toBeVisible();
+    await expect(p.getByRole('link', { name: '#family-friendly' })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test('bl. 19 governorates: profile city select — English values everywhere, Arabic labels in Arabic mode', async ({ page }) => {
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('/me/profile (English): 19 governorate options + the placeholder');
+  await page.goto('/me/profile');
+  const citySelect = page.locator('#pf-city');
+  await expect(citySelect.locator('option')).toHaveCount(20); // 19 + "Choose your city…"
+  for (const g of ['Halabja', 'Kirkuk', 'Dhi Qar']) {
+    log(`English mode lists "${g}" with the English label`);
+    await expect(citySelect.locator(`option[value="${g}"]`)).toHaveText(g);
+  }
+
+  log('switching THIS session to Arabic via /set-lang keeps the login and localizes labels');
+  await page.goto('/set-lang?to=ar&next=/me/profile');
+  await expect(page).not.toHaveURL(/\/en\//);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+
+  log('Arabic labels — option VALUES stay canonical English');
+  await expect(page.locator('#pf-city option')).toHaveCount(20);
+  await expect(page.locator('#pf-city option[value="Halabja"]')).toHaveText('حلبجة');
+  await expect(page.locator('#pf-city option[value="Baghdad"]')).toHaveText('بغداد');
+  await expect(page.locator('#pf-city option[value="Dhi Qar"]')).toHaveText('ذي قار');
+});
+
+test('bm. PDF regression (#2): per-ticket PDF renders for the TBA-located event', async ({ page }) => {
+  // The E2E Online Meetup was RSVP\'d by the buyer in test av and flipped to
+  // "To be announced" in test aw — exactly the LazyInit shape that 500\'d before.
+  await login(page, BUYER_EMAIL, buyerPassword);
+
+  log('grabbing the per-ticket PDF link from the /me/tickets stub of the TBA event');
+  await page.goto('/me/tickets');
+  const orderCard = page.locator('article').filter({ hasText: ONLINE_EVENT_TITLE }).first();
+  await expect(orderCard).toBeVisible();
+  const pdfHref = await orderCard
+    .getByRole('link', { name: 'PDF', exact: true })
+    .first()
+    .getAttribute('href');
+  expect(pdfHref, 'ticket stub must link the per-ticket PDF').toContain('/ticket.pdf');
+
+  log(`GET ${pdfHref} → 200 application/pdf (this 500\'d before the LazyInit fix)`);
+  const res = await page.request.get(pdfHref);
+  expect(res.status(), 'TBA-event ticket PDF must not 500').toBe(200);
+  expect(res.headers()['content-type']).toContain('application/pdf');
+  expect((await res.body()).slice(0, 4).toString()).toBe('%PDF');
+});
+
+test('bn. wizard autosave: banner offers Restore (repopulates) and Discard (clears the draft)', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+  await page.goto('/host/events/new');
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 1 of 5');
+  await expect(page.locator('#autosaveBanner')).toBeHidden(); // nothing saved yet
+
+  log('typing a title — the 1s debounced autosave must land in localStorage');
+  await page.locator('#ev-title').fill('E2E Autosave Draft');
+  await expect
+    .poll(async () => page.evaluate(() => localStorage.getItem('ievent-wizard-draft')), {
+      timeout: 10_000,
+      message: 'autosave should write the local draft within a few seconds',
+    })
+    .toContain('E2E Autosave Draft');
+
+  log('reload → the restore banner appears but NEVER auto-applies');
+  await page.reload();
+  await expect(page.locator('#autosaveBanner')).toBeVisible();
+  await expect(page.locator('#ev-title')).toHaveValue('');
+
+  log('Restore → the title repopulates and the banner hides');
+  await page.locator('#autosaveRestoreBtn').click();
+  await expect(page.locator('#ev-title')).toHaveValue('E2E Autosave Draft');
+  await expect(page.locator('#autosaveBanner')).toBeHidden();
+
+  log('Discard path: save a different draft, reload, Discard → banner gone + form empty');
+  await page.locator('#ev-title').fill('E2E Autosave Discarded');
+  await expect
+    .poll(async () => page.evaluate(() => localStorage.getItem('ievent-wizard-draft')), {
+      timeout: 10_000,
+      message: 'autosave should persist the edited title',
+    })
+    .toContain('E2E Autosave Discarded');
+  await page.reload();
+  await expect(page.locator('#autosaveBanner')).toBeVisible();
+  await page.locator('#autosaveDiscardBtn').click();
+  await expect(page.locator('#autosaveBanner')).toBeHidden();
+  await expect(page.locator('#ev-title')).toHaveValue('');
+
+  log('Discard removes the localStorage draft entirely');
+  await expect
+    .poll(async () => page.evaluate(() => localStorage.getItem('ievent-wizard-draft')), {
+      timeout: 5_000,
+      message: 'Discard must remove the local draft',
+    })
+    .toBeNull();
+});
+
+test('bo. places picker fallback: without a Maps key the manual fields render and no Places wiring exists', async ({ page }) => {
+  // CI runs without GOOGLE_MAPS_KEY — the wizard must fall back to plain inputs.
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+  await page.goto('/host/events/new');
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 1 of 5');
+
+  log('manual venue fields all render');
+  await expect(page.locator('#ev-venue')).toBeVisible();
+  await expect(page.locator('#ev-address')).toBeVisible();
+  await expect(page.locator('#ev-maps')).toBeVisible();
+
+  log('negative: no #placesCfg config node, no maps script, no map preview shell');
+  await expect(page.locator('#placesCfg')).toHaveCount(0);
+  await expect(page.locator('script[src*="maps.googleapis"]')).toHaveCount(0);
+  await expect(page.locator('#mapPreviewWrap')).toHaveCount(0);
 });

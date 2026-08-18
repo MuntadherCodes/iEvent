@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('Create event — iEvent Host')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{wizard.create.docTitle})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,61 +9,73 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('events')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('Create event')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{wizard.create.topbar})}"></header>
 
   <main id="main" class="flex-1 px-4 py-6 pb-48 sm:px-6 md:pb-32 lg:px-8">
     <div class="mx-auto max-w-3xl">
 
       <!-- Wizard header -->
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <a th:href="@{/host/events}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 transition hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>My events</a>
+        <a th:href="@{/host/events}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 transition hover:text-brand-600"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-left"/></svg><span th:text="#{wizard.back.myEvents}">My events</span></a>
         <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Draft — autosaved
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> <span th:text="#{wizard.badge.draftAutosaved}">Draft — autosaved</span>
         </span>
       </div>
 
+      <!-- Autosave restore banner (hidden unless a local draft exists; never auto-applies) -->
+      <div id="autosaveBanner" class="mt-6 hidden flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
+        <div class="min-w-0 text-sm">
+          <p class="font-semibold text-brand-900" th:text="#{wizard.autosave.restore}">Resume where you left off?</p>
+          <p class="mt-0.5 text-xs text-brand-800" th:text="#{wizard.autosave.restoreNote}">An unsaved draft from this device can be restored into the form.</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <button type="button" id="autosaveRestoreBtn" class="rounded-lg bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white shadow-pop transition hover:bg-brand-600" th:text="#{wizard.autosave.restoreBtn}">Restore</button>
+          <button type="button" id="autosaveDiscardBtn" class="rounded-lg border border-brand-200 bg-white px-3.5 py-2 text-xs font-semibold text-brand-700 transition hover:border-brand-400" th:text="#{wizard.autosave.discardBtn}">Discard</button>
+        </div>
+      </div>
+
       <!-- Server error flash -->
-      <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+      <div th:if="${error}" id="wizServerError" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
         <span th:text="${error}">Could not create the event — check the required fields.</span>
       </div>
 
       <!-- Stepper -->
-      <ol id="stepper" class="mt-6 flex items-center" aria-label="Create event steps">
+      <ol id="stepper" class="mt-6 flex items-center" th:attr="aria-label=#{wizard.steps.aria}" aria-label="Create event steps">
         <li class="flex flex-1 items-center">
-          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="1" aria-label="Step 1: Basics">
+          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="1" th:attr="aria-label=#{wizard.step.aria1}" aria-label="Step 1: Basics">
             <span class="step-circle grid h-9 w-9 place-items-center rounded-full border-2 border-brand-500 bg-brand-500 text-sm font-bold text-white transition">1</span>
-            <span class="step-label text-[11px] font-semibold text-brand-700 sm:text-xs">Basics</span>
+            <span class="step-label text-[11px] font-semibold text-brand-700 sm:text-xs" th:text="#{wizard.step.basics}">Basics</span>
           </button>
           <span class="step-line mx-1 mb-5 h-0.5 flex-1 rounded bg-ink-200 sm:mx-2"></span>
         </li>
         <li class="flex flex-1 items-center">
-          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="2" aria-label="Step 2: Banner">
+          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="2" th:attr="aria-label=#{wizard.step.aria2}" aria-label="Step 2: Banner">
             <span class="step-circle grid h-9 w-9 place-items-center rounded-full border-2 border-ink-200 bg-white text-sm font-bold text-ink-400 transition">2</span>
-            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs">Banner</span>
+            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs" th:text="#{wizard.step.banner}">Banner</span>
           </button>
           <span class="step-line mx-1 mb-5 h-0.5 flex-1 rounded bg-ink-200 sm:mx-2"></span>
         </li>
         <li class="flex flex-1 items-center">
-          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="3" aria-label="Step 3: Tickets">
+          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="3" th:attr="aria-label=#{wizard.step.aria3}" aria-label="Step 3: Tickets">
             <span class="step-circle grid h-9 w-9 place-items-center rounded-full border-2 border-ink-200 bg-white text-sm font-bold text-ink-400 transition">3</span>
-            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs">Tickets</span>
+            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs" th:text="#{wizard.step.tickets}">Tickets</span>
           </button>
           <span class="step-line mx-1 mb-5 h-0.5 flex-1 rounded bg-ink-200 sm:mx-2"></span>
         </li>
         <li class="flex flex-1 items-center">
-          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="4" aria-label="Step 4: Details">
+          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="4" th:attr="aria-label=#{wizard.step.aria4}" aria-label="Step 4: Details">
             <span class="step-circle grid h-9 w-9 place-items-center rounded-full border-2 border-ink-200 bg-white text-sm font-bold text-ink-400 transition">4</span>
-            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs">Details</span>
+            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs" th:text="#{wizard.step.details}">Details</span>
           </button>
           <span class="step-line mx-1 mb-5 h-0.5 flex-1 rounded bg-ink-200 sm:mx-2"></span>
         </li>
         <li class="flex items-center">
-          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="5" aria-label="Step 5: Publish">
+          <button type="button" class="step-btn group flex flex-col items-center gap-1.5" data-step="5" th:attr="aria-label=#{wizard.step.aria5}" aria-label="Step 5: Publish">
             <span class="step-circle grid h-9 w-9 place-items-center rounded-full border-2 border-ink-200 bg-white text-sm font-bold text-ink-400 transition">5</span>
-            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs">Publish</span>
+            <span class="step-label text-[11px] font-semibold text-ink-400 sm:text-xs" th:text="#{wizard.step.publish}">Publish</span>
           </button>
         </li>
       </ol>
@@ -71,7 +83,7 @@
       <!-- Client-side validation message -->
       <div id="wizError" class="mt-4 hidden items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800" role="alert">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
-        <span id="wizErrorText">Please complete the required fields.</span>
+        <span id="wizErrorText" th:text="#{wizard.error.completeRequired}">Please complete the required fields.</span>
       </div>
 
       <form id="createForm" th:action="@{/host/events/new}" method="post" enctype="multipart/form-data">
@@ -79,120 +91,118 @@
         <!-- ============ STEP 1 · BASICS ============ -->
         <section class="step-panel mt-8 space-y-6" data-panel="1">
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">What's your event called?</h2>
-            <p class="mt-1 text-sm text-ink-500">Keep it short and punchy — this is the first thing people see.</p>
-            <input id="ev-title" type="text" name="title" required class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-4 font-display text-lg font-bold text-ink-900 outline-none transition placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="e.g. Baghdad Nights Music Festival" aria-label="Event name">
-            <p class="mt-2 inline-flex items-center gap-1 text-xs text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg><span id="titleHint">Great names mention the city or vibe</span></p>
+            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.basics.title}">What's your event called?</h2>
+            <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.basics.subtitle}">Keep it short and punchy — this is the first thing people see.</p>
+            <input id="ev-title" type="text" name="title" required class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-4 font-display text-lg font-bold text-ink-900 outline-none transition placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.basics.placeholder}" placeholder="e.g. Baghdad Nights Music Festival" th:attr="aria-label=#{wizard.basics.nameAria}" aria-label="Event name">
+            <p class="mt-2 inline-flex items-center gap-1 text-xs text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg><span id="titleHint" th:text="#{wizard.basics.titleHint}">Great names mention the city or vibe</span></p>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900">When is it happening?</h3>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.when.title}">When is it happening?</h3>
             <div class="mt-4 grid gap-4 sm:grid-cols-3">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date">Date <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date"><span th:text="#{wizard.when.date}">Date</span> <span class="text-rose-500">*</span></label>
                 <input id="ev-date" name="date" type="date" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start">Starts <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start"><span th:text="#{wizard.when.starts}">Starts</span> <span class="text-rose-500">*</span></label>
                 <input id="ev-start" name="startTime" type="time" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end">Ends</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end" th:text="#{wizard.when.ends}">Ends</label>
                 <input id="ev-end" name="endTime" type="time" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
             </div>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900">Where is it?</h3>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.where.title}">Where is it?</h3>
 
             <!-- Location type segmented toggle (wireframe: Venue / Online / To be announced) -->
-            <div class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" aria-label="Location type">
+            <div class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" th:attr="aria-label=#{wizard.where.typeAria}" aria-label="Location type">
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="VENUE" checked class="loc-type sr-only">
-                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg>Venue
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="#{wizard.loc.venue}">Venue</span>
               </label>
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="ONLINE" class="loc-type sr-only">
-                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>Online
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg><span th:text="#{wizard.loc.online}">Online</span>
               </label>
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="TBA" class="loc-type sr-only">
-                <span class="truncate">To be announced</span>
+                <span class="truncate" th:text="#{wizard.loc.tba}">To be announced</span>
               </label>
             </div>
 
             <!-- VENUE fields -->
             <div id="locVenueFields" class="mt-5 space-y-4">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue"><span th:text="#{wizard.loc.venue}">Venue</span> <span class="text-rose-500">*</span></label>
                 <div class="relative">
-                  <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
-                  <input id="ev-venue" name="venueName" type="text" placeholder="e.g. Al-Zawraa Park" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                  <span class="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
+                  <input id="ev-venue" name="venueName" type="text" th:placeholder="#{wizard.loc.venuePlaceholder}" placeholder="e.g. Al-Zawraa Park" autocomplete="off" class="w-full rounded-xl border border-ink-200 bg-white py-3 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                 </div>
+                <p th:if="${mapsKey != null}" class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.places.hint}">Start typing and pick a suggestion — the address and map pin fill in automatically.</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address">Location details</label>
-                <input id="ev-address" name="venueAddress" type="text" placeholder="Street, district, hall, gate, parking…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address" th:text="#{wizard.loc.details}">Location details</label>
+                <input id="ev-address" name="venueAddress" type="text" th:placeholder="#{wizard.loc.detailsPlaceholder}" placeholder="Street, district, hall, gate, parking…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-maps">Google Maps link (exact pin) <span class="font-normal text-ink-400">(optional)</span></label>
-                <div class="relative">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-maps"><span th:text="#{wizard.loc.mapsLabel}">Google Maps link (exact pin)</span> <span class="font-normal text-ink-400" th:text="#{wizard.loc.optional}">(optional)</span></label>
+                <div class="relative" dir="ltr">
                   <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-link"/></svg></span>
-                  <input id="ev-maps" name="mapsUrl" type="url" placeholder="https://maps.app.goo.gl/…" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                  <input id="ev-maps" name="mapsUrl" type="url" dir="ltr" placeholder="https://maps.app.goo.gl/…" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-start text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                 </div>
-                <p class="mt-1.5 text-xs text-ink-400">Paste the share link from Google Maps so buyers find the exact spot.</p>
+                <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.loc.mapsHelp}">Paste the share link from Google Maps so buyers find the exact spot.</p>
+              </div>
+              <!-- Live map preview (only when a Maps key is configured) -->
+              <div id="mapPreviewWrap" th:if="${mapsKey != null}" class="hidden overflow-hidden rounded-xl border border-ink-100 ring-1 ring-inset ring-black/5">
+                <iframe id="mapPreviewFrame" th:title="#{wizard.places.mapPreview}" title="Map preview" class="block h-56 w-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
               </div>
             </div>
 
             <!-- ONLINE fields -->
             <div id="locOnlineFields" class="mt-5 hidden">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-online">Meeting link</label>
-              <div class="relative">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-online" th:text="#{wizard.loc.meetingLink}">Meeting link</label>
+              <div class="relative" dir="ltr">
                 <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg></span>
-                <input id="ev-online" name="onlineUrl" type="url" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <input id="ev-online" name="onlineUrl" type="url" dir="ltr" th:placeholder="#{wizard.loc.onlinePlaceholder}" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-start text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
-              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Only people with confirmed tickets can see this link. You can also add it later.</p>
+              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{wizard.loc.onlineNote}">Only people with confirmed tickets can see this link. You can also add it later.</span></p>
             </div>
 
             <!-- TBA note -->
-            <p id="locTbaNote" class="mt-5 hidden rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600">You can add the venue later — ticket buyers will be notified.</p>
+            <p id="locTbaNote" class="mt-5 hidden rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600" th:text="#{wizard.loc.tbaNote}">You can add the venue later — ticket buyers will be notified.</p>
 
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city"><span id="cityLabel">City</span> <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city"><span id="cityLabel" th:text="#{wizard.loc.city}">City</span> <span class="text-rose-500">*</span></label>
                 <div class="relative">
-                  <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="Baghdad">Baghdad</option>
-                    <option value="Basra">Basra</option>
-                    <option value="Erbil">Erbil</option>
-                    <option value="Sulaymaniyah">Sulaymaniyah</option>
-                    <option value="Najaf">Najaf</option>
-                    <option value="Karbala">Karbala</option>
-                    <option value="Mosul">Mosul</option>
-                    <option value="Duhok">Duhok</option>
+                  <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option th:each="c : ${@t.cities()}" th:value="${c.en()}" th:text="${rtl} ? ${c.ar()} : ${c.en()}">Baghdad</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900">What kind of event is it?</h3>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.kind.title}">What kind of event is it?</h3>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat">Category <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat"><span th:text="#{wizard.kind.category}">Category</span> <span class="text-rose-500">*</span></label>
                 <div class="relative">
-                  <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                  <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                     <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${c.label()}">Music</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
             </div>
             <div class="mt-5">
-              <span class="mb-1.5 block text-sm font-semibold text-ink-800">Language of event <span class="ml-1 rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-500">Coming soon</span></span>
+              <span class="mb-1.5 block text-sm font-semibold text-ink-800"><span th:text="#{wizard.kind.language}">Language of event</span> <span class="ms-1 rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-500" th:text="#{common.comingSoon}">Coming soon</span></span>
               <div class="flex flex-wrap gap-2 opacity-60">
                 <label class="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700">
                   <input type="checkbox" checked disabled class="h-4 w-4 rounded border-ink-300 text-brand-500"> العربية (AR)
@@ -204,7 +214,7 @@
                   <input type="checkbox" disabled class="h-4 w-4 rounded border-ink-300 text-brand-500"> کوردی (KU)
                 </label>
               </div>
-              <p class="mt-1.5 text-xs text-ink-400">Language tags arrive in a later release — they won't be saved yet.</p>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.kind.langNote}">Language tags arrive in a later release — they won't be saved yet.</p>
             </div>
           </div>
         </section>
@@ -212,27 +222,27 @@
         <!-- ============ STEP 2 · BANNER ============ -->
         <section class="step-panel mt-8 hidden space-y-6" data-panel="2">
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Make it look great</h2>
-            <p class="mt-1 text-sm text-ink-500">Events with a great cover get up to 2× more views.</p>
+            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.banner.title}">Make it look great</h2>
+            <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.banner.subtitle}">Events with a great cover get up to 2× more views.</p>
 
             <!-- Live preview -->
             <div id="coverPreview" class="relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5">
               <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-cover" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-cover)"/></svg>
               <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use href="#i-image"/></svg>
               <img id="coverPreviewImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
-              <span class="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800">Cover preview</span>
+              <span class="absolute bottom-3 start-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="#{wizard.banner.coverPreview}">Cover preview</span>
             </div>
 
             <!-- Upload dropzone -->
             <div class="mt-5 rounded-2xl border-2 border-dashed border-ink-300 bg-ink-50 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50">
               <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-ink-500 shadow-card"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-image"/></svg></span>
-              <label class="mt-3 block text-sm font-semibold text-ink-800" for="cover-image">Upload a banner photo</label>
-              <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-2 block w-full max-w-xs text-sm text-ink-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-600">
-              <p class="mt-2 text-xs text-ink-400">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
+              <label class="mt-3 block text-sm font-semibold text-ink-800" for="cover-image" th:text="#{wizard.banner.upload}">Upload a banner photo</label>
+              <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-2 block w-full max-w-xs text-sm text-ink-600 file:me-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-600">
+              <p class="mt-2 text-xs text-ink-400" th:text="#{wizard.banner.uploadHelp}">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
             </div>
 
-            <p class="mt-6 text-sm font-semibold text-ink-800">…or pick a color theme</p>
-            <div class="mt-3 grid grid-cols-5 gap-2 sm:gap-3" role="radiogroup" aria-label="Color themes">
+            <p class="mt-6 text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orTheme}">…or pick a color theme</p>
+            <div class="mt-3 grid grid-cols-5 gap-2 sm:gap-3" role="radiogroup" th:attr="aria-label=#{wizard.banner.themesAria}" aria-label="Color themes">
               <label th:each="t : ${coverThemes}" class="group cursor-pointer"
                      th:with="grad=${t == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                               : (t == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -244,35 +254,35 @@
                               : (t == 'film'      ? 'from-slate-600 via-ink-700 to-brand-800'
                               : (t == 'family'    ? 'from-emerald-600 via-teal-500 to-sky-500'
                               :                     'from-brand-400 via-brand-500 to-indigo-500'))))))))}">
-                <input type="radio" name="coverTheme" th:value="${t}" class="cover-theme peer sr-only" th:attr="aria-label='Theme ' + ${t},data-grad=${grad}">
+                <input type="radio" name="coverTheme" th:value="${t}" class="cover-theme peer sr-only" th:attr="aria-label=#{${'wizard.theme.' + t}},data-grad=${grad}">
                 <span class="block aspect-[4/3] rounded-xl bg-gradient-to-br ring-offset-2 transition group-hover:scale-105 peer-checked:ring-4 peer-checked:ring-brand-400" th:classappend="${grad}"></span>
-                <span class="mt-1.5 block text-center text-[11px] font-semibold capitalize text-ink-500" th:text="${t}">music</span>
+                <span class="mt-1.5 block text-center text-[11px] font-semibold capitalize text-ink-500" th:text="#{${'wizard.theme.' + t}}">music</span>
               </label>
             </div>
-            <p class="mt-2 text-xs text-ink-400">Leave unselected and we'll match the theme to your category.</p>
+            <p class="mt-2 text-xs text-ink-400" th:text="#{wizard.banner.themeHelp}">Leave unselected and we'll match the theme to your category.</p>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900">Event summary</h3>
-            <p class="text-sm text-ink-500">One or two lines shown on your event card in the directory.</p>
-            <textarea id="ev-summary" name="summary" rows="3" maxlength="160" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="A sunset food carnival on the Corniche — 40+ street food stalls, live music and family fun." aria-label="Event summary"></textarea>
-            <p class="mt-1.5 text-right text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.summary.title}">Event summary</h3>
+            <p class="text-sm text-ink-500" th:text="#{wizard.summary.subtitle}">One or two lines shown on your event card in the directory.</p>
+            <textarea id="ev-summary" name="summary" rows="3" maxlength="160" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.summary.placeholder}" placeholder="A sunset food carnival on the Corniche — 40+ street food stalls, live music and family fun." th:attr="aria-label=#{wizard.summary.title}" aria-label="Event summary"></textarea>
+            <p class="mt-1.5 text-end text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
           </div>
         </section>
 
         <!-- ============ STEP 3 · TICKETS ============ -->
         <section class="step-panel mt-8 hidden space-y-6" data-panel="3">
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Set up your tickets</h2>
-            <p class="mt-1 text-sm text-ink-500">Fill in the rows you need — leave the rest empty. Price 0 = free ticket.</p>
+            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.tickets.title}">Set up your tickets</h2>
+            <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.tickets.subtitle}">Fill in the rows you need — leave the rest empty. Price 0 = free ticket.</p>
 
             <!-- Free toggle (wireframe: "My event is free") -->
             <label class="mt-5 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5">
-              <span class="text-sm font-semibold text-ink-800">My event is free</span>
+              <span class="text-sm font-semibold text-ink-800" th:text="#{wizard.tickets.free}">My event is free</span>
               <span class="relative inline-block h-6 w-11 shrink-0">
                 <input id="freeToggle" type="checkbox" name="freeEvent" value="true" class="peer sr-only">
                 <span class="absolute inset-0 rounded-full bg-ink-200 transition peer-checked:bg-brand-500"></span>
-                <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+                <span class="absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5 rtl:peer-checked:-translate-x-5"></span>
               </span>
             </label>
 
@@ -280,34 +290,34 @@
               <div class="ticket-row rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
                 <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
-                    <input type="text" name="ttName" placeholder="General Admission" class="tt-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 1 name">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.name}">Ticket name</label>
+                    <input type="text" name="ttName" th:placeholder="#{wizard.tickets.gaPlaceholder}" placeholder="General Admission" class="tt-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.nameAria('1')}" aria-label="Ticket 1 name">
                   </div>
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
-                    <input type="number" name="ttPrice" min="0" step="500" placeholder="25000" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 1 price in IQD">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.price}">Price (IQD)</label>
+                    <input type="number" name="ttPrice" min="0" step="500" placeholder="25000" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.priceAria('1')}" aria-label="Ticket 1 price in IQD">
                   </div>
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
-                    <input type="number" name="ttQty" min="0" placeholder="100" class="tt-qty w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 1 quantity">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.qty}">Quantity</label>
+                    <input type="number" name="ttQty" min="0" placeholder="100" class="tt-qty w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.qtyAria('1')}" aria-label="Ticket 1 quantity">
                   </div>
                 </div>
-                <p class="mt-2 text-xs text-ink-400">0 = free ticket</p>
+                <p class="mt-2 text-xs text-ink-400" th:text="#{wizard.tickets.zeroFree}">0 = free ticket</p>
               </div>
 
               <div class="ticket-row rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
                 <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
-                    <input type="text" name="ttName" placeholder="e.g. VIP" class="tt-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 2 name">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.name}">Ticket name</label>
+                    <input type="text" name="ttName" th:placeholder="#{wizard.tickets.vipPlaceholder}" placeholder="e.g. VIP" class="tt-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.nameAria(2)}" aria-label="Ticket 2 name">
                   </div>
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
-                    <input type="number" name="ttPrice" min="0" step="500" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 2 price in IQD">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.price}">Price (IQD)</label>
+                    <input type="number" name="ttPrice" min="0" step="500" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.priceAria(2)}" aria-label="Ticket 2 price in IQD">
                   </div>
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
-                    <input type="number" name="ttQty" min="0" class="tt-qty w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 2 quantity">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.qty}">Quantity</label>
+                    <input type="number" name="ttQty" min="0" class="tt-qty w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.qtyAria(2)}" aria-label="Ticket 2 quantity">
                   </div>
                 </div>
               </div>
@@ -315,16 +325,16 @@
               <div class="ticket-row rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
                 <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
-                    <input type="text" name="ttName" placeholder="e.g. Early Bird" class="tt-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 3 name">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.name}">Ticket name</label>
+                    <input type="text" name="ttName" th:placeholder="#{wizard.tickets.ebPlaceholder}" placeholder="e.g. Early Bird" class="tt-name w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.nameAria(3)}" aria-label="Ticket 3 name">
                   </div>
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
-                    <input type="number" name="ttPrice" min="0" step="500" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 3 price in IQD">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.price}">Price (IQD)</label>
+                    <input type="number" name="ttPrice" min="0" step="500" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.priceAria(3)}" aria-label="Ticket 3 price in IQD">
                   </div>
                   <div>
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
-                    <input type="number" name="ttQty" min="0" class="tt-qty w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Ticket 3 quantity">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.qty}">Quantity</label>
+                    <input type="number" name="ttQty" min="0" class="tt-qty w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{wizard.tickets.qtyAria(3)}" aria-label="Ticket 3 quantity">
                   </div>
                 </div>
               </div>
@@ -333,83 +343,83 @@
 
           <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
           <div id="feeCard" class="rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:p-6">
-            <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg>Booking fee</p>
-            <p class="mt-1 text-sm text-brand-800">iEvent adds a <strong>1,500 IQD booking fee</strong> per paid ticket — you choose who pays it. Free tickets never carry a fee.</p>
+            <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
+            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">1,500 IQD booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" checked class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
               </label>
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="ABSORB" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500">You receive 33,500 IQD per 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}">You receive 33,500 IQD per 35,000 ticket</span></span>
               </label>
             </div>
           </div>
           <!-- Free events carry no fee — shown instead of the fee card when the toggle is on -->
-          <p id="feeFreeNote" class="hidden rounded-2xl border border-ink-100 bg-white px-5 py-4 text-sm text-ink-500 shadow-card">Free events never carry a booking fee — attendees pay nothing.</p>
+          <p id="feeFreeNote" class="hidden rounded-2xl border border-ink-100 bg-white px-5 py-4 text-sm text-ink-500 shadow-card" th:text="#{wizard.fee.freeNote}">Free events never carry a booking fee — attendees pay nothing.</p>
         </section>
 
         <!-- ============ STEP 4 · DETAILS ============ -->
         <section class="step-panel mt-8 hidden space-y-6" data-panel="4">
           <div class="grid gap-6 lg:grid-cols-[1fr_260px]">
             <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-              <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Tell people more</h2>
-              <p class="mt-1 text-sm text-ink-500">A rich description helps your event stand out in the directory.</p>
-              <textarea name="description" rows="9" class="mt-4 w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="Describe the vibe, the lineup, what's included…" aria-label="Event description"></textarea>
+              <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.details.title}">Tell people more</h2>
+              <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.details.subtitle}">A rich description helps your event stand out in the directory.</p>
+              <textarea name="description" rows="9" class="mt-4 w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.details.descPlaceholder}" placeholder="Describe the vibe, the lineup, what's included…" th:attr="aria-label=#{wizard.details.descAria}" aria-label="Event description"></textarea>
             </div>
             <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
               <div class="rounded-2xl border border-brand-100 bg-brand-50 p-5">
-                <p class="inline-flex items-center gap-1.5 text-sm font-bold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>Tips</p>
+                <p class="inline-flex items-center gap-1.5 text-sm font-bold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg><span th:text="#{wizard.tips.title}">Tips</span></p>
                 <ul class="mt-2.5 space-y-2 text-xs leading-relaxed text-brand-900">
-                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg>Lead with the vibe — who is this for?</li>
-                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg>List the lineup or schedule.</li>
-                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg>Say what's included in each ticket.</li>
-                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg>Add parking / gate directions.</li>
+                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{wizard.tips.1}">Lead with the vibe — who is this for?</span></li>
+                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{wizard.tips.2}">List the lineup or schedule.</span></li>
+                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{wizard.tips.3}">Say what's included in each ticket.</span></li>
+                  <li class="flex items-start gap-1.5"><svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{wizard.tips.4}">Add parking / gate directions.</span></li>
                 </ul>
               </div>
             </aside>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900">Lineup / agenda</h3>
-            <p class="mt-1 text-sm text-ink-500">One act or agenda item per line, e.g. <span class="font-medium text-ink-700">Sunset stage — 7:00 PM</span>. Shown on your event page.</p>
-            <textarea name="lineup" rows="4" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="Gates open · food stalls &amp; family zone — 4:30 PM&#10;Sunset stage — live oud &amp; band sets — 7:00 PM" aria-label="Lineup, one act per line"></textarea>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.lineup.title}">Lineup / agenda</h3>
+            <p class="mt-1 text-sm text-ink-500"><span th:text="#{wizard.lineup.sub1}">One act or agenda item per line, e.g. </span><span class="font-medium text-ink-700" th:text="#{wizard.lineup.example}">Sunset stage — 7:00 PM</span><span th:text="#{wizard.lineup.sub2}">. Shown on your event page.</span></p>
+            <textarea name="lineup" rows="4" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.lineup.placeholder}" placeholder="Gates open · food stalls &amp; family zone — 4:30 PM&#10;Sunset stage — live oud &amp; band sets — 7:00 PM" th:attr="aria-label=#{wizard.lineup.aria}" aria-label="Lineup, one act per line"></textarea>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <div class="grid gap-5 sm:grid-cols-2">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund">Refund policy</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund" th:text="#{wizard.refund.title}">Refund policy</label>
                 <div class="relative">
-                  <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="UP_TO_7_DAYS" selected>Refunds up to 7 days before event</option>
-                    <option value="UP_TO_48H">Refunds up to 48 hours before event</option>
-                    <option value="NO_REFUNDS">No refunds</option>
+                  <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="UP_TO_7_DAYS" selected th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</option>
+                    <option value="UP_TO_48H" th:text="#{wizard.refund.48h}">Refunds up to 48 hours before event</option>
+                    <option value="NO_REFUNDS" th:text="#{wizard.refund.none}">No refunds</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
               <div>
-                <span class="mb-1.5 block text-sm font-semibold text-ink-800">Visibility</span>
+                <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.vis.title}">Visibility</span>
                 <div class="flex gap-2">
                   <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                    <input type="radio" name="visibility" value="PUBLIC" checked class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Public
+                    <input type="radio" name="visibility" value="PUBLIC" checked class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.public}">Public</span>
                   </label>
                   <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                    <input type="radio" name="visibility" value="UNLISTED" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Unlisted
+                    <input type="radio" name="visibility" value="UNLISTED" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.unlisted}">Unlisted</span>
                   </label>
                 </div>
-                <p class="mt-1.5 text-xs text-ink-400">Public appears in the directory and search. Unlisted is reachable only by people with the link.</p>
+                <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.vis.note}">Public appears in the directory and search. Unlisted is reachable only by people with the link.</p>
               </div>
             </div>
             <div class="mt-5">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags">Tags</label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags" th:text="#{wizard.tags.title}">Tags</label>
               <div class="relative">
-                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg></span>
-                <input id="ev-tags" name="tags" type="text" placeholder="street food, basra, family" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <span class="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg></span>
+                <input id="ev-tags" name="tags" type="text" th:placeholder="#{wizard.tags.placeholder}" placeholder="street food, basra, family" class="w-full rounded-xl border border-ink-200 bg-white py-3 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
-              <p class="mt-1.5 text-xs text-ink-400">Comma separated — tags help people find your event in search.</p>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.tags.note}">Comma separated — tags help people find your event in search.</p>
             </div>
           </div>
         </section>
@@ -417,8 +427,8 @@
         <!-- ============ STEP 5 · PUBLISH ============ -->
         <section class="step-panel mt-8 hidden space-y-6" data-panel="5">
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Ready to go live? 🚀</h2>
-            <p class="mt-1 text-sm text-ink-500">Review everything before your event hits the directory.</p>
+            <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.publish.title}">Ready to go live? 🚀</h2>
+            <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.publish.subtitle}">Review everything before your event hits the directory.</p>
 
             <!-- Review summary -->
             <div class="mt-5 overflow-hidden rounded-2xl border border-ink-100">
@@ -426,37 +436,37 @@
                 <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-review" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-review)"/></svg>
                 <svg class="absolute inset-0 m-auto h-16 w-16 text-white/40" aria-hidden="true"><use href="#i-ticket"/></svg>
                 <img id="rv-coverImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
-                <span id="rv-category" class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800">Category</span>
+                <span id="rv-category" class="absolute start-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="#{wizard.kind.category}">Category</span>
               </div>
               <div class="space-y-3 p-5">
                 <p class="text-xs font-bold uppercase tracking-wide text-brand-600"><span id="rv-date">—</span> · <span id="rv-time">—</span></p>
-                <h3 id="rv-title" class="font-display text-xl font-bold leading-snug text-ink-900">Your event title</h3>
-                <p class="flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-map-pin"/></svg><span id="rv-place">City</span></p>
+                <h3 id="rv-title" class="font-display text-xl font-bold leading-snug text-ink-900" th:text="#{wizard.js.yourEventTitle}">Your event title</h3>
+                <p class="flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-map-pin"/></svg><span id="rv-place" th:text="#{wizard.loc.city}">City</span></p>
                 <p id="rv-summary" class="hidden text-sm text-ink-600"></p>
                 <div id="rv-tickets" class="flex flex-wrap gap-2 pt-1 text-xs"></div>
-                <p class="text-xs text-ink-400"><span id="rv-fee">Booking fee: passed to buyer</span> · <span id="rv-policy">Refunds up to 7 days before event</span> · <span id="rv-visibility">Public</span></p>
+                <p class="text-xs text-ink-400"><span id="rv-fee" th:text="#{wizard.js.feePass}">Booking fee: passed to buyer</span> · <span id="rv-policy" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</span> · <span id="rv-visibility" th:text="#{wizard.vis.public}">Public</span></p>
               </div>
             </div>
 
-            <p class="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-eye"/></svg>This card is a preview of your public event page. Use <strong class="font-semibold text-ink-700">Publish event</strong> or <strong class="font-semibold text-ink-700">Save draft</strong> in the bar below.</p>
+            <p class="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-eye"/></svg><span><span th:text="#{wizard.publish.note1}">This card is a preview of your public event page. Use </span><strong class="font-semibold text-ink-700" th:text="#{wizard.action.publish}">Publish event</strong><span th:text="#{wizard.publish.note2}"> or </span><strong class="font-semibold text-ink-700" th:text="#{wizard.action.saveDraft}">Save draft</strong><span th:text="#{wizard.publish.note3}"> in the bar below.</span></span></p>
           </div>
 
           <!-- After you publish -->
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h2 class="font-display text-lg font-bold text-ink-900">After you publish</h2>
+            <h2 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.after.title}">After you publish</h2>
             <div class="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
               <div class="flex items-start gap-3.5 rounded-2xl border border-ink-200 p-4 sm:p-5">
                 <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-share-2"/></svg></span>
                 <span>
-                  <span class="font-display font-bold text-ink-900">Share everywhere</span>
-                  <span class="mt-1 block text-sm leading-relaxed text-ink-500">Short links for Instagram, WhatsApp &amp; Telegram in Marketing → Share.</span>
+                  <span class="font-display font-bold text-ink-900" th:text="#{wizard.after.share}">Share everywhere</span>
+                  <span class="mt-1 block text-sm leading-relaxed text-ink-500" th:text="#{wizard.after.shareNote}">Short links for Instagram, WhatsApp &amp; Telegram in Marketing → Share.</span>
                 </span>
               </div>
               <div class="flex items-start gap-3.5 rounded-2xl border border-ink-200 p-4 sm:p-5">
                 <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-link"/></svg></span>
                 <span>
-                  <span class="font-display font-bold text-ink-900">Embed on your website</span>
-                  <span class="mt-1 block text-sm leading-relaxed text-ink-500">Sell tickets from your own site with the iEvent widget snippet.</span>
+                  <span class="font-display font-bold text-ink-900" th:text="#{wizard.after.embed}">Embed on your website</span>
+                  <span class="mt-1 block text-sm leading-relaxed text-ink-500" th:text="#{wizard.after.embedNote}">Sell tickets from your own site with the iEvent widget snippet.</span>
                 </span>
               </div>
             </div>
@@ -471,19 +481,28 @@
   <!-- Sticky wizard action bar. Focused flow: the host bottom tab bar is NOT
        rendered on this page, so the bar pins to the true bottom edge and pads
        for the iPhone home indicator (safe-area-inset-bottom). -->
-  <div class="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:px-6 md:left-20 lg:left-64">
+  <div class="fixed bottom-0 start-0 end-0 z-40 border-t border-ink-100 bg-white/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur sm:px-6 md:start-20 lg:start-64">
     <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
-      <button type="button" id="backBtn" class="inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40" disabled><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back</button>
-      <p id="stepIndicator" class="flex-1 text-center text-xs font-semibold tabular-nums text-ink-500 sm:text-sm">Step 1 of 5</p>
-      <button type="button" id="nextBtn" class="inline-flex min-h-[48px] items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Next<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+      <button type="button" id="backBtn" class="inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40" disabled><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-left"/></svg><span th:text="#{common.back}">Back</span></button>
+      <div class="flex-1 text-center">
+        <p id="stepIndicator" class="text-xs font-semibold tabular-nums text-ink-500 sm:text-sm" th:text="#{wizard.step.indicator('1','5')}">Step 1 of 5</p>
+        <p id="autosaveHint" class="mt-0.5 hidden text-[10px] font-medium text-ink-400" th:text="#{wizard.autosave.saved}">Saved just now</p>
+      </div>
+      <button type="button" id="nextBtn" class="inline-flex min-h-[48px] items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><span th:text="#{common.next}">Next</span><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
       <div id="finalBtns" class="hidden w-full items-center gap-2 sm:w-auto">
-        <button type="submit" form="createForm" name="action" value="draft" class="min-h-[48px] flex-1 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 sm:flex-none">Save draft</button>
-        <button type="submit" form="createForm" name="action" value="publish" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:flex-none"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish event</button>
+        <button type="submit" form="createForm" name="action" value="draft" class="min-h-[48px] flex-1 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 sm:flex-none" th:text="#{wizard.action.saveDraft}">Save draft</button>
+        <button type="submit" form="createForm" name="action" value="publish" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:flex-none"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{wizard.action.publish}">Publish event</span></button>
       </div>
     </div>
   </div>
 </div>
 </div>
+
+<!-- Localized strings for inline JS (review step, validation, counters, autosave) -->
+<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted}"></div>
+
+<!-- Google Places config: rendered only when a Maps key is configured -->
+<div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
 
 <script>
 (function () {
@@ -499,13 +518,17 @@
   var wizErrorText = document.getElementById('wizErrorText');
   var CHECK = '<svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>';
 
+  // Localized strings injected by the server (see #wizI18n)
+  var i18nEl = document.getElementById('wizI18n');
+  function msg(name) { return (i18nEl && i18nEl.getAttribute('data-' + name)) || ''; }
+
   function hideError() {
     wizError.classList.add('hidden');
     wizError.classList.remove('flex');
   }
 
-  function showError(msg) {
-    wizErrorText.textContent = msg;
+  function showError(m) {
+    wizErrorText.textContent = m;
     wizError.classList.remove('hidden');
     wizError.classList.add('flex');
   }
@@ -516,23 +539,30 @@
     return checked ? checked.value : 'VENUE';
   }
 
+  // Display label of the selected city (localized option text; value stays English)
+  function cityLabelText() {
+    var sel = document.getElementById('ev-city');
+    var opt = sel.options[sel.selectedIndex];
+    return opt ? opt.text : sel.value;
+  }
+
   function fillReview() {
     var title = document.getElementById('ev-title').value.trim();
     var date = document.getElementById('ev-date').value;
     var start = document.getElementById('ev-start').value;
     var end = document.getElementById('ev-end').value;
-    var city = document.getElementById('ev-city').value;
+    var city = cityLabelText();
     var venue = document.getElementById('ev-venue').value.trim();
     var catSel = document.getElementById('ev-cat');
     var catLabel = catSel.options[catSel.selectedIndex] ? catSel.options[catSel.selectedIndex].text : '';
 
-    document.getElementById('rv-title').textContent = title || 'Your event title';
+    document.getElementById('rv-title').textContent = title || msg('your-event-title');
     document.getElementById('rv-date').textContent = date || '—';
     document.getElementById('rv-time').textContent = start ? (start + (end ? ' – ' + end : '')) : '—';
     var lt = locType();
     document.getElementById('rv-place').textContent =
-      lt === 'ONLINE' ? 'Online event'
-      : lt === 'TBA' ? 'Location to be announced · ' + city
+      lt === 'ONLINE' ? msg('online-event')
+      : lt === 'TBA' ? msg('tba') + ' · ' + city
       : (venue ? venue + ', ' + city : city);
     document.getElementById('rv-category').textContent = catLabel;
 
@@ -545,7 +575,7 @@
       refundSel.options[refundSel.selectedIndex] ? refundSel.options[refundSel.selectedIndex].text : '';
     var vis = document.querySelector('input[name="visibility"]:checked');
     document.getElementById('rv-visibility').textContent =
-      vis && vis.value === 'UNLISTED' ? 'Unlisted' : 'Public';
+      vis && vis.value === 'UNLISTED' ? msg('unlisted') : msg('public');
 
     var box = document.getElementById('rv-tickets');
     box.innerHTML = '';
@@ -558,13 +588,13 @@
       count++;
       var chip = document.createElement('span');
       chip.className = 'rounded-full bg-ink-100 px-3 py-1 font-semibold tabular-nums text-ink-600';
-      chip.textContent = name + ' · ' + (price && +price > 0 ? price + ' IQD' : 'Free') + ' · ' + qty;
+      chip.textContent = name + ' · ' + (price && +price > 0 ? price + ' ' + msg('iqd') : msg('free')) + ' · ' + qty;
       box.appendChild(chip);
     });
     if (count === 0) {
       var none = document.createElement('span');
       none.className = 'rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-700';
-      none.textContent = 'No tickets yet';
+      none.textContent = msg('no-tickets');
       box.appendChild(none);
     }
 
@@ -572,8 +602,8 @@
     var freeOn = document.getElementById('freeToggle').checked;
     var fm = document.querySelector('input[name="feeMode"]:checked');
     document.getElementById('rv-fee').textContent = freeOn
-      ? 'Free event — no booking fee'
-      : (fm && fm.value === 'ABSORB' ? 'Booking fee: absorbed by you' : 'Booking fee: passed to buyer');
+      ? msg('fee-free')
+      : (fm && fm.value === 'ABSORB' ? msg('fee-absorb') : msg('fee-pass'));
 
     // Review cover mirrors the uploaded photo or the chosen theme gradient
     var rvImg = document.getElementById('rv-coverImg');
@@ -596,14 +626,14 @@
       var required = [document.getElementById('ev-title'), document.getElementById('ev-date'), document.getElementById('ev-start')];
       for (var i = 0; i < required.length; i++) {
         if (!required[i].value.trim()) {
-          showError('Name, date and start time are required before you continue.');
+          showError(msg('step1-required'));
           required[i].reportValidity();
           required[i].focus();
           return false;
         }
       }
       if (locType() === 'VENUE' && !document.getElementById('ev-venue').value.trim()) {
-        showError('Add a venue name — or switch the location to Online / To be announced.');
+        showError(msg('venue-required'));
         document.getElementById('ev-venue').focus();
         return false;
       }
@@ -616,7 +646,7 @@
         if (name && qty && +qty > 0) ok = true;
       });
       if (!ok) {
-        showError('Add at least one ticket type with a name and a quantity.');
+        showError(msg('ticket-required'));
         return false;
       }
     }
@@ -650,7 +680,7 @@
       line.className = 'step-line mx-1 mb-5 h-0.5 flex-1 rounded sm:mx-2 ' + (i + 1 < current ? 'bg-brand-500' : 'bg-ink-200');
     });
     backBtn.disabled = current === 1;
-    indicator.textContent = 'Step ' + current + ' of ' + total;
+    indicator.textContent = msg('step-of').replace('{0}', current).replace('{1}', total);
     var last = current === total;
     nextBtn.classList.toggle('hidden', last);
     finalBtns.classList.toggle('hidden', !last);
@@ -661,19 +691,18 @@
 
   nextBtn.addEventListener('click', function () {
     if (!validateStep(current)) return;
-    if (current < total) { current++; render(); }
+    if (current < total) { current++; render(); scheduleSave(); }
   });
   backBtn.addEventListener('click', function () {
     hideError();
-    if (current > 1) { current--; render(); }
+    if (current > 1) { current--; render(); scheduleSave(); }
   });
   stepBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       var n = +btn.dataset.step;
-      if (n < current) { hideError(); current = n; render(); }
+      if (n < current) { hideError(); current = n; render(); scheduleSave(); }
     });
   });
-  render();
 
   // Title character hint
   var titleInput = document.getElementById('ev-title');
@@ -681,8 +710,8 @@
   titleInput.addEventListener('input', function () {
     var len = titleInput.value.length;
     titleHint.textContent = len > 0
-      ? len + ' characters · Great names mention the city or vibe'
-      : 'Great names mention the city or vibe';
+      ? msg('title-chars').replace('{n}', len)
+      : msg('title-hint');
   });
 
   // Summary character counter
@@ -702,7 +731,7 @@
     if (locVenueFields) locVenueFields.classList.toggle('hidden', t !== 'VENUE');
     if (locOnlineFields) locOnlineFields.classList.toggle('hidden', t !== 'ONLINE');
     if (locTbaNote) locTbaNote.classList.toggle('hidden', t !== 'TBA');
-    if (cityLabel) cityLabel.textContent = t === 'ONLINE' ? 'Organizer city' : 'City';
+    if (cityLabel) cityLabel.textContent = t === 'ONLINE' ? msg('organizer-city') : msg('city');
     document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
       var pill = r.closest('label');
       if (!pill) return;
@@ -715,7 +744,6 @@
   document.querySelectorAll('input[name="locationType"]').forEach(function (radio) {
     radio.addEventListener('change', renderLoc);
   });
-  renderLoc();
 
   // Cover theme live preview
   var GRAD_BASE = 'relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 ';
@@ -786,6 +814,259 @@
       if (createForm.requestSubmit) createForm.requestSubmit(); else createForm.submit();
     });
   });
+
+  // ------------------------------------------------------------------
+  // Autosave: localStorage draft of every named field + the current step.
+  // Never auto-applies — a dismissible banner offers Restore / Discard.
+  // All storage access is try/catch'd (private-mode Safari throws).
+  // ------------------------------------------------------------------
+  var AUTOSAVE_KEY = 'ievent-wizard-draft';
+  var restoring = false;
+  var saveTimer = null;
+  var savedHint = document.getElementById('autosaveHint');
+
+  function fire(el, type) {
+    var e;
+    try { e = new Event(type, { bubbles: true }); }
+    catch (err) { e = document.createEvent('HTMLEvents'); e.initEvent(type, true, false); }
+    el.dispatchEvent(e);
+  }
+
+  function formEls() {
+    return createForm.querySelectorAll('input[name], select[name], textarea[name]');
+  }
+
+  // Stable key per field: name (+ value for checkables) + occurrence index.
+  function collectFields() {
+    var out = {}, counts = {};
+    var els = formEls();
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.type === 'file' || el.name === '_csrf') continue;
+      var check = el.type === 'checkbox' || el.type === 'radio';
+      var base = el.name + (check ? '::' + el.value : '');
+      counts[base] = (counts[base] || 0) + 1;
+      out[base + '#' + counts[base]] = check ? (el.checked ? '1' : '0') : el.value;
+    }
+    return out;
+  }
+
+  function applyFields(fields) {
+    var counts = {};
+    var els = formEls();
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.type === 'file' || el.name === '_csrf') continue;
+      var check = el.type === 'checkbox' || el.type === 'radio';
+      var base = el.name + (check ? '::' + el.value : '');
+      counts[base] = (counts[base] || 0) + 1;
+      var key = base + '#' + counts[base];
+      if (!(key in fields)) continue;
+      if (check) el.checked = fields[key] === '1';
+      else el.value = fields[key];
+    }
+  }
+
+  var pristineSnapshot = null;
+  try { pristineSnapshot = JSON.stringify(collectFields()); } catch (e) {}
+
+  function saveNow() {
+    if (restoring) return;
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ step: current, f: collectFields() }));
+      if (savedHint) savedHint.classList.remove('hidden');
+    } catch (e) {}
+  }
+
+  function scheduleSave() {
+    if (restoring) return;
+    try {
+      if (saveTimer) return;
+      saveTimer = setTimeout(function () { saveTimer = null; saveNow(); }, 1000);
+    } catch (e) {}
+  }
+
+  createForm.addEventListener('input', scheduleSave);
+  createForm.addEventListener('change', scheduleSave);
+  createForm.addEventListener('submit', function () {
+    try { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; } } catch (e) {}
+    // Don't delete yet — flag as submitted. If the server rejects the create
+    // and re-renders with an error, the draft survives; a clean next visit
+    // (no error banner) purges it. (Review finding R11-9.)
+    try { localStorage.setItem(AUTOSAVE_KEY + ':submitted', '1'); } catch (e) {}
+  });
+
+  function applyDraft(data) {
+    restoring = true;
+    try {
+      applyFields(data.f || {});
+      // Re-run dependent UI by dispatching real change events
+      document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
+        if (r.checked) fire(r, 'change');
+      });
+      document.querySelectorAll('.cover-theme').forEach(function (r) {
+        if (r.checked) fire(r, 'change');
+      });
+      if (freeToggle.checked) fire(freeToggle, 'change');
+      fire(titleInput, 'input');
+      fire(summaryInput, 'input');
+      renderLoc();
+      var step = parseInt(data.step, 10);
+      if (step >= 1 && step <= total) current = step;
+      render();
+    } catch (e) {}
+    restoring = false;
+  }
+
+  (function offerRestore() {
+    var banner = document.getElementById('autosaveBanner');
+    var restoreBtn = document.getElementById('autosaveRestoreBtn');
+    var discardBtn = document.getElementById('autosaveDiscardBtn');
+    if (!banner || !restoreBtn || !discardBtn) return;
+    // Submitted-flag handling (R11-9): a clean visit after submit purges the
+    // draft; a visit showing a server error keeps it and offers restore.
+    try {
+      if (localStorage.getItem(AUTOSAVE_KEY + ':submitted')) {
+        localStorage.removeItem(AUTOSAVE_KEY + ':submitted');
+        if (!document.getElementById('wizServerError')) {
+          localStorage.removeItem(AUTOSAVE_KEY);
+          return;
+        }
+      }
+    } catch (e) {}
+    var data = null;
+    try {
+      var raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (raw) data = JSON.parse(raw);
+    } catch (e) { data = null; }
+    if (!data || !data.f) return;
+    // Nothing meaningful saved (identical to a pristine form) → drop silently
+    try {
+      if (pristineSnapshot !== null && JSON.stringify(data.f) === pristineSnapshot && !(data.step > 1)) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+        return;
+      }
+    } catch (e) {}
+    // Only offer on a pristine form (the create form always renders empty)
+    if (titleInput.value !== '') return;
+    function hideBanner() {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+    }
+    banner.classList.remove('hidden');
+    banner.classList.add('flex');
+    restoreBtn.addEventListener('click', function () { applyDraft(data); hideBanner(); });
+    discardBtn.addEventListener('click', function () {
+      try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+      hideBanner();
+    });
+  })();
+
+  renderLoc();
+  render();
+
+  // ------------------------------------------------------------------
+  // Google Places venue picker — active only when the server rendered
+  // #placesCfg (Maps key configured) AND the location type is VENUE.
+  // Without a key none of this runs and the manual fields work as before.
+  // ------------------------------------------------------------------
+  (function places() {
+    var cfg = document.getElementById('placesCfg');
+    if (!cfg) return;
+    var key = cfg.getAttribute('data-key');
+    var language = cfg.getAttribute('data-lang') || 'ar';
+    if (!key) return;
+    var venueInput = document.getElementById('ev-venue');
+    var addrInput = document.getElementById('ev-address');
+    var mapsInput = document.getElementById('ev-maps');
+    var citySel = document.getElementById('ev-city');
+    var wrap = document.getElementById('mapPreviewWrap');
+    var frame = document.getElementById('mapPreviewFrame');
+    if (!venueInput || !mapsInput) return;
+    var loaded = false, inited = false;
+
+    function showPreview(q) {
+      if (!wrap || !frame || !q) return;
+      frame.src = 'https://www.google.com/maps/embed/v1/place?key=' + encodeURIComponent(key)
+        + '&q=' + encodeURIComponent(q) + '&language=' + encodeURIComponent(language);
+      wrap.classList.remove('hidden');
+    }
+
+    function matchCity(address) {
+      if (!citySel || !address) return;
+      var addr = address.toLowerCase();
+      for (var i = 0; i < citySel.options.length; i++) {
+        var opt = citySel.options[i];
+        if ((opt.value && addr.indexOf(opt.value.toLowerCase()) !== -1)
+            || (opt.text && addr.indexOf(opt.text.toLowerCase()) !== -1)) {
+          citySel.value = opt.value;
+          fire(citySel, 'change');
+          return;
+        }
+      }
+    }
+
+    function initAutocomplete() {
+      if (inited) return;
+      if (!(window.google && google.maps && google.maps.places && google.maps.places.Autocomplete)) return;
+      inited = true;
+      try {
+        var ac = new google.maps.places.Autocomplete(venueInput, {
+          componentRestrictions: { country: 'iq' },
+          fields: ['name', 'formatted_address', 'geometry', 'url']
+        });
+        // Enter selects a suggestion — never submit the form from this input
+        venueInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault();
+        });
+        ac.addListener('place_changed', function () {
+          try {
+            var place = ac.getPlace();
+            if (!place) return;
+            if (place.name) venueInput.value = place.name;
+            if (addrInput && place.formatted_address) addrInput.value = place.formatted_address;
+            var q = null;
+            if (place.geometry && place.geometry.location) {
+              var lat = place.geometry.location.lat();
+              var lng = place.geometry.location.lng();
+              q = lat + ',' + lng;
+              mapsInput.value = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng;
+            } else if (place.url) {
+              mapsInput.value = place.url;
+            }
+            matchCity(place.formatted_address);
+            if (q) showPreview(q);
+            else if (place.formatted_address) showPreview(place.formatted_address);
+            fire(venueInput, 'change'); // autosave picks up the programmatic fill
+          } catch (e) {}
+        });
+      } catch (e) {}
+    }
+
+    function loadScript() {
+      if (loaded) return;
+      loaded = true;
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key)
+        + '&libraries=places&language=' + encodeURIComponent(language);
+      s.defer = true;
+      s.async = true;
+      s.onload = initAutocomplete;
+      document.head.appendChild(s);
+    }
+
+    function maybeLoad() { if (locType() === 'VENUE') loadScript(); }
+    document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
+      r.addEventListener('change', maybeLoad);
+    });
+    maybeLoad();
+
+    // Manually pasted links with coordinates keep the preview in sync
+    mapsInput.addEventListener('change', function () {
+      var m = mapsInput.value.match(/query=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+      if (m) showPreview(m[1] + ',' + m[2]);
+    });
+  })();
 })();
 </script>
 </body>

@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title th:text="${title}">iEvent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<link th:if="${rtl}" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" th:href="@{/css/app.css}">
 <style>
   html{scroll-behavior:smooth}
   body{font-family:Inter,sans-serif;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+  [dir=rtl] body,[dir=rtl] .font-display,[dir=rtl] .font-body{font-family:'IBM Plex Sans Arabic',Inter,sans-serif}
   :focus-visible{outline:2px solid #8f7ac9;outline-offset:2px;border-radius:6px}
   /* Inputs inside search pills own no ring — the container shows focus via focus-within
      (matches wireframe rendering; without this the global :focus-visible rule paints a
@@ -110,90 +112,92 @@
 <!-- ============ HEADER FRAGMENT ============ -->
 <th:block th:fragment="header(active)"
           th:with="isHost=${currentUser != null && (currentUser.role.name() == 'HOST' || currentUser.role.name() == 'ADMIN')}">
-<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
+<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white" th:text="#{public.nav.skip}">Skip to content</a>
 <header class="sticky top-0 z-50 border-b border-ink-100 bg-white backdrop-blur md:bg-white/95 md:supports-[backdrop-filter]:bg-white/80">
   <div class="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
-    <a th:href="@{/}" class="flex shrink-0 items-center gap-2" aria-label="iEvent home">
+    <a th:href="@{/}" class="flex shrink-0 items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
       <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
     </a>
-    <div class="ml-1 hidden flex-1 items-center md:flex">
+    <div class="ms-1 hidden flex-1 items-center md:flex">
       <form th:action="@{/browse}" method="get" class="flex w-full max-w-md items-center gap-2.5 rounded-full border border-ink-200 bg-ink-50 px-4 py-2.5 transition focus-within:border-brand-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-100">
         <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-        <input name="q" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" placeholder="Search events, venues, organizers…" aria-label="Search">
-        <span class="hidden shrink-0 items-center gap-1.5 border-l border-ink-200 pl-3 text-sm font-medium text-ink-500 lg:flex"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg>Baghdad</span>
+        <input name="q" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchPlaceholder}" placeholder="Search events, venues, organizers…" th:attr="aria-label=#{public.nav.searchAria}" aria-label="Search">
+        <span class="hidden shrink-0 items-center gap-1.5 border-s border-ink-200 ps-3 text-sm font-medium text-ink-500 lg:flex"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg>[[${@t.city('Baghdad')}]]</span>
       </form>
     </div>
-    <nav class="ml-auto hidden items-center gap-0.5 md:flex" aria-label="Primary">
+    <nav class="ms-auto hidden items-center gap-0.5 md:flex" th:attr="aria-label=#{public.nav.primaryAria}" aria-label="Primary">
       <a th:href="@{/browse}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
          th:classappend="${active == 'browse'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
-         th:attr="aria-current=${active == 'browse'} ? 'page' : null">Browse events</a>
+         th:attr="aria-current=${active == 'browse'} ? 'page' : null" th:text="#{public.nav.browse}">Browse events</a>
       <a th:href="@{/favorites}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
          th:classappend="${active == 'saved'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
-         th:attr="aria-current=${active == 'saved'} ? 'page' : null">Saved</a>
+         th:attr="aria-current=${active == 'saved'} ? 'page' : null" th:text="#{public.nav.saved}">Saved</a>
       <a th:href="@{/me/tickets}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
          th:classappend="${active == 'tickets'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
-         th:attr="aria-current=${active == 'tickets'} ? 'page' : null">My tickets</a>
-      <a th:href="@{/host}" class="ml-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? 'Host console' : 'Host an event'">Host an event</a>
-      <button class="ml-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Change language, current language English">
-        <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>EN<svg class="h-3 w-3" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-      </button>
+         th:attr="aria-current=${active == 'tickets'} ? 'page' : null" th:text="#{public.nav.myTickets}">My tickets</a>
+      <a th:href="@{/host}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
+      <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" class="ms-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
+        <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? 'EN' : 'AR']]<svg class="h-3 w-3" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+      </a>
       <th:block th:if="${currentUser != null}">
-        <div class="relative ml-1.5">
-          <button id="nbBtn" type="button" class="relative grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">
+        <div class="relative ms-1.5">
+          <button id="nbBtn" type="button" class="relative grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.notificationsAria}" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-bell"/></svg>
-            <span id="nbBadge" class="absolute -right-1 -top-1 hidden rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-white ring-2 ring-white">3</span>
+            <span id="nbBadge" class="absolute -end-1 -top-1 hidden rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-white ring-2 ring-white">3</span>
           </button>
-          <div id="nbPanel" class="absolute right-0 top-full z-50 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-cardHover">
+          <div id="nbPanel" class="absolute end-0 top-full z-50 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-cardHover">
             <div class="flex items-center justify-between border-b border-ink-100 px-4 py-3">
-              <p class="font-display text-sm font-bold text-ink-900">Notifications</p>
-              <span id="nbUnreadLine" class="text-xs font-semibold tabular-nums text-brand-600"></span>
+              <p class="font-display text-sm font-bold text-ink-900" th:text="#{public.nav.notifications}">Notifications</p>
+              <span id="nbUnreadLine" class="text-xs font-semibold tabular-nums text-brand-600" th:attr="data-unread-suffix=#{public.nav.unreadSuffix}"></span>
             </div>
             <ul id="nbList" class="max-h-96 divide-y divide-ink-50 overflow-y-auto"></ul>
-            <p id="nbEmpty" class="hidden px-4 py-8 text-center text-sm text-ink-500">You're all caught up.</p>
+            <p id="nbEmpty" class="hidden px-4 py-8 text-center text-sm text-ink-500" th:text="#{public.nav.caughtUp}">You're all caught up.</p>
             <div class="flex items-center justify-between border-t border-ink-100 bg-ink-50/60 px-4 py-2.5">
               <form th:action="@{/me/notifications/read-all}" method="post">
-                <button type="submit" class="text-xs font-semibold text-ink-600 transition hover:text-brand-600">Mark all read</button>
+                <button type="submit" class="text-xs font-semibold text-ink-600 transition hover:text-brand-600" th:text="#{public.nav.markAllRead}">Mark all read</button>
               </form>
-              <a th:href="@{/me/notifications}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 transition hover:text-brand-700">View all<svg class="h-3 w-3" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+              <a th:href="@{/me/notifications}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.nav.viewAll}]]<svg class="h-3 w-3 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
             </div>
           </div>
         </div>
-        <a th:href="@{/me/profile}" class="ml-1.5 grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 ring-2 ring-transparent transition hover:ring-brand-300" aria-label="Your profile" th:text="${currentUser.initials()}">FA</a>
-        <form th:action="@{/auth/logout}" method="post" class="ml-1">
-          <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-50 hover:text-ink-900">Sign out</button>
+        <a th:href="@{/me/profile}" class="ms-1.5 grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 ring-2 ring-transparent transition hover:ring-brand-300" th:attr="aria-label=#{public.nav.profileAria}" aria-label="Your profile" th:text="${currentUser.initials()}">FA</a>
+        <form th:action="@{/auth/logout}" method="post" class="ms-1">
+          <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-50 hover:text-ink-900" th:text="#{public.nav.signOut}">Sign out</button>
         </form>
       </th:block>
-      <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="ml-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-50 hover:text-ink-900">Sign in</a>
+      <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="ms-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-50 hover:text-ink-900" th:text="#{public.nav.signIn}">Sign in</a>
     </nav>
-    <button id="menuBtn" class="ml-auto grid h-10 w-10 place-items-center rounded-xl border border-ink-200 text-ink-700 transition hover:border-brand-400 hover:text-brand-600 md:hidden" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+    <button id="menuBtn" class="ms-auto grid h-10 w-10 place-items-center rounded-xl border border-ink-200 text-ink-700 transition hover:border-brand-400 hover:text-brand-600 md:hidden" th:attr="aria-label=#{public.nav.openMenuAria}" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#i-menu"/></svg>
     </button>
   </div>
   <div id="mobileMenu" class="hidden border-t border-ink-100 bg-white px-4 pb-4 pt-3 shadow-card md:hidden">
     <form th:action="@{/browse}" method="get" class="mb-3 flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
       <svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-      <input name="q" class="w-full bg-transparent text-base outline-none placeholder:text-ink-400 sm:text-sm" placeholder="Search events…" aria-label="Search">
+      <input name="q" class="w-full bg-transparent text-base outline-none placeholder:text-ink-400 sm:text-sm" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.nav.searchAria}" aria-label="Search">
     </form>
-    <nav class="grid gap-0.5 text-sm font-medium" aria-label="Mobile">
+    <nav class="grid gap-0.5 text-sm font-medium" th:attr="aria-label=#{public.nav.mobileAria}" aria-label="Mobile">
       <a th:href="@{/browse}" class="flex items-center gap-3 rounded-lg px-3 py-3"
          th:classappend="${active == 'browse'} ? 'bg-brand-50 font-semibold text-brand-700' : 'hover:bg-ink-50'"
-         th:attr="aria-current=${active == 'browse'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'browse'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-search"/></svg>Browse events</a>
+         th:attr="aria-current=${active == 'browse'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'browse'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-search"/></svg>[[#{public.nav.browse}]]</a>
       <a th:href="@{/favorites}" class="flex items-center gap-3 rounded-lg px-3 py-3"
-         th:classappend="${active == 'saved'} ? 'bg-brand-50 font-semibold text-brand-700' : 'hover:bg-ink-50'"><svg class="h-5 w-5" th:classappend="${active == 'saved'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-heart"/></svg>Saved</a>
+         th:classappend="${active == 'saved'} ? 'bg-brand-50 font-semibold text-brand-700' : 'hover:bg-ink-50'"><svg class="h-5 w-5" th:classappend="${active == 'saved'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-heart"/></svg>[[#{public.nav.saved}]]</a>
       <a th:href="@{/me/tickets}" class="flex items-center gap-3 rounded-lg px-3 py-3"
-         th:classappend="${active == 'tickets'} ? 'bg-brand-50 font-semibold text-brand-700' : 'hover:bg-ink-50'"><svg class="h-5 w-5" th:classappend="${active == 'tickets'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-ticket"/></svg>My tickets</a>
-      <a th:if="${currentUser != null}" th:href="@{/me/notifications}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-bell"/></svg>Notifications<span id="nbBadgeMobile" class="hidden rounded-full bg-brand-500 px-2 py-0.5 text-xs font-bold tabular-nums leading-none text-white">3</span></a>
-      <a th:if="${currentUser != null}" th:href="@{/me/profile}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-user"/></svg>Profile</a>
-      <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-user"/></svg>Sign in</a>
+         th:classappend="${active == 'tickets'} ? 'bg-brand-50 font-semibold text-brand-700' : 'hover:bg-ink-50'"><svg class="h-5 w-5" th:classappend="${active == 'tickets'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-ticket"/></svg>[[#{public.nav.myTickets}]]</a>
+      <a th:if="${currentUser != null}" th:href="@{/me/notifications}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-bell"/></svg>[[#{public.nav.notifications}]]<span id="nbBadgeMobile" class="hidden rounded-full bg-brand-500 px-2 py-0.5 text-xs font-bold tabular-nums leading-none text-white">3</span></a>
+      <a th:if="${currentUser != null}" th:href="@{/me/profile}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-user"/></svg>[[#{public.nav.profile}]]</a>
+      <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-user"/></svg>[[#{public.nav.signIn}]]</a>
       <form th:if="${currentUser != null}" th:action="@{/auth/logout}" method="post" class="grid">
-        <button type="submit" class="flex items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+        <button type="submit" class="flex items-center gap-3 rounded-lg px-3 py-3 text-start hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-log-out"/></svg>[[#{public.nav.signOut}]]</button>
       </form>
-      <a th:href="@{/host}" class="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3.5 font-semibold text-white shadow-pop" th:text="${isHost} ? 'Host console' : 'Host an event'">Host an event</a>
+      <a th:href="@{/host}" class="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3.5 font-semibold text-white shadow-pop" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
       <div class="mt-3 flex gap-2 px-1">
-        <button class="rounded-full border border-brand-500 bg-brand-50 px-3.5 py-2 text-xs font-semibold text-brand-700">EN</button>
-        <button class="rounded-full border border-ink-200 px-3.5 py-2 text-xs font-semibold text-ink-600">العربية</button>
-        <button class="rounded-full border border-ink-200 px-3.5 py-2 text-xs font-semibold text-ink-600">کوردی</button>
+        <a th:href="${urlEn}" class="rounded-full border px-3.5 py-2 text-xs font-semibold"
+           th:classappend="${lang == 'en'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 text-ink-600'">EN</a>
+        <a th:href="${urlAr}" class="rounded-full border px-3.5 py-2 text-xs font-semibold"
+           th:classappend="${lang == 'ar'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 text-ink-600'" th:text="#{common.arabic}">العربية</a>
+        <button type="button" disabled class="cursor-not-allowed rounded-full border border-ink-200 px-3.5 py-2 text-xs font-semibold text-ink-600 opacity-60" th:attr="title=#{common.comingSoon}" th:text="#{common.kurdish}">کوردی</button>
       </div>
     </nav>
   </div>
@@ -244,7 +248,7 @@ the dropdown list. DOM nodes are built with textContent only (no innerHTML). -->
       nbBadgeMobile.textContent = label;
       nbBadgeMobile.classList.toggle('hidden', unread === 0);
     }
-    if (nbUnreadLine) nbUnreadLine.textContent = unread > 0 ? label + ' unread' : '';
+    if (nbUnreadLine) nbUnreadLine.textContent = unread > 0 ? label + (nbUnreadLine.getAttribute('data-unread-suffix') || ' unread') : '';
     while (nbList.firstChild) nbList.removeChild(nbList.firstChild);
     var items = data.items || [];
     if (nbEmpty) nbEmpty.classList.toggle('hidden', items.length > 0);
@@ -317,13 +321,13 @@ the dropdown list. DOM nodes are built with textContent only (no innerHTML). -->
     <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='p-'+${card.slug}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#p-'+${card.slug}+')'"/></svg>
     <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
     <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
-    <span class="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="${card.categoryLabel}">Music</span>
-    <button aria-label="Save event" class="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
+    <span class="absolute start-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="${card.categoryLabel}">Music</span>
+    <button th:attr="aria-label=#{public.card.saveAria}" aria-label="Save event" class="absolute end-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
   </div>
   <div class="p-4">
     <p class="text-xs font-bold uppercase tracking-wide text-brand-600" th:text="${card.dateLine}">Sat, Sep 12 · 7:00 PM</p>
     <h3 class="mt-1.5 font-display font-bold leading-snug text-ink-900 transition group-hover:text-brand-600" th:text="${card.title}">Baghdad Nights Music Festival</h3>
-    <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${card.venueName != null ? card.venueName + ', ' + card.city : card.city}">Al-Zawraa Park, Baghdad</span></p>
+    <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${card.venueName != null ? card.venueName + ', ' + @t.city(card.city) : @t.city(card.city)}">Al-Zawraa Park, Baghdad</span></p>
     <p class="mt-2.5 flex items-center justify-between text-sm font-semibold text-ink-800"><span class="tabular-nums" th:text="${card.priceLine}">From 25,000 IQD</span><span class="inline-flex items-center gap-1 text-xs font-medium tabular-nums text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-heart"/></svg><span th:text="${card.likes}">214</span></span></p>
   </div>
 </a>
@@ -338,26 +342,26 @@ the dropdown list. DOM nodes are built with textContent only (no innerHTML). -->
           <h3 class="mt-1 font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="${title}">Baghdad Nights Music Festival</h3>
           <p class="mt-1 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${venueLine}">Al-Zawraa Park, Baghdad</span></p>
         </div>
-        <span th:if="${t.statusLabel == 'CHECKED_IN'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Checked in</span>
-        <span th:if="${t.statusLabel == 'VALID'}" class="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Valid</span>
-        <span th:if="${t.statusLabel == 'VOID'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Void</span>
+        <span th:if="${t.statusLabel == 'CHECKED_IN'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.stub.checkedIn}]]</span>
+        <span th:if="${t.statusLabel == 'VALID'}" class="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.stub.valid}]]</span>
+        <span th:if="${t.statusLabel == 'VOID'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.stub.void}]]</span>
       </div>
       <dl class="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-ink-400">Holder</dt><dd class="mt-0.5 font-semibold text-ink-900" th:text="${t.holderName}">Fahad Al-Thakur</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-ink-400">Type</dt><dd class="mt-0.5 font-semibold text-ink-900" th:text="${t.typeName}">General Admission</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket code</dt><dd class="mt-0.5 font-semibold tabular-nums text-ink-900" th:text="${t.code}">EVT-08451-A</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{public.stub.holder}">Holder</dt><dd class="mt-0.5 font-semibold text-ink-900" th:text="${t.holderName}">Fahad Al-Thakur</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{public.stub.type}">Type</dt><dd class="mt-0.5 font-semibold text-ink-900" th:text="${t.typeName}">General Admission</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{public.stub.ticketCode}">Ticket code</dt><dd class="mt-0.5 font-semibold tabular-nums text-ink-900" th:text="${t.code}">EVT-08451-A</dd></div>
       </dl>
       <div class="mt-4 flex flex-wrap gap-2">
-        <a th:href="@{/t/{c}/qr.png(c=${t.code})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-download"/></svg>QR PNG</a>
-        <a th:href="@{/t/{c}/ticket.pdf(c=${t.code})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-download"/></svg>PDF</a>
+        <a th:href="@{/t/{c}/qr.png(c=${t.code})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-download"/></svg>[[#{public.stub.qrPng}]]</a>
+        <a th:href="@{/t/{c}/ticket.pdf(c=${t.code})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-download"/></svg>[[#{public.stub.pdf}]]</a>
       </div>
     </div>
     <!-- Stub with QR -->
-    <div class="relative grid place-items-center border-t border-dashed border-ink-200 bg-brand-50/60 p-6 sm:w-48 sm:border-l sm:border-t-0">
-      <span class="absolute -left-3 -top-3 hidden h-6 w-6 rounded-full bg-ink-50 sm:block" aria-hidden="true"></span>
-      <span class="absolute -bottom-3 -left-3 hidden h-6 w-6 rounded-full bg-ink-50 sm:block" aria-hidden="true"></span>
-      <span class="absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-ink-50 sm:hidden" aria-hidden="true"></span>
-      <span class="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-ink-50 sm:hidden" aria-hidden="true"></span>
+    <div class="relative grid place-items-center border-t border-dashed border-ink-200 bg-brand-50/60 p-6 sm:w-48 sm:border-s sm:border-t-0">
+      <span class="absolute -start-3 -top-3 hidden h-6 w-6 rounded-full bg-ink-50 sm:block" aria-hidden="true"></span>
+      <span class="absolute -bottom-3 -start-3 hidden h-6 w-6 rounded-full bg-ink-50 sm:block" aria-hidden="true"></span>
+      <span class="absolute -start-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-ink-50 sm:hidden" aria-hidden="true"></span>
+      <span class="absolute -end-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-ink-50 sm:hidden" aria-hidden="true"></span>
       <!-- ALLOWED th:utext EXCEPTION: t.qrSvg is server-generated, safe SVG markup from QrService (never user input). -->
       <div class="qr-box h-28 w-28 overflow-hidden rounded-lg bg-white p-2 shadow-card" th:utext="${t.qrSvg}"></div>
       <p class="mt-2 text-center text-[10px] font-semibold uppercase tracking-wide text-ink-400" th:text="${t.code}">Scan at entry</p>
@@ -369,49 +373,51 @@ the dropdown list. DOM nodes are built with textContent only (no innerHTML). -->
 <footer th:fragment="footer" class="mt-20 bg-ink-900 text-ink-300">
   <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-8">
     <div class="sm:col-span-2 lg:col-span-1">
-      <a th:href="@{/}" class="flex items-center gap-2" aria-label="iEvent home">
+      <a th:href="@{/}" class="flex items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
         <img th:src="@{/img/brand-mark-white.png}" alt="" class="h-9 w-auto">
         <span class="font-display text-lg font-extrabold tracking-tight text-white"><span class="text-brand-300">i</span>Event</span>
       </a>
-      <p class="mt-4 max-w-xs text-sm leading-relaxed">Find your event, find your people. Discover what's happening across Iraq — and host your own.</p>
+      <p class="mt-4 max-w-xs text-sm leading-relaxed" th:text="#{public.footer.tagline}">Find your event, find your people. Discover what's happening across Iraq — and host your own.</p>
       <div class="mt-5 flex gap-2">
-        <button class="rounded-full border border-brand-400 bg-brand-500/20 px-3.5 py-1.5 text-xs font-semibold text-white">EN</button>
-        <button class="rounded-full border border-ink-600 px-3.5 py-1.5 text-xs font-semibold transition hover:border-brand-400 hover:text-white">العربية</button>
-        <button class="rounded-full border border-ink-600 px-3.5 py-1.5 text-xs font-semibold transition hover:border-brand-400 hover:text-white">کوردی</button>
+        <a th:href="${urlEn}" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
+           th:classappend="${lang == 'en'} ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-ink-600 hover:border-brand-400 hover:text-white'">EN</a>
+        <a th:href="${urlAr}" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
+           th:classappend="${lang == 'ar'} ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-ink-600 hover:border-brand-400 hover:text-white'" th:text="#{common.arabic}">العربية</a>
+        <button type="button" disabled class="cursor-not-allowed rounded-full border border-ink-600 px-3.5 py-1.5 text-xs font-semibold opacity-60" th:attr="title=#{common.comingSoon}" th:text="#{common.kurdish}">کوردی</button>
       </div>
     </div>
-    <nav aria-label="Discover">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white">Discover</h3>
+    <nav th:attr="aria-label=#{public.footer.discover}" aria-label="Discover">
+      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.discover}">Discover</h3>
       <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{/browse}" class="transition hover:text-brand-300">Browse events</a></li>
-        <li><a th:href="@{/browse(category='MUSIC')}" class="transition hover:text-brand-300">Music</a></li>
-        <li><a th:href="@{/browse(category='TECH')}" class="transition hover:text-brand-300">Tech &amp; Business</a></li>
-        <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300">Free events</a></li>
+        <li><a th:href="@{/browse}" class="transition hover:text-brand-300" th:text="#{public.nav.browse}">Browse events</a></li>
+        <li><a th:href="@{/browse(category='MUSIC')}" class="transition hover:text-brand-300" th:text="#{public.footer.music}">Music</a></li>
+        <li><a th:href="@{/browse(category='TECH')}" class="transition hover:text-brand-300" th:text="#{public.footer.techBusiness}">Tech &amp; Business</a></li>
+        <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300" th:text="#{public.footer.freeEvents}">Free events</a></li>
       </ul>
     </nav>
-    <nav aria-label="Hosts">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white">For hosts</h3>
+    <nav th:attr="aria-label=#{public.footer.hostsAria}" aria-label="Hosts">
+      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.forHosts}">For hosts</h3>
       <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{/host}" class="transition hover:text-brand-300">Host an event</a></li>
-        <li><a th:href="@{/host}" class="transition hover:text-brand-300">Host dashboard</a></li>
-        <li><a href="#" class="transition hover:text-brand-300">Pricing</a></li>
-        <li><a href="#" class="transition hover:text-brand-300">Host resources</a></li>
+        <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.nav.hostEvent}">Host an event</a></li>
+        <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
+        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
+        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
       </ul>
     </nav>
-    <nav aria-label="Company">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white">Company</h3>
+    <nav th:attr="aria-label=#{public.footer.company}" aria-label="Company">
+      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.company}">Company</h3>
       <ul class="space-y-2.5 text-sm">
-        <li><a href="#" class="transition hover:text-brand-300">About iEvent</a></li>
-        <li><a href="#" class="transition hover:text-brand-300">Contact</a></li>
-        <li><a href="#" class="transition hover:text-brand-300">Careers</a></li>
-        <li><a href="#" class="transition hover:text-brand-300">Help center</a></li>
+        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.about}">About iEvent</a></li>
+        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.contact}">Contact</a></li>
+        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.careers}">Careers</a></li>
+        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.help}">Help center</a></li>
       </ul>
     </nav>
   </div>
   <div class="border-t border-ink-700/60">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs sm:flex-row sm:px-6 lg:px-8">
-      <p>© 2026 iEvent. Made with <span class="text-brand-400">♥</span> in Iraq.</p>
-      <p class="flex items-center gap-1.5 text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-shield-check"/></svg>Payments: ZainCash · FIB / FastPay · Qi Card · Visa / Mastercard</p>
+      <p>[[#{public.footer.copyright1}]]<span class="text-brand-400">♥</span>[[#{public.footer.copyright2}]]</p>
+      <p class="flex items-center gap-1.5 text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-shield-check"/></svg>[[#{public.footer.payments}]]</p>
     </div>
   </div>
 </footer>

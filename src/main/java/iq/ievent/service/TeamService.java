@@ -4,6 +4,8 @@ import iq.ievent.domain.Organization;
 import iq.ievent.domain.User;
 import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.UserRepository;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,11 +32,19 @@ public class TeamService {
     private final OrganizationRepository organizations;
     private final UserRepository users;
     private final JdbcTemplate jdbc;
+    private final MessageSource messages;
 
-    public TeamService(OrganizationRepository organizations, UserRepository users, JdbcTemplate jdbc) {
+    public TeamService(OrganizationRepository organizations, UserRepository users, JdbcTemplate jdbc,
+                       MessageSource messages) {
         this.organizations = organizations;
         this.users = users;
         this.jdbc = jdbc;
+        this.messages = messages;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     /** Owner access first; otherwise membership access. */
@@ -75,10 +85,10 @@ public class TeamService {
     public String invite(Organization org, String email, String role) {
         User target = users.findByEmailIgnoreCase(email == null ? "" : email.trim()).orElse(null);
         if (target == null) {
-            return "No iEvent account exists for " + email + " — ask them to register first, then invite again.";
+            return msg("team.invite.noAccount", email);
         }
         if (target.getId().equals(org.getOwnerUserId())) {
-            return "That user is already the owner of this organization.";
+            return msg("team.invite.alreadyOwner");
         }
         String cleanRole = "MANAGER".equalsIgnoreCase(role) ? "MANAGER" : "STAFF";
         int inserted = jdbc.update("""

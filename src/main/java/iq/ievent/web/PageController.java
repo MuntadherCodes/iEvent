@@ -11,6 +11,8 @@ import iq.ievent.web.dto.Views.LineupItem;
 import iq.ievent.web.dto.Views.OrganizerExtras;
 import iq.ievent.web.dto.Views.OrganizerView;
 import iq.ievent.web.dto.Views.PastEventCard;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -53,15 +55,10 @@ public class PageController {
             new CategoryOption("FAMILY", "Family"));
 
     private static final List<String> WHEN_VALUES = List.of("today", "tomorrow", "weekend", "week", "month");
-    private static final Map<String, String> WHEN_LABELS = Map.of(
-            "today", "Today",
-            "tomorrow", "Tomorrow",
-            "weekend", "This weekend",
-            "week", "Next 7 days",
-            "month", "This month");
 
     private final CatalogService catalog;
     private final UserService userService;
+    private final MessageSource messages;
     private final iq.ievent.service.InteractionService interactions;
     private final iq.ievent.service.TeamService teamService;
     private final iq.ievent.repo.EventRepository events;
@@ -70,6 +67,7 @@ public class PageController {
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public PageController(CatalogService catalog, UserService userService,
+                          MessageSource messages,
                           iq.ievent.service.InteractionService interactions,
                           iq.ievent.service.TeamService teamService,
                           iq.ievent.repo.EventRepository events,
@@ -78,12 +76,26 @@ public class PageController {
                           org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.catalog = catalog;
         this.userService = userService;
+        this.messages = messages;
         this.interactions = interactions;
         this.teamService = teamService;
         this.events = events;
         this.organizations = organizations;
         this.likeCounts = likeCounts;
         this.jdbc = jdbc;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
+    }
+
+    /** CATEGORIES with labels localized for the current request (values unchanged). */
+    private List<CategoryOption> localizedCategories() {
+        return CATEGORIES.stream()
+                .map(c -> new CategoryOption(c.value(),
+                        Format.categoryLabel(Event.Category.valueOf(c.value()))))
+                .toList();
     }
 
     @ModelAttribute
@@ -97,7 +109,7 @@ public class PageController {
         model.addAttribute("weekendEvents", catalog.upcomingThisWeek(4));
         model.addAttribute("trendingEvents", catalog.trending(8));
         model.addAttribute("cities", catalog.liveCities());
-        model.addAttribute("categories", CATEGORIES);
+        model.addAttribute("categories", localizedCategories());
         long monthCount = catalog.search(null, null, null, null, "month", "soonest",
                 PageRequest.of(0, 1)).getTotalElements();
         model.addAttribute("monthCountLine",
@@ -129,7 +141,7 @@ public class PageController {
         String safeCategory = category == null ? "" : category;
         String selectedCategoryLabel = CATEGORIES.stream()
                 .filter(c -> c.value().equals(safeCategory))
-                .map(CategoryOption::label)
+                .map(c -> Format.categoryLabel(Event.Category.valueOf(c.value())))
                 .findFirst().orElse("");
 
         model.addAttribute("results", results);
@@ -139,7 +151,7 @@ public class PageController {
         model.addAttribute("selectedCity", city == null ? "" : city);
         model.addAttribute("selectedPrice", safePrice);
         model.addAttribute("selectedWhen", safeWhen);
-        model.addAttribute("selectedWhenLabel", WHEN_LABELS.getOrDefault(safeWhen, ""));
+        model.addAttribute("selectedWhenLabel", safeWhen.isEmpty() ? "" : msg("when." + safeWhen));
         model.addAttribute("selectedSort", safeSort.isEmpty() ? "soonest" : safeSort);
         model.addAttribute("hasFilters", !safeQ.isEmpty() || !safeCategory.isEmpty()
                 || (city != null && !city.isBlank()) || !safePrice.isEmpty() || !safeWhen.isEmpty());
@@ -147,7 +159,7 @@ public class PageController {
                 String.format(Locale.ENGLISH, "%,d", results.getTotalElements()));
         model.addAttribute("pageItems", pageItems(results.getNumber(), results.getTotalPages()));
         model.addAttribute("cities", catalog.liveCities());
-        model.addAttribute("categories", CATEGORIES);
+        model.addAttribute("categories", localizedCategories());
         return "browse";
     }
 
@@ -228,7 +240,7 @@ public class PageController {
                 entity.getSummary() == null || entity.getSummary().isBlank() ? null : entity.getSummary().trim());
         model.addAttribute("tags", parseTags(entity.getTags()));
         model.addAttribute("lineup", parseLineup(entity.getLineup()));
-        model.addAttribute("refundPolicyText", refundPolicyText(entity.getRefundPolicy()));
+        model.addAttribute("refundPolicyText", refundPolicyText(entity.getRefundPolicy(), messages));
         model.addAttribute("directionsUrl", directionsUrl(entity));
         return "event";
     }
@@ -257,7 +269,7 @@ public class PageController {
                 Format.monthShort(e.getStartsAt()),
                 Format.dayOfMonth(e.getStartsAt()),
                 paragraphs,
-                "Free",
+                Format.priceLabel(0),
                 likes,
                 organizer,
                 List.of(),
@@ -291,13 +303,14 @@ public class PageController {
         return out;
     }
 
-    static String refundPolicyText(String policy) {
+    static String refundPolicyText(String policy, MessageSource messages) {
         String p = policy == null ? "" : policy;
-        return switch (p) {
-            case "NO_REFUNDS" -> "All sales are final — this event does not offer refunds. Booking fees are non-refundable.";
-            case "UP_TO_48H" -> "Full refund up to 48 hours before doors open. Booking fees are non-refundable.";
-            default -> "Full refund up to 7 days before the event. Booking fees are non-refundable.";
+        String code = switch (p) {
+            case "NO_REFUNDS" -> "page.refund.none";
+            case "UP_TO_48H" -> "page.refund.48h";
+            default -> "page.refund.7d";
         };
+        return messages.getMessage(code, null, LocaleContextHolder.getLocale());
     }
 
     static String directionsUrl(Event e) {
@@ -344,7 +357,7 @@ public class PageController {
                     e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
                     e.getCity(), e.getVenueName(),
                     Format.cardDateLine(e.getStartsAt()),
-                    n > 0 ? String.format(Locale.ENGLISH, "%,d attended", n) : null));
+                    n > 0 ? msg("page.attended", String.format(Locale.ENGLISH, "%,d", n)) : null));
         }
         String website = clean(org.getWebsite());
         String instagram = clean(org.getInstagram());

@@ -49,8 +49,10 @@ public class CampaignService {
                     String subject, String body, String linkUrl) {
         List<String> to = recipients(org, eventOrNull, audience);
         String title = eventOrNull != null ? eventOrNull.getTitle() : org.getName();
+        final java.util.Locale locale =
+                org.springframework.context.i18n.LocaleContextHolder.getLocale();
         for (String email : to) {
-            mail.sendCampaign(email, subject, body, title, linkUrl);
+            mail.sendCampaign(email, subject, body, title, linkUrl, locale);
         }
         Campaign c = new Campaign();
         c.setOrganization(org);

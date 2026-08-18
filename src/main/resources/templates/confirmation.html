@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Order ' + ${order.orderCode} + ' — iEvent')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{public.title.orderPrefix} + ${order.orderCode} + #{public.title.suffix})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <style>
@@ -12,19 +12,19 @@
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
 
-<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
+<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white" th:text="#{public.nav.skip}">Skip to content</a>
 
 <!-- ============ MINIMAL CELEBRATORY HEADER ============ -->
 <header class="sticky top-0 z-50 border-b border-ink-100 bg-white backdrop-blur md:bg-white/95 md:supports-[backdrop-filter]:bg-white/80">
   <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
-    <a th:href="@{/}" class="flex shrink-0 items-center gap-2" aria-label="iEvent home">
+    <a th:href="@{/}" class="flex shrink-0 items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
       <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
     </a>
-    <span th:if="${confirmed}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg>Order confirmed</span>
-    <span th:if="${pending}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-clock"/></svg>Pending confirmation</span>
+    <span th:if="${confirmed}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg>[[#{public.confirm.orderConfirmed}]]</span>
+    <span th:if="${pending}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-clock"/></svg>[[#{public.confirm.pendingBadge}]]</span>
     <span th:if="${closed}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1.5 text-xs font-semibold text-ink-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${order.statusLabel()}">Refunded</span></span>
-    <a th:href="@{/me/tickets}" class="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">My tickets<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+    <a th:href="@{/me/tickets}" class="ms-auto inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.nav.myTickets}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
   </div>
 </header>
 
@@ -35,17 +35,17 @@
     <div class="success-mark success-ring mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-pop">
       <svg class="h-12 w-12" aria-hidden="true"><use href="#i-check"/></svg>
     </div>
-    <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">You're going! 🎉</h1>
-    <p class="mt-3 text-ink-500">Order <span class="font-semibold tabular-nums text-ink-800" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span> · <span th:text="${order.eventTitle}">Baghdad Nights Music Festival</span></p>
-    <p class="mt-1 text-sm text-ink-500">Tickets sent to <span class="font-semibold text-ink-800" th:text="${order.buyerEmail}">fahad.thakur@yahoo.com</span></p>
+    <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl" th:text="#{public.confirm.youreGoing}">You're going! 🎉</h1>
+    <p class="mt-3 text-ink-500">[[#{public.confirm.orderWord}]] <span class="font-semibold tabular-nums text-ink-800" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span> · <span th:text="${order.eventTitle}">Baghdad Nights Music Festival</span></p>
+    <p class="mt-1 text-sm text-ink-500">[[#{public.confirm.ticketsSentTo}]] <span class="font-semibold text-ink-800" th:text="${order.buyerEmail}">fahad.thakur@yahoo.com</span></p>
 
     <!-- Online event: join link (revealed only on CONFIRMED orders) -->
     <div th:if="${order.online() && order.onlineUrl() != null}" class="mx-auto mt-6 max-w-md rounded-2xl border border-green-200 bg-green-50 p-5">
-      <p class="flex items-center justify-center gap-2 text-sm font-bold text-green-800"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>This is an online event</p>
+      <p class="flex items-center justify-center gap-2 text-sm font-bold text-green-800"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>[[#{public.confirm.onlineEventNote}]]</p>
       <a th:href="${order.onlineUrl()}" target="_blank" rel="noopener" class="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-green-700 active:scale-[.98]">
-        <svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg>Join online event
+        <svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg>[[#{public.confirm.joinOnline}]]
       </a>
-      <p class="mt-2 text-xs text-green-800">Keep this link private — it's only shared with confirmed ticket holders.</p>
+      <p class="mt-2 text-xs text-green-800" th:text="#{public.confirm.keepPrivate}">Keep this link private — it's only shared with confirmed ticket holders.</p>
     </div>
   </div>
 
@@ -54,61 +54,61 @@
     <div class="success-mark mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-pop">
       <svg class="h-12 w-12" aria-hidden="true"><use href="#i-clock"/></svg>
     </div>
-    <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Order received — pending organizer confirmation</h1>
-    <p class="mt-3 text-ink-500">Order <span class="font-semibold tabular-nums text-ink-800" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span> · <span th:text="${order.eventTitle}">Baghdad Nights Music Festival</span></p>
-    <p class="mt-1 text-sm text-ink-500">We'll notify <span class="font-semibold text-ink-800" th:text="${order.buyerEmail}">fahad.thakur@yahoo.com</span> the moment your transfer is confirmed.</p>
+    <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl" th:text="#{public.confirm.pendingTitle}">Order received — pending organizer confirmation</h1>
+    <p class="mt-3 text-ink-500">[[#{public.confirm.orderWord}]] <span class="font-semibold tabular-nums text-ink-800" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span> · <span th:text="${order.eventTitle}">Baghdad Nights Music Festival</span></p>
+    <p class="mt-1 text-sm text-ink-500">[[#{public.confirm.notifyPrefix}]] <span class="font-semibold text-ink-800" th:text="${order.buyerEmail}">fahad.thakur@yahoo.com</span> [[#{public.confirm.notifySuffix}]]</p>
 
     <!-- Status timeline -->
-    <ol class="mx-auto mt-8 max-w-md text-left" aria-label="Order status">
+    <ol class="mx-auto mt-8 max-w-md text-start" th:attr="aria-label=#{public.confirm.statusAria}" aria-label="Order status">
       <li class="relative flex gap-4 pb-6">
-        <span class="absolute left-4 top-9 h-[calc(100%-2.25rem)] w-px bg-ink-200" aria-hidden="true"></span>
+        <span class="absolute start-4 top-9 h-[calc(100%-2.25rem)] w-px bg-ink-200" aria-hidden="true"></span>
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span>
         <div class="min-w-0 pt-1">
-          <p class="text-sm font-semibold text-ink-900">Transfer submitted</p>
-          <p class="text-xs text-ink-500">Your order and transfer details were submitted.</p>
+          <p class="text-sm font-semibold text-ink-900" th:text="#{public.confirm.transferSubmitted}">Transfer submitted</p>
+          <p class="text-xs text-ink-500" th:text="#{public.confirm.transferSubmittedSub}">Your order and transfer details were submitted.</p>
         </div>
       </li>
       <li class="relative flex gap-4 pb-6">
-        <span class="absolute left-4 top-9 h-[calc(100%-2.25rem)] w-px bg-ink-200" aria-hidden="true"></span>
+        <span class="absolute start-4 top-9 h-[calc(100%-2.25rem)] w-px bg-ink-200" aria-hidden="true"></span>
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber-100 ring-4 ring-amber-50"><span class="h-2.5 w-2.5 animate-pulse rounded-full bg-amber-500"></span></span>
         <div class="min-w-0 pt-1">
-          <p class="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-900">Organizer review <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>In progress</span></p>
-          <p class="text-xs text-ink-500"><span th:text="${order.organizerName()}">Zain Events Co.</span> checks your transfer — usually within a few hours.</p>
+          <p class="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-900">[[#{public.confirm.organizerReview}]] <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.confirm.inProgress}]]</span></p>
+          <p class="text-xs text-ink-500"><span th:text="${order.organizerName()}">Zain Events Co.</span> [[#{public.confirm.checksTransfer}]]</p>
         </div>
       </li>
       <li class="relative flex gap-4">
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink-200 bg-white"><span class="h-2 w-2 rounded-full bg-ink-200"></span></span>
         <div class="min-w-0 pt-1">
-          <p class="text-sm font-semibold text-ink-400">Tickets issued</p>
-          <p class="text-xs text-ink-400">QR tickets land here and in your email.</p>
+          <p class="text-sm font-semibold text-ink-400" th:text="#{public.confirm.ticketsIssued}">Tickets issued</p>
+          <p class="text-xs text-ink-400" th:text="#{public.confirm.ticketsIssuedSub}">QR tickets land here and in your email.</p>
         </div>
       </li>
     </ol>
 
     <!-- Uploaded receipt / transfer reference row -->
-    <div th:if="${order.receiptName() != null || order.transferReference() != null}" class="mx-auto mt-6 flex max-w-md items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 text-left shadow-card">
+    <div th:if="${order.receiptName() != null || order.transferReference() != null}" class="mx-auto mt-6 flex max-w-md items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 text-start shadow-card">
       <div class="flex min-w-0 items-center gap-3">
         <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-500"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-receipt"/></svg></span>
         <div class="min-w-0">
-          <p class="truncate text-sm font-semibold text-ink-900" th:text="${order.receiptName() != null ? order.receiptName() : 'Transfer reference'}">receipt-01.png</p>
-          <p class="truncate text-xs text-ink-500" th:text="${order.transferReference() != null ? 'Reference: ' + order.transferReference() : 'Transfer receipt · uploaded at checkout'}">Transfer receipt · uploaded at checkout</p>
+          <p class="truncate text-sm font-semibold text-ink-900" th:text="${order.receiptName() != null} ? ${order.receiptName()} : #{public.checkout.transferReference}">receipt-01.png</p>
+          <p class="truncate text-xs text-ink-500" th:text="${order.transferReference() != null} ? #{public.confirm.reference(${order.transferReference()})} : #{public.confirm.receiptUploaded}">Transfer receipt · uploaded at checkout</p>
         </div>
       </div>
     </div>
 
     <!-- Tickets-locked note (wireframe overlay card, rendered inline for the server-side pending state) -->
-    <div class="mx-auto mt-6 flex max-w-md items-start gap-3 rounded-2xl border border-amber-200 bg-white/95 p-5 text-left shadow-cardHover">
+    <div class="mx-auto mt-6 flex max-w-md items-start gap-3 rounded-2xl border border-amber-200 bg-white/95 p-5 text-start shadow-cardHover">
       <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-lock"/></svg></span>
       <div>
-        <p class="text-sm font-bold text-ink-900">Tickets unlock once payment is confirmed</p>
-        <p class="mt-1 text-xs text-ink-500">Your QR codes appear here right after the organizer confirms your transfer. This page is your tracker — refresh it anytime.</p>
+        <p class="text-sm font-bold text-ink-900" th:text="#{public.confirm.ticketsUnlock}">Tickets unlock once payment is confirmed</p>
+        <p class="mt-1 text-xs text-ink-500" th:text="#{public.confirm.ticketsUnlockSub}">Your QR codes appear here right after the organizer confirms your transfer. This page is your tracker — refresh it anytime.</p>
       </div>
     </div>
 
     <!-- Online event: join link stays locked while pending -->
-    <div th:if="${order.online()}" class="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-left">
+    <div th:if="${order.online()}" class="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-start">
       <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-laptop"/></svg>
-      <p class="text-sm leading-relaxed text-brand-800">This is an online event — the join link unlocks when the organizer confirms your order.</p>
+      <p class="text-sm leading-relaxed text-brand-800" th:text="#{public.confirm.onlinePendingNote}">This is an online event — the join link unlocks when the organizer confirms your order.</p>
     </div>
   </div>
 
@@ -117,9 +117,9 @@
     <div class="success-mark mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br from-ink-400 to-ink-600 text-white shadow-pop">
       <svg class="h-12 w-12" aria-hidden="true"><use href="#i-receipt"/></svg>
     </div>
-    <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl" th:text="'Order ' + ${#strings.toLowerCase(order.statusLabel())}">Order refunded</h1>
-    <p class="mt-3 text-ink-500">Order <span class="font-semibold tabular-nums text-ink-800" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span> · <span th:text="${order.eventTitle}">Baghdad Nights Music Festival</span></p>
-    <p class="mt-1 text-sm text-ink-500">This order is no longer active — its tickets are not valid for entry. Questions? Contact <span class="font-semibold text-ink-800" th:text="${order.organizerName()}">the organizer</span>.</p>
+    <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl" th:text="#{public.confirm.orderStatusHeading(${#strings.toLowerCase(order.statusLabel())})}">Order refunded</h1>
+    <p class="mt-3 text-ink-500">[[#{public.confirm.orderWord}]] <span class="font-semibold tabular-nums text-ink-800" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span> · <span th:text="${order.eventTitle}">Baghdad Nights Music Festival</span></p>
+    <p class="mt-1 text-sm text-ink-500">[[#{public.confirm.closedSubPrefix}]] <span class="font-semibold text-ink-800" th:text="${order.organizerName()}">the organizer</span>.</p>
   </div>
 
   <!-- ===== Ticket stubs (confirmed only) ===== -->
@@ -131,26 +131,26 @@
 
   <!-- Per-ticket status page links -->
   <div th:if="${confirmed && !tickets.isEmpty()}" class="mt-4 flex flex-wrap items-center gap-2">
-    <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-qr-code"/></svg>Ticket status pages:</span>
+    <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-qr-code"/></svg>[[#{public.confirm.ticketStatusPages}]]</span>
     <a th:each="t : ${tickets}" th:href="@{/t/{c}(c=${t.code()})}" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold tabular-nums text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="${t.code()}">EVT-08451-A</a>
   </div>
 
   <!-- ===== Action buttons row ===== -->
   <div class="mt-6 flex flex-col gap-3 sm:flex-row">
     <a th:if="${confirmed}" th:href="@{/orders/{c}/tickets.pdf(c=${order.orderCode})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-ink-800 active:scale-[.98]">
-      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-download"/></svg>Download all tickets (PDF)
+      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-download"/></svg>[[#{public.confirm.downloadAll}]]
     </a>
     <a th:href="@{/events/{s}/calendar.ics(s=${order.eventSlug})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
-      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg>Add to calendar (.ics)
+      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.confirm.addToCalendarIcs}]]
     </a>
     <a th:href="@{/me/tickets}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
-      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-ticket"/></svg>View my tickets
+      <svg class="h-5 w-5" aria-hidden="true"><use href="#i-ticket"/></svg>[[#{public.confirm.viewMyTickets}]]
     </a>
   </div>
 
   <!-- ===== Event recap card ===== -->
   <section class="mt-10 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-7">
-    <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900">Event details</h2>
+    <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.confirm.eventDetails}">Event details</h2>
     <div class="mt-4 grid gap-6 sm:grid-cols-[1fr_240px]">
       <div class="space-y-4 text-sm">
         <div class="flex items-start gap-3">
@@ -164,12 +164,12 @@
           <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
           <div>
             <p class="font-semibold text-ink-900" th:text="${order.venueLine}">Al-Zawraa Park, Baghdad</p>
-            <p class="text-ink-500"><a th:href="@{/events/{s}(s=${order.eventSlug})}" class="font-semibold text-brand-600 transition hover:text-brand-700">View event page</a></p>
+            <p class="text-ink-500"><a th:href="@{/events/{s}(s=${order.eventSlug})}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.confirm.viewEventPage}">View event page</a></p>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 pt-1">
-          <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendar"/></svg>Add to calendar:</span>
-          <a th:href="@{/events/{s}/calendar.ics(s=${order.eventSlug})}" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">.ics file</a>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.confirm.addToCalendarLabel}]]</span>
+          <a th:href="@{/events/{s}/calendar.ics(s=${order.eventSlug})}" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.confirm.icsFile}">.ics file</a>
         </div>
       </div>
       <div class="relative h-40 overflow-hidden rounded-2xl border border-ink-100 bg-[#e8ecf1] sm:h-auto">
@@ -182,7 +182,7 @@
   <!-- ===== Order summary card ===== -->
   <section class="mt-8 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-7">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900">Order summary</h2>
+      <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.checkout.orderSummary}">Order summary</h2>
       <span class="text-sm tabular-nums text-ink-500" th:text="'#' + ${order.orderCode}">#EVT-2026-08451</span>
     </div>
     <div class="mt-4 space-y-1 text-sm">
@@ -190,15 +190,15 @@
         <span class="text-ink-500"><span th:text="${item.name}">General Admission</span> × <span class="tabular-nums" th:text="${item.quantity}">2</span> <span class="text-ink-400" th:text="'(' + ${item.unitLabel} + ')'">(35,000 IQD)</span></span>
         <span class="font-semibold tabular-nums text-ink-800" th:text="${item.lineLabel}">70,000 IQD</span>
       </div>
-      <div class="flex justify-between py-1"><span class="text-ink-500">Subtotal</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.subtotalLabel}">70,000 IQD</span></div>
-      <div class="flex justify-between py-1"><span class="text-ink-500">Booking fee</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.feeLabel}">3,000 IQD</span></div>
+      <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.subtotalLabel}">70,000 IQD</span></div>
+      <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.confirm.bookingFee}">Booking fee</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.feeLabel}">3,000 IQD</span></div>
       <div th:if="${order.discountLabel != null}" class="flex justify-between py-1 text-green-700">
-        <span class="flex items-center gap-2">Discount <span th:if="${order.promoCode != null}" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-tag"/></svg><span th:text="${order.promoCode}">SUMMER10</span></span></span>
+        <span class="flex items-center gap-2">[[#{public.checkout.discount}]] <span th:if="${order.promoCode != null}" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-tag"/></svg><span th:text="${order.promoCode}">SUMMER10</span></span></span>
         <span class="font-semibold tabular-nums" th:text="'−' + ${order.discountLabel}">−5,000 IQD</span>
       </div>
-      <div class="mt-2 flex justify-between border-t border-dashed border-ink-200 pt-3"><span class="font-bold text-ink-900">Total</span><span class="font-display font-extrabold tabular-nums text-ink-900" th:text="${order.totalLabel}">73,000 IQD</span></div>
+      <div class="mt-2 flex justify-between border-t border-dashed border-ink-200 pt-3"><span class="font-bold text-ink-900" th:text="#{public.event.total}">Total</span><span class="font-display font-extrabold tabular-nums text-ink-900" th:text="${order.totalLabel}">73,000 IQD</span></div>
       <div class="flex flex-wrap items-center justify-between gap-2 border-t border-ink-100 pt-3 text-xs text-ink-500">
-        <span>Buyer: <span class="font-semibold text-ink-800" th:text="${order.buyerName}">Fahad Al-Thakur</span></span>
+        <span>[[#{public.confirm.buyer}]] <span class="font-semibold text-ink-800" th:text="${order.buyerName}">Fahad Al-Thakur</span></span>
         <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-semibold"
               th:classappend="${pending} ? 'bg-amber-100 text-amber-700' : (${confirmed} ? 'bg-green-100 text-green-700' : 'bg-ink-100 text-ink-600')"
               th:text="${order.statusLabel}">Confirmed</span>
@@ -208,22 +208,22 @@
 
   <!-- ===== What's next ===== -->
   <section class="mt-8">
-    <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900">What's next</h2>
+    <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.confirm.whatsNext}">What's next</h2>
     <div class="mt-4 grid gap-4 sm:grid-cols-3">
       <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
         <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-clock"/></svg></span>
-        <p class="mt-3 font-display text-sm font-bold text-ink-900">Arrive early</p>
-        <p class="mt-1 text-sm text-ink-500">Beat the queue and grab a good spot before doors open.</p>
+        <p class="mt-3 font-display text-sm font-bold text-ink-900" th:text="#{public.confirm.arriveEarly}">Arrive early</p>
+        <p class="mt-1 text-sm text-ink-500" th:text="#{public.confirm.arriveEarlySub}">Beat the queue and grab a good spot before doors open.</p>
       </div>
       <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
         <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-badge-check"/></svg></span>
-        <p class="mt-3 font-display text-sm font-bold text-ink-900">Bring ID</p>
-        <p class="mt-1 text-sm text-ink-500">The name on each ticket must match a valid photo ID at entry.</p>
+        <p class="mt-3 font-display text-sm font-bold text-ink-900" th:text="#{public.confirm.bringId}">Bring ID</p>
+        <p class="mt-1 text-sm text-ink-500" th:text="#{public.confirm.bringIdSub}">The name on each ticket must match a valid photo ID at entry.</p>
       </div>
       <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
         <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-bell"/></svg></span>
-        <p class="mt-3 font-display text-sm font-bold text-ink-900">Follow the organizer</p>
-        <p class="mt-1 text-sm text-ink-500">Get lineup drops and future events on the <a th:href="@{/events/{s}(s=${order.eventSlug})}" class="font-semibold text-brand-600 transition hover:text-brand-700">event page</a>.</p>
+        <p class="mt-3 font-display text-sm font-bold text-ink-900" th:text="#{public.confirm.followOrganizer}">Follow the organizer</p>
+        <p class="mt-1 text-sm text-ink-500">[[#{public.confirm.followOrganizerSubPrefix}]] <a th:href="@{/events/{s}(s=${order.eventSlug})}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.confirm.eventPageLink}">event page</a>.</p>
       </div>
     </div>
   </section>
@@ -232,11 +232,11 @@
   <section class="relative mt-12 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-950 via-brand-800 to-brand-500 p-8 text-center sm:p-10">
     <svg class="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="confcta" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#confcta)"/></svg>
     <div class="relative">
-      <h2 class="font-display text-2xl font-extrabold tracking-tight text-white">Your city is happening.</h2>
-      <p class="mx-auto mt-2 max-w-md text-sm text-brand-100">More nights like this are waiting — from Erbil tech summits to Basra food carnivals.</p>
+      <h2 class="font-display text-2xl font-extrabold tracking-tight text-white" th:text="#{public.confirm.cityHappening}">Your city is happening.</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm text-brand-100" th:text="#{public.confirm.ctaSub}">More nights like this are waiting — from Erbil tech summits to Basra food carnivals.</p>
       <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a th:href="@{/browse}" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-brand-700 shadow-pop transition hover:bg-brand-50 active:scale-[.98]">Discover more events</a>
-        <a th:href="@{/me/tickets}" class="inline-flex items-center gap-1 text-sm font-semibold text-brand-100 transition hover:text-white">View my tickets<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/browse}" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-brand-700 shadow-pop transition hover:bg-brand-50 active:scale-[.98]" th:text="#{public.confirm.discoverMore}">Discover more events</a>
+        <a th:href="@{/me/tickets}" class="inline-flex items-center gap-1 text-sm font-semibold text-brand-100 transition hover:text-white">[[#{public.confirm.viewMyTickets}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
     </div>
   </section>
@@ -245,8 +245,8 @@
 <!-- ============ SLIM FOOTER ============ -->
 <footer class="mt-16 border-t border-ink-100 bg-white">
   <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-ink-500 sm:flex-row sm:px-6 lg:px-8">
-    <p>© 2026 iEvent. Made with <span class="text-brand-500">♥</span> in Iraq.</p>
-    <p class="flex items-center gap-1.5 text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-shield-check"/></svg>Payments: ZainCash · FIB / FastPay · Qi Card · Visa / Mastercard</p>
+    <p>[[#{public.footer.copyright1}]]<span class="text-brand-500">♥</span>[[#{public.footer.copyright2}]]</p>
+    <p class="flex items-center gap-1.5 text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-shield-check"/></svg>[[#{public.footer.payments}]]</p>
   </div>
 </footer>
 </body>

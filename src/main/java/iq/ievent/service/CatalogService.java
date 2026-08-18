@@ -252,7 +252,7 @@ public class CatalogService {
                 Format.dayOfMonth(e.getStartsAt()),
                 paragraphs,
                 // bare digits — the templates add their own "From"/"IQD" around it
-                minPrice == null || minPrice == 0 ? "Free"
+                minPrice == null || minPrice == 0 ? Format.priceLabel(0)
                         : String.format(java.util.Locale.ENGLISH, "%,d", minPrice),
                 likes,
                 organizer,

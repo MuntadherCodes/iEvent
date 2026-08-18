@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title th:text="${title}">iEvent Host</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<link th:if="${rtl}" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" th:href="@{/css/app.css}">
 <style>
   html{scroll-behavior:smooth}
   body{font-family:Inter,sans-serif;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+  [dir=rtl] body,[dir=rtl] .font-display,[dir=rtl] .font-body{font-family:'IBM Plex Sans Arabic',Inter,sans-serif}
   :focus-visible{outline:2px solid #8f7ac9;outline-offset:2px;border-radius:6px}
   /* Inputs inside search pills own no ring — the container shows focus via focus-within. */
   .outline-none:focus-visible{outline:none}
@@ -17,6 +19,9 @@
   .icon{width:1em;height:1em;flex:none}
   .no-scrollbar{scrollbar-width:none}
   .no-scrollbar::-webkit-scrollbar{display:none}
+  /* RTL: JS-toggled switch knobs travel the other way (class is toggled at runtime,
+     so a variant can't ride along with it). */
+  [dir=rtl] .translate-x-5{--tw-translate-x:-1.25rem}
   /* iOS Safari: native date/time inputs collapse to a short blank box when empty
      and zoom the page on focus when font-size < 16px. Give them an explicit
      height, left-aligned value and text-input styling. */
@@ -33,50 +38,50 @@ Responsive behavior:
  - <md (mobile): hidden; bottom tab bar + top bar used instead
  - md–lg (tablet): icon rail, width 20 (w-20)
  - lg+ (desktop): full 64-wide sidebar with labels -->
-<aside th:fragment="sidebar(active)" class="fixed inset-y-0 left-0 z-40 hidden w-20 flex-col border-r border-ink-100 bg-white md:flex lg:w-64">
+<aside th:fragment="sidebar(active)" class="fixed inset-y-0 start-0 z-40 hidden w-20 flex-col border-e border-ink-100 bg-white md:flex lg:w-64">
   <div class="flex h-16 items-center justify-center gap-2 border-b border-ink-100 px-3 lg:justify-start lg:px-5">
-    <a th:href="@{/}" class="flex items-center gap-2" aria-label="iEvent home">
+    <a th:href="@{/}" class="flex items-center gap-2" th:aria-label="#{host.nav.homeAria}" aria-label="iEvent home">
       <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
       <span class="hidden font-display text-base font-extrabold tracking-tight text-ink-900 lg:block"><span class="text-brand-500">i</span>Event</span>
     </a>
-    <span class="hidden rounded-md bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700 lg:block">Host</span>
+    <span class="hidden rounded-md bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700 lg:block" th:text="#{host.nav.hostBadge}">Host</span>
   </div>
   <div class="px-3 pt-5 lg:px-4">
-    <a th:href="@{/host/events/new}" title="Create event" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-0 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] lg:px-4">
+    <a th:href="@{/host/events/new}" th:title="#{host.nav.createEvent}" title="Create event" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-0 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] lg:px-4">
       <svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>
-      <span class="hidden lg:inline">Create event</span>
+      <span class="hidden lg:inline" th:text="#{host.nav.createEvent}">Create event</span>
     </a>
   </div>
-  <nav class="mt-5 flex-1 space-y-0.5 overflow-y-auto px-2 pb-6 text-sm lg:px-3" aria-label="Dashboard">
-    <a th:href="@{/host}" title="Overview" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+  <nav class="mt-5 flex-1 space-y-0.5 overflow-y-auto px-2 pb-6 text-sm lg:px-3" th:aria-label="#{host.nav.dashboardAria}" aria-label="Dashboard">
+    <a th:href="@{/host}" th:title="#{host.nav.overview}" title="Overview" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'overview'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'overview'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'overview'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-house"/></svg><span class="hidden lg:inline">Overview</span></a>
-    <a th:href="@{/host/events}" title="My events" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'overview'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'overview'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-house"/></svg><span class="hidden lg:inline" th:text="#{host.nav.overview}">Overview</span></a>
+    <a th:href="@{/host/events}" th:title="#{host.nav.myEvents}" title="My events" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'events'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'events'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'events'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-calendar"/></svg><span class="hidden lg:inline">My events</span></a>
-    <a th:href="@{/host/orders}" title="Orders" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'events'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'events'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-calendar"/></svg><span class="hidden lg:inline" th:text="#{host.nav.myEvents}">My events</span></a>
+    <a th:href="@{/host/orders}" th:title="#{host.nav.orders}" title="Orders" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'orders'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'orders'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'orders'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-receipt"/></svg><span class="hidden flex-1 lg:inline">Orders</span><span th:if="${pendingCount != null && pendingCount > 0}" class="hidden rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tabular-nums text-amber-700 lg:inline" th:text="${pendingCount}">4</span></a>
-    <a th:href="@{/host/attendees}" title="Attendees" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'orders'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'orders'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-receipt"/></svg><span class="hidden flex-1 lg:inline" th:text="#{host.nav.orders}">Orders</span><span th:if="${pendingCount != null && pendingCount > 0}" class="hidden rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tabular-nums text-amber-700 lg:inline" th:text="${pendingCount}">4</span></a>
+    <a th:href="@{/host/attendees}" th:title="#{host.nav.attendees}" title="Attendees" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'attendees'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'attendees'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'attendees'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-users"/></svg><span class="hidden lg:inline">Attendees</span></a>
-    <a th:href="@{/host/checkin}" title="Check-in" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'attendees'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'attendees'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-users"/></svg><span class="hidden lg:inline" th:text="#{host.nav.attendees}">Attendees</span></a>
+    <a th:href="@{/host/checkin}" th:title="#{host.nav.checkin}" title="Check-in" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'checkin'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'checkin'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'checkin'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-scan-line"/></svg><span class="hidden lg:inline">Check-in</span></a>
-    <a th:href="@{/host/marketing}" title="Marketing" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'checkin'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'checkin'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-scan-line"/></svg><span class="hidden lg:inline" th:text="#{host.nav.checkin}">Check-in</span></a>
+    <a th:href="@{/host/marketing}" th:title="#{host.nav.marketing}" title="Marketing" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'marketing'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'marketing'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'marketing'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-megaphone"/></svg><span class="hidden lg:inline">Marketing</span></a>
-    <div class="pt-3"><p class="hidden px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-400 lg:block">Organization</p><hr class="mx-2 border-ink-100 lg:hidden"></div>
-    <a th:href="@{/host/earnings}" title="Earnings" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'marketing'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'marketing'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-megaphone"/></svg><span class="hidden lg:inline" th:text="#{host.nav.marketing}">Marketing</span></a>
+    <div class="pt-3"><p class="hidden px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-400 lg:block" th:text="#{host.nav.organization}">Organization</p><hr class="mx-2 border-ink-100 lg:hidden"></div>
+    <a th:href="@{/host/earnings}" th:title="#{host.nav.earnings}" title="Earnings" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'earnings'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'earnings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'earnings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-wallet"/></svg><span class="hidden lg:inline">Earnings</span></a>
-    <a th:href="@{/host/settings/payments}" title="Payments" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'earnings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'earnings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-wallet"/></svg><span class="hidden lg:inline" th:text="#{host.nav.earnings}">Earnings</span></a>
+    <a th:href="@{/host/settings/payments}" th:title="#{host.nav.payments}" title="Payments" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'payments'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'payments'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'payments'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-credit-card"/></svg><span class="hidden lg:inline">Payments</span></a>
-    <a th:href="@{/host/settings}" title="Settings &amp; team" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+       th:attr="aria-current=${active == 'payments'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'payments'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-credit-card"/></svg><span class="hidden lg:inline" th:text="#{host.nav.payments}">Payments</span></a>
+    <a th:href="@{/host/settings}" th:title="#{host.nav.settingsTeam}" title="Settings &amp; team" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'settings'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
-       th:attr="aria-current=${active == 'settings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'settings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-settings"/></svg><span class="hidden lg:inline">Settings &amp; team</span></a>
-    <a th:href="@{/organizers/{h}(h=${org.handle})}" title="Public profile" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 text-ink-600 transition hover:bg-ink-50 hover:text-ink-900 lg:justify-start lg:px-3"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-globe"/></svg><span class="hidden lg:inline">Public profile</span></a>
+       th:attr="aria-current=${active == 'settings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'settings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-settings"/></svg><span class="hidden lg:inline" th:text="#{host.nav.settingsTeam}">Settings &amp; team</span></a>
+    <a th:href="@{/organizers/{h}(h=${org.handle})}" th:title="#{host.nav.publicProfile}" title="Public profile" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 text-ink-600 transition hover:bg-ink-50 hover:text-ink-900 lg:justify-start lg:px-3"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-globe"/></svg><span class="hidden lg:inline" th:text="#{host.nav.publicProfile}">Public profile</span></a>
   </nav>
   <div class="border-t border-ink-100 p-3 lg:p-4">
     <div class="flex items-center justify-center gap-3 lg:justify-start">
@@ -86,42 +91,47 @@ Responsive behavior:
         <p class="truncate text-xs text-ink-500" th:text="${currentUser.email}">fahad@zainevents.iq</p>
       </div>
     </div>
-    <a th:href="@{/}" title="View public site" class="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-ink-200 px-2 py-2 text-center text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">
-      <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-external-link"/></svg><span class="hidden lg:inline">View public site</span>
+    <a th:href="@{/}" th:title="#{host.nav.viewPublicSite}" title="View public site" class="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-ink-200 px-2 py-2 text-center text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">
+      <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-external-link"/></svg><span class="hidden lg:inline" th:text="#{host.nav.viewPublicSite}">View public site</span>
     </a>
   </div>
 </aside>
 
 <!-- ============ TOP BAR FRAGMENT ============ -->
 <header th:fragment="topbar(title)" class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-ink-100 bg-white/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:px-6 lg:px-8">
-  <a th:href="@{/}" class="flex items-center gap-2 md:hidden" aria-label="iEvent home">
+  <a th:href="@{/}" class="flex items-center gap-2 md:hidden" th:aria-label="#{host.nav.homeAria}" aria-label="iEvent home">
     <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-8 w-auto">
   </a>
   <h1 class="min-w-0 truncate font-display text-base font-bold text-ink-900 sm:text-lg" th:text="${title}">Overview</h1>
-  <div class="ml-auto flex items-center gap-2">
+  <div class="ms-auto flex items-center gap-2">
+    <!-- Compact language switcher -->
+    <div class="flex items-center rounded-full border border-ink-200 p-0.5 text-[11px] font-bold" th:aria-label="#{common.language}" aria-label="Language">
+      <a th:href="${urlAr}" hreflang="ar" class="rounded-full px-2.5 py-1.5 transition" th:classappend="${rtl} ? 'bg-brand-100 text-brand-700' : 'text-ink-500 hover:text-ink-800'">AR</a>
+      <a th:href="${urlEn}" hreflang="en" class="rounded-full px-2.5 py-1.5 transition" th:classappend="${!rtl} ? 'bg-brand-100 text-brand-700' : 'text-ink-500 hover:text-ink-800'">EN</a>
+    </div>
     <div th:if="${currentUser != null}" class="relative">
-      <button id="nbBtn" type="button" class="relative grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">
+      <button id="nbBtn" type="button" class="relative grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:aria-label="#{host.topbar.notifications}" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">
         <svg class="h-5 w-5" aria-hidden="true"><use href="#i-bell"/></svg>
-        <span id="nbBadge" class="absolute -right-1 -top-1 hidden rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-white ring-2 ring-white">3</span>
+        <span id="nbBadge" class="absolute -end-1 -top-1 hidden rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums text-white ring-2 ring-white">3</span>
       </button>
-      <div id="nbPanel" class="absolute right-0 top-full z-50 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-cardHover">
+      <div id="nbPanel" class="absolute end-0 top-full z-50 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-cardHover">
         <div class="flex items-center justify-between border-b border-ink-100 px-4 py-3">
-          <p class="font-display text-sm font-bold text-ink-900">Notifications</p>
+          <p class="font-display text-sm font-bold text-ink-900" th:text="#{host.topbar.notifications}">Notifications</p>
           <span id="nbUnreadLine" class="text-xs font-semibold tabular-nums text-brand-600"></span>
         </div>
         <ul id="nbList" class="max-h-96 divide-y divide-ink-50 overflow-y-auto"></ul>
-        <p id="nbEmpty" class="hidden px-4 py-8 text-center text-sm text-ink-500">You're all caught up.</p>
+        <p id="nbEmpty" class="hidden px-4 py-8 text-center text-sm text-ink-500" th:text="#{host.topbar.caughtUp}">You're all caught up.</p>
         <div class="flex items-center justify-between border-t border-ink-100 bg-ink-50/60 px-4 py-2.5">
           <form th:action="@{/me/notifications/read-all}" method="post">
-            <button type="submit" class="text-xs font-semibold text-ink-600 transition hover:text-brand-600">Mark all read</button>
+            <button type="submit" class="text-xs font-semibold text-ink-600 transition hover:text-brand-600" th:text="#{host.topbar.markAllRead}">Mark all read</button>
           </form>
-          <a th:href="@{/me/notifications}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 transition hover:text-brand-700">View all<svg class="h-3 w-3" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          <a th:href="@{/me/notifications}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 transition hover:text-brand-700"><span th:text="#{host.topbar.viewAll}">View all</span><svg class="h-3 w-3 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         </div>
       </div>
     </div>
     <span class="grid h-10 w-10 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${currentUser.initials()}" th:attr="aria-label=${currentUser.fullName}">FA</span>
     <form th:action="@{/auth/logout}" method="post">
-      <button type="submit" class="grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" aria-label="Sign out" title="Sign out">
+      <button type="submit" class="grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:aria-label="#{host.topbar.signOut}" aria-label="Sign out" th:title="#{host.topbar.signOut}" title="Sign out">
         <svg class="h-4 w-4" aria-hidden="true"><use href="#i-log-out"/></svg>
       </button>
     </form>
@@ -130,12 +140,12 @@ Responsive behavior:
 </header>
 
 <!-- ============ MOBILE BOTTOM TAB BAR FRAGMENT (<md only) ============ -->
-<nav th:fragment="bottomTabs(active)" class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-ink-100 bg-white/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 text-[10px] font-semibold text-ink-500 backdrop-blur md:hidden" aria-label="Dashboard tabs">
-  <a th:href="@{/host}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'overview'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-house"/></svg>Overview</a>
-  <a th:href="@{/host/events}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'events'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg>Events</a>
-  <a th:href="@{/host/events/new}" class="flex flex-col items-center py-1" aria-label="Create event"><span class="-mt-5 grid h-12 w-12 place-items-center rounded-full bg-brand-500 text-white shadow-pop"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-plus"/></svg></span></a>
-  <a th:href="@{/host/orders}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'orders'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-receipt"/></svg>Orders</a>
-  <a th:href="@{/host/checkin}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'checkin'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-scan-line"/></svg>Check-in</a>
+<nav th:fragment="bottomTabs(active)" class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-ink-100 bg-white/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 text-[10px] font-semibold text-ink-500 backdrop-blur md:hidden" th:aria-label="#{host.nav.dashboardTabsAria}" aria-label="Dashboard tabs">
+  <a th:href="@{/host}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'overview'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-house"/></svg><span th:text="#{host.nav.overview}">Overview</span></a>
+  <a th:href="@{/host/events}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'events'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg><span th:text="#{host.nav.eventsTab}">Events</span></a>
+  <a th:href="@{/host/events/new}" class="flex flex-col items-center py-1" th:aria-label="#{host.nav.createEvent}" aria-label="Create event"><span class="-mt-5 grid h-12 w-12 place-items-center rounded-full bg-brand-500 text-white shadow-pop"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-plus"/></svg></span></a>
+  <a th:href="@{/host/orders}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'orders'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-receipt"/></svg><span th:text="#{host.nav.orders}">Orders</span></a>
+  <a th:href="@{/host/checkin}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'checkin'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-scan-line"/></svg><span th:text="#{host.nav.checkin}">Check-in</span></a>
 </nav>
 
 </body>

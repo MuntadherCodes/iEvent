@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('iEvent — Find your next experience in Iraq')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{public.title.home})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -11,42 +11,42 @@
 
   <!-- ============ HERO ============ -->
   <section class="relative overflow-hidden bg-gradient-to-b from-brand-50 to-white">
-    <div class="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-brand-200/50 blur-3xl" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute -right-20 top-32 h-72 w-72 rounded-full bg-fuchsia-200/40 blur-3xl" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-brand-100/60 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -start-24 -top-24 h-80 w-80 rounded-full bg-brand-200/50 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -end-20 top-32 h-72 w-72 rounded-full bg-fuchsia-200/40 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute bottom-0 start-1/3 h-64 w-64 rounded-full bg-brand-100/60 blur-3xl" aria-hidden="true"></div>
     <div class="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8 lg:py-24">
       <div class="mx-auto max-w-3xl text-center">
-        <span class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-brand-700 shadow-card"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg><span class="tabular-nums" th:text="${monthCountLine}">2,300</span>&nbsp;events across Iraq this month</span>
-        <h1 class="mt-6 font-display text-4xl font-extrabold tracking-tight text-ink-900 sm:text-5xl lg:text-6xl">Find your next <span class="text-brand-500">experience</span> in Iraq</h1>
-        <p class="mx-auto mt-5 max-w-xl text-base text-ink-500 md:text-lg">Concerts, tech summits, food carnivals and more — discover what's happening in your city, follow the events you love, and grab tickets in seconds.</p>
+        <span class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-brand-700 shadow-card"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg><span class="tabular-nums" th:text="${monthCountLine}">2,300</span>&nbsp;[[#{public.home.heroBadge}]]</span>
+        <h1 class="mt-6 font-display text-4xl font-extrabold tracking-tight text-ink-900 sm:text-5xl lg:text-6xl">[[#{public.home.heroTitle1}]]<span class="text-brand-500">[[#{public.home.heroTitle2}]]</span>[[#{public.home.heroTitle3}]]</h1>
+        <p class="mx-auto mt-5 max-w-xl text-base text-ink-500 md:text-lg" th:text="#{public.home.heroSub}">Concerts, tech summits, food carnivals and more — discover what's happening in your city, follow the events you love, and grab tickets in seconds.</p>
 
         <!-- Search bar -->
         <form th:action="@{/browse}" method="get" class="mt-9 rounded-2xl border border-ink-100 bg-white p-2 shadow-pop md:rounded-full">
           <div class="flex flex-col gap-2 md:flex-row md:items-center">
             <label class="flex flex-1 items-center gap-3 rounded-xl px-4 py-3 transition focus-within:bg-brand-50/60 md:rounded-full">
               <svg class="h-5 w-5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-search"/></svg>
-              <input name="q" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400 md:text-base" placeholder="Search events, artists, venues…" aria-label="Search events">
+              <input name="q" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400 md:text-base" th:placeholder="#{public.home.searchPlaceholder}" placeholder="Search events, artists, venues…" th:attr="aria-label=#{public.home.searchAria}" aria-label="Search events">
             </label>
             <div class="hidden h-8 w-px bg-ink-100 md:block" aria-hidden="true"></div>
             <label class="relative flex items-center gap-2.5 rounded-xl px-4 py-3 transition focus-within:bg-brand-50/60 md:rounded-full">
               <svg class="h-5 w-5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg>
-              <select name="city" class="w-full cursor-pointer appearance-none bg-transparent pr-7 text-sm font-medium text-ink-700 outline-none md:w-40 md:text-base" aria-label="Choose city">
-                <option value="">All cities</option>
-                <option th:each="c : ${cities}" th:value="${c.city}" th:text="${c.city}">Baghdad</option>
+              <select name="city" class="w-full cursor-pointer appearance-none bg-transparent pe-7 text-sm font-medium text-ink-700 outline-none md:w-40 md:text-base" th:attr="aria-label=#{public.home.chooseCityAria}" aria-label="Choose city">
+                <option value="" th:text="#{public.home.allCities}">All cities</option>
+                <option th:each="c : ${cities}" th:value="${c.city}" th:text="${@t.city(c.city)}">Baghdad</option>
               </select>
-              <svg class="pointer-events-none absolute right-4 h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+              <svg class="pointer-events-none absolute end-4 h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
             </label>
-            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-8 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] md:rounded-full">Search</button>
+            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-8 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] md:rounded-full" th:text="#{public.home.searchBtn}">Search</button>
           </div>
         </form>
 
         <!-- Popular chips -->
         <div class="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm">
-          <span class="text-xs font-semibold uppercase tracking-wide text-ink-400">Popular:</span>
-          <a th:href="@{/browse(category='MUSIC')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-music"/></svg>Live music</a>
-          <a th:href="@{/browse(price='free',when='week')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>Free this week</a>
-          <a th:href="@{/browse(category='TECH')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-laptop"/></svg>Tech meetups</a>
-          <a th:href="@{/browse(category='FOOD')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-utensils"/></svg>Food festivals</a>
+          <span class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{public.home.popular}">Popular:</span>
+          <a th:href="@{/browse(category='MUSIC')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-music"/></svg>[[#{public.home.chipLiveMusic}]]</a>
+          <a th:href="@{/browse(price='free',when='week')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.home.chipFreeWeek}]]</a>
+          <a th:href="@{/browse(category='TECH')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-laptop"/></svg>[[#{public.home.chipTech}]]</a>
+          <a th:href="@{/browse(category='FOOD')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-utensils"/></svg>[[#{public.home.chipFood}]]</a>
         </div>
       </div>
     </div>
@@ -56,8 +56,8 @@
   <section class="py-12 md:py-16 lg:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-end justify-between">
-        <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl">Browse by category</h2>
-        <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.browseByCategory}">Browse by category</h2>
+        <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="relative -mx-4 flex gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0 md:grid md:grid-cols-5 md:gap-6 md:overflow-visible lg:grid-cols-10">
         <a th:each="c : ${categories}" th:href="@{/browse(category=${c.value})}" class="group flex w-20 shrink-0 flex-col items-center gap-2.5 md:w-auto"
@@ -93,10 +93,10 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-end justify-between gap-4">
         <div>
-          <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl">This weekend</h2>
-          <p class="mt-1.5 text-sm text-ink-500">Plans for Friday &amp; Saturday, sorted.</p>
+          <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.thisWeekend}">This weekend</h2>
+          <p class="mt-1.5 text-sm text-ink-500" th:text="#{public.home.weekendSub}">Plans for Friday &amp; Saturday, sorted.</p>
         </div>
-        <a th:href="@{/browse(when='weekend')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/browse(when='weekend')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <th:block th:each="card : ${weekendEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
@@ -106,31 +106,31 @@
 
   <!-- ============ HOST PROMO BAND ============ -->
   <section class="relative overflow-hidden bg-ink-900 py-12 md:py-16 lg:py-20">
-    <div class="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-brand-400/15 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -start-20 top-0 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -end-16 bottom-0 h-80 w-80 rounded-full bg-brand-400/15 blur-3xl" aria-hidden="true"></div>
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
         <div>
-          <span class="inline-block rounded-full bg-brand-500/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-300">For hosts</span>
-          <h2 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">Host your event on <span class="text-brand-400">iEvent</span></h2>
-          <p class="mt-4 max-w-lg text-ink-300">From a neighbourhood workshop to a stadium festival — publish your event, sell tickets, and check in guests. All from one dashboard, built for Iraq.</p>
-          <a th:href="@{/host}" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Create your first event<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          <span class="inline-block rounded-full bg-brand-500/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-300" th:text="#{public.home.forHostsBadge}">For hosts</span>
+          <h2 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">[[#{public.home.hostTitle}]]<span class="text-brand-400">iEvent</span></h2>
+          <p class="mt-4 max-w-lg text-ink-300" th:text="#{public.home.hostSub}">From a neighbourhood workshop to a stadium festival — publish your event, sell tickets, and check in guests. All from one dashboard, built for Iraq.</p>
+          <a th:href="@{/host}" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">[[#{public.home.hostCta}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         </div>
         <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
           <div class="rounded-2xl border border-ink-700 bg-ink-800/70 p-5 transition hover:border-brand-500/60">
             <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/20 text-brand-300"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-zap"/></svg></span>
-            <h3 class="mt-3.5 font-display font-bold text-white">Easy setup</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-ink-300">Publish a beautiful event page in under 5 minutes.</p>
+            <h3 class="mt-3.5 font-display font-bold text-white" th:text="#{public.home.easySetup}">Easy setup</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-300" th:text="#{public.home.easySetupSub}">Publish a beautiful event page in under 5 minutes.</p>
           </div>
           <div class="rounded-2xl border border-ink-700 bg-ink-800/70 p-5 transition hover:border-brand-500/60">
             <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/20 text-brand-300"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-scan-line"/></svg></span>
-            <h3 class="mt-3.5 font-display font-bold text-white">Attendance tools</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-ink-300">QR check-in, guest lists and live attendance stats.</p>
+            <h3 class="mt-3.5 font-display font-bold text-white" th:text="#{public.home.attendanceTools}">Attendance tools</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-300" th:text="#{public.home.attendanceToolsSub}">QR check-in, guest lists and live attendance stats.</p>
           </div>
           <div class="rounded-2xl border border-ink-700 bg-ink-800/70 p-5 transition hover:border-brand-500/60">
             <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/20 text-brand-300"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-wallet"/></svg></span>
-            <h3 class="mt-3.5 font-display font-bold text-white">Local payments</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-ink-300">Get paid via ZainCash, FIB, Qi Card and cards.</p>
+            <h3 class="mt-3.5 font-display font-bold text-white" th:text="#{public.home.localPayments}">Local payments</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-300" th:text="#{public.home.localPaymentsSub}">Get paid via ZainCash, FIB, Qi Card and cards.</p>
           </div>
         </div>
       </div>
@@ -142,10 +142,10 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-end justify-between gap-4">
         <div>
-          <h2 class="flex items-center gap-2.5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl">Trending across Iraq<svg class="h-6 w-6 text-brand-500 md:h-7 md:w-7" aria-hidden="true"><use href="#i-trending-up"/></svg></h2>
-          <p class="mt-1.5 text-sm text-ink-500">The events everyone is talking about right now.</p>
+          <h2 class="flex items-center gap-2.5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl">[[#{public.home.trending}]]<svg class="h-6 w-6 text-brand-500 md:h-7 md:w-7" aria-hidden="true"><use href="#i-trending-up"/></svg></h2>
+          <p class="mt-1.5 text-sm text-ink-500" th:text="#{public.home.trendingSub}">The events everyone is talking about right now.</p>
         </div>
-        <a th:href="@{/browse(sort='popular')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/browse(sort='popular')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <th:block th:each="card : ${trendingEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
@@ -157,8 +157,8 @@
   <section class="bg-ink-50 py-12 md:py-16 lg:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-end justify-between">
-        <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl">Browse by city</h2>
-        <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">See all<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.browseByCity}">Browse by city</h2>
+        <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4">
         <a th:each="c, st : ${cities}" th:href="@{/browse(city=${c.city})}"
@@ -172,9 +172,9 @@
                     : (st.index % 8 == 6 ? 'from-slate-600 via-ink-600 to-brand-700'
                     :                      'from-emerald-600 via-teal-500 to-sky-500'))))))}"
            th:classappend="${cityGrad}">
-          <svg class="absolute right-4 top-4 h-8 w-8 text-white/30 transition group-hover:scale-110 group-hover:text-white/60" aria-hidden="true"><use href="#i-building-2"/></svg>
-          <span class="font-display text-lg font-extrabold text-white sm:text-xl md:text-2xl" th:text="${c.city}">Baghdad</span>
-          <span class="mt-0.5 text-sm font-medium tabular-nums text-white/80" th:text="${c.count} + ' events'">640 events</span>
+          <svg class="absolute end-4 top-4 h-8 w-8 text-white/30 transition group-hover:scale-110 group-hover:text-white/60" aria-hidden="true"><use href="#i-building-2"/></svg>
+          <span class="font-display text-lg font-extrabold text-white sm:text-xl md:text-2xl" th:text="${@t.city(c.city)}">Baghdad</span>
+          <span class="mt-0.5 text-sm font-medium tabular-nums text-white/80" th:text="${c.count} + ' ' + #{public.home.eventsWord}">640 events</span>
         </a>
       </div>
     </div>
@@ -186,21 +186,21 @@
       <!-- Default state -->
       <div th:if="${param.subscribed == null}" class="mx-auto max-w-2xl text-center">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-mail"/></svg></span>
-        <h2 class="mt-5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl">Never miss what's on</h2>
-        <p class="mt-3 text-ink-500">Get a weekly digest of the best events in your city — concerts, meetups, festivals and free things to do.</p>
+        <h2 class="mt-5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.neverMiss}">Never miss what's on</h2>
+        <p class="mt-3 text-ink-500" th:text="#{public.home.newsletterSub}">Get a weekly digest of the best events in your city — concerts, meetups, festivals and free things to do.</p>
         <form th:action="@{/newsletter}" method="post" class="mx-auto mt-7 flex max-w-md flex-col gap-3 sm:flex-row">
           <input type="hidden" name="city" value="">
-          <input type="email" name="email" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="you@example.com" aria-label="Email address">
-          <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Subscribe</button>
+          <input type="email" name="email" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{public.home.emailPlaceholder}" placeholder="you@example.com" th:attr="aria-label=#{public.home.emailAria}" aria-label="Email address">
+          <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.home.subscribe}">Subscribe</button>
         </form>
-        <p class="mt-3 text-xs text-ink-400">No spam. Unsubscribe anytime.</p>
+        <p class="mt-3 text-xs text-ink-400" th:text="#{public.home.noSpam}">No spam. Unsubscribe anytime.</p>
       </div>
       <!-- Subscribed state -->
       <div th:if="${param.subscribed != null}" class="mx-auto max-w-2xl text-center">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-green-100 text-green-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-circle-check"/></svg></span>
-        <h2 class="mt-5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl">You're on the list ✓</h2>
-        <p class="mt-3 text-ink-500">Watch your inbox — the best of what's happening in Iraq lands there every week.</p>
-        <a th:href="@{/browse}" class="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse events<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <h2 class="mt-5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.onTheList}">You're on the list ✓</h2>
+        <p class="mt-3 text-ink-500" th:text="#{public.home.onTheListSub}">Watch your inbox — the best of what's happening in Iraq lands there every week.</p>
+        <a th:href="@{/browse}" class="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">[[#{public.nav.browse}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
     </div>
   </section>

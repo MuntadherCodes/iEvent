@@ -44,6 +44,9 @@ public class User {
 
     private String interests;
 
+    @Column(name = "preferred_lang")
+    private String preferredLang;
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -64,6 +67,8 @@ public class User {
     public void setAuthProvider(String authProvider) { this.authProvider = authProvider; }
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
+    public String getPreferredLang() { return preferredLang; }
+    public void setPreferredLang(String preferredLang) { this.preferredLang = preferredLang; }
     public String getInterests() { return interests; }
     public void setInterests(String interests) { this.interests = interests; }
 

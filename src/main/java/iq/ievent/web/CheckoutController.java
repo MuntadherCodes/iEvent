@@ -12,6 +12,8 @@ import iq.ievent.service.PromoService;
 import iq.ievent.service.QrService;
 import iq.ievent.service.UserService;
 import iq.ievent.web.dto.Views.EventDetail;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -59,12 +61,14 @@ public class CheckoutController {
     private final PromoService promoService;
     private final iq.ievent.repo.EventRepository eventRepo;
     private final iq.ievent.service.TicketPdfService ticketPdf;
+    private final MessageSource messages;
 
     public CheckoutController(CatalogService catalog, OrderService orderService,
                               OrderRepository orders, TicketRepository tickets,
                               QrService qr, UserService userService,
                               PromoService promoService, iq.ievent.repo.EventRepository eventRepo,
-                              iq.ievent.service.TicketPdfService ticketPdf) {
+                              iq.ievent.service.TicketPdfService ticketPdf,
+                              MessageSource messages) {
         this.catalog = catalog;
         this.orderService = orderService;
         this.orders = orders;
@@ -74,6 +78,12 @@ public class CheckoutController {
         this.promoService = promoService;
         this.eventRepo = eventRepo;
         this.ticketPdf = ticketPdf;
+        this.messages = messages;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     private User currentUser(UserDetails principal) {
@@ -152,9 +162,9 @@ public class CheckoutController {
             if (applied.isPresent()) {
                 discount = applied.get().discountIqd();
                 promoOk = true;
-                promoMsg = promo.trim().toUpperCase() + " applied — you save " + Format.iqd(discount) + ".";
+                promoMsg = msg("checkout.promoApplied", promo.trim().toUpperCase(), Format.iqd(discount));
             } else {
-                promoMsg = "Code '" + promo.trim() + "' is not valid for this event.";
+                promoMsg = msg("checkout.promoCodeInvalid", promo.trim());
             }
         }
         long total = Math.max(0, subtotal - discount) + fee;
@@ -264,11 +274,11 @@ public class CheckoutController {
         boolean confirmed = order.getStatus() == Order.Status.CONFIRMED;
 
         String statusLabel = switch (order.getStatus()) {
-            case PENDING_CONFIRMATION -> "Pending confirmation";
-            case CONFIRMED -> "Confirmed";
-            case REJECTED -> "Rejected";
-            case CANCELLED -> "Cancelled";
-            case REFUNDED -> "Refunded";
+            case PENDING_CONFIRMATION -> msg("status.order.pending");
+            case CONFIRMED -> msg("status.order.confirmed");
+            case REJECTED -> msg("status.order.rejected");
+            case CANCELLED -> msg("status.order.cancelled");
+            case REFUNDED -> msg("status.order.refunded");
         };
         String receiptName = null;
         if (order.getReceiptPath() != null) {
@@ -285,10 +295,11 @@ public class CheckoutController {
         // only for CONFIRMED orders — never while pending/rejected/cancelled.
         String locType = order.getEvent().getLocationType();
         boolean online = "ONLINE".equals(locType);
-        String venueLine = online ? "Online event"
-                : "TBA".equals(locType) ? "Location to be announced"
+        String venueLine = online ? msg("location.online")
+                : "TBA".equals(locType) ? msg("location.tba")
                 : (order.getEvent().getVenueName() == null ? "" : order.getEvent().getVenueName() + ", ")
-                        + order.getEvent().getCity();
+                        + iq.ievent.service.Cities.label(order.getEvent().getCity(),
+                                org.springframework.context.i18n.LocaleContextHolder.getLocale());
         String joinUrl = confirmed && online
                 && order.getEvent().getOnlineUrl() != null && !order.getEvent().getOnlineUrl().isBlank()
                 ? order.getEvent().getOnlineUrl() : null;

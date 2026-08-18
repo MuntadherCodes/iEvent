@@ -7,6 +7,8 @@ import iq.ievent.service.PasswordResetService;
 import iq.ievent.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -49,10 +51,18 @@ public class AuthController {
 
     private final UserService userService;
     private final PasswordResetService passwordReset;
+    private final MessageSource messages;
 
-    public AuthController(UserService userService, PasswordResetService passwordReset) {
+    public AuthController(UserService userService, PasswordResetService passwordReset,
+                          MessageSource messages) {
         this.userService = userService;
         this.passwordReset = passwordReset;
+        this.messages = messages;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -117,7 +127,7 @@ public class AuthController {
         }
         boolean termsAccepted = terms != null;
         if (!termsAccepted) {
-            model.addAttribute("termsError", "Please accept the Terms of Service and Privacy Policy to continue.");
+            model.addAttribute("termsError", msg("auth.terms.required"));
         }
         if (binding.hasErrors() || !termsAccepted) {
             return "auth/register";
@@ -167,11 +177,11 @@ public class AuthController {
         }
         String pass = password == null ? "" : password;
         if (pass.length() < 8 || pass.length() > 72) {
-            model.addAttribute("resetError", "Password must be at least 8 characters.");
+            model.addAttribute("resetError", msg("auth.reset.tooShort"));
             return "auth/reset";
         }
         if (!pass.equals(confirm)) {
-            model.addAttribute("resetError", "Passwords don't match. Please re-type them.");
+            model.addAttribute("resetError", msg("auth.reset.mismatch"));
             return "auth/reset";
         }
         boolean ok = passwordReset.resetPassword(token, pass);

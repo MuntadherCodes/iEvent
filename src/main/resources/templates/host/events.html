@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('My events — iEvent Host')}"></head>
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{host.title.events})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,9 +9,9 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('events')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('My events')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{host.nav.myEvents})}"></header>
 
   <main id="main" class="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
     <div class="mx-auto max-w-6xl space-y-5 2xl:max-w-7xl">
@@ -25,26 +25,26 @@
       <!-- Header row -->
       <div class="flex flex-col gap-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl">My events</h2>
+          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl" th:text="#{host.nav.myEvents}">My events</h2>
           <a th:href="@{/host/events/new}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>
-            Create event
+            <span th:text="#{host.nav.createEvent}">Create event</span>
           </a>
         </div>
         <div class="flex flex-col gap-3 md:flex-row md:items-center">
           <form th:action="@{/host/events}" method="get" class="relative block w-full md:max-w-xs">
             <input type="hidden" name="status" th:value="${statusFilter}">
-            <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400">
+            <span class="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-400">
               <svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg>
             </span>
-            <input type="search" name="q" th:value="${q}" placeholder="Search events…" aria-label="Search events" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            <input type="search" name="q" th:value="${q}" th:placeholder="#{host.events.searchPlaceholder}" placeholder="Search events…" th:aria-label="#{host.events.searchAria}" aria-label="Search events" class="w-full rounded-xl border border-ink-200 bg-white py-3 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
           </form>
-          <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
-            <a th:href="@{/host/events(q=${q},status='all')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'all'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All <span class="tabular-nums opacity-70" th:text="${countAll}">8</span></a>
-            <a th:href="@{/host/events(q=${q},status='live')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'live'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Live <span class="tabular-nums opacity-70" th:text="${countLive}">3</span></a>
-            <a th:href="@{/host/events(q=${q},status='draft')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'draft'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Draft <span class="tabular-nums opacity-70" th:text="${countDraft}">2</span></a>
-            <a th:href="@{/host/events(q=${q},status='ended')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'ended'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Ended <span class="tabular-nums opacity-70" th:text="${countEnded}">3</span></a>
-            <a th:href="@{/host/events(q=${q},status='cancelled')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'cancelled'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Cancelled <span class="tabular-nums opacity-70" th:text="${countCancelled}">0</span></a>
+          <div class="flex flex-wrap gap-2" role="group" th:aria-label="#{host.events.filterAria}" aria-label="Filter by status">
+            <a th:href="@{/host/events(q=${q},status='all')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'all'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.events.filterAll}">All</span> <span class="tabular-nums opacity-70" th:text="${countAll}">8</span></a>
+            <a th:href="@{/host/events(q=${q},status='live')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'live'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.live}">Live</span> <span class="tabular-nums opacity-70" th:text="${countLive}">3</span></a>
+            <a th:href="@{/host/events(q=${q},status='draft')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'draft'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.draft}">Draft</span> <span class="tabular-nums opacity-70" th:text="${countDraft}">2</span></a>
+            <a th:href="@{/host/events(q=${q},status='ended')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'ended'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.ended}">Ended</span> <span class="tabular-nums opacity-70" th:text="${countEnded}">3</span></a>
+            <a th:href="@{/host/events(q=${q},status='cancelled')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'cancelled'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'"><span th:text="#{host.status.cancelled}">Cancelled</span> <span class="tabular-nums opacity-70" th:text="${countCancelled}">0</span></a>
           </div>
         </div>
       </div>
@@ -53,14 +53,14 @@
       <div th:if="${#lists.isEmpty(eventRows)}" class="rounded-2xl border border-ink-100 bg-white px-6 py-16 text-center shadow-card">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-calendar"/></svg></span>
         <th:block th:if="${countAll == 0}">
-          <h3 class="mt-4 font-display text-lg font-bold text-ink-900">No events yet</h3>
-          <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">Create your first event — it only takes a few minutes, and you can save it as a draft before publishing.</p>
-          <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Create event</a>
+          <h3 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{host.events.noEvents}">No events yet</h3>
+          <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{host.events.noEventsSub}">Create your first event — it only takes a few minutes, and you can save it as a draft before publishing.</p>
+          <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{host.nav.createEvent}">Create event</span></a>
         </th:block>
         <th:block th:unless="${countAll == 0}">
-          <h3 class="mt-4 font-display text-lg font-bold text-ink-900">Nothing matches</h3>
-          <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">No events match this search or filter — try a different keyword or status.</p>
-          <a th:href="@{/host/events}" class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">Clear filters <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg></a>
+          <h3 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{host.events.nothingMatches}">Nothing matches</h3>
+          <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{host.events.nothingMatchesSub}">No events match this search or filter — try a different keyword or status.</p>
+          <a th:href="@{/host/events}" class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><span th:text="#{host.events.clearFilters}">Clear filters</span> <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg></a>
         </th:block>
       </div>
 
@@ -69,17 +69,17 @@
         <div class="relative w-full min-w-0 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-                <th class="px-5 py-3.5">Event</th>
-                <th class="px-4 py-3.5">Date</th>
-                <th class="px-4 py-3.5">Status</th>
-                <th class="w-48 px-4 py-3.5">Sold</th>
-                <th class="px-4 py-3.5 text-right">Gross</th>
-                <th class="px-5 py-3.5 text-right">Actions</th>
+              <tr class="border-b border-ink-100 text-start text-xs font-semibold uppercase tracking-wide text-ink-500">
+                <th class="px-5 py-3.5 text-start" th:text="#{host.events.colEvent}">Event</th>
+                <th class="px-4 py-3.5 text-start" th:text="#{host.events.colDate}">Date</th>
+                <th class="px-4 py-3.5 text-start" th:text="#{host.events.colStatus}">Status</th>
+                <th class="w-48 px-4 py-3.5 text-start" th:text="#{host.events.colSold}">Sold</th>
+                <th class="px-4 py-3.5 text-end" th:text="#{host.events.colGross}">Gross</th>
+                <th class="px-5 py-3.5 text-end" th:text="#{host.events.colActions}">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr th:each="e : ${eventRows}" class="border-b border-ink-50 transition hover:bg-brand-50/40" th:classappend="${e.statusLabel() == 'Ended' || e.statusLabel() == 'Cancelled'} ? 'opacity-60' : ''"
+              <tr th:each="e : ${eventRows}" class="border-b border-ink-50 transition hover:bg-brand-50/40" th:classappend="${e.statusKey() == 'ENDED' || e.statusKey() == 'CANCELLED'} ? 'opacity-60' : ''"
                   th:with="grad=${e.coverTheme() == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                            : (e.coverTheme() == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
                            : (e.coverTheme() == 'business'  ? 'from-ink-800 via-ink-700 to-brand-700'
@@ -102,10 +102,10 @@
                 </td>
                 <td class="px-4 py-4 text-ink-600" th:text="${e.dateLine()}">Sat, Sep 12 · 7:00 PM</td>
                 <td class="px-4 py-4">
-                  <span th:if="${e.statusLabel() == 'Live'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Live</span>
-                  <span th:if="${e.statusLabel() == 'Draft'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Draft</span>
-                  <span th:if="${e.statusLabel() == 'Cancelled'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Cancelled</span>
-                  <span th:if="${e.statusLabel() != 'Live' && e.statusLabel() != 'Draft' && e.statusLabel() != 'Cancelled'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${e.statusLabel()}">Ended</span></span>
+                  <span th:if="${e.statusKey() == 'LIVE'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.live}">Live</span></span>
+                  <span th:if="${e.statusKey() == 'DRAFT'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.draft}">Draft</span></span>
+                  <span th:if="${e.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.cancelled}">Cancelled</span></span>
+                  <span th:if="${e.statusKey() != 'LIVE' && e.statusKey() != 'DRAFT' && e.statusKey() != 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${e.statusKey() == 'ENDED'} ? #{host.status.ended} : ${e.statusLabel()}">Ended</span></span>
                 </td>
                 <td class="px-4 py-4">
                   <div class="flex items-center gap-2">
@@ -113,23 +113,23 @@
                     <span class="text-xs font-semibold tabular-nums text-ink-600" th:text="${e.salesLabel()}">218 / 400</span>
                   </div>
                 </td>
-                <td class="px-4 py-4 text-right font-semibold tabular-nums text-ink-900" th:text="${e.revenueLabel()}">7,630,000 IQD</td>
-                <td class="px-5 py-4 text-right">
+                <td class="px-4 py-4 text-end font-semibold tabular-nums text-ink-900" th:text="${e.revenueLabel()}">7,630,000 IQD</td>
+                <td class="px-5 py-4 text-end">
                   <div class="flex items-center justify-end gap-1.5">
-                    <a th:href="@{/host/events/{id}(id=${e.id()})}" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Manage</a>
+                    <a th:href="@{/host/events/{id}(id=${e.id()})}" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{host.events.manage}">Manage</a>
                     <details class="relative">
-                      <summary class="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 [&amp;::-webkit-details-marker]:hidden" th:attr="aria-label='More options for ' + ${e.title()}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ellipsis"/></svg></summary>
-                      <div class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-ink-100 bg-white p-1.5 text-left shadow-cardHover">
-                        <a th:href="@{/host/events/{id}(id=${e.id()})}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-chart-line"/></svg>Open console</a>
-                        <a th:href="@{/host/events/{id}/edit(id=${e.id()})}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-pencil"/></svg>Edit</a>
+                      <summary class="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 [&amp;::-webkit-details-marker]:hidden" th:attr="aria-label=#{host.events.moreOptions(${e.title()})}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ellipsis"/></svg></summary>
+                      <div class="absolute end-0 z-20 mt-1 w-44 rounded-xl border border-ink-100 bg-white p-1.5 text-start shadow-cardHover">
+                        <a th:href="@{/host/events/{id}(id=${e.id()})}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-chart-line"/></svg><span th:text="#{host.events.openConsole}">Open console</span></a>
+                        <a th:href="@{/host/events/{id}/edit(id=${e.id()})}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-pencil"/></svg><span th:text="#{host.events.edit}">Edit</span></a>
                         <form th:if="${canManage}" th:action="@{/host/events/{id}/duplicate(id=${e.id()})}" method="post">
-                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-copy"/></svg>Duplicate</button>
+                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-copy"/></svg><span th:text="#{host.events.duplicate}">Duplicate</span></button>
                         </form>
-                        <form th:if="${canManage && e.statusLabel() == 'Draft'}" th:action="@{/host/events/{id}/publish(id=${e.id()})}" method="post">
-                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-rocket"/></svg>Publish</button>
+                        <form th:if="${canManage && e.statusKey() == 'DRAFT'}" th:action="@{/host/events/{id}/publish(id=${e.id()})}" method="post">
+                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{host.events.publish}">Publish</span></button>
                         </form>
-                        <form th:if="${canManage && e.statusLabel() == 'Live'}" th:action="@{/host/events/{id}/unpublish(id=${e.id()})}" method="post">
-                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-eye"/></svg>Unpublish</button>
+                        <form th:if="${canManage && e.statusKey() == 'LIVE'}" th:action="@{/host/events/{id}/unpublish(id=${e.id()})}" method="post">
+                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-eye"/></svg><span th:text="#{host.events.unpublish}">Unpublish</span></button>
                         </form>
                       </div>
                     </details>
@@ -140,13 +140,13 @@
           </table>
         </div>
         <div class="flex items-center justify-between border-t border-ink-100 px-5 py-3.5 text-sm">
-          <p class="text-ink-500">Showing <span class="font-semibold tabular-nums text-ink-800" th:text="${#lists.size(eventRows)}">6</span> of <span class="font-semibold tabular-nums text-ink-800" th:text="${countAll}">8</span> events</p>
+          <p class="text-ink-500"><span th:text="#{host.events.showing}">Showing</span> <span class="font-semibold tabular-nums text-ink-800" th:text="${#lists.size(eventRows)}">6</span> <span th:text="#{host.events.of}">of</span> <span class="font-semibold tabular-nums text-ink-800" th:text="${countAll}">8</span> <span th:text="#{host.events.eventsWord}">events</span></p>
         </div>
       </div>
 
       <!-- Mobile / tablet card list -->
       <div th:unless="${#lists.isEmpty(eventRows)}" class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden">
-        <a th:each="e : ${eventRows}" th:href="@{/host/events/{id}(id=${e.id()})}" class="block rounded-2xl border border-ink-100 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-cardHover" th:classappend="${e.statusLabel() == 'Ended' || e.statusLabel() == 'Cancelled'} ? 'opacity-60' : ''"
+        <a th:each="e : ${eventRows}" th:href="@{/host/events/{id}(id=${e.id()})}" class="block rounded-2xl border border-ink-100 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-cardHover" th:classappend="${e.statusKey() == 'ENDED' || e.statusKey() == 'CANCELLED'} ? 'opacity-60' : ''"
            th:with="grad=${e.coverTheme() == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                     : (e.coverTheme() == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
                     : (e.coverTheme() == 'business'  ? 'from-ink-800 via-ink-700 to-brand-700'
@@ -163,10 +163,10 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-start justify-between gap-2">
                 <p class="font-semibold leading-snug text-ink-900" th:text="${e.title()}">Baghdad Nights Music Festival</p>
-                <span th:if="${e.statusLabel() == 'Live'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Live</span>
-                <span th:if="${e.statusLabel() == 'Draft'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Draft</span>
-                <span th:if="${e.statusLabel() == 'Cancelled'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Cancelled</span>
-                <span th:if="${e.statusLabel() != 'Live' && e.statusLabel() != 'Draft' && e.statusLabel() != 'Cancelled'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${e.statusLabel()}">Ended</span></span>
+                <span th:if="${e.statusKey() == 'LIVE'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.live}">Live</span></span>
+                <span th:if="${e.statusKey() == 'DRAFT'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.draft}">Draft</span></span>
+                <span th:if="${e.statusKey() == 'CANCELLED'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.cancelled}">Cancelled</span></span>
+                <span th:if="${e.statusKey() != 'LIVE' && e.statusKey() != 'DRAFT' && e.statusKey() != 'CANCELLED'}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${e.statusKey() == 'ENDED'} ? #{host.status.ended} : ${e.statusLabel()}">Ended</span></span>
               </div>
               <p class="mt-0.5 flex items-center gap-1 text-xs text-ink-500"><span th:text="${e.dateLine()}">Sat, Sep 12 · 7:00 PM</span> · <svg class="h-3 w-3" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${e.city()}">Baghdad</span></p>
             </div>
@@ -177,7 +177,7 @@
           </div>
           <div class="mt-3 flex items-center justify-between text-sm">
             <span class="font-semibold tabular-nums text-ink-900" th:text="${e.revenueLabel()}">7,630,000 IQD</span>
-            <span class="inline-flex items-center gap-1 font-semibold text-brand-600">Manage <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></span>
+            <span class="inline-flex items-center gap-1 font-semibold text-brand-600"><span th:text="#{host.events.manage}">Manage</span> <svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></span>
           </div>
         </a>
       </div>

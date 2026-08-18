@@ -23,6 +23,8 @@ import iq.ievent.service.TeamService;
 import iq.ievent.service.TrackingService;
 import iq.ievent.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -119,6 +121,7 @@ public class HostExtrasController {
     private final TicketRepository tickets;
     private final TicketTypeRepository ticketTypes;
     private final JdbcTemplate jdbc;
+    private final MessageSource messages;
     private final String baseUrl;
 
     public HostExtrasController(UserService userService, HostService hostService,
@@ -129,6 +132,7 @@ public class HostExtrasController {
                                 CampaignRepository campaigns, OrderRepository orders,
                                 TicketRepository tickets, TicketTypeRepository ticketTypes,
                                 JdbcTemplate jdbc,
+                                MessageSource messages,
                                 @Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
         this.hostService = hostService;
@@ -144,7 +148,13 @@ public class HostExtrasController {
         this.tickets = tickets;
         this.ticketTypes = ticketTypes;
         this.jdbc = jdbc;
+        this.messages = messages;
         this.baseUrl = baseUrl;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     private TeamService.Access access(UserDetails principal) {
@@ -259,7 +269,7 @@ public class HostExtrasController {
         try {
             Order o = orderService.resend(orderIds.get(0), access.org().getId());
             redirect.addFlashAttribute("actioned",
-                    "Tickets for order " + o.getOrderCode() + " were re-emailed to " + o.getBuyerEmail() + ".");
+                    msg("flash.ticket.resent", o.getOrderCode(), o.getBuyerEmail()));
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
@@ -286,7 +296,7 @@ public class HostExtrasController {
             }
         }
         redirect.addFlashAttribute("actioned",
-                done + (done == 1 ? " attendee" : " attendees") + " checked in.");
+                msg(done == 1 ? "flash.bulkCheckin.one" : "flash.bulkCheckin.many", String.valueOf(done)));
         return "redirect:" + (referer == null ? "/host/attendees" : referer);
     }
 
@@ -415,9 +425,8 @@ public class HostExtrasController {
         requireManage(access);
         try {
             Order o = orderService.refund(id, access.org().getId());
-            redirect.addFlashAttribute("actioned", "Order " + o.getOrderCode()
-                    + " refunded — tickets voided and the buyer was notified. Return "
-                    + Format.iqd(o.getTotalIqd()) + " to the buyer yourself (direct transfer).");
+            redirect.addFlashAttribute("actioned",
+                    msg("flash.order.refunded", o.getOrderCode(), Format.iqd(o.getTotalIqd())));
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
@@ -435,7 +444,7 @@ public class HostExtrasController {
         try {
             Order o = orderService.resend(id, access.org().getId());
             redirect.addFlashAttribute("actioned",
-                    "Confirmation re-sent to " + o.getBuyerEmail() + " for order " + o.getOrderCode() + ".");
+                    msg("flash.order.resent", o.getBuyerEmail(), o.getOrderCode()));
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
@@ -497,7 +506,7 @@ public class HostExtrasController {
         if (access == null) return "redirect:/host/start";
         requireManage(access);
         if (code == null || code.isBlank()) {
-            redirect.addFlashAttribute("error", "Give the code a name, e.g. EARLY20.");
+            redirect.addFlashAttribute("error", msg("flash.promo.nameRequired"));
             return "redirect:/host/marketing";
         }
         try {
@@ -507,9 +516,9 @@ public class HostExtrasController {
             promoService.create(access.org().getId(), eventId,
                     code, "FIXED".equals(kind) ? PromoCode.Kind.FIXED : PromoCode.Kind.PERCENT,
                     value, maxUses, exp);
-            redirect.addFlashAttribute("created", "Promo code " + code.trim().toUpperCase() + " is live.");
+            redirect.addFlashAttribute("created", msg("flash.promo.created", code.trim().toUpperCase()));
         } catch (Exception e) {
-            redirect.addFlashAttribute("error", "Could not create the code — is it already used?");
+            redirect.addFlashAttribute("error", msg("flash.promo.createFailed"));
         }
         return "redirect:/host/marketing";
     }
@@ -537,7 +546,7 @@ public class HostExtrasController {
         if (access == null) return "redirect:/host/start";
         requireManage(access);
         if (subject == null || subject.isBlank() || message == null || message.isBlank()) {
-            redirect.addFlashAttribute("error", "Subject and message are both required.");
+            redirect.addFlashAttribute("error", msg("flash.campaign.fieldsRequired"));
             return "redirect:/host/marketing?tab=email";
         }
         Campaign.Audience aud;
@@ -551,7 +560,7 @@ public class HostExtrasController {
             event = hostService.eventOf(access.org().getId(), eventId).orElse(null);
         }
         if (aud == Campaign.Audience.EVENT_ATTENDEES && event == null) {
-            redirect.addFlashAttribute("error", "Pick the event whose attendees should get this email.");
+            redirect.addFlashAttribute("error", msg("flash.campaign.pickEvent"));
             return "redirect:/host/marketing?tab=email";
         }
         String linkUrl = event != null
@@ -559,7 +568,7 @@ public class HostExtrasController {
                 : baseUrl + "/organizers/" + access.org().getHandle();
         int sent = campaignService.send(access.org(), event, aud, subject.trim(), message.trim(), linkUrl);
         redirect.addFlashAttribute("created",
-                "Campaign sent to " + sent + " recipient" + (sent == 1 ? "" : "s") + ".");
+                msg(sent == 1 ? "flash.campaign.sent.one" : "flash.campaign.sent.many", String.valueOf(sent)));
         return "redirect:/host/marketing?tab=email";
     }
 
@@ -578,8 +587,7 @@ public class HostExtrasController {
         if (!CHANNELS.contains(ch)) ch = "other";
         TrackingLink link = trackingService.create(access.org(), event, ch);
         redirect.addFlashAttribute("created",
-                "Tracking link ready: " + baseUrl + "/l/" + link.getCode()
-                        + " — clicks are counted per channel.");
+                msg("flash.link.created", baseUrl + "/l/" + link.getCode()));
         return "redirect:/host/marketing?tab=links";
     }
 
@@ -591,7 +599,7 @@ public class HostExtrasController {
         if (access == null) return "redirect:/host/start";
         requireManage(access);
         trackingService.delete(id, access.org().getId());
-        redirect.addFlashAttribute("created", "Tracking link deleted.");
+        redirect.addFlashAttribute("created", msg("flash.link.deleted"));
         return "redirect:/host/marketing?tab=links";
     }
 
@@ -749,8 +757,7 @@ public class HostExtrasController {
         String error = paymentMethodService.add(access.org(), label, accountNumber,
                 accountName, instructions, qrImage);
         if (error != null) redirect.addFlashAttribute("pmError", error);
-        else redirect.addFlashAttribute("pmSuccess",
-                "Payment method \"" + label.trim() + "\" added — buyers will see it at checkout.");
+        else redirect.addFlashAttribute("pmSuccess", msg("flash.pm.added", label.trim()));
         return "redirect:/host/settings/payments";
     }
 
@@ -772,7 +779,7 @@ public class HostExtrasController {
         if (access == null) return "redirect:/host/start";
         requireManage(access);
         paymentMethodService.delete(id, access.org().getId());
-        redirect.addFlashAttribute("pmSuccess", "Payment method deleted.");
+        redirect.addFlashAttribute("pmSuccess", msg("flash.pm.deleted"));
         return "redirect:/host/settings/payments";
     }
 
@@ -786,12 +793,12 @@ public class HostExtrasController {
         if (access == null) return "redirect:/host/start";
         requireManage(access);
         if (qrImage == null || qrImage.isEmpty()) {
-            redirect.addFlashAttribute("pmError", "Choose a QR image to upload first.");
+            redirect.addFlashAttribute("pmError", msg("flash.pm.chooseQr"));
             return "redirect:/host/settings/payments";
         }
         String error = paymentMethodService.updateQr(id, access.org().getId(), qrImage);
         if (error != null) redirect.addFlashAttribute("pmError", error);
-        else redirect.addFlashAttribute("pmSuccess", "QR image updated.");
+        else redirect.addFlashAttribute("pmSuccess", msg("flash.pm.qrUpdated"));
         return "redirect:/host/settings/payments";
     }
 
@@ -869,8 +876,10 @@ public class HostExtrasController {
         return new HostController.OrderRow(o.getId(), o.getOrderCode(), o.getBuyerName(),
                 o.getBuyerEmail(), o.getEvent().getTitle(), itemsLabel(o),
                 Format.iqd(o.getTotalIqd()),
-                o.getPaymentMethod() == Order.PaymentMethod.FREE ? "Free" : "Direct transfer",
-                orderStatusLabel(o.getStatus()),
+                o.getPaymentMethod() == Order.PaymentMethod.FREE
+                        ? msg("order.method.free") : msg("order.method.direct"),
+                localizedOrderStatus(o.getStatus()),
+                o.getStatus().name(),
                 o.getStatus() == Order.Status.PENDING_CONFIRMATION,
                 Format.cardDateLine(o.getCreatedAt()),
                 o.getReceiptPath() != null,
@@ -906,9 +915,9 @@ public class HostExtrasController {
 
     private CampaignRow toCampaignRow(Campaign c) {
         String audience = switch (c.getAudience()) {
-            case EVENT_ATTENDEES -> "Event attendees";
-            case PAST_ATTENDEES -> "Past attendees";
-            case FOLLOWERS -> "Followers";
+            case EVENT_ATTENDEES -> msg("audience.event");
+            case PAST_ATTENDEES -> msg("audience.past");
+            case FOLLOWERS -> msg("audience.followers");
         };
         String eventTitle = c.getEvent() == null ? null : c.getEvent().getTitle();
         return new CampaignRow(c.getSubject(), audience,
@@ -965,6 +974,17 @@ public class HostExtrasController {
         if ("rejected".equalsIgnoreCase(status)) return Order.Status.REJECTED;
         if ("refunded".equalsIgnoreCase(status)) return Order.Status.REFUNDED;
         return null;
+    }
+
+    /** Localized status label for on-screen rows (CSV export keeps English). */
+    private String localizedOrderStatus(Order.Status s) {
+        return switch (s) {
+            case PENDING_CONFIRMATION -> msg("status.order.pending");
+            case CONFIRMED -> msg("status.order.confirmed");
+            case REJECTED -> msg("status.order.rejected");
+            case CANCELLED -> msg("status.order.cancelled");
+            case REFUNDED -> msg("status.order.refunded");
+        };
     }
 
     private static String orderStatusLabel(Order.Status s) {
@@ -1028,13 +1048,13 @@ public class HostExtrasController {
 
     private PromoView toView(PromoCode p) {
         String kind = p.getKind() == PromoCode.Kind.PERCENT
-                ? p.getValue() + "% off"
-                : Format.iqd(p.getValue()) + " off";
-        String scope = p.getEventId() == null ? "All events" : "One event";
-        String uses = p.getMaxUses() == 0 ? p.getUsed() + " used"
+                ? msg("promo.kind.percent", String.valueOf(p.getValue()))
+                : msg("promo.kind.fixed", Format.iqd(p.getValue()));
+        String scope = p.getEventId() == null ? msg("promo.scope.all") : msg("promo.scope.one");
+        String uses = p.getMaxUses() == 0 ? msg("promo.uses.count", String.valueOf(p.getUsed()))
                 : p.getUsed() + " / " + p.getMaxUses();
         String expires = p.getExpiresAt() == null ? null
-                : "Expires " + Format.cardDateLine(p.getExpiresAt());
+                : msg("promo.expires", Format.cardDateLine(p.getExpiresAt()));
         return new PromoView(p.getId(), p.getCode(), kind, scope, uses, p.isActive(), expires);
     }
 }

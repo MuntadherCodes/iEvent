@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${org.name} + ' — iEvent')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${org.name} + #{public.title.suffix})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -18,40 +18,40 @@
          th:style="${ox.brandColor() != null} ? ('background: linear-gradient(135deg, ' + ${ox.brandColor()} + 'cc, ' + ${ox.brandColor()} + ')') : null">
       <!-- Uploaded cover image when present; decorative gradient pattern otherwise -->
       <th:block th:if="${ox.coverUrl() != null}">
-        <img th:src="${ox.coverUrl()}" th:alt="${org.name} + ' cover'" class="absolute inset-0 h-full w-full object-cover"
+        <img th:src="${ox.coverUrl()}" th:alt="#{public.org.coverAlt(${org.name})}" class="absolute inset-0 h-full w-full object-cover"
              th:style="'object-position: 50% ' + ${ox.coverFocusY()} + '%'">
         <div class="absolute inset-0 bg-ink-900 opacity-15" aria-hidden="true"></div>
       </th:block>
       <th:block th:if="${ox.coverUrl() == null}">
         <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="orgcover" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#orgcover)"/></svg>
-        <div class="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-brand-950/30 blur-3xl" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -start-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -bottom-20 end-10 h-64 w-64 rounded-full bg-brand-950/30 blur-3xl" aria-hidden="true"></div>
       </th:block>
     </div>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <!-- Only the avatar is pulled up over the banner; name/handle/stats stay fully below it on white. -->
       <div class="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div class="flex flex-col gap-4 sm:flex-row">
-          <img th:if="${ox.logoUrl() != null}" th:src="${ox.logoUrl()}" th:alt="${org.name} + ' logo'"
+          <img th:if="${ox.logoUrl() != null}" th:src="${ox.logoUrl()}" th:alt="#{public.org.logoAlt(${org.name})}"
                class="-mt-14 h-28 w-28 shrink-0 self-start rounded-full border-4 border-white bg-white object-cover shadow-cardHover md:-mt-16 md:h-32 md:w-32">
           <span th:if="${ox.logoUrl() == null}" class="-mt-14 grid h-28 w-28 shrink-0 place-items-center self-start rounded-full border-4 border-white bg-brand-500 font-display text-3xl font-extrabold text-white shadow-cardHover md:-mt-16 md:h-32 md:w-32" th:text="${org.initials}">ZE</span>
           <div class="pb-1 sm:pt-2">
-            <h1 class="flex flex-wrap items-center gap-2 font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl"><span th:text="${org.name}">Zain Events Co.</span><svg th:if="${org.verified}" class="h-6 w-6 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${org.verified}" class="sr-only">Verified organizer</span></h1>
+            <h1 class="flex flex-wrap items-center gap-2 font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl"><span th:text="${org.name}">Zain Events Co.</span><svg th:if="${org.verified}" class="h-6 w-6 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg><span th:if="${org.verified}" class="sr-only" th:text="#{public.event.verifiedOrganizer}">Verified organizer</span></h1>
             <p class="mt-0.5 text-sm font-medium text-ink-500" th:text="'@' + ${org.handle}">@zainevents</p>
             <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-600">
-              <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-calendar"/></svg><span class="font-semibold tabular-nums text-ink-900" th:text="${org.eventsHosted}">48</span> events</span>
-              <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-users"/></svg><span class="font-semibold tabular-nums text-ink-900" th:text="${org.followersDisplay}">12.4K</span> followers</span>
-              <span th:if="${org.city != null}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span class="font-semibold text-ink-900" th:text="${org.city}">Baghdad</span></span>
+              <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-calendar"/></svg><span class="font-semibold tabular-nums text-ink-900" th:text="${org.eventsHosted}">48</span> [[#{public.home.eventsWord}]]</span>
+              <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-users"/></svg><span class="font-semibold tabular-nums text-ink-900" th:text="${org.followersDisplay}">12.4K</span> [[#{public.event.followers}]]</span>
+              <span th:if="${org.city != null}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span class="font-semibold text-ink-900" th:text="${@t.city(org.city)}">Baghdad</span></span>
             </p>
           </div>
         </div>
         <div class="flex gap-3 pb-1">
           <!-- Follow: signed in → toggle form; signed out → link to login -->
           <form th:if="${currentUser != null}" th:action="@{/organizers/{h}/follow(h=${org.handle})}" method="post">
-            <button th:if="${!following}" type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null" aria-pressed="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</button>
-            <button th:if="${following}" type="submit" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Following</button>
+            <button th:if="${!following}" type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null" aria-pressed="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>[[#{public.event.follow}]]</button>
+            <button th:if="${following}" type="submit" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>[[#{public.event.following}]]</button>
           </form>
-          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Follow</a>
+          <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>[[#{public.event.follow}]]</a>
           <!-- Message button hidden until messaging ships (phase 2) -->
         </div>
       </div>
@@ -63,10 +63,10 @@
   <section class="py-10 md:py-12 lg:py-14">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-      <div class="relative flex gap-1 overflow-x-auto border-b border-ink-100" role="tablist" aria-label="Organizer sections">
-        <button id="tabBtn-upcoming" role="tab" aria-selected="true" aria-controls="tab-upcoming" class="tab-btn shrink-0 border-b-2 border-brand-500 px-5 py-3 text-sm font-semibold text-brand-600 transition" th:text="'Upcoming (' + ${events.size()} + ')'">Upcoming (4)</button>
-        <button id="tabBtn-past" role="tab" aria-selected="false" aria-controls="tab-past" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900">Past events</button>
-        <button id="tabBtn-about" role="tab" aria-selected="false" aria-controls="tab-about" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900">About</button>
+      <div class="relative flex gap-1 overflow-x-auto border-b border-ink-100" role="tablist" th:attr="aria-label=#{public.org.sectionsAria}" aria-label="Organizer sections">
+        <button id="tabBtn-upcoming" role="tab" aria-selected="true" aria-controls="tab-upcoming" class="tab-btn shrink-0 border-b-2 border-brand-500 px-5 py-3 text-sm font-semibold text-brand-600 transition" th:text="#{public.org.upcomingTab(${'' + events.size()})}">Upcoming (4)</button>
+        <button id="tabBtn-past" role="tab" aria-selected="false" aria-controls="tab-past" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900" th:text="#{public.org.pastTab}">Past events</button>
+        <button id="tabBtn-about" role="tab" aria-selected="false" aria-controls="tab-about" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900" th:text="#{public.org.aboutTab}">About</button>
       </div>
 
       <!-- UPCOMING -->
@@ -77,9 +77,9 @@
         <!-- Empty state -->
         <div th:if="${events.isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
           <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-calendar"/></svg></div>
-          <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No upcoming events</h3>
-          <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Follow this organizer to hear about their next event first.</p>
-          <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Browse all events</a>
+          <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.org.noUpcoming}">No upcoming events</h3>
+          <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500" th:text="#{public.org.noUpcomingSub}">Follow this organizer to hear about their next event first.</p>
+          <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.org.browseAll}">Browse all events</a>
         </div>
       </div>
 
@@ -112,12 +112,12 @@
               <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='pa-'+${p.slug()}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#pa-'+${p.slug()}+')'"/></svg>
               <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${picon}"/></svg>
               <img th:if="${p.coverImageUrl() != null}" th:src="${p.coverImageUrl()}" th:alt="${p.title()}" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
-              <span class="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Ended</span>
+              <span class="absolute start-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.org.ended}]]</span>
             </div>
             <div class="p-4">
               <p class="text-xs font-bold uppercase tracking-wide text-ink-400" th:text="${p.dateLine()}">Fri, May 22 · 8:00 PM</p>
               <h3 class="mt-1.5 font-display font-bold leading-snug text-ink-900" th:text="${p.title()}">Baghdad Nights — Spring Edition</h3>
-              <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${p.venueName() != null ? p.venueName() + ', ' + p.city() : p.city()}">Al-Zawraa Park, Baghdad</span></p>
+              <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${p.venueName() != null ? p.venueName() + ', ' + @t.city(p.city()) : @t.city(p.city())}">Al-Zawraa Park, Baghdad</span></p>
               <p th:if="${p.attendedLine() != null}" class="mt-2.5 flex items-center gap-1.5 text-sm font-semibold tabular-nums text-ink-500"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-users"/></svg><span th:text="${p.attendedLine()}">2,140 attended</span></p>
             </div>
           </a>
@@ -125,8 +125,8 @@
         <!-- Empty state -->
         <div th:if="${ox.pastEvents().isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
           <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-clock"/></svg></div>
-          <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No past events yet</h3>
-          <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">This organizer's event history will appear here.</p>
+          <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.org.noPast}">No past events yet</h3>
+          <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500" th:text="#{public.org.noPastSub}">This organizer's event history will appear here.</p>
         </div>
       </div>
 
@@ -134,13 +134,13 @@
       <div id="tab-about" role="tabpanel" class="tab-panel hidden pt-8">
         <div class="grid gap-10 lg:grid-cols-[1fr_360px]">
           <div class="space-y-4 leading-relaxed text-ink-600">
-            <h2 class="font-display text-xl font-extrabold text-ink-900" th:text="'About ' + ${org.name}">About Zain Events Co.</h2>
+            <h2 class="font-display text-xl font-extrabold text-ink-900" th:text="#{public.org.aboutHeading(${org.name})}">About Zain Events Co.</h2>
             <p th:if="${org.bio != null}" th:text="${org.bio}">Founded in Baghdad in 2019.</p>
-            <p th:if="${org.bio == null}" class="text-ink-500">This organizer hasn't written a bio yet.</p>
+            <p th:if="${org.bio == null}" class="text-ink-500" th:text="#{public.org.noBio}">This organizer hasn't written a bio yet.</p>
           </div>
           <div class="h-fit rounded-2xl border border-ink-100 bg-ink-50/70 p-6 shadow-card"
                th:if="${ox.contactEmail() != null || ox.contactPhone() != null || ox.instagram() != null || ox.website() != null}">
-            <h3 class="font-display font-bold text-ink-900">Contact &amp; socials</h3>
+            <h3 class="font-display font-bold text-ink-900" th:text="#{public.org.contactSocials}">Contact &amp; socials</h3>
             <ul class="mt-4 space-y-3 text-sm">
               <li th:if="${ox.contactEmail() != null}" class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg></span><a th:href="'mailto:' + ${ox.contactEmail()}" class="break-all font-medium text-ink-700 transition hover:text-brand-600" th:text="${ox.contactEmail()}">hello@zainevents.iq</a></li>
               <li th:if="${ox.contactPhone() != null}" class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-phone"/></svg></span><a th:href="'tel:' + ${ox.contactPhone()}" class="font-medium tabular-nums text-ink-700 transition hover:text-brand-600" th:text="${ox.contactPhone()}">+964 770 123 4567</a></li>
@@ -159,9 +159,9 @@
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
       <p class="flex items-center gap-3 text-sm font-medium text-ink-700">
         <svg class="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-shield-check"/></svg>
-        Hosted with <span class="font-display font-extrabold tracking-wide text-ink-900"><span class="text-brand-500">i</span>Event</span> — secure tickets, verified organizers.
+        [[#{public.org.trustPrefix}]] <span class="font-display font-extrabold tracking-wide text-ink-900"><span class="text-brand-500">i</span>Event</span> [[#{public.org.trustSuffix}]]
       </p>
-      <a th:href="@{/host}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">Host your own event<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      <a th:href="@{/host}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.org.hostYourOwn}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
   </section>
 

@@ -54,6 +54,7 @@ public class GoogleOAuthConfig {
             u.setPasswordHash(passwordEncoder.encode(Base64.getEncoder().encodeToString(noise)));
             u.setRole(User.Role.USER);
             u.setAuthProvider("google");
+            u.setPreferredLang(iq.ievent.service.UserService.currentLang());
             return users.save(u);
         });
     }

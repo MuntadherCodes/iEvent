@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('Edit event — iEvent Host')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{wizard.edit.docTitle})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,24 +9,24 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('events')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('Edit event')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{wizard.edit.topbar})}"></header>
 
   <main id="main" class="flex-1 px-4 py-6 pb-32 sm:px-6 md:pb-16 lg:px-8">
     <div class="mx-auto max-w-3xl">
 
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <a th:href="@{/host/events/{id}(id=${ev.id()})}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 transition hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to event console</a>
-        <span th:if="${ev.statusLabel() == 'Live'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-green-500"></span> Live</span>
-        <span th:if="${ev.statusLabel() == 'Draft'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Draft</span>
-        <span th:if="${ev.statusLabel() != 'Live' && ev.statusLabel() != 'Draft'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-ink-400"></span> <span th:text="${ev.statusLabel()}">Ended</span></span>
+        <a th:href="@{/host/events/{id}(id=${ev.id()})}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 transition hover:text-brand-600"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-left"/></svg><span th:text="#{wizard.edit.backConsole}">Back to event console</span></a>
+        <span th:if="${ev.statusKey() == 'LIVE'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-green-500"></span> <span th:text="#{wizard.status.live}">Live</span></span>
+        <span th:if="${ev.statusKey() == 'DRAFT'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> <span th:text="#{wizard.status.draft}">Draft</span></span>
+        <span th:if="${ev.statusKey() != 'LIVE' && ev.statusKey() != 'DRAFT'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-ink-400"></span> <span th:text="${ev.statusLabel()}">Ended</span></span>
       </div>
 
       <!-- Flashes -->
       <div th:if="${saved}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
-        Saved ✓ — your changes are live on the event page.
+        <span th:text="#{wizard.edit.savedFlash}">Saved ✓ — your changes are live on the event page.</span>
       </div>
       <div th:if="${duplicated}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
@@ -36,168 +36,178 @@
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
         <span th:text="${actioned}">Done.</span>
       </div>
-      <div th:if="${error}" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+      <div th:if="${error}" id="editServerError" class="mt-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
         <span th:text="${error}">Could not save — check the fields.</span>
       </div>
 
+      <!-- Autosave restore banner (hidden unless a local draft exists; never auto-applies) -->
+      <div id="autosaveBanner" class="mt-6 hidden flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
+        <div class="min-w-0 text-sm">
+          <p class="font-semibold text-brand-900" th:text="#{wizard.autosave.restore}">Resume where you left off?</p>
+          <p class="mt-0.5 text-xs text-brand-800" th:text="#{wizard.autosave.restoreNote}">An unsaved draft from this device can be restored into the form.</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <button type="button" id="autosaveRestoreBtn" class="rounded-lg bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white shadow-pop transition hover:bg-brand-600" th:text="#{wizard.autosave.restoreBtn}">Restore</button>
+          <button type="button" id="autosaveDiscardBtn" class="rounded-lg border border-brand-200 bg-white px-3.5 py-2 text-xs font-semibold text-brand-700 transition hover:border-brand-400" th:text="#{wizard.autosave.discardBtn}">Discard</button>
+        </div>
+      </div>
+
       <!-- Event details form -->
-      <form th:action="@{/host/events/{id}/edit(id=${ev.id()})}" method="post" enctype="multipart/form-data" class="mt-6 space-y-6">
+      <form id="editForm" th:action="@{/host/events/{id}/edit(id=${ev.id()})}" method="post" enctype="multipart/form-data" class="mt-6 space-y-6" th:attr="data-autosave-key='ievent-edit-' + ${ev.id()}">
 
         <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Event details</h2>
-          <p class="mt-1 text-sm text-ink-500">Changes apply immediately — buyers see the updated page right away.</p>
+          <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.edit.title}">Event details</h2>
+          <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.edit.subtitle}">Changes apply immediately — buyers see the updated page right away.</p>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-title">Event name <span class="text-rose-500">*</span></label>
-            <input id="ev-title" type="text" name="title" required th:value="${evEntity.title()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-4 font-display text-lg font-bold text-ink-900 outline-none transition placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="e.g. Baghdad Nights Music Festival">
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-title"><span th:text="#{wizard.edit.eventName}">Event name</span> <span class="text-rose-500">*</span></label>
+            <input id="ev-title" type="text" name="title" required th:value="${evEntity.title()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-4 font-display text-lg font-bold text-ink-900 outline-none transition placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.basics.placeholder}" placeholder="e.g. Baghdad Nights Music Festival">
           </div>
           <div class="mt-5 grid gap-4 sm:grid-cols-3">
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date">Date <span class="text-rose-500">*</span></label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date"><span th:text="#{wizard.when.date}">Date</span> <span class="text-rose-500">*</span></label>
               <input id="ev-date" name="date" type="date" required th:value="${evEntity.date()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start">Starts <span class="text-rose-500">*</span></label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start"><span th:text="#{wizard.when.starts}">Starts</span> <span class="text-rose-500">*</span></label>
               <input id="ev-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end">Ends</label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end" th:text="#{wizard.when.ends}">Ends</label>
               <input id="ev-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
           </div>
           <!-- Where is it? — location type toggle + dependent fields -->
           <div class="mt-5">
-            <span class="mb-1.5 block text-sm font-semibold text-ink-800">Where is it?</span>
-            <div class="grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" aria-label="Location type">
+            <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.where.title}">Where is it?</span>
+            <div class="grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" th:attr="aria-label=#{wizard.where.typeAria}" aria-label="Location type">
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="VENUE" th:checked="${evEntity.locationType() == 'VENUE'}" class="loc-type sr-only">
-                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg>Venue
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="#{wizard.loc.venue}">Venue</span>
               </label>
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="ONLINE" th:checked="${evEntity.locationType() == 'ONLINE'}" class="loc-type sr-only">
-                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>Online
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg><span th:text="#{wizard.loc.online}">Online</span>
               </label>
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="TBA" th:checked="${evEntity.locationType() == 'TBA'}" class="loc-type sr-only">
-                <span class="truncate">To be announced</span>
+                <span class="truncate" th:text="#{wizard.loc.tba}">To be announced</span>
               </label>
             </div>
 
             <!-- VENUE fields -->
             <div id="locVenueFields" class="mt-4 grid gap-4 sm:grid-cols-2" th:classappend="${evEntity.locationType() != 'VENUE'} ? 'hidden' : ''">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue">Venue <span class="text-rose-500">*</span></label>
-                <input id="ev-venue" name="venueName" type="text" th:value="${evEntity.locationType() == 'VENUE' ? evEntity.venueName() : ''}" placeholder="e.g. Al-Zawraa Park" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-venue"><span th:text="#{wizard.loc.venue}">Venue</span> <span class="text-rose-500">*</span></label>
+                <input id="ev-venue" name="venueName" type="text" th:value="${evEntity.locationType() == 'VENUE' ? evEntity.venueName() : ''}" th:placeholder="#{wizard.loc.venuePlaceholder}" placeholder="e.g. Al-Zawraa Park" autocomplete="off" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <p th:if="${mapsKey != null}" class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.places.hint}">Start typing and pick a suggestion — the address and map pin fill in automatically.</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address">Address</label>
-                <input id="ev-address" name="venueAddress" type="text" th:value="${evEntity.locationType() == 'VENUE' ? evEntity.venueAddress() : ''}" placeholder="Street, district, landmark…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-address" th:text="#{wizard.loc.address}">Address</label>
+                <input id="ev-address" name="venueAddress" type="text" th:value="${evEntity.locationType() == 'VENUE' ? evEntity.venueAddress() : ''}" th:placeholder="#{wizard.loc.addressPlaceholder}" placeholder="Street, district, landmark…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div class="sm:col-span-2">
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-maps">Google Maps link (exact pin) <span class="font-normal text-ink-400">(optional)</span></label>
-                <input id="ev-maps" name="mapsUrl" type="url" th:value="${evEntity.mapsUrl()}" placeholder="https://maps.app.goo.gl/…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                <p class="mt-1.5 text-xs text-ink-400">Paste the share link from Google Maps so buyers find the exact spot.</p>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-maps"><span th:text="#{wizard.loc.mapsLabel}">Google Maps link (exact pin)</span> <span class="font-normal text-ink-400" th:text="#{wizard.loc.optional}">(optional)</span></label>
+                <input id="ev-maps" name="mapsUrl" type="url" dir="ltr" th:value="${evEntity.mapsUrl()}" placeholder="https://maps.app.goo.gl/…" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-start text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.loc.mapsHelp}">Paste the share link from Google Maps so buyers find the exact spot.</p>
+                <!-- Live map preview (only when a Maps key is configured) -->
+                <div id="mapPreviewWrap" th:if="${mapsKey != null}" class="mt-3 hidden overflow-hidden rounded-xl border border-ink-100 ring-1 ring-inset ring-black/5">
+                  <iframe id="mapPreviewFrame" th:title="#{wizard.places.mapPreview}" title="Map preview" class="block h-56 w-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+                </div>
               </div>
             </div>
 
             <!-- ONLINE fields -->
             <div id="locOnlineFields" class="mt-4" th:classappend="${evEntity.locationType() != 'ONLINE'} ? 'hidden' : ''">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-online">Meeting link</label>
-              <input id="ev-online" name="onlineUrl" type="url" th:value="${evEntity.onlineUrl()}" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>Only people with confirmed tickets can see this link.</p>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-online" th:text="#{wizard.loc.meetingLink}">Meeting link</label>
+              <input id="ev-online" name="onlineUrl" type="url" dir="ltr" th:value="${evEntity.onlineUrl()}" th:placeholder="#{wizard.loc.onlinePlaceholder}" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-start text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{wizard.loc.onlineNoteShort}">Only people with confirmed tickets can see this link.</span></p>
             </div>
 
             <!-- TBA note -->
-            <p id="locTbaNote" class="mt-4 rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600" th:classappend="${evEntity.locationType() != 'TBA'} ? 'hidden' : ''">You can add the venue later — ticket buyers will be notified.</p>
+            <p id="locTbaNote" class="mt-4 rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600" th:classappend="${evEntity.locationType() != 'TBA'} ? 'hidden' : ''" th:text="#{wizard.loc.tbaNote}">You can add the venue later — ticket buyers will be notified.</p>
           </div>
 
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city"><span id="cityLabel" th:text="${evEntity.locationType() == 'ONLINE'} ? 'Organizer city' : 'City'">City</span> <span class="text-rose-500">*</span></label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-city"><span id="cityLabel" th:text="${evEntity.locationType() == 'ONLINE'} ? #{wizard.loc.organizerCity} : #{wizard.loc.city}">City</span> <span class="text-rose-500">*</span></label>
               <div class="relative">
-                <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                  <option value="Baghdad" th:selected="${evEntity.city() == 'Baghdad'}">Baghdad</option>
-                  <option value="Basra" th:selected="${evEntity.city() == 'Basra'}">Basra</option>
-                  <option value="Erbil" th:selected="${evEntity.city() == 'Erbil'}">Erbil</option>
-                  <option value="Sulaymaniyah" th:selected="${evEntity.city() == 'Sulaymaniyah'}">Sulaymaniyah</option>
-                  <option value="Najaf" th:selected="${evEntity.city() == 'Najaf'}">Najaf</option>
-                  <option value="Karbala" th:selected="${evEntity.city() == 'Karbala'}">Karbala</option>
-                  <option value="Mosul" th:selected="${evEntity.city() == 'Mosul'}">Mosul</option>
-                  <option value="Duhok" th:selected="${evEntity.city() == 'Duhok'}">Duhok</option>
+                <select id="ev-city" name="city" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                  <option th:each="c : ${@t.cities()}" th:value="${c.en()}" th:text="${rtl} ? ${c.ar()} : ${c.en()}" th:selected="${evEntity.city() == c.en()}">Baghdad</option>
                 </select>
-                <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat">Category <span class="text-rose-500">*</span></label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat"><span th:text="#{wizard.kind.category}">Category</span> <span class="text-rose-500">*</span></label>
               <div class="relative">
-                <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                   <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${c.label()}" th:selected="${evEntity.category() == c.value()}">Music</option>
                 </select>
-                <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
             </div>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-summary">Summary</label>
-            <textarea id="ev-summary" name="summary" rows="2" maxlength="160" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="One or two lines shown on your event card in the directory." th:text="${evEntity.summary()}"></textarea>
-            <p class="mt-1.5 text-right text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-summary" th:text="#{wizard.edit.summary}">Summary</label>
+            <textarea id="ev-summary" name="summary" rows="2" maxlength="160" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.summary.subtitle}" placeholder="One or two lines shown on your event card in the directory." th:text="${evEntity.summary()}"></textarea>
+            <p class="mt-1.5 text-end text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc">Description</label>
-            <textarea id="ev-desc" name="description" rows="5" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="Line-up, schedule, what's included…" th:text="${evEntity.description()}"></textarea>
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc" th:text="#{wizard.edit.description}">Description</label>
+            <textarea id="ev-desc" name="description" rows="5" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.edit.descPlaceholder}" placeholder="Line-up, schedule, what's included…" th:text="${evEntity.description()}"></textarea>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup">Lineup / agenda</label>
-            <textarea id="ev-lineup" name="lineup" rows="4" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" placeholder="One act per line, e.g. Sunset stage — 7:00 PM" th:text="${evEntity.lineup()}"></textarea>
-            <p class="mt-1.5 text-xs text-ink-400">One act or agenda item per line — shown on your event page.</p>
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup" th:text="#{wizard.lineup.title}">Lineup / agenda</label>
+            <textarea id="ev-lineup" name="lineup" rows="4" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.edit.lineupPlaceholder}" placeholder="One act per line, e.g. Sunset stage — 7:00 PM" th:text="${evEntity.lineup()}"></textarea>
+            <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.edit.lineupNote}">One act or agenda item per line — shown on your event page.</p>
           </div>
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund">Refund policy</label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund" th:text="#{wizard.refund.title}">Refund policy</label>
               <div class="relative">
-                <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                  <option value="UP_TO_7_DAYS" th:selected="${evEntity.refundPolicy() == 'UP_TO_7_DAYS'}">Refunds up to 7 days before event</option>
-                  <option value="UP_TO_48H" th:selected="${evEntity.refundPolicy() == 'UP_TO_48H'}">Refunds up to 48 hours before event</option>
-                  <option value="NO_REFUNDS" th:selected="${evEntity.refundPolicy() == 'NO_REFUNDS'}">No refunds</option>
+                <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                  <option value="UP_TO_7_DAYS" th:selected="${evEntity.refundPolicy() == 'UP_TO_7_DAYS'}" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</option>
+                  <option value="UP_TO_48H" th:selected="${evEntity.refundPolicy() == 'UP_TO_48H'}" th:text="#{wizard.refund.48h}">Refunds up to 48 hours before event</option>
+                  <option value="NO_REFUNDS" th:selected="${evEntity.refundPolicy() == 'NO_REFUNDS'}" th:text="#{wizard.refund.none}">No refunds</option>
                 </select>
-                <svg class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
             </div>
             <div>
-              <span class="mb-1.5 block text-sm font-semibold text-ink-800">Visibility</span>
+              <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.vis.title}">Visibility</span>
               <div class="flex gap-2">
                 <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                  <input type="radio" name="visibility" value="PUBLIC" th:checked="${evEntity.visibility() != 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Public
+                  <input type="radio" name="visibility" value="PUBLIC" th:checked="${evEntity.visibility() != 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.public}">Public</span>
                 </label>
                 <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                  <input type="radio" name="visibility" value="UNLISTED" th:checked="${evEntity.visibility() == 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> Unlisted
+                  <input type="radio" name="visibility" value="UNLISTED" th:checked="${evEntity.visibility() == 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.unlisted}">Unlisted</span>
                 </label>
               </div>
-              <p class="mt-1.5 text-xs text-ink-400">Unlisted events are reachable only by people with the link.</p>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.vis.noteEdit}">Unlisted events are reachable only by people with the link.</p>
             </div>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags">Tags</label>
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags" th:text="#{wizard.tags.title}">Tags</label>
             <div class="relative">
-              <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg></span>
-              <input id="ev-tags" name="tags" type="text" th:value="${evEntity.tags()}" placeholder="street food, basra, family" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <span class="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-400"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg></span>
+              <input id="ev-tags" name="tags" type="text" th:value="${evEntity.tags()}" th:placeholder="#{wizard.tags.placeholder}" placeholder="street food, basra, family" class="w-full rounded-xl border border-ink-200 bg-white py-3 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
             </div>
-            <p class="mt-1.5 text-xs text-ink-400">Comma separated — tags help people find your event in search.</p>
+            <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.tags.note}">Comma separated — tags help people find your event in search.</p>
           </div>
 
           <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
           <div class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
-            <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg>Booking fee</p>
-            <p class="mt-1 text-sm text-brand-800">iEvent adds a <strong>1,500 IQD booking fee</strong> per paid ticket — you choose who pays it. Free tickets never carry a fee.</p>
+            <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
+            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">1,500 IQD booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" th:checked="${evEntity.feeMode() != 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
               </label>
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="ABSORB" th:checked="${evEntity.feeMode() == 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500">You receive 33,500 IQD per 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}">You receive 33,500 IQD per 35,000 ticket</span></span>
               </label>
             </div>
           </div>
@@ -205,10 +215,10 @@
 
         <!-- Event cover -->
         <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-          <h3 class="font-display text-lg font-bold text-ink-900">Event cover</h3>
-          <p class="mt-1 text-sm text-ink-500">Pick a color theme — or upload a photo that replaces it.</p>
+          <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.cover.title}">Event cover</h3>
+          <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.cover.subtitle}">Pick a color theme — or upload a photo that replaces it.</p>
 
-          <div class="mt-4 grid grid-cols-5 gap-2 sm:gap-3" role="radiogroup" aria-label="Color themes">
+          <div class="mt-4 grid grid-cols-5 gap-2 sm:gap-3" role="radiogroup" th:attr="aria-label=#{wizard.banner.themesAria}" aria-label="Color themes">
             <label th:each="t : ${coverThemes}" class="group cursor-pointer"
                    th:with="grad=${t == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                             : (t == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -220,58 +230,58 @@
                             : (t == 'film'      ? 'from-slate-600 via-ink-700 to-brand-800'
                             : (t == 'family'    ? 'from-emerald-600 via-teal-500 to-sky-500'
                             :                     'from-brand-400 via-brand-500 to-indigo-500'))))))))}">
-              <input type="radio" name="coverTheme" th:value="${t}" th:checked="${currentTheme == t}" class="peer sr-only" th:attr="aria-label='Theme ' + ${t}">
+              <input type="radio" name="coverTheme" th:value="${t}" th:checked="${currentTheme == t}" class="peer sr-only" th:attr="aria-label=#{${'wizard.theme.' + t}}">
               <span class="block aspect-[4/3] rounded-xl bg-gradient-to-br ring-offset-2 transition group-hover:scale-105 peer-checked:ring-4 peer-checked:ring-brand-400" th:classappend="${grad}"></span>
-              <span class="mt-1.5 block text-center text-[11px] font-semibold capitalize text-ink-500" th:text="${t}">music</span>
+              <span class="mt-1.5 block text-center text-[11px] font-semibold capitalize text-ink-500" th:text="#{${'wizard.theme.' + t}}">music</span>
             </label>
           </div>
 
           <!-- Current photo -->
           <div th:if="${hasCoverImage}" class="mt-6 rounded-2xl border border-ink-100 bg-ink-50 p-4">
-            <p class="text-sm font-semibold text-ink-800">Current cover photo</p>
-            <img th:src="${coverImageUrl}" alt="Current event cover" class="mt-3 aspect-[16/9] w-full max-w-md rounded-xl object-cover ring-1 ring-black/5">
+            <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.cover.current}">Current cover photo</p>
+            <img th:src="${coverImageUrl}" th:alt="#{wizard.cover.currentAlt}" alt="Current event cover" class="mt-3 aspect-[16/9] w-full max-w-md rounded-xl object-cover ring-1 ring-black/5">
             <label class="mt-3 inline-flex cursor-pointer items-center gap-2.5 text-sm font-medium text-ink-700">
               <input type="checkbox" name="removeCover" value="true" class="h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
-              Remove photo (back to gradient)
+              <span th:text="#{wizard.cover.remove}">Remove photo (back to gradient)</span>
             </label>
           </div>
 
           <div class="mt-6 rounded-2xl border-2 border-dashed border-ink-300 bg-ink-50 p-5 text-center transition hover:border-brand-400 hover:bg-brand-50">
             <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-ink-500 shadow-card"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-image"/></svg></span>
-            <label class="mt-3 block text-sm font-semibold text-ink-800" for="cover-image" th:text="${hasCoverImage} ? 'Replace the cover photo' : '…or upload a cover photo'">…or upload a cover photo</label>
-            <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-2 block w-full max-w-xs text-sm text-ink-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-600">
-            <p class="mt-2 text-xs text-ink-400">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
+            <label class="mt-3 block text-sm font-semibold text-ink-800" for="cover-image" th:text="${hasCoverImage} ? #{wizard.cover.replace} : #{wizard.cover.orUpload}">…or upload a cover photo</label>
+            <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-2 block w-full max-w-xs text-sm text-ink-600 file:me-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-600">
+            <p class="mt-2 text-xs text-ink-400" th:text="#{wizard.banner.uploadHelp}">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
             <!-- Instant preview of the newly chosen file (before saving) -->
-            <div id="coverNewPreview" class="mx-auto mt-4 hidden max-w-md text-left">
-              <img id="coverNewPreviewImg" class="aspect-[16/9] w-full rounded-xl object-cover ring-1 ring-black/5" alt="New cover preview">
-              <p class="mt-2 text-xs font-semibold text-brand-700">New photo — applied when you click Save changes.</p>
+            <div id="coverNewPreview" class="mx-auto mt-4 hidden max-w-md text-start">
+              <img id="coverNewPreviewImg" class="aspect-[16/9] w-full rounded-xl object-cover ring-1 ring-black/5" th:alt="#{wizard.cover.newAlt}" alt="New cover preview">
+              <p class="mt-2 text-xs font-semibold text-brand-700" th:text="#{wizard.cover.newNote}">New photo — applied when you click Save changes.</p>
             </div>
           </div>
 
           <div class="mt-6 flex items-center gap-3 border-t border-ink-100 pt-5">
-            <button type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Save changes</button>
-            <a th:href="@{/host/events/{id}(id=${ev.id()})}" class="rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Cancel</a>
+            <button type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{wizard.edit.saveChanges}">Save changes</button>
+            <a th:href="@{/host/events/{id}(id=${ev.id()})}" class="rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:text="#{common.cancel}">Cancel</a>
           </div>
         </div>
       </form>
 
       <!-- Ticket types management -->
-      <section class="mt-6 rounded-2xl border border-ink-100 bg-white shadow-card" aria-label="Ticket types">
+      <section id="ticketTypes" class="mt-6 rounded-2xl border border-ink-100 bg-white shadow-card" th:attr="aria-label=#{wizard.tt.title}" aria-label="Ticket types">
         <div class="border-b border-ink-100 px-6 py-4 sm:px-8">
-          <h3 class="font-display text-lg font-bold text-ink-900">Ticket types</h3>
-          <p class="mt-0.5 text-sm text-ink-500">Edit prices and quantities, pause sales, or add a new type. Quantity can't go below tickets already sold.</p>
+          <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.tt.title}">Ticket types</h3>
+          <p class="mt-0.5 text-sm text-ink-500" th:text="#{wizard.tt.subtitle}">Edit prices and quantities, pause sales, or add a new type. Quantity can't go below tickets already sold.</p>
         </div>
         <div class="space-y-4 p-6 sm:p-8">
           <!-- Free toggle: zeroes + locks every price input below; save each row to apply -->
           <label class="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5">
             <span>
-              <span class="block text-sm font-semibold text-ink-800">My event is free</span>
-              <span class="mt-0.5 block text-xs text-ink-500">Sets every ticket price to 0 — click Save on each ticket row to apply.</span>
+              <span class="block text-sm font-semibold text-ink-800" th:text="#{wizard.tickets.free}">My event is free</span>
+              <span class="mt-0.5 block text-xs text-ink-500" th:text="#{wizard.tt.freeNote}">Sets every ticket price to 0 — click Save on each ticket row to apply.</span>
             </span>
             <span class="relative inline-block h-6 w-11 shrink-0">
               <input id="freeToggle" type="checkbox" class="peer sr-only">
               <span class="absolute inset-0 rounded-full bg-ink-200 transition peer-checked:bg-brand-500"></span>
-              <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+              <span class="absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5 rtl:peer-checked:-translate-x-5"></span>
             </span>
           </label>
 
@@ -279,131 +289,131 @@
             <input type="hidden" name="ttId" th:value="${t.id()}">
             <div class="grid gap-3 sm:grid-cols-[1fr_130px_100px_140px_auto] sm:items-end">
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.name}">Ticket name</label>
                 <input type="text" name="name" required th:value="${t.name()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.price}">Price (IQD)</label>
                 <input type="number" name="price" min="0" step="500" th:value="${t.priceIqd()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.qty}">Quantity</label>
                 <input type="number" name="quantity" th:min="${t.sold()}" th:value="${t.quantity()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Status</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tt.status}">Status</label>
                 <div class="relative">
-                  <select name="status" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="ON_SALE" th:selected="${t.status() == 'ON_SALE'}">On sale</option>
-                    <option value="SOLD_OUT" th:selected="${t.status() == 'SOLD_OUT'}">Sold out</option>
-                    <option value="HIDDEN" th:selected="${t.status() == 'HIDDEN'}">Hidden</option>
-                    <option value="ENDED" th:selected="${t.status() == 'ENDED'}">Ended</option>
+                  <select name="status" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="ON_SALE" th:selected="${t.status() == 'ON_SALE'}" th:text="#{wizard.tt.onSale}">On sale</option>
+                    <option value="SOLD_OUT" th:selected="${t.status() == 'SOLD_OUT'}" th:text="#{wizard.tt.soldOut}">Sold out</option>
+                    <option value="HIDDEN" th:selected="${t.status() == 'HIDDEN'}" th:text="#{wizard.tt.hidden}">Hidden</option>
+                    <option value="ENDED" th:selected="${t.status() == 'ENDED'}" th:text="#{wizard.tt.ended}">Ended</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
-              <button type="submit" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Save</button>
+              <button type="submit" class="rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{common.save}">Save</button>
             </div>
-            <p class="mt-2 text-xs tabular-nums text-ink-400"><span th:text="${t.sold()}">112</span> sold</p>
+            <p class="mt-2 text-xs tabular-nums text-ink-400"><span th:text="${t.sold()}">112</span> <span th:text="#{wizard.tt.sold}">sold</span></p>
           </form>
 
           <!-- Add ticket type -->
           <form th:action="@{/host/events/{id}/tickets(id=${ev.id()})}" method="post" class="rounded-2xl border-2 border-dashed border-ink-200 p-4 sm:p-5">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-ink-800"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use href="#i-plus"/></svg>Add ticket type</p>
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-ink-800"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{wizard.tt.add}">Add ticket type</span></p>
             <div class="mt-3 grid gap-3 sm:grid-cols-[1fr_130px_100px_140px_auto] sm:items-end">
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Ticket name</label>
-                <input type="text" name="name" required placeholder="e.g. Late Bird" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.name}">Ticket name</label>
+                <input type="text" name="name" required th:placeholder="#{wizard.tt.latePlaceholder}" placeholder="e.g. Late Bird" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Price (IQD)</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.price}">Price (IQD)</label>
                 <input type="number" name="price" min="0" step="500" placeholder="25000" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Quantity</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tickets.qty}">Quantity</label>
                 <input type="number" name="quantity" min="0" placeholder="100" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400">Status</label>
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.tt.status}">Status</label>
                 <div class="relative">
-                  <select name="status" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="ON_SALE" selected>On sale</option>
-                    <option value="HIDDEN">Hidden</option>
+                  <select name="status" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="ON_SALE" selected th:text="#{wizard.tt.onSale}">On sale</option>
+                    <option value="HIDDEN" th:text="#{wizard.tt.hidden}">Hidden</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
-              <button type="submit" class="rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Add</button>
+              <button type="submit" class="rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{wizard.tt.addBtn}">Add</button>
             </div>
           </form>
         </div>
       </section>
 
       <!-- Publish state -->
-      <section th:if="${canManage}" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8" aria-label="Publish state">
+      <section th:if="${canManage}" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8" th:attr="aria-label=#{wizard.pub.title}" aria-label="Publish state">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 class="font-display text-lg font-bold text-ink-900">Publishing</h3>
-            <p class="mt-0.5 text-sm text-ink-500" th:if="${isDraft}">This event is a draft — only you and your team can see it.</p>
-            <p class="mt-0.5 text-sm text-ink-500" th:if="${isLive}">This event is live and selling on the public site.</p>
-            <p class="mt-0.5 text-sm text-ink-500" th:if="${isCancelled}">This event is cancelled — buyers were notified and tickets are void.</p>
-            <p class="mt-0.5 text-sm text-ink-500" th:if="${!isDraft && !isLive && !isCancelled}">This event has ended.</p>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.pub.title}">Publishing</h3>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${isDraft}" th:text="#{wizard.pub.draftNote}">This event is a draft — only you and your team can see it.</p>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${isLive}" th:text="#{wizard.pub.liveNote}">This event is live and selling on the public site.</p>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${isCancelled}" th:text="#{wizard.pub.cancelledNote}">This event is cancelled — buyers were notified and tickets are void.</p>
+            <p class="mt-0.5 text-sm text-ink-500" th:if="${!isDraft && !isLive && !isCancelled}" th:text="#{wizard.pub.endedNote}">This event has ended.</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <a th:if="${isDraft}" th:href="@{/events/{s}(s=${ev.slug()})}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-eye"/></svg>Preview event</a>
+            <a th:if="${isDraft}" th:href="@{/events/{s}(s=${ev.slug()})}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-eye"/></svg><span th:text="#{wizard.pub.preview}">Preview event</span></a>
             <form th:if="${isDraft}" th:action="@{/host/events/{id}/publish(id=${ev.id()})}" method="post">
-              <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg>Publish</button>
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{wizard.pub.publish}">Publish</span></button>
             </form>
             <form th:if="${isLive}" th:action="@{/host/events/{id}/unpublish(id=${ev.id()})}" method="post">
-              <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-600 transition hover:border-rose-300 hover:text-rose-600">Unpublish</button>
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-600 transition hover:border-rose-300 hover:text-rose-600" th:text="#{wizard.pub.unpublish}">Unpublish</button>
             </form>
             <form th:action="@{/host/events/{id}/duplicate(id=${ev.id()})}" method="post">
-              <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg>Duplicate</button>
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg><span th:text="#{wizard.pub.duplicate}">Duplicate</span></button>
             </form>
           </div>
         </div>
       </section>
 
       <!-- Danger zone -->
-      <section th:if="${canManage && !isCancelled}" class="mt-6 rounded-2xl border border-rose-200 bg-white p-6 shadow-card sm:p-8" aria-label="Danger zone">
-        <h3 class="inline-flex items-center gap-2 font-display text-lg font-bold text-rose-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-triangle-alert"/></svg>Danger zone</h3>
-        <p class="mt-0.5 text-sm text-ink-500">These actions email every ticket holder. Handle with care.</p>
+      <section th:if="${canManage && !isCancelled}" class="mt-6 rounded-2xl border border-rose-200 bg-white p-6 shadow-card sm:p-8" th:attr="aria-label=#{wizard.danger.title}" aria-label="Danger zone">
+        <h3 class="inline-flex items-center gap-2 font-display text-lg font-bold text-rose-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-triangle-alert"/></svg><span th:text="#{wizard.danger.title}">Danger zone</span></h3>
+        <p class="mt-0.5 text-sm text-ink-500" th:text="#{wizard.danger.subtitle}">These actions email every ticket holder. Handle with care.</p>
 
         <div class="mt-5 rounded-2xl border border-ink-100 p-4 sm:p-5">
-          <p class="inline-flex items-center gap-2 text-sm font-bold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg>Postpone event</p>
-          <p class="mt-0.5 text-xs text-ink-500">Move the event to a new date — tickets stay valid and every buyer is emailed the new date.</p>
+          <p class="inline-flex items-center gap-2 text-sm font-bold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="#{wizard.danger.postpone}">Postpone event</span></p>
+          <p class="mt-0.5 text-xs text-ink-500" th:text="#{wizard.danger.postponeNote}">Move the event to a new date — tickets stay valid and every buyer is emailed the new date.</p>
           <form th:action="@{/host/events/{id}/postpone(id=${ev.id()})}" method="post" class="mt-3 flex flex-wrap items-end gap-3">
             <div class="w-full sm:w-auto">
-              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-date">New date</label>
+              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-date" th:text="#{wizard.danger.newDate}">New date</label>
               <input id="pp-date" name="date" type="date" required th:value="${postponeDate}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
             <div class="w-[calc(50%-0.375rem)] sm:w-auto">
-              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-start">Starts</label>
+              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-start" th:text="#{wizard.when.starts}">Starts</label>
               <input id="pp-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
             <div class="w-[calc(50%-0.375rem)] sm:w-auto">
-              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end">Ends</label>
+              <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end" th:text="#{wizard.when.ends}">Ends</label>
               <input id="pp-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
-            <button type="submit" onclick="return confirm('Move this event to the new date? Every buyer will be emailed.')" class="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 sm:w-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg>Postpone</button>
+            <button type="submit" th:attr="data-confirm=#{wizard.danger.postponeConfirm}" class="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 sm:w-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="#{wizard.danger.postponeBtn}">Postpone</span></button>
           </form>
         </div>
 
         <div class="mt-4 flex flex-col gap-3 rounded-2xl border border-rose-100 bg-rose-50/50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div>
-            <p class="inline-flex items-center gap-2 text-sm font-bold text-rose-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg>Cancel event</p>
-            <p class="mt-0.5 text-xs text-ink-500">Stops sales immediately, voids tickets and emails every buyer. This cannot be undone.</p>
+            <p class="inline-flex items-center gap-2 text-sm font-bold text-rose-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg><span th:text="#{wizard.danger.cancel}">Cancel event</span></p>
+            <p class="mt-0.5 text-xs text-ink-500" th:text="#{wizard.danger.cancelNote}">Stops sales immediately, voids tickets and emails every buyer. This cannot be undone.</p>
           </div>
-          <form th:action="@{/host/events/{id}/cancel(id=${ev.id()})}" method="post" onsubmit="return confirm('Cancel this event? Sales stop, tickets are voided and every buyer is emailed. This cannot be undone.')">
-            <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg>Cancel event</button>
+          <form th:action="@{/host/events/{id}/cancel(id=${ev.id()})}" method="post">
+            <button type="submit" th:attr="data-confirm=#{wizard.danger.cancelConfirm}" class="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg><span th:text="#{wizard.danger.cancel}">Cancel event</span></button>
           </form>
         </div>
       </section>
 
       <!-- Cancelled state -->
-      <section th:if="${isCancelled}" class="mt-6 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800" aria-label="Cancelled">
+      <section th:if="${isCancelled}" class="mt-6 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800" th:attr="aria-label=#{wizard.danger.cancel}" aria-label="Cancelled">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
-        This event is cancelled. Buyers have been notified and tickets are no longer valid. Duplicate it above to run it again.
+        <span th:text="#{wizard.cancelled.note}">This event is cancelled. Buyers have been notified and tickets are no longer valid. Duplicate it above to run it again.</span>
       </section>
 
     </div>
@@ -413,7 +423,26 @@
 </div>
 </div>
 
+<!-- Localized strings for inline JS -->
+<div id="wizI18n" hidden th:attr="data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity}"></div>
+
+<!-- Google Places config: rendered only when a Maps key is configured -->
+<div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
+
 <script>
+  // Localized strings injected by the server (see #wizI18n)
+  function wizMsg(name) {
+    var el = document.getElementById('wizI18n');
+    return (el && el.getAttribute('data-' + name)) || '';
+  }
+
+  // Confirm dialogs (localized via data-confirm)
+  document.querySelectorAll('button[data-confirm]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      if (!window.confirm(btn.getAttribute('data-confirm'))) e.preventDefault();
+    });
+  });
+
   // Summary character counter
   (function () {
     var input = document.getElementById('ev-summary');
@@ -425,31 +454,31 @@
   })();
 
   // Location type toggle: show only the fields of the selected type
-  (function () {
+  function renderLocFields() {
     var venueFields = document.getElementById('locVenueFields');
     var onlineFields = document.getElementById('locOnlineFields');
     var tbaNote = document.getElementById('locTbaNote');
     var cityLabel = document.getElementById('cityLabel');
-    function render() {
-      var checked = document.querySelector('input[name="locationType"]:checked');
-      var t = checked ? checked.value : 'VENUE';
-      if (venueFields) venueFields.classList.toggle('hidden', t !== 'VENUE');
-      if (onlineFields) onlineFields.classList.toggle('hidden', t !== 'ONLINE');
-      if (tbaNote) tbaNote.classList.toggle('hidden', t !== 'TBA');
-      if (cityLabel) cityLabel.textContent = t === 'ONLINE' ? 'Organizer city' : 'City';
-      document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
-        var pill = r.closest('label');
-        if (!pill) return;
-        pill.classList.toggle('bg-white', r.checked);
-        pill.classList.toggle('shadow-sm', r.checked);
-        pill.classList.toggle('text-brand-700', r.checked);
-        pill.classList.toggle('text-ink-500', !r.checked);
-      });
-    }
-    document.querySelectorAll('input[name="locationType"]').forEach(function (radio) {
-      radio.addEventListener('change', render);
+    var checked = document.querySelector('input[name="locationType"]:checked');
+    var t = checked ? checked.value : 'VENUE';
+    if (venueFields) venueFields.classList.toggle('hidden', t !== 'VENUE');
+    if (onlineFields) onlineFields.classList.toggle('hidden', t !== 'ONLINE');
+    if (tbaNote) tbaNote.classList.toggle('hidden', t !== 'TBA');
+    if (cityLabel) cityLabel.textContent = t === 'ONLINE' ? wizMsg('organizer-city') : wizMsg('city');
+    document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
+      var pill = r.closest('label');
+      if (!pill) return;
+      pill.classList.toggle('bg-white', r.checked);
+      pill.classList.toggle('shadow-sm', r.checked);
+      pill.classList.toggle('text-brand-700', r.checked);
+      pill.classList.toggle('text-ink-500', !r.checked);
     });
-    render();
+  }
+  (function () {
+    document.querySelectorAll('input[name="locationType"]').forEach(function (radio) {
+      radio.addEventListener('change', renderLocFields);
+    });
+    renderLocFields();
   })();
 
   // Cover photo instant preview: FileReader → inline <img> before saving
@@ -481,7 +510,7 @@
     if (!toggle) return;
     function priceInputs() {
       return Array.prototype.slice.call(
-          document.querySelectorAll('section[aria-label="Ticket types"] input[name="price"]'));
+          document.querySelectorAll('#ticketTypes input[name="price"]'));
     }
     var inputs = priceInputs();
     // Start checked when every existing ticket price is already 0
@@ -505,6 +534,263 @@
     }
     toggle.addEventListener('change', apply);
     if (toggle.checked) apply();
+  })();
+
+  // ------------------------------------------------------------------
+  // Autosave for the main details form: localStorage under
+  // 'ievent-edit-{eventId}'. Never auto-applies — a dismissible banner
+  // offers Restore / Discard. All storage access is try/catch'd.
+  // ------------------------------------------------------------------
+  (function () {
+    var form = document.getElementById('editForm');
+    if (!form) return;
+    var KEY = form.getAttribute('data-autosave-key') || 'ievent-edit-draft';
+    var restoring = false;
+    var saveTimer = null;
+
+    function fire(el, type) {
+      var e;
+      try { e = new Event(type, { bubbles: true }); }
+      catch (err) { e = document.createEvent('HTMLEvents'); e.initEvent(type, true, false); }
+      el.dispatchEvent(e);
+    }
+
+    function formEls() {
+      return form.querySelectorAll('input[name], select[name], textarea[name]');
+    }
+
+    function collectFields() {
+      var out = {}, counts = {};
+      var els = formEls();
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.type === 'file' || el.name === '_csrf') continue;
+        var check = el.type === 'checkbox' || el.type === 'radio';
+        var base = el.name + (check ? '::' + el.value : '');
+        counts[base] = (counts[base] || 0) + 1;
+        out[base + '#' + counts[base]] = check ? (el.checked ? '1' : '0') : el.value;
+      }
+      return out;
+    }
+
+    function applyFields(fields) {
+      var counts = {};
+      var els = formEls();
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.type === 'file' || el.name === '_csrf') continue;
+        var check = el.type === 'checkbox' || el.type === 'radio';
+        var base = el.name + (check ? '::' + el.value : '');
+        counts[base] = (counts[base] || 0) + 1;
+        var key = base + '#' + counts[base];
+        if (!(key in fields)) continue;
+        if (check) el.checked = fields[key] === '1';
+        else el.value = fields[key];
+      }
+    }
+
+    var serverSnapshot = null;
+    try { serverSnapshot = JSON.stringify(collectFields()); } catch (e) {}
+
+    function saveNow() {
+      if (restoring) return;
+      try {
+        var snap = JSON.stringify(collectFields());
+        if (snap === serverSnapshot) { localStorage.removeItem(KEY); return; }
+        localStorage.setItem(KEY, JSON.stringify({ f: collectFields() }));
+      } catch (e) {}
+    }
+
+    function scheduleSave() {
+      if (restoring) return;
+      try {
+        if (saveTimer) return;
+        saveTimer = setTimeout(function () { saveTimer = null; saveNow(); }, 1000);
+      } catch (e) {}
+    }
+
+    form.addEventListener('input', scheduleSave);
+    form.addEventListener('change', scheduleSave);
+    form.addEventListener('submit', function () {
+      try { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; } } catch (e) {}
+      // Keep the draft until a clean (error-free) render confirms the save (R11-9).
+      try { localStorage.setItem(KEY + ':submitted', '1'); } catch (e) {}
+    });
+
+    try {
+      if (localStorage.getItem(KEY + ':submitted')) {
+        localStorage.removeItem(KEY + ':submitted');
+        if (!document.getElementById('editServerError')) { localStorage.removeItem(KEY); }
+      }
+    } catch (e) {}
+    // Offer restore only when a saved draft exists AND differs from what
+    // the server just rendered (otherwise the draft is stale/no-op).
+    var banner = document.getElementById('autosaveBanner');
+    var restoreBtn = document.getElementById('autosaveRestoreBtn');
+    var discardBtn = document.getElementById('autosaveDiscardBtn');
+    if (!banner || !restoreBtn || !discardBtn) return;
+    var data = null;
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) data = JSON.parse(raw);
+    } catch (e) { data = null; }
+    if (!data || !data.f) return;
+    try {
+      if (serverSnapshot !== null && JSON.stringify(data.f) === serverSnapshot) {
+        localStorage.removeItem(KEY);
+        return;
+      }
+    } catch (e) {}
+    function hideBanner() {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+    }
+    banner.classList.remove('hidden');
+    banner.classList.add('flex');
+    restoreBtn.addEventListener('click', function () {
+      restoring = true;
+      try {
+        applyFields(data.f);
+        document.querySelectorAll('#editForm input[name="locationType"]').forEach(function (r) {
+          if (r.checked) fire(r, 'change');
+        });
+        renderLocFields();
+        var summary = document.getElementById('ev-summary');
+        if (summary) fire(summary, 'input');
+      } catch (e) {}
+      restoring = false;
+      hideBanner();
+    });
+    discardBtn.addEventListener('click', function () {
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      hideBanner();
+    });
+  })();
+
+  // ------------------------------------------------------------------
+  // Google Places venue picker — active only when the server rendered
+  // #placesCfg (Maps key configured) AND the location type is VENUE.
+  // Without a key none of this runs and the manual fields work as before.
+  // ------------------------------------------------------------------
+  (function () {
+    var cfg = document.getElementById('placesCfg');
+    if (!cfg) return;
+    var key = cfg.getAttribute('data-key');
+    var language = cfg.getAttribute('data-lang') || 'ar';
+    if (!key) return;
+    var venueInput = document.getElementById('ev-venue');
+    var addrInput = document.getElementById('ev-address');
+    var mapsInput = document.getElementById('ev-maps');
+    var citySel = document.getElementById('ev-city');
+    var wrap = document.getElementById('mapPreviewWrap');
+    var frame = document.getElementById('mapPreviewFrame');
+    if (!venueInput || !mapsInput) return;
+    var loaded = false, inited = false;
+
+    function fire(el, type) {
+      var e;
+      try { e = new Event(type, { bubbles: true }); }
+      catch (err) { e = document.createEvent('HTMLEvents'); e.initEvent(type, true, false); }
+      el.dispatchEvent(e);
+    }
+
+    function locType() {
+      var checked = document.querySelector('input[name="locationType"]:checked');
+      return checked ? checked.value : 'VENUE';
+    }
+
+    function showPreview(q) {
+      if (!wrap || !frame || !q) return;
+      frame.src = 'https://www.google.com/maps/embed/v1/place?key=' + encodeURIComponent(key)
+        + '&q=' + encodeURIComponent(q) + '&language=' + encodeURIComponent(language);
+      wrap.classList.remove('hidden');
+    }
+
+    function matchCity(address) {
+      if (!citySel || !address) return;
+      var addr = address.toLowerCase();
+      for (var i = 0; i < citySel.options.length; i++) {
+        var opt = citySel.options[i];
+        if ((opt.value && addr.indexOf(opt.value.toLowerCase()) !== -1)
+            || (opt.text && addr.indexOf(opt.text.toLowerCase()) !== -1)) {
+          citySel.value = opt.value;
+          fire(citySel, 'change');
+          return;
+        }
+      }
+    }
+
+    function initAutocomplete() {
+      if (inited) return;
+      if (!(window.google && google.maps && google.maps.places && google.maps.places.Autocomplete)) return;
+      inited = true;
+      try {
+        var ac = new google.maps.places.Autocomplete(venueInput, {
+          componentRestrictions: { country: 'iq' },
+          fields: ['name', 'formatted_address', 'geometry', 'url']
+        });
+        venueInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault();
+        });
+        ac.addListener('place_changed', function () {
+          try {
+            var place = ac.getPlace();
+            if (!place) return;
+            if (place.name) venueInput.value = place.name;
+            if (addrInput && place.formatted_address) addrInput.value = place.formatted_address;
+            var q = null;
+            if (place.geometry && place.geometry.location) {
+              var lat = place.geometry.location.lat();
+              var lng = place.geometry.location.lng();
+              q = lat + ',' + lng;
+              mapsInput.value = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng;
+            } else if (place.url) {
+              mapsInput.value = place.url;
+            }
+            matchCity(place.formatted_address);
+            if (q) showPreview(q);
+            else if (place.formatted_address) showPreview(place.formatted_address);
+            fire(venueInput, 'change'); // autosave picks up the programmatic fill
+          } catch (e) {}
+        });
+      } catch (e) {}
+    }
+
+    function loadScript() {
+      if (loaded) return;
+      loaded = true;
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key)
+        + '&libraries=places&language=' + encodeURIComponent(language);
+      s.defer = true;
+      s.async = true;
+      s.onload = initAutocomplete;
+      document.head.appendChild(s);
+    }
+
+    function maybeLoad() { if (locType() === 'VENUE') loadScript(); }
+    document.querySelectorAll('input[name="locationType"]').forEach(function (r) {
+      r.addEventListener('change', maybeLoad);
+    });
+    maybeLoad();
+
+    // An event that already has a maps link (or at least a venue) shows the
+    // preview immediately on the edit page.
+    if (locType() === 'VENUE') {
+      var existing = mapsInput.value || '';
+      var m = existing.match(/query=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+      if (m) {
+        showPreview(m[1] + ',' + m[2]);
+      } else if (existing && venueInput.value) {
+        showPreview(venueInput.value + (citySel && citySel.value ? ', ' + citySel.value : ''));
+      }
+    }
+
+    // Manually pasted links with coordinates keep the preview in sync
+    mapsInput.addEventListener('change', function () {
+      var m2 = mapsInput.value.match(/query=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+      if (m2) showPreview(m2[1] + ',' + m2[2]);
+    });
   })();
 </script>
 </body>

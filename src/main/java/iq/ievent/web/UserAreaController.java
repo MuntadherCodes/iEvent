@@ -12,10 +12,13 @@ import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.TicketRepository;
 import iq.ievent.repo.UserRepository;
 import iq.ievent.service.CatalogService;
+import iq.ievent.service.Cities;
 import iq.ievent.service.Format;
 import iq.ievent.service.InteractionService;
 import iq.ievent.service.QrService;
 import iq.ievent.service.UserService;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -52,10 +55,9 @@ import java.util.Set;
 @Controller
 public class UserAreaController {
 
-    /** Iraqi cities offered in the profile "City" select. */
-    public static final List<String> CITIES = List.of(
-            "Baghdad", "Erbil", "Basra", "Sulaymaniyah", "Najaf",
-            "Karbala", "Mosul", "Duhok", "Kirkuk", "Anbar");
+    /** Iraqi cities offered in the profile "City" select — the canonical
+     *  19-governorate list (English values stored; templates localize labels). */
+    public static final List<String> CITIES = Cities.NAMES;
 
     /** One order on the "My tickets" page (grouped per order, per wireframe). */
     public record OrderCard(String orderCode, String eventTitle, String eventSlug,
@@ -93,11 +95,13 @@ public class UserAreaController {
     private final OrderRepository orders;
     private final UserRepository users;
     private final JdbcTemplate jdbc;
+    private final MessageSource messages;
 
     public UserAreaController(UserService userService, TicketRepository tickets, CatalogService catalog,
                               InteractionService interactions, EventRepository events,
                               OrganizationRepository organizations, LikeCountRepository counts, QrService qr,
-                              OrderRepository orders, UserRepository users, JdbcTemplate jdbc) {
+                              OrderRepository orders, UserRepository users, JdbcTemplate jdbc,
+                              MessageSource messages) {
         this.userService = userService;
         this.tickets = tickets;
         this.catalog = catalog;
@@ -109,6 +113,12 @@ public class UserAreaController {
         this.orders = orders;
         this.users = users;
         this.jdbc = jdbc;
+        this.messages = messages;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     private User required(UserDetails principal) {
@@ -153,9 +163,11 @@ public class UserAreaController {
         // Join link is SECRET until the organizer confirms the order — null otherwise.
         String locType = e.getLocationType();
         boolean online = "ONLINE".equals(locType);
-        String venueLine = online ? "Online event"
-                : "TBA".equals(locType) ? "Location to be announced"
-                : (e.getVenueName() == null ? "" : e.getVenueName() + ", ") + e.getCity();
+        String venueLine = online ? msg("location.online")
+                : "TBA".equals(locType) ? msg("location.tba")
+                : (e.getVenueName() == null ? "" : e.getVenueName() + ", ")
+                        + iq.ievent.service.Cities.label(e.getCity(),
+                                org.springframework.context.i18n.LocaleContextHolder.getLocale());
         String joinUrl = confirmed && online
                 && e.getOnlineUrl() != null && !e.getOnlineUrl().isBlank() ? e.getOnlineUrl() : null;
         return new OrderCard(o.getOrderCode(), e.getTitle(), e.getSlug(),
@@ -167,13 +179,13 @@ public class UserAreaController {
                 online, joinUrl);
     }
 
-    private static String statusLabel(Order.Status s) {
+    private String statusLabel(Order.Status s) {
         return switch (s) {
-            case PENDING_CONFIRMATION -> "Pending confirmation";
-            case CONFIRMED -> "Confirmed";
-            case REJECTED -> "Rejected";
-            case CANCELLED -> "Cancelled";
-            case REFUNDED -> "Refunded";
+            case PENDING_CONFIRMATION -> msg("status.order.pending");
+            case CONFIRMED -> msg("status.order.confirmed");
+            case REJECTED -> msg("status.order.rejected");
+            case CANCELLED -> msg("status.order.cancelled");
+            case REFUNDED -> msg("status.order.refunded");
         };
     }
 
@@ -299,10 +311,10 @@ public class UserAreaController {
                                 RedirectAttributes redirect) {
         User user = required(principal);
         if (fullName == null || fullName.isBlank()) {
-            redirect.addFlashAttribute("error", "Name cannot be empty.");
+            redirect.addFlashAttribute("error", msg("flash.profile.nameRequired"));
         } else {
             userService.updateProfile(user, fullName, phone);
-            String cleanCity = (city == null || city.isBlank() || !CITIES.contains(city)) ? null : city;
+            String cleanCity = Cities.isValid(city) ? city : null;
             user.setCity(cleanCity);
             users.save(user);
             redirect.addFlashAttribute("saved", true);
@@ -367,7 +379,7 @@ public class UserAreaController {
                 Format.longDateLine(t.getEvent().getStartsAt(), t.getEvent().getEndsAt()),
                 t.getTicketType().getName(), t.getHolderName(), t.getStatus().name(),
                 t.getCheckedInAt() == null ? null
-                        : "Checked in " + Format.cardDateLine(t.getCheckedInAt())));
+                        : msg("ticket.checkedInAt", Format.cardDateLine(t.getCheckedInAt()))));
         model.addAttribute("qrSvg", qr.ticketQrSvg(t.getCode()));
         return "ticket-status";
     }

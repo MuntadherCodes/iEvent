@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('Marketing — iEvent Host')}"></head>
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{host.title.marketing})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,14 +9,14 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('marketing')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('Marketing')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{host.nav.marketing})}"></header>
 
-  <main id="main" class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
+  <main id="main" class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8" th:attr="data-msg-copied=#{host.common.copied}">
     <div class="mx-auto max-w-6xl 2xl:max-w-7xl">
 
-      <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Marketing</h2>
+      <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{host.nav.marketing}">Marketing</h2>
 
       <!-- Flashes -->
       <div th:if="${created}" class="mt-5 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
@@ -30,64 +30,64 @@
 
       <!-- Tabs -->
       <div class="relative mt-5 min-w-0 overflow-x-auto">
-        <div class="flex min-w-max gap-1 rounded-xl bg-white p-1 shadow-card ring-1 ring-ink-100" role="tablist" aria-label="Marketing tools">
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white" data-tab="promo" role="tab" aria-selected="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>Promo codes</button>
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="email" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg>Email campaigns</button>
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="links" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-link"/></svg>Tracking links</button>
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="social" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg>Social</button>
-          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="share" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg>Widgets</button>
+        <div class="flex min-w-max gap-1 rounded-xl bg-white p-1 shadow-card ring-1 ring-ink-100" role="tablist" th:aria-label="#{host.mkt.tabsAria}" aria-label="Marketing tools">
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white" data-tab="promo" role="tab" aria-selected="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg><span th:text="#{host.mkt.tabPromo}">Promo codes</span></button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="email" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg><span th:text="#{host.mkt.tabEmail}">Email campaigns</span></button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="links" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-link"/></svg><span th:text="#{host.mkt.tabLinks}">Tracking links</span></button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="social" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg><span th:text="#{host.mkt.tabSocial}">Social</span></button>
+          <button class="mk-tab inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" data-tab="share" role="tab" aria-selected="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-laptop"/></svg><span th:text="#{host.mkt.tabWidgets}">Widgets</span></button>
         </div>
       </div>
 
       <!-- ===== TAB: Promo codes ===== -->
-      <section id="tab-promo" class="mk-panel mt-6" role="tabpanel" aria-label="Promo codes">
+      <section id="tab-promo" class="mk-panel mt-6" role="tabpanel" th:aria-label="#{host.mkt.tabPromo}" aria-label="Promo codes">
 
         <!-- Create form -->
         <div th:if="${canManage}" class="rounded-2xl border border-brand-200 bg-white p-5 shadow-card">
-          <h4 class="font-display text-base font-bold text-ink-900">New promo code</h4>
+          <h4 class="font-display text-base font-bold text-ink-900" th:text="#{host.mkt.newPromo}">New promo code</h4>
           <form th:action="@{/host/marketing/promos}" method="post">
             <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-code">Code <span class="text-rose-500">*</span></label>
-                <input id="pc-code" name="code" type="text" required placeholder="e.g. SUMMER10" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm uppercase outline-none placeholder:normal-case placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-code"><span th:text="#{host.mkt.code}">Code</span> <span class="text-rose-500">*</span></label>
+                <input id="pc-code" name="code" type="text" required th:placeholder="#{host.mkt.codePlaceholder}" placeholder="e.g. SUMMER10" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm uppercase outline-none placeholder:normal-case placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-kind">Discount type</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-kind" th:text="#{host.mkt.discountType}">Discount type</label>
                 <div class="relative">
-                  <select id="pc-kind" name="kind" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="PERCENT">% off</option>
-                    <option value="FIXED">IQD off</option>
+                  <select id="pc-kind" name="kind" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="PERCENT" th:text="#{host.mkt.percentOff}">% off</option>
+                    <option value="FIXED" th:text="#{host.mkt.iqdOff}">IQD off</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-value">Value <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-value"><span th:text="#{host.mkt.value}">Value</span> <span class="text-rose-500">*</span></label>
                 <input id="pc-value" name="value" type="number" min="1" required placeholder="20" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                <p class="mt-1 text-xs text-ink-400">Percent (e.g. 20) or IQD amount</p>
+                <p class="mt-1 text-xs text-ink-400" th:text="#{host.mkt.valueHint}">Percent (e.g. 20) or IQD amount</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-limit">Usage limit</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-limit" th:text="#{host.mkt.usageLimit}">Usage limit</label>
                 <input id="pc-limit" name="maxUses" type="number" min="0" value="0" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                <p class="mt-1 text-xs text-ink-400">0 = unlimited</p>
+                <p class="mt-1 text-xs text-ink-400" th:text="#{host.mkt.unlimitedHint}">0 = unlimited</p>
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-expiry">Expires</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-expiry" th:text="#{host.mkt.expires}">Expires</label>
                 <input id="pc-expiry" name="expires" type="date" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-event">Applies to</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="pc-event" th:text="#{host.mkt.appliesTo}">Applies to</label>
                 <div class="relative">
-                  <select id="pc-event" name="eventId" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="">All events</option>
+                  <select id="pc-event" name="eventId" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="" th:text="#{host.mkt.allEvents}">All events</option>
                     <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
             </div>
             <div class="mt-4">
-              <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Create code</button>
+              <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{host.mkt.createCode}">Create code</span></button>
             </div>
           </form>
         </div>
@@ -96,38 +96,38 @@
         <div class="relative mt-4 min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
           <table class="w-full min-w-[680px] text-sm">
             <thead>
-              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-                <th class="px-4 py-3">Code</th>
-                <th class="px-3 py-3">Type</th>
-                <th class="px-3 py-3">Applies to</th>
-                <th class="px-3 py-3">Used</th>
-                <th class="px-3 py-3">Status</th>
-                <th class="px-3 py-3 text-right"><span class="sr-only">Actions</span></th>
+              <tr class="border-b border-ink-100 text-start text-xs font-semibold uppercase tracking-wide text-ink-500">
+                <th class="px-4 py-3 text-start" th:text="#{host.mkt.code}">Code</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.mkt.colType}">Type</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.mkt.appliesTo}">Applies to</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.mkt.colUsed}">Used</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.orders.colStatus}">Status</th>
+                <th class="px-3 py-3 text-end"><span class="sr-only" th:text="#{host.orders.colActions}">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               <tr th:each="p : ${promos}" class="border-b border-ink-50 last:border-0 hover:bg-brand-50/40">
-                <td class="px-4 py-3"><span class="rounded-lg bg-ink-50 px-2.5 py-1 font-mono text-xs font-bold tabular-nums" th:classappend="${p.active()} ? 'text-ink-800' : 'text-ink-400 line-through'" th:text="${p.code()}">EARLY20</span></td>
+                <td class="px-4 py-3"><span dir="ltr" class="rounded-lg bg-ink-50 px-2.5 py-1 font-mono text-xs font-bold tabular-nums" th:classappend="${p.active()} ? 'text-ink-800' : 'text-ink-400 line-through'" th:text="${p.code()}">EARLY20</span></td>
                 <td class="px-3 py-3 text-ink-600" th:text="${p.kindLabel()}">20% off</td>
-                <td class="px-3 py-3 text-ink-600" th:text="${p.scopeLabel()}">All events</td>
+                <td class="px-3 py-3 text-ink-600" th:text="${p.scopeLabel() == 'All events'} ? #{host.mkt.allEvents} : ${p.scopeLabel()}">All events</td>
                 <td class="px-3 py-3 tabular-nums text-ink-600" th:text="${p.usesLabel()}">45 / 100</td>
                 <td class="px-3 py-3">
-                  <span th:if="${p.active()}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Active</span>
-                  <span th:unless="${p.active()}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Off</span>
+                  <span th:if="${p.active()}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.mkt.active}">Active</span></span>
+                  <span th:unless="${p.active()}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.mkt.off}">Off</span></span>
                   <p th:if="${p.expiresLabel() != null}" class="mt-1 text-[11px] text-ink-400" th:text="${p.expiresLabel()}">Expires Sep 11</p>
                 </td>
-                <td class="px-3 py-3 text-right">
+                <td class="px-3 py-3 text-end">
                   <form th:if="${canManage}" th:action="@{/host/marketing/promos/{id}/toggle(id=${p.id()})}" method="post" class="inline">
                     <input type="hidden" name="active" th:value="${!p.active()}">
-                    <button th:if="${p.active()}" type="submit" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 transition hover:border-rose-300 hover:text-rose-600">Turn off</button>
-                    <button th:unless="${p.active()}" type="submit" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Turn on</button>
+                    <button th:if="${p.active()}" type="submit" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 transition hover:border-rose-300 hover:text-rose-600" th:text="#{host.mkt.turnOff}">Turn off</button>
+                    <button th:unless="${p.active()}" type="submit" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{host.mkt.turnOn}">Turn on</button>
                   </form>
                 </td>
               </tr>
               <tr th:if="${#lists.isEmpty(promos)}">
                 <td colspan="6" class="px-5 py-12 text-center">
-                  <p class="text-sm font-semibold text-ink-700">No promo codes yet</p>
-                  <p class="mt-1 text-xs text-ink-500">Codes give buyers a discount at checkout — great for early birds and partners.</p>
+                  <p class="text-sm font-semibold text-ink-700" th:text="#{host.mkt.noPromos}">No promo codes yet</p>
+                  <p class="mt-1 text-xs text-ink-500" th:text="#{host.mkt.noPromosSub}">Codes give buyers a discount at checkout — great for early birds and partners.</p>
                 </td>
               </tr>
             </tbody>
@@ -136,71 +136,71 @@
       </section>
 
       <!-- ===== TAB: Email campaigns ===== -->
-      <section id="tab-email" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Email campaigns">
+      <section id="tab-email" class="mk-panel mt-6 hidden" role="tabpanel" th:aria-label="#{host.mkt.tabEmail}" aria-label="Email campaigns">
         <div class="grid gap-6 lg:grid-cols-[1fr_340px]">
 
           <!-- Composer -->
           <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-            <h3 class="font-display text-lg font-bold text-ink-900">New email campaign</h3>
-            <p class="mt-1 text-sm text-ink-500">A link to your event page (or organizer profile) is added automatically.</p>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.newCampaign}">New email campaign</h3>
+            <p class="mt-1 text-sm text-ink-500" th:text="#{host.mkt.newCampaignSub}">A link to your event page (or organizer profile) is added automatically.</p>
 
             <form th:if="${canManage}" th:action="@{/host/marketing/email}" method="post" class="mt-4">
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-audience">To</label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-audience" th:text="#{host.mkt.to}">To</label>
                 <div class="relative">
-                  <select id="em-audience" name="audience" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="EVENT_ATTENDEES">Attendees of one event</option>
-                    <option value="PAST_ATTENDEES" th:text="'Past attendees · ' + ${pastCount != null ? pastCount : 0}">Past attendees · 3,120</option>
-                    <option value="FOLLOWERS" th:text="'Followers · ' + ${followersCount != null ? followersCount : 0}">Followers · 12,384</option>
+                  <select id="em-audience" name="audience" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="EVENT_ATTENDEES" th:text="#{host.mkt.audEventAttendees}">Attendees of one event</option>
+                    <option value="PAST_ATTENDEES" th:text="#{host.mkt.audPast} + ' · ' + ${pastCount != null ? pastCount : 0}">Past attendees · 3,120</option>
+                    <option value="FOLLOWERS" th:text="#{host.mkt.audFollowers} + ' · ' + ${followersCount != null ? followersCount : 0}">Followers · 12,384</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
               <div class="mt-4" id="em-event-wrap">
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-event">Event <span class="text-xs font-normal text-ink-400">(required for event attendees, optional otherwise)</span></label>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-event"><span th:text="#{host.att.eventLabel}">Event</span> <span class="text-xs font-normal text-ink-400" th:text="#{host.mkt.eventHint}">(required for event attendees, optional otherwise)</span></label>
                 <div class="relative">
-                  <select id="em-event" name="eventId" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="">— No specific event —</option>
+                  <select id="em-event" name="eventId" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                    <option value="" th:text="#{host.mkt.noSpecificEvent}">— No specific event —</option>
                     <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
                   </select>
-                  <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
               </div>
               <div class="mt-4">
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-subject">Subject <span class="text-rose-500">*</span></label>
-                <input id="em-subject" name="subject" type="text" required placeholder="One week to go — gates open 5:00 PM" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-subject"><span th:text="#{host.mkt.subject}">Subject</span> <span class="text-rose-500">*</span></label>
+                <input id="em-subject" name="subject" type="text" required th:placeholder="#{host.mkt.subjectPlaceholder}" placeholder="One week to go — gates open 5:00 PM" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <div class="mt-4">
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-body">Message <span class="text-rose-500">*</span></label>
-                <textarea id="em-body" name="message" rows="7" required placeholder="Salam! A quick update about your upcoming event…" class="w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="em-body"><span th:text="#{host.mkt.message}">Message</span> <span class="text-rose-500">*</span></label>
+                <textarea id="em-body" name="message" rows="7" required th:placeholder="#{host.mkt.messagePlaceholder}" placeholder="Salam! A quick update about your upcoming event…" class="w-full resize-y rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
               </div>
               <div class="mt-4 flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg>Send campaign</button>
-                <p class="text-xs text-ink-400">Followers only receive it if they allow marketing email.</p>
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg><span th:text="#{host.mkt.sendCampaign}">Send campaign</span></button>
+                <p class="text-xs text-ink-400" th:text="#{host.mkt.followersOptIn}">Followers only receive it if they allow marketing email.</p>
               </div>
             </form>
 
             <p th:unless="${canManage}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
               <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>
-              Only owners and managers can send campaigns.
+              <span th:text="#{host.mkt.onlyManagersCampaigns}">Only owners and managers can send campaigns.</span>
             </p>
           </div>
 
           <!-- History -->
           <aside>
-            <h3 class="font-display text-lg font-bold text-ink-900">Sent campaigns</h3>
+            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.sentCampaigns}">Sent campaigns</h3>
             <div class="mt-4 space-y-4">
               <div th:each="c : ${campaignRows}" class="rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
                 <div class="flex items-start justify-between gap-2">
                   <p class="text-sm font-semibold text-ink-900" th:text="${c.subject()}">Tickets are live — Baghdad Nights</p>
-                  <span class="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Sent</span>
+                  <span class="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700" th:text="#{host.mkt.sent}">Sent</span>
                 </div>
-                <p class="mt-1 text-xs text-ink-500">To <span th:text="${#strings.toLowerCase(c.audienceLabel())}">followers</span> · <span th:text="${c.sentLine()}">Jul 14</span> · <span class="tabular-nums" th:text="${c.recipients()}">12,384</span> recipient<span th:if="${c.recipients() != 1}">s</span></p>
+                <p class="mt-1 text-xs text-ink-500"><span th:text="#{host.mkt.to}">To</span> <span th:text="${#strings.toLowerCase(c.audienceLabel())}">followers</span> · <span th:text="${c.sentLine()}">Jul 14</span> · <span class="tabular-nums" th:text="${c.recipients()}">12,384</span> <span th:text="${c.recipients() != 1} ? #{host.mkt.recipients} : #{host.mkt.recipient}">recipients</span></p>
                 <p th:if="${c.eventTitle() != null}" class="mt-1 truncate text-xs text-ink-400" th:text="${c.eventTitle()}">Baghdad Nights Music Festival</p>
               </div>
               <div th:if="${#lists.isEmpty(campaignRows)}" class="rounded-2xl border border-ink-100 bg-white p-6 text-center shadow-card">
-                <p class="text-sm font-semibold text-ink-700">Nothing sent yet</p>
-                <p class="mt-1 text-xs text-ink-500">Your last 20 campaigns will appear here with their audience and reach.</p>
+                <p class="text-sm font-semibold text-ink-700" th:text="#{host.mkt.nothingSent}">Nothing sent yet</p>
+                <p class="mt-1 text-xs text-ink-500" th:text="#{host.mkt.nothingSentSub}">Your last 20 campaigns will appear here with their audience and reach.</p>
               </div>
             </div>
           </aside>
@@ -208,51 +208,51 @@
       </section>
 
       <!-- ===== TAB: Tracking links ===== -->
-      <section id="tab-links" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Tracking links">
+      <section id="tab-links" class="mk-panel mt-6 hidden" role="tabpanel" th:aria-label="#{host.mkt.tabLinks}" aria-label="Tracking links">
         <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-          <h3 class="font-display text-lg font-bold text-ink-900">Create a tracking link</h3>
-          <p class="mt-1 text-sm text-ink-500">See exactly which channel sells tickets — each short link counts its clicks.</p>
+          <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.createLink}">Create a tracking link</h3>
+          <p class="mt-1 text-sm text-ink-500" th:text="#{host.mkt.createLinkSub}">See exactly which channel sells tickets — each short link counts its clicks.</p>
           <form th:if="${canManage}" th:action="@{/host/marketing/links}" method="post" class="mt-4 flex flex-col gap-3 sm:flex-row">
             <div class="relative sm:w-72">
-              <select name="eventId" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Destination event">
+              <select name="eventId" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.mkt.destEventAria}" aria-label="Destination event">
                 <option th:each="e : ${events}" th:value="${e.id()}" th:text="${e.title()}">Baghdad Nights Music Festival</option>
               </select>
-              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+              <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
             </div>
             <div class="relative sm:w-56">
-              <select name="channel" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Channel">
+              <select name="channel" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.mkt.colChannel}" aria-label="Channel">
                 <option value="instagram">Instagram</option>
                 <option value="facebook">Facebook</option>
                 <option value="whatsapp">WhatsApp</option>
                 <option value="telegram">Telegram</option>
                 <option value="twitter">Twitter / X</option>
-                <option value="other">Other</option>
+                <option value="other" th:text="#{host.mkt.channelOther}">Other</option>
               </select>
-              <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+              <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
             </div>
-            <button type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Generate</button>
+            <button type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.mkt.generate}">Generate</button>
           </form>
           <p th:unless="${canManage}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
             <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>
-            Only owners and managers can manage tracking links.
+            <span th:text="#{host.mkt.onlyManagersLinks}">Only owners and managers can manage tracking links.</span>
           </p>
-          <p th:if="${#lists.isEmpty(events)}" class="mt-3 text-sm text-ink-500">Create an event first — then generate channel links for it.</p>
+          <p th:if="${#lists.isEmpty(events)}" class="mt-3 text-sm text-ink-500" th:text="#{host.mkt.noEventsForLinks}">Create an event first — then generate channel links for it.</p>
         </div>
 
         <div class="relative mt-6 min-w-0 overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-card">
           <table class="w-full min-w-[680px] text-sm">
             <thead>
-              <tr class="border-b border-ink-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-                <th class="px-4 py-3">Link</th>
-                <th class="px-3 py-3">Event</th>
-                <th class="px-3 py-3">Channel</th>
-                <th class="px-3 py-3">Clicks</th>
-                <th class="px-3 py-3 text-right"><span class="sr-only">Actions</span></th>
+              <tr class="border-b border-ink-100 text-start text-xs font-semibold uppercase tracking-wide text-ink-500">
+                <th class="px-4 py-3 text-start" th:text="#{host.mkt.colLink}">Link</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.events.colEvent}">Event</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.mkt.colChannel}">Channel</th>
+                <th class="px-3 py-3 text-start" th:text="#{host.mkt.colClicks}">Clicks</th>
+                <th class="px-3 py-3 text-end"><span class="sr-only" th:text="#{host.orders.colActions}">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               <tr th:each="l : ${linkRows}" class="border-b border-ink-50 last:border-0 hover:bg-brand-50/40">
-                <td class="px-4 py-3 font-mono text-xs tabular-nums text-brand-600"><span th:id="'tl-' + ${l.id()}" th:text="${l.url()}">https://ievent.iq/l/abc1234</span></td>
+                <td class="px-4 py-3 font-mono text-xs tabular-nums text-brand-600"><span dir="ltr" class="inline-block text-left" th:id="'tl-' + ${l.id()}" th:text="${l.url()}">https://ievent.iq/l/abc1234</span></td>
                 <td class="px-3 py-3 max-w-[220px] truncate text-ink-600" th:text="${l.eventTitle()}">Baghdad Nights Music Festival</td>
                 <td class="px-3 py-3">
                   <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -260,19 +260,19 @@
                         th:text="${l.channel()}">instagram</span>
                 </td>
                 <td class="px-3 py-3 font-semibold tabular-nums text-ink-900" th:text="${l.clicks()}">4,218</td>
-                <td class="px-3 py-3 text-right">
+                <td class="px-3 py-3 text-end">
                   <div class="flex items-center justify-end gap-1">
-                    <button type="button" th:attr="data-copy='tl-' + ${l.id()}" class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50">Copy</button>
+                    <button type="button" th:attr="data-copy='tl-' + ${l.id()}" class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50" th:text="#{common.copy}">Copy</button>
                     <form th:if="${canManage}" th:action="@{/host/marketing/links/{id}/delete(id=${l.id()})}" method="post" class="inline">
-                      <button type="submit" class="grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label="Delete tracking link"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-trash-2"/></svg></button>
+                      <button type="submit" class="grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-rose-50 hover:text-rose-600" th:aria-label="#{host.mkt.deleteLinkAria}" aria-label="Delete tracking link"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-trash-2"/></svg></button>
                     </form>
                   </div>
                 </td>
               </tr>
               <tr th:if="${#lists.isEmpty(linkRows)}">
                 <td colspan="5" class="px-5 py-12 text-center">
-                  <p class="text-sm font-semibold text-ink-700">No tracking links yet</p>
-                  <p class="mt-1 text-xs text-ink-500">Generate one per channel — Instagram bio, WhatsApp status, posters — and see which one converts.</p>
+                  <p class="text-sm font-semibold text-ink-700" th:text="#{host.mkt.noLinks}">No tracking links yet</p>
+                  <p class="mt-1 text-xs text-ink-500" th:text="#{host.mkt.noLinksSub}">Generate one per channel — Instagram bio, WhatsApp status, posters — and see which one converts.</p>
                 </td>
               </tr>
             </tbody>
@@ -281,110 +281,110 @@
       </section>
 
       <!-- ===== TAB: Social ===== -->
-      <section id="tab-social" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Social">
-        <h3 class="font-display text-lg font-bold text-ink-900">Share on social</h3>
-        <p class="mt-1 text-sm text-ink-500">One-tap share links for every event — pre-filled with the title and ticket link.</p>
+      <section id="tab-social" class="mk-panel mt-6 hidden" role="tabpanel" th:aria-label="#{host.mkt.tabSocial}" aria-label="Social">
+        <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.shareOnSocial}">Share on social</h3>
+        <p class="mt-1 text-sm text-ink-500" th:text="#{host.mkt.shareOnSocialSub}">One-tap share links for every event — pre-filled with the title and ticket link.</p>
 
         <div class="mt-4 space-y-4">
           <div th:each="s : ${shareRows}" class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="min-w-0">
                 <p class="truncate font-display text-base font-bold text-ink-900" th:text="${s.title()}">Baghdad Nights Music Festival</p>
-                <p class="text-xs text-ink-500"><span th:text="${s.dateLine()}">Sat, Sep 12 · 7:00 PM</span> · <span class="font-mono tabular-nums text-brand-600" th:id="'su-' + ${s.eventId()}" th:text="${s.url()}">https://ievent.iq/events/baghdad-nights</span></p>
+                <p class="text-xs text-ink-500"><span th:text="${s.dateLine()}">Sat, Sep 12 · 7:00 PM</span> · <span dir="ltr" class="font-mono tabular-nums text-brand-600" th:id="'su-' + ${s.eventId()}" th:text="${s.url()}">https://ievent.iq/events/baghdad-nights</span></p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <a th:href="${s.waHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3.5 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-message-circle"/></svg>WhatsApp</a>
                 <a th:href="${s.tgHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-send"/></svg>Telegram</a>
                 <a th:href="${s.fbHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-share-2"/></svg>Facebook</a>
                 <a th:href="${s.xHref()}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 py-2 text-xs font-semibold text-ink-700 transition hover:border-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-x"/></svg>X</a>
-                <button type="button" th:attr="data-copy='su-' + ${s.eventId()}" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 py-2 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-copy"/></svg>Copy link</button>
+                <button type="button" th:attr="data-copy='su-' + ${s.eventId()}" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3.5 py-2 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-copy"/></svg><span th:text="#{host.mkt.copyLink}">Copy link</span></button>
               </div>
             </div>
           </div>
           <div th:if="${#lists.isEmpty(shareRows)}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
-            <p class="text-sm font-semibold text-ink-700">No events to share yet</p>
-            <p class="mt-1 text-xs text-ink-500">Publish an event and its share buttons appear here.</p>
+            <p class="text-sm font-semibold text-ink-700" th:text="#{host.mkt.noShare}">No events to share yet</p>
+            <p class="mt-1 text-xs text-ink-500" th:text="#{host.mkt.noShareSub}">Publish an event and its share buttons appear here.</p>
           </div>
         </div>
       </section>
 
       <!-- ===== TAB: Widgets (sales widget builder — mirrors the dash-marketing wireframe) ===== -->
-      <section id="tab-share" class="mk-panel mt-6 hidden" role="tabpanel" aria-label="Widgets"
+      <section id="tab-share" class="mk-panel mt-6 hidden" role="tabpanel" th:aria-label="#{host.mkt.tabWidgets}" aria-label="Widgets"
                th:attr="data-share-base=${shareBase},data-brand-color=${orgBrandColor != null ? orgBrandColor : ''}">
-        <h3 class="font-display text-lg font-bold text-ink-900">Sales widget</h3>
-        <p class="mt-1 text-sm text-ink-500">Sell tickets from your own website — paste one snippet and you're live.</p>
+        <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.salesWidget}">Sales widget</h3>
+        <p class="mt-1 text-sm text-ink-500" th:text="#{host.mkt.salesWidgetSub}">Sell tickets from your own website — paste one snippet and you're live.</p>
 
         <!-- No events yet -->
         <div th:if="${#lists.isEmpty(events)}" class="mt-4 rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
-          <p class="text-sm font-semibold text-ink-700">No events to share yet</p>
-          <p class="mt-1 text-xs text-ink-500">Create an event first — its share link and widget snippets appear here.</p>
+          <p class="text-sm font-semibold text-ink-700" th:text="#{host.mkt.noShare}">No events to share yet</p>
+          <p class="mt-1 text-xs text-ink-500" th:text="#{host.mkt.noWidgetSub}">Create an event first — its share link and widget snippets appear here.</p>
         </div>
 
         <div th:if="${!#lists.isEmpty(events)}" class="mt-4 grid gap-6 xl:grid-cols-[340px_1fr]">
 
           <!-- ===== LEFT: controls ===== -->
           <div class="min-w-0 self-start rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-            <p class="mb-1.5 block text-sm font-semibold text-ink-800">Widget type</p>
-            <div class="space-y-2" role="group" aria-label="Widget type">
-              <button type="button" class="wtype flex w-full items-start gap-3 rounded-xl border-2 border-brand-500 bg-brand-50 p-3.5 text-left transition" data-wtype="button" aria-pressed="true">
+            <p class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{host.mkt.widgetType}">Widget type</p>
+            <div class="space-y-2" role="group" th:aria-label="#{host.mkt.widgetType}" aria-label="Widget type">
+              <button type="button" class="wtype flex w-full items-start gap-3 rounded-xl border-2 border-brand-500 bg-brand-50 p-3.5 text-start transition" data-wtype="button" aria-pressed="true">
                 <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-brand-600 shadow-card"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ticket"/></svg></span>
-                <span><span class="block text-sm font-semibold text-ink-900">Buy button</span><span class="text-xs text-ink-500">A single button that opens checkout</span></span>
+                <span><span class="block text-sm font-semibold text-ink-900" th:text="#{host.mkt.buyButton}">Buy button</span><span class="text-xs text-ink-500" th:text="#{host.mkt.buyButtonSub}">A single button that opens checkout</span></span>
               </button>
-              <button type="button" class="wtype flex w-full items-start gap-3 rounded-xl border-2 border-ink-200 bg-white p-3.5 text-left transition hover:border-brand-300" data-wtype="card" aria-pressed="false">
+              <button type="button" class="wtype flex w-full items-start gap-3 rounded-xl border-2 border-ink-200 bg-white p-3.5 text-start transition hover:border-brand-300" data-wtype="card" aria-pressed="false">
                 <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg></span>
-                <span><span class="block text-sm font-semibold text-ink-900">Event card</span><span class="text-xs text-ink-500">Cover, date and price with a buy link</span></span>
+                <span><span class="block text-sm font-semibold text-ink-900" th:text="#{host.mkt.eventCard}">Event card</span><span class="text-xs text-ink-500" th:text="#{host.mkt.eventCardSub}">Cover, date and price with a buy link</span></span>
               </button>
-              <button type="button" class="wtype flex w-full items-start gap-3 rounded-xl border-2 border-ink-200 bg-white p-3.5 text-left transition hover:border-brand-300" data-wtype="checkout" aria-pressed="false">
+              <button type="button" class="wtype flex w-full items-start gap-3 rounded-xl border-2 border-ink-200 bg-white p-3.5 text-start transition hover:border-brand-300" data-wtype="checkout" aria-pressed="false">
                 <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-credit-card"/></svg></span>
-                <span><span class="block text-sm font-semibold text-ink-900">Full checkout</span><span class="text-xs text-ink-500">Your event page embedded on your site</span></span>
+                <span><span class="block text-sm font-semibold text-ink-900" th:text="#{host.mkt.fullCheckout}">Full checkout</span><span class="text-xs text-ink-500" th:text="#{host.mkt.fullCheckoutSub}">Your event page embedded on your site</span></span>
               </button>
             </div>
 
             <div class="mt-5">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="widget-event-select">Event</label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="widget-event-select" th:text="#{host.att.eventLabel}">Event</label>
               <div class="relative">
-                <select id="widget-event-select" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm font-semibold text-ink-900 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <select id="widget-event-select" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm font-semibold text-ink-900 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                   <option th:each="w : ${widgetRows}" th:value="${w.id()}" th:text="${w.title()}">Baghdad Nights Music Festival</option>
                 </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
             </div>
 
             <div class="mt-5">
-              <p class="mb-1.5 block text-sm font-semibold text-ink-800">Brand color</p>
-              <div class="flex flex-wrap gap-2" role="group" aria-label="Widget brand color">
+              <p class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{host.mkt.brandColor}">Brand color</p>
+              <div class="flex flex-wrap gap-2" role="group" th:aria-label="#{host.mkt.brandColorAria}" aria-label="Widget brand color">
                 <button th:if="${orgBrandColor != null && !#lists.contains({'#8f7ac9','#23222f','#22c55e','#ef4444','#f59e0b','#3b82f6'}, orgBrandColor)}"
-                        type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" th:attr="data-color=${orgBrandColor}" th:style="'background: ' + ${orgBrandColor}" aria-label="Your brand color"></button>
-                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#8f7ac9" style="background:#8f7ac9" aria-label="iEvent purple"></button>
-                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#23222f" style="background:#23222f" aria-label="Ink navy"></button>
-                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#22c55e" style="background:#22c55e" aria-label="Green"></button>
-                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#ef4444" style="background:#ef4444" aria-label="Red"></button>
-                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#f59e0b" style="background:#f59e0b" aria-label="Amber"></button>
-                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#3b82f6" style="background:#3b82f6" aria-label="Blue"></button>
+                        type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" th:attr="data-color=${orgBrandColor},aria-label=#{host.mkt.yourBrandColor}" th:style="'background: ' + ${orgBrandColor}"></button>
+                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#8f7ac9" style="background:#8f7ac9" th:aria-label="#{host.mkt.colorPurple}" aria-label="iEvent purple"></button>
+                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#23222f" style="background:#23222f" th:aria-label="#{host.mkt.colorNavy}" aria-label="Ink navy"></button>
+                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#22c55e" style="background:#22c55e" th:aria-label="#{host.mkt.colorGreen}" aria-label="Green"></button>
+                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#ef4444" style="background:#ef4444" th:aria-label="#{host.mkt.colorRed}" aria-label="Red"></button>
+                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#f59e0b" style="background:#f59e0b" th:aria-label="#{host.mkt.colorAmber}" aria-label="Amber"></button>
+                <button type="button" class="wswatch h-9 w-9 rounded-full ring-offset-2 transition" data-color="#3b82f6" style="background:#3b82f6" th:aria-label="#{host.mkt.colorBlue}" aria-label="Blue"></button>
               </div>
             </div>
 
             <div class="mt-5">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="w-lang">Language</label>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="w-lang" th:text="#{common.language}">Language</label>
               <div class="relative">
-                <select id="w-lang" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pr-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                <select id="w-lang" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-9 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
                   <option value="en">English</option>
                   <option value="ar">العربية (Arabic)</option>
                   <option value="ku">کوردی (Kurdish)</option>
                 </select>
-                <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
-              <p class="mt-1 flex items-center gap-1 text-xs text-ink-400"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-info"/></svg>Arabic renders RTL automatically.</p>
+              <p class="mt-1 flex items-center gap-1 text-xs text-ink-400"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{host.mkt.arRtlNote}">Arabic renders RTL automatically.</span></p>
             </div>
 
             <div class="mt-5 space-y-3 border-t border-ink-100 pt-4">
               <div class="flex items-center justify-between gap-4">
-                <p class="text-sm font-semibold text-ink-800">Show price</p>
-                <button type="button" id="w-price-toggle" class="relative h-7 w-12 shrink-0 rounded-full bg-brand-500 transition" role="switch" aria-checked="true" aria-label="Show price"><span class="dot absolute left-1 top-1 h-5 w-5 translate-x-5 rounded-full bg-white shadow transition-transform"></span></button>
+                <p class="text-sm font-semibold text-ink-800" th:text="#{host.mkt.showPrice}">Show price</p>
+                <button type="button" id="w-price-toggle" class="relative h-7 w-12 shrink-0 rounded-full bg-brand-500 transition" role="switch" aria-checked="true" th:aria-label="#{host.mkt.showPrice}" aria-label="Show price"><span class="dot absolute start-1 top-1 h-5 w-5 translate-x-5 rounded-full bg-white shadow transition-transform"></span></button>
               </div>
               <div class="flex items-center justify-between gap-4">
-                <p class="text-sm font-semibold text-ink-800">Rounded corners</p>
-                <button type="button" id="w-round-toggle" class="relative h-7 w-12 shrink-0 rounded-full bg-brand-500 transition" role="switch" aria-checked="true" aria-label="Rounded corners"><span class="dot absolute left-1 top-1 h-5 w-5 translate-x-5 rounded-full bg-white shadow transition-transform"></span></button>
+                <p class="text-sm font-semibold text-ink-800" th:text="#{host.mkt.roundedCorners}">Rounded corners</p>
+                <button type="button" id="w-round-toggle" class="relative h-7 w-12 shrink-0 rounded-full bg-brand-500 transition" role="switch" aria-checked="true" th:aria-label="#{host.mkt.roundedCorners}" aria-label="Rounded corners"><span class="dot absolute start-1 top-1 h-5 w-5 translate-x-5 rounded-full bg-white shadow transition-transform"></span></button>
               </div>
             </div>
           </div>
@@ -404,33 +404,33 @@
                 <!-- Embed code (live — follows the controls) -->
                 <div class="rounded-2xl bg-ink-900 p-4 ring-1 ring-inset ring-white/10 sm:p-5">
                   <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Embed code</p>
-                    <button type="button" th:attr="data-copy='embed-snippet-' + ${w.id()}" class="shrink-0 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-brand-400 hover:text-brand-300">Copy</button>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-white/60" th:text="#{host.mkt.embedCode}">Embed code</p>
+                    <button type="button" th:attr="data-copy='embed-snippet-' + ${w.id()}" class="shrink-0 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-brand-400 hover:text-brand-300" th:text="#{common.copy}">Copy</button>
                   </div>
-                  <pre class="mt-3 overflow-x-auto"><code th:id="'embed-snippet-' + ${w.id()}" class="wsnippet block whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-brand-200"
+                  <pre dir="ltr" class="mt-3 overflow-x-auto text-left"><code th:id="'embed-snippet-' + ${w.id()}" class="wsnippet block whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-brand-200"
                         th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${w.slug()} + '&quot; data-type=&quot;button&quot; data-color=&quot;' + ${orgBrandColor != null ? orgBrandColor : '#8f7ac9'} + '&quot; data-lang=&quot;en&quot; data-price=&quot;true&quot; data-rounded=&quot;true&quot;' + ${w.priceFromLabel() != null ? ' data-price-from=&quot;' + w.priceFromLabel() + '&quot;' : ''} + '&gt;&lt;/script&gt;'">&lt;script src="https://ievent.iq/js/widget.js" data-event="slug" data-type="button"&gt;&lt;/script&gt;</code></pre>
-                  <p class="mt-2 text-[11px] text-white/40">The snippet updates as you change the type, color, language and toggles.</p>
+                  <p class="mt-2 text-[11px] text-white/40" th:text="#{host.mkt.snippetNote}">The snippet updates as you change the type, color, language and toggles.</p>
                 </div>
 
                 <!-- Fixed one-liner presets (collapsed; also e2e hooks) -->
                 <details class="rounded-2xl border border-ink-100 bg-white px-4 py-3 shadow-card">
-                  <summary class="cursor-pointer text-xs font-semibold text-ink-600 transition hover:text-brand-600">Prefer a fixed snippet? Button &amp; card presets</summary>
+                  <summary class="cursor-pointer text-xs font-semibold text-ink-600 transition hover:text-brand-600" th:text="#{host.mkt.presetsSummary}">Prefer a fixed snippet? Button &amp; card presets</summary>
                   <div class="mt-3 space-y-3">
                     <div class="flex items-start justify-between gap-3">
-                      <code th:id="'embed-btn-' + ${w.id()}" class="block min-w-0 flex-1 whitespace-pre-wrap break-all rounded-lg bg-ink-50 px-3 py-2 font-mono text-[11px] leading-relaxed text-ink-700" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${w.slug()} + '&quot; data-type=&quot;button&quot; data-label=&quot;Get tickets&quot;&gt;&lt;/script&gt;'">&lt;script ... data-type="button"&gt;&lt;/script&gt;</code>
-                      <button type="button" th:attr="data-copy='embed-btn-' + ${w.id()}" class="shrink-0 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Copy</button>
+                      <code dir="ltr" th:id="'embed-btn-' + ${w.id()}" class="block min-w-0 flex-1 whitespace-pre-wrap break-all rounded-lg bg-ink-50 px-3 py-2 text-left font-mono text-[11px] leading-relaxed text-ink-700" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${w.slug()} + '&quot; data-type=&quot;button&quot; data-label=&quot;Get tickets&quot;&gt;&lt;/script&gt;'">&lt;script ... data-type="button"&gt;&lt;/script&gt;</code>
+                      <button type="button" th:attr="data-copy='embed-btn-' + ${w.id()}" class="shrink-0 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{common.copy}">Copy</button>
                     </div>
                     <div class="flex items-start justify-between gap-3">
-                      <code th:id="'embed-card-' + ${w.id()}" class="block min-w-0 flex-1 whitespace-pre-wrap break-all rounded-lg bg-ink-50 px-3 py-2 font-mono text-[11px] leading-relaxed text-ink-700" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${w.slug()} + '&quot; data-type=&quot;card&quot; data-label=&quot;Get tickets&quot;&gt;&lt;/script&gt;'">&lt;script ... data-type="card"&gt;&lt;/script&gt;</code>
-                      <button type="button" th:attr="data-copy='embed-card-' + ${w.id()}" class="shrink-0 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Copy</button>
+                      <code dir="ltr" th:id="'embed-card-' + ${w.id()}" class="block min-w-0 flex-1 whitespace-pre-wrap break-all rounded-lg bg-ink-50 px-3 py-2 text-left font-mono text-[11px] leading-relaxed text-ink-700" th:text="'&lt;script src=&quot;' + ${shareBase} + '/js/widget.js&quot; data-event=&quot;' + ${w.slug()} + '&quot; data-type=&quot;card&quot; data-label=&quot;Get tickets&quot;&gt;&lt;/script&gt;'">&lt;script ... data-type="card"&gt;&lt;/script&gt;</code>
+                      <button type="button" th:attr="data-copy='embed-card-' + ${w.id()}" class="shrink-0 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{common.copy}">Copy</button>
                     </div>
                   </div>
                 </details>
 
                 <!-- Share link -->
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <p class="min-w-0 flex-1 truncate rounded-xl border border-ink-200 bg-white px-4 py-3 font-mono text-xs tabular-nums text-ink-700" th:id="'share-link-' + ${w.id()}" th:text="${shareBase + '/e/' + w.slug()}">https://ievent.iq/e/baghdad-nights</p>
-                  <button type="button" th:attr="data-copy='share-link-' + ${w.id()}" class="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 sm:self-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg>Copy link</button>
+                  <p dir="ltr" class="min-w-0 flex-1 truncate rounded-xl border border-ink-200 bg-white px-4 py-3 text-left font-mono text-xs tabular-nums text-ink-700" th:id="'share-link-' + ${w.id()}" th:text="${shareBase + '/e/' + w.slug()}">https://ievent.iq/e/baghdad-nights</p>
+                  <button type="button" th:attr="data-copy='share-link-' + ${w.id()}" class="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 sm:self-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg><span th:text="#{host.mkt.copyLink}">Copy link</span></button>
                 </div>
               </div>
 
@@ -439,14 +439,14 @@
                    th:classappend="${wStat.first} ? '' : 'hidden'" class="order-1 min-w-0">
                 <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
                   <div class="flex flex-wrap items-center justify-between gap-2">
-                    <h4 class="font-display text-base font-bold text-ink-900">Live preview</h4>
-                    <span class="text-xs text-ink-400">shown on a sample organizer website</span>
+                    <h4 class="font-display text-base font-bold text-ink-900" th:text="#{host.mkt.livePreview}">Live preview</h4>
+                    <span class="text-xs text-ink-400" th:text="#{host.mkt.previewNote}">shown on a sample organizer website</span>
                   </div>
                   <!-- Type indicator chips (the active one follows the type cards) -->
                   <div class="mt-3 flex flex-wrap gap-1.5" aria-hidden="true">
-                    <span class="wp-ind rounded-full bg-brand-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700" data-wtype="button">Button widget</span>
-                    <span class="wp-ind rounded-full bg-ink-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-500" data-wtype="card">Card widget</span>
-                    <span class="wp-ind rounded-full bg-ink-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-500" data-wtype="checkout">Checkout widget</span>
+                    <span class="wp-ind rounded-full bg-brand-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700" data-wtype="button" th:text="#{host.mkt.buttonWidget}">Button widget</span>
+                    <span class="wp-ind rounded-full bg-ink-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-500" data-wtype="card" th:text="#{host.mkt.cardWidget}">Card widget</span>
+                    <span class="wp-ind rounded-full bg-ink-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-500" data-wtype="checkout" th:text="#{host.mkt.checkoutWidget}">Checkout widget</span>
                   </div>
                   <div class="mt-4 rounded-xl bg-ink-100 p-4 ring-1 ring-inset ring-black/5 sm:p-6">
                     <div class="mb-5 space-y-2.5" aria-hidden="true">
@@ -484,14 +484,14 @@
                           <p class="mt-0.5 text-xs text-ink-500" th:text="${w.dateLine()} + ' · ' + ${w.venueLine()}">Sat, Sep 12 · 7:00 PM · Al-Zawraa Park</p>
                           <div class="mt-3 space-y-2" aria-hidden="true">
                             <div class="flex items-center justify-between gap-2 rounded-lg border border-ink-100 px-3 py-2.5">
-                              <div class="space-y-1.5"><div class="h-2 w-24 rounded bg-ink-200"></div><p class="wp-price text-[11px] tabular-nums text-ink-500" th:text="${w.priceFromLabel() != null ? w.priceFromLabel() : 'Free'}">35,000 IQD</p></div>
+                              <div class="space-y-1.5"><div class="h-2 w-24 rounded bg-ink-200"></div><p class="wp-price text-[11px] tabular-nums text-ink-500" th:text="${w.priceFromLabel() != null ? w.priceFromLabel() : #messages.msg('common.free')}">35,000 IQD</p></div>
                               <div class="flex items-center gap-2 text-xs font-semibold text-ink-700"><span class="grid h-6 w-6 place-items-center rounded-md border border-ink-200">−</span><span class="tabular-nums">1</span><span class="grid h-6 w-6 place-items-center rounded-md border border-ink-200">+</span></div>
                             </div>
                             <div class="h-2 w-32 rounded bg-ink-200"></div>
                           </div>
                           <span class="wp-accent wp-round mt-3 block w-full text-center" data-r="10" th:style="'background:' + ${orgBrandColor != null ? orgBrandColor : '#8f7ac9'} + ';color:#fff;font-weight:600;font-size:13px;padding:10px 16px;border-radius:10px;'"><span class="wp-label">Get tickets</span></span>
                         </div>
-                        <p class="mt-2 text-center text-[11px] text-ink-400">Embeds your live event page in an iframe (420 × 640).</p>
+                        <p class="mt-2 text-center text-[11px] text-ink-400" th:text="#{host.mkt.iframeNote}">Embeds your live event page in an iframe (420 × 640).</p>
                       </div>
 
                     </div>
@@ -505,7 +505,7 @@
             <!-- Info -->
             <div class="order-3 flex items-start gap-2.5 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-800">
               <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-info"/></svg>
-              <p>Works on any website — WordPress, Wix, custom. The widget opens iEvent checkout with your event pre-loaded.</p>
+              <p th:text="#{host.mkt.worksAnywhere}">Works on any website — WordPress, Wix, custom. The widget opens iEvent checkout with your event pre-loaded.</p>
             </div>
           </div>
         </div>
@@ -544,6 +544,7 @@
   }
 
   // Copy buttons
+  var COPIED_MSG = (document.getElementById('main').getAttribute('data-msg-copied')) || 'Copied!';
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var el = document.getElementById(btn.getAttribute('data-copy'));
@@ -553,7 +554,7 @@
         navigator.clipboard.writeText(text).catch(function () {});
       }
       var old = btn.textContent;
-      btn.textContent = 'Copied!';
+      btn.textContent = COPIED_MSG;
       setTimeout(function () { btn.textContent = old; }, 1500);
     });
   });
@@ -576,8 +577,8 @@
   var W_LABELS = { en: 'Get tickets', ar: 'احجز الآن', ku: 'بلیت بکڕە' };
   var W_FROM = { en: 'from', ar: 'من', ku: 'لە' };
   var W_RTL = { ar: true, ku: true };
-  var WTYPE_ACTIVE = 'wtype flex w-full items-start gap-3 rounded-xl border-2 border-brand-500 bg-brand-50 p-3.5 text-left transition';
-  var WTYPE_IDLE = 'wtype flex w-full items-start gap-3 rounded-xl border-2 border-ink-200 bg-white p-3.5 text-left transition hover:border-brand-300';
+  var WTYPE_ACTIVE = 'wtype flex w-full items-start gap-3 rounded-xl border-2 border-brand-500 bg-brand-50 p-3.5 text-start transition';
+  var WTYPE_IDLE = 'wtype flex w-full items-start gap-3 rounded-xl border-2 border-ink-200 bg-white p-3.5 text-start transition hover:border-brand-300';
 
   function wSnippet(slug, priceFrom) {
     var base = tabShare ? (tabShare.getAttribute('data-share-base') || '') : '';

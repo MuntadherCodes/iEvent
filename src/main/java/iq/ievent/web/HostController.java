@@ -15,6 +15,8 @@ import iq.ievent.service.Format;
 import iq.ievent.service.HostService;
 import iq.ievent.service.OrderService;
 import iq.ievent.service.UserService;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -57,21 +59,21 @@ import java.util.List;
 @RequestMapping("/host")
 public class HostController {
 
-    public record EventRow(Long id, String slug, String title, String statusLabel, String dateLine,
+    public record EventRow(Long id, String slug, String title, String statusLabel, String statusKey, String dateLine,
                            String city, String venueName, long sold, long capacity, String salesLabel,
                            String revenueLabel, String coverImageUrl, String coverTheme) {}
 
     public record OrderRow(Long id, String orderCode, String buyerName, String buyerEmail,
                            String eventTitle, String itemsLabel, String totalLabel, String methodLabel,
-                           String statusLabel, boolean pending, String createdLine, boolean hasReceipt,
-                           String transferReference) {}
+                           String statusLabel, String statusKey, boolean pending, String createdLine,
+                           boolean hasReceipt, String transferReference) {}
 
     public record TicketTypeRow(Long id, String name, String priceLabel, int quantity, int sold,
-                                String statusLabel, String revenueLabel) {}
+                                String statusLabel, String statusKey, String revenueLabel) {}
 
     /** Compact order line for the per-event console (queried via JDBC). */
     public record EventOrderRow(String orderCode, String buyerName, String itemsLabel,
-                                String totalLabel, String statusLabel, boolean pending,
+                                String totalLabel, String statusLabel, String statusKey, boolean pending,
                                 String createdLine) {}
 
     public record AttendeeRow(Long ticketId, String holderName, String typeName, String orderCode,
@@ -91,12 +93,14 @@ public class HostController {
 
     private final String baseUrl;
     private final iq.ievent.service.MailService mailService;
+    private final MessageSource messages;
 
     public HostController(UserService userService, HostService hostService, OrderService orderService,
                           OrderRepository orders, TicketRepository tickets, TicketTypeRepository ticketTypes,
                           EventRepository events, LikeCountRepository likeCounts,
                           org.springframework.jdbc.core.JdbcTemplate jdbc,
                           iq.ievent.service.MailService mailService,
+                          MessageSource messages,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
         this.hostService = hostService;
@@ -108,7 +112,13 @@ public class HostController {
         this.likeCounts = likeCounts;
         this.jdbc = jdbc;
         this.mailService = mailService;
+        this.messages = messages;
         this.baseUrl = baseUrl;
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
     private User user(UserDetails principal) {
@@ -137,7 +147,7 @@ public class HostController {
         User u = user(principal);
         if (hostService.organizationOf(u).isPresent()) return "redirect:/host";
         if (orgName == null || orgName.isBlank()) {
-            redirect.addFlashAttribute("error", "Give your organizer profile a name.");
+            redirect.addFlashAttribute("error", msg("flash.org.nameRequired"));
             return "redirect:/host/start";
         }
         hostService.createOrganization(u, orgName, handle, city, bio);
@@ -163,8 +173,10 @@ public class HostController {
 
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
+        java.util.Locale dayLocale = "en".equals(LocaleContextHolder.getLocale().getLanguage())
+                ? java.util.Locale.ENGLISH : new java.util.Locale("ar");
         model.addAttribute("todayLine", LocalDate.now(Format.BAGHDAD).format(
-                java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", java.util.Locale.ENGLISH)));
+                java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", dayLocale)));
         model.addAttribute("stats", stats);
         model.addAttribute("revenueLabel", Format.iqd(stats.revenueIqd()));
         model.addAttribute("upcoming", upcoming);
@@ -298,8 +310,7 @@ public class HostController {
             }
             return "redirect:/host/events/" + created.getId();
         } catch (Exception e) {
-            redirect.addFlashAttribute("error",
-                    "Could not create the event — check the required fields. (" + e.getMessage() + ")");
+            redirect.addFlashAttribute("error", msg("flash.event.createFailed", e.getMessage()));
             return "redirect:/host/events/new";
         }
     }
@@ -316,7 +327,7 @@ public class HostController {
         List<TicketTypeRow> ttRows = ticketTypes.findByEventIdOrderBySortOrderAsc(ev.getId()).stream()
                 .map(tt -> new TicketTypeRow(tt.getId(), tt.getName(),
                         Format.priceLabel(tt.getPriceIqd()), tt.getQuantity(), tt.getSold(),
-                        statusLabel(tt.getStatus().name()),
+                        statusLabel(tt.getStatus().name()), tt.getStatus().name(),
                         Format.iqd((long) tt.getSold() * tt.getPriceIqd())))
                 .toList();
         long sold = ttRows.stream().mapToLong(TicketTypeRow::sold).sum();
@@ -335,8 +346,9 @@ public class HostController {
         model.addAttribute("viewsLabel", Format.compactCount(views));
         model.addAttribute("likesLabel", Format.compactCount(likes));
         model.addAttribute("conversionLabel", views > 0
-                ? String.format(java.util.Locale.ENGLISH, "%.1f%% conversion", 100.0 * sold / views)
-                : "no views yet");
+                ? msg("console.conversion",
+                        String.format(java.util.Locale.ENGLISH, "%.1f", 100.0 * sold / views))
+                : msg("console.noViews"));
         model.addAttribute("eventOrders", ordersForEvent(ev.getId()));
         java.time.ZonedDateTime zc = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
         model.addAttribute("postponeDate", zc.toLocalDate().toString());
@@ -361,7 +373,7 @@ public class HostController {
                 """,
                 (rs, i) -> new EventOrderRow(
                         rs.getString(1), rs.getString(2), rs.getString(6),
-                        Format.iqd(rs.getLong(3)), statusLabel(rs.getString(4)),
+                        Format.iqd(rs.getLong(3)), statusLabel(rs.getString(4)), rs.getString(4),
                         "PENDING_CONFIRMATION".equals(rs.getString(4)),
                         Format.cardDateLine(rs.getObject(5, java.time.OffsetDateTime.class))),
                 eventId);
@@ -475,7 +487,7 @@ public class HostController {
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
             else redirect.addFlashAttribute("saved", true);
         } catch (Exception e) {
-            redirect.addFlashAttribute("error", "Could not save — check the fields. (" + e.getMessage() + ")");
+            redirect.addFlashAttribute("error", msg("flash.event.saveFailed", e.getMessage()));
         }
         return "redirect:/host/events/" + id + "/edit";
     }
@@ -517,19 +529,19 @@ public class HostController {
      * ONLINE stores the meeting link (revealed to confirmed buyers only) and a
      * "Online event" venue placeholder; TBA stores "To be announced".
      */
-    private static LocationForm locationForm(String locationType, String venueName,
-                                             String venueAddress, String onlineUrl, String mapsUrl) {
+    private LocationForm locationForm(String locationType, String venueName,
+                                      String venueAddress, String onlineUrl, String mapsUrl) {
         String type = "ONLINE".equals(locationType) || "TBA".equals(locationType) ? locationType : "VENUE";
         String online = onlineUrl == null || onlineUrl.isBlank() ? null : onlineUrl.trim();
         String maps = mapsUrl == null || mapsUrl.isBlank() ? null : mapsUrl.trim();
         if ("VENUE".equals(type)) {
             if (venueName == null || venueName.isBlank()) {
                 return new LocationForm(type, null, null, null, null,
-                        "Add a venue name — or switch the location to Online / To be announced.");
+                        msg("location.venueRequired"));
             }
             if (maps != null && !(maps.startsWith("http://") || maps.startsWith("https://"))) {
                 return new LocationForm(type, null, null, null, null,
-                        "The Google Maps link must start with http:// or https://.");
+                        msg("location.mapsUrlInvalid"));
             }
             return new LocationForm(type, venueName.trim(),
                     venueAddress == null || venueAddress.isBlank() ? null : venueAddress.trim(),
@@ -538,7 +550,7 @@ public class HostController {
         if ("ONLINE".equals(type)) {
             if (online != null && !(online.startsWith("http://") || online.startsWith("https://"))) {
                 return new LocationForm(type, null, null, null, null,
-                        "The meeting link must start with http:// or https://.");
+                        msg("location.meetingUrlInvalid"));
             }
             return new LocationForm(type, "Online event", null, online, null, null);
         }
@@ -573,8 +585,7 @@ public class HostController {
         Event ev = hostService.eventOf(org.getId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         Event copy = hostService.duplicateEvent(ev);
-        redirect.addFlashAttribute("duplicated",
-                "Duplicated as a draft one week later — review the details below, then publish.");
+        redirect.addFlashAttribute("duplicated", msg("flash.event.duplicated"));
         return "redirect:/host/events/" + copy.getId() + "/edit";
     }
 
@@ -589,8 +600,7 @@ public class HostController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (ev.getStatus() != Event.Status.CANCELLED) {
             hostService.cancelEvent(ev);
-            redirect.addFlashAttribute("actioned",
-                    "Event cancelled — every buyer has been emailed.");
+            redirect.addFlashAttribute("actioned", msg("flash.event.cancelled"));
         }
         return "redirect:/host/events/" + id;
     }
@@ -610,10 +620,9 @@ public class HostController {
         try {
             hostService.postponeEvent(ev, LocalDate.parse(date), LocalTime.parse(startTime),
                     endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime));
-            redirect.addFlashAttribute("actioned",
-                    "New date saved — every buyer has been emailed. Tickets stay valid.");
+            redirect.addFlashAttribute("actioned", msg("flash.event.postponed"));
         } catch (Exception e) {
-            redirect.addFlashAttribute("error", "Could not postpone — check the new date and time.");
+            redirect.addFlashAttribute("error", msg("flash.event.postponeFailed"));
         }
         return "redirect:/host/events/" + id;
     }
@@ -664,7 +673,7 @@ public class HostController {
         requireManage(u);
         try {
             Order o = orderService.approve(id, org.getId());
-            redirect.addFlashAttribute("actioned", "Order " + o.getOrderCode() + " approved — tickets emailed to the buyer.");
+            redirect.addFlashAttribute("actioned", msg("flash.order.approved", o.getOrderCode()));
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
@@ -680,7 +689,7 @@ public class HostController {
         requireManage(u);
         try {
             Order o = orderService.reject(id, org.getId());
-            redirect.addFlashAttribute("actioned", "Order " + o.getOrderCode() + " rejected — the buyer was notified.");
+            redirect.addFlashAttribute("actioned", msg("flash.order.rejected", o.getOrderCode()));
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
@@ -827,18 +836,18 @@ public class HostController {
         Ticket t = tickets.findByCode(clean).orElse(null);
         CheckinResult result;
         if (t == null || !t.getEvent().getOrganization().getId().equals(org.getId())) {
-            result = new CheckinResult(false, "Ticket not found for your events.", null, null);
+            result = new CheckinResult(false, msg("checkin.notFound"), null, null);
         } else if (!t.getEvent().getId().equals(event)) {
-            result = new CheckinResult(false, "Ticket belongs to a different event: " + t.getEvent().getTitle(), t.getHolderName(), t.getTicketType().getName());
+            result = new CheckinResult(false, msg("checkin.wrongEvent", t.getEvent().getTitle()), t.getHolderName(), t.getTicketType().getName());
         } else if (t.getStatus() == Ticket.Status.CHECKED_IN) {
-            result = new CheckinResult(false, "Already checked in " + (t.getCheckedInAt() == null ? "" : Format.cardDateLine(t.getCheckedInAt())), t.getHolderName(), t.getTicketType().getName());
+            result = new CheckinResult(false, msg("checkin.already", t.getCheckedInAt() == null ? "" : Format.cardDateLine(t.getCheckedInAt())), t.getHolderName(), t.getTicketType().getName());
         } else if (t.getStatus() == Ticket.Status.VOID) {
-            result = new CheckinResult(false, "Ticket is void.", t.getHolderName(), t.getTicketType().getName());
+            result = new CheckinResult(false, msg("checkin.void"), t.getHolderName(), t.getTicketType().getName());
         } else {
             t.setStatus(Ticket.Status.CHECKED_IN);
             t.setCheckedInAt(OffsetDateTime.now());
             tickets.save(t);
-            result = new CheckinResult(true, "Checked in", t.getHolderName(), t.getTicketType().getName());
+            result = new CheckinResult(true, msg("checkin.ok"), t.getHolderName(), t.getTicketType().getName());
         }
         redirect.addFlashAttribute("result", result);
         return "redirect:/host/checkin?event=" + event;
@@ -879,10 +888,8 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
-        mailService.sendCampaign(u.getEmail(), "iEvent test email",
-                "This is a test email from your iEvent installation. If you can read this, "
-                + "outgoing email works. (Local dev: it lands in the Mailpit inbox.)",
-                org.getName(), baseUrl + "/host");
+        mailService.sendCampaign(u.getEmail(), msg("mail.test.subject"), msg("mail.test.body"),
+                org.getName(), baseUrl + "/host", LocaleContextHolder.getLocale());
         redirect.addFlashAttribute("testMailSent", u.getEmail());
         return "redirect:/host/settings/payments";
     }
@@ -910,6 +917,7 @@ public class HostController {
         long cap = tts.stream().mapToLong(TicketType::getQuantity).sum();
         long revenue = tts.stream().mapToLong(t -> t.getSold() * t.getPriceIqd()).sum();
         return new EventRow(e.getId(), e.getSlug(), e.getTitle(), statusLabel(e.getStatus().name()),
+                e.getStatus().name(),
                 Format.cardDateLine(e.getStartsAt()), e.getCity(), e.getVenueName(),
                 sold, cap, sold + " / " + cap, Format.iqd(revenue),
                 e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
@@ -922,8 +930,10 @@ public class HostController {
                 .reduce((a, b) -> a + ", " + b).orElse("—");
         return new OrderRow(o.getId(), o.getOrderCode(), o.getBuyerName(), o.getBuyerEmail(),
                 o.getEvent().getTitle(), items, Format.iqd(o.getTotalIqd()),
-                o.getPaymentMethod() == Order.PaymentMethod.FREE ? "Free" : "Direct transfer",
+                o.getPaymentMethod() == Order.PaymentMethod.FREE
+                        ? msg("order.method.free") : msg("order.method.direct"),
                 statusLabel(o.getStatus().name()),
+                o.getStatus().name(),
                 o.getStatus() == Order.Status.PENDING_CONFIRMATION,
                 Format.cardDateLine(o.getCreatedAt()),
                 o.getReceiptPath() != null,
@@ -937,19 +947,19 @@ public class HostController {
                 t.getCheckedInAt() == null ? null : Format.cardDateLine(t.getCheckedInAt()));
     }
 
-    private static String statusLabel(String name) {
+    private String statusLabel(String name) {
         return switch (name) {
-            case "PENDING_CONFIRMATION" -> "Pending confirmation";
-            case "CONFIRMED" -> "Confirmed";
-            case "REJECTED" -> "Rejected";
-            case "REFUNDED" -> "Refunded";
-            case "CANCELLED" -> "Cancelled";
-            case "DRAFT" -> "Draft";
-            case "LIVE" -> "Live";
-            case "ENDED" -> "Ended";
-            case "ON_SALE" -> "On sale";
-            case "SOLD_OUT" -> "Sold out";
-            case "HIDDEN" -> "Hidden";
+            case "PENDING_CONFIRMATION" -> msg("status.order.pending");
+            case "CONFIRMED" -> msg("status.order.confirmed");
+            case "REJECTED" -> msg("status.order.rejected");
+            case "REFUNDED" -> msg("status.order.refunded");
+            case "CANCELLED" -> msg("status.order.cancelled");
+            case "DRAFT" -> msg("status.event.draft");
+            case "LIVE" -> msg("status.event.live");
+            case "ENDED" -> msg("status.event.ended");
+            case "ON_SALE" -> msg("status.ticketType.onSale");
+            case "SOLD_OUT" -> msg("status.ticketType.soldOut");
+            case "HIDDEN" -> msg("status.ticketType.hidden");
             default -> name;
         };
     }

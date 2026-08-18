@@ -123,7 +123,7 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
                         "/auth/**", "/t/**", "/e/**", "/l/**", "/newsletter", "/media/**", "/css/**", "/img/**", "/js/**",
-                        "/favicon.ico", "/actuator/health", "/error")
+                        "/favicon.ico", "/actuator/health", "/error", "/set-lang")
                 .permitAll()
                 .anyRequest().authenticated())
             .formLogin(form -> form

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/host-layout :: head('Check-in — iEvent Host')}"></head>
+<html th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/host-layout :: head(#{host.title.checkin})}"></head>
 <body class="bg-ink-50 font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -9,26 +9,26 @@
 
 <aside th:replace="~{fragments/host-layout :: sidebar('checkin')}"></aside>
 
-<div class="flex min-w-0 flex-1 flex-col md:pl-20 lg:pl-64">
+<div class="flex min-w-0 flex-1 flex-col md:ps-20 lg:ps-64">
 
-  <header th:replace="~{fragments/host-layout :: topbar('Check-in')}"></header>
+  <header th:replace="~{fragments/host-layout :: topbar(#{host.nav.checkin})}"></header>
 
   <main id="main" class="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
     <div class="mx-auto max-w-6xl 2xl:max-w-7xl">
 
       <!-- Page controls bar -->
       <form th:action="@{/host/checkin}" method="get" class="flex flex-wrap items-center gap-2">
-        <label class="sr-only" for="ci-event">Event</label>
+        <label class="sr-only" for="ci-event" th:text="#{host.att.eventLabel}">Event</label>
         <select id="ci-event" name="event" class="rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
           <option th:each="opt : ${eventOptions}" th:value="${opt.id()}" th:text="${opt.title()}" th:selected="${ev != null && ev.id() == opt.id()}">Baghdad Nights Music Festival</option>
         </select>
-        <span th:if="${ev != null}" class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-users"/></svg>Checked in <span class="font-display font-extrabold tabular-nums" th:text="${checkedIn}">87</span><span class="tabular-nums">/<span th:text="${ticketsTotal}">218</span></span></span>
+        <span th:if="${ev != null}" class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-users"/></svg><span th:text="#{host.att.checkedIn}">Checked in</span> <span class="font-display font-extrabold tabular-nums" th:text="${checkedIn}">87</span><span class="tabular-nums">/<span th:text="${ticketsTotal}">218</span></span></span>
       </form>
 
       <!-- Check-in progress bar -->
       <div th:if="${ev != null && ticketsTotal > 0}" class="mt-4 rounded-2xl border border-ink-100 bg-white px-5 py-4 shadow-card">
         <div class="flex items-center justify-between text-xs font-semibold">
-          <span class="uppercase tracking-wide text-ink-500">Check-in progress</span>
+          <span class="uppercase tracking-wide text-ink-500" th:text="#{host.checkin.progress}">Check-in progress</span>
           <span class="tabular-nums text-brand-700" th:text="${(checkedIn * 100 / ticketsTotal)} + '%'">40%</span>
         </div>
         <div class="mt-2 h-2 rounded-full bg-ink-100" role="progressbar" th:attr="aria-valuenow=${checkedIn},aria-valuemax=${ticketsTotal}" aria-valuemin="0">
@@ -40,7 +40,7 @@
       <div th:if="${result != null && result.ok()}" id="ci-result-ok" class="mt-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4" role="status" aria-live="polite">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span>
         <div>
-          <p class="font-display font-bold text-green-800"><span th:text="${result.holderName()}">Ali Hassan</span> — Checked in ✓</p>
+          <p class="font-display font-bold text-green-800"><span th:text="${result.holderName()}">Ali Hassan</span> — <span th:text="#{host.checkin.checkedInMark}">Checked in ✓</span></p>
           <p class="text-sm text-green-700" th:text="${result.typeName()}">General Admission</p>
         </div>
       </div>
@@ -58,12 +58,12 @@
       <div class="min-w-0 space-y-6">
 
       <!-- Camera scanner card -->
-      <section class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card" aria-label="Camera scanner">
+      <section class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card" th:aria-label="#{host.checkin.cameraAria}" aria-label="Camera scanner">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-camera"/></svg>Scan with camera</h2>
+          <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-camera"/></svg><span th:text="#{host.checkin.scanWithCamera}">Scan with camera</span></h2>
           <div class="flex items-center gap-2">
-            <button type="button" id="qr-start" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-scan-line"/></svg>Start camera</button>
-            <button type="button" id="qr-stop" class="hidden items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-rose-300 hover:text-rose-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg>Stop</button>
+            <button type="button" id="qr-start" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-scan-line"/></svg><span th:text="#{host.checkin.startCamera}">Start camera</span></button>
+            <button type="button" id="qr-stop" class="hidden items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-rose-300 hover:text-rose-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg><span th:text="#{host.checkin.stop}">Stop</span></button>
           </div>
         </div>
         <div class="relative mt-4 overflow-hidden rounded-2xl bg-ink-900 ring-1 ring-inset ring-white/10">
@@ -71,31 +71,32 @@
           <div id="qr-idle" class="grid aspect-[4/3] place-items-center">
             <div class="text-center">
               <svg class="mx-auto h-12 w-12 text-white/20" aria-hidden="true"><use href="#i-qr-code"/></svg>
-              <p class="mt-3 text-sm font-medium text-white/60">Press "Start camera" and point at the ticket QR</p>
+              <p class="mt-3 text-sm font-medium text-white/60" th:text="#{host.checkin.idleHint}">Press "Start camera" and point at the ticket QR</p>
             </div>
           </div>
         </div>
-        <p id="qr-status" class="mt-3 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800"></p>
+        <p id="qr-status" class="mt-3 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800"
+           th:attr="data-msg-unavailable=#{host.checkin.cameraUnavailable},data-msg-noscanner=#{host.checkin.cameraNotHere}"></p>
       </section>
 
       <!-- Manual entry card (dark panel) -->
-      <section class="overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" aria-label="Ticket check-in">
+      <section class="overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" th:aria-label="#{host.checkin.manualAria}" aria-label="Ticket check-in">
         <div class="relative p-6 sm:p-8">
           <svg class="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="cam-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#cam-dots)"/></svg>
           <div class="relative">
             <div class="flex items-center gap-3">
               <span class="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-brand-300"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-scan-line"/></svg></span>
               <div>
-                <h2 class="font-display text-lg font-bold text-white">Scan or type a ticket code</h2>
+                <h2 class="font-display text-lg font-bold text-white" th:text="#{host.checkin.scanOrType}">Scan or type a ticket code</h2>
                 <p class="text-sm text-white/60" th:text="${ev.title()}">Baghdad Nights Music Festival</p>
               </div>
             </div>
             <form id="checkin-form" th:action="@{/host/checkin}" method="post" class="mt-6 flex flex-col gap-3 sm:flex-row">
               <input type="hidden" name="event" th:value="${ev.id()}">
-              <input type="text" id="code-input" name="code" required autofocus autocomplete="off" placeholder="Ticket code or scanned link"
+              <input type="text" id="code-input" name="code" required autofocus autocomplete="off" th:placeholder="#{host.checkin.codePlaceholder}" placeholder="Ticket code or scanned link"
                      class="w-full flex-1 rounded-xl border border-white/15 bg-white/10 px-5 py-4 font-mono text-base text-white outline-none transition placeholder:font-body placeholder:text-white/40 focus:border-brand-400 focus:bg-white/15 focus:ring-4 focus:ring-brand-400/30"
-                     aria-label="Ticket code">
-              <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>Check in</button>
+                     th:aria-label="#{host.checkin.codeAria}" aria-label="Ticket code">
+              <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg><span th:text="#{host.att.checkIn}">Check in</span></button>
             </form>
           </div>
         </div>
@@ -104,32 +105,32 @@
       <!-- Tip card -->
       <p class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
         <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
-        <span><span class="font-semibold text-ink-800">Tip:</span> any USB/bluetooth QR scanner types the code into the box — or use the camera above.</span>
+        <span><span class="font-semibold text-ink-800" th:text="#{host.checkin.tipLabel}">Tip:</span> <span th:text="#{host.checkin.tipBody}">any USB/bluetooth QR scanner types the code into the box — or use the camera above.</span></span>
       </p>
 
       </div>
 
       <!-- ===== Right: door list ===== -->
-      <section class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card" aria-label="Door list">
+      <section class="min-w-0 rounded-2xl border border-ink-100 bg-white p-5 shadow-card" th:aria-label="#{host.checkin.doorList}" aria-label="Door list">
         <div class="flex items-center justify-between">
-          <h2 class="font-display text-lg font-bold text-ink-900">Door list</h2>
-          <a th:href="@{/host/attendees(event=${ev.id()})}" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700"><span class="inline-flex items-center gap-1">Full list<svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></a>
+          <h2 class="font-display text-lg font-bold text-ink-900" th:text="#{host.checkin.doorList}">Door list</h2>
+          <a th:href="@{/host/attendees(event=${ev.id()})}" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700"><span class="inline-flex items-center gap-1"><span th:text="#{host.checkin.fullList}">Full list</span><svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></a>
         </div>
 
         <form th:action="@{/host/checkin}" method="get" class="mt-4 flex gap-2">
           <input type="hidden" name="event" th:value="${ev.id()}">
           <div class="relative min-w-0 flex-1">
-            <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-            <input type="search" name="q" th:value="${q}" placeholder="Search name, code or order #" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" aria-label="Search door list">
+            <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" name="q" th:value="${q}" th:placeholder="#{host.checkin.searchPlaceholder}" placeholder="Search name, code or order #" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:aria-label="#{host.checkin.searchAria}" aria-label="Search door list">
           </div>
-          <button type="submit" class="shrink-0 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Search</button>
+          <button type="submit" class="shrink-0 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{host.checkin.search}">Search</button>
         </form>
 
         <!-- Filter tabs -->
-        <div class="mt-3 flex gap-1 rounded-xl bg-ink-50 p-1 text-sm font-semibold" role="tablist" aria-label="Door list filter">
-          <button type="button" class="dl-tab flex-1 rounded-lg bg-white px-3 py-2 text-ink-900 shadow-card" data-filter="all" role="tab" aria-selected="true">All</button>
-          <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="pending" role="tab" aria-selected="false">Not arrived</button>
-          <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="in" role="tab" aria-selected="false">Checked in</button>
+        <div class="mt-3 flex gap-1 rounded-xl bg-ink-50 p-1 text-sm font-semibold" role="tablist" th:aria-label="#{host.checkin.doorFilterAria}" aria-label="Door list filter">
+          <button type="button" class="dl-tab flex-1 rounded-lg bg-white px-3 py-2 text-ink-900 shadow-card" data-filter="all" role="tab" aria-selected="true" th:text="#{host.events.filterAll}">All</button>
+          <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="pending" role="tab" aria-selected="false" th:text="#{host.att.notArrived}">Not arrived</button>
+          <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="in" role="tab" aria-selected="false" th:text="#{host.att.checkedIn}">Checked in</button>
         </div>
 
         <ul id="door-list" class="mt-3 divide-y divide-ink-50">
@@ -137,37 +138,37 @@
             <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold text-ink-900" th:text="${r.holderName()}">Ali Hassan</p>
-              <p class="truncate text-xs text-ink-500"><span th:text="${r.typeName()}">GA</span> · <span class="font-mono tabular-nums" th:text="${r.orderCode()}">EVT-2026-04127</span> · <span class="font-mono tabular-nums" th:text="${r.code()}">TKT-8841-A</span></p>
+              <p class="truncate text-xs text-ink-500"><span th:text="${r.typeName()}">GA</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.orderCode()}">EVT-2026-04127</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.code()}">TKT-8841-A</span></p>
             </div>
             <form th:unless="${r.checkedIn()}" th:action="@{/host/tickets/{id}/checkin(id=${r.ticketId()})}" method="post" class="shrink-0">
-              <button type="submit" class="rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Check in</button>
+              <button type="submit" class="rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.att.checkIn}">Check in</button>
             </form>
             <div th:if="${r.checkedIn()}" class="flex shrink-0 flex-col items-end gap-1">
               <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="${r.checkedInLine()}">Aug 15 · 7:12 PM</span></span>
               <form th:action="@{/host/tickets/{id}/undo-checkin(id=${r.ticketId()})}" method="post">
-                <button type="submit" class="rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">Undo</button>
+                <button type="submit" class="rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" th:text="#{host.att.undo}">Undo</button>
               </form>
             </div>
           </li>
           <li th:if="${#lists.isEmpty(doorList) && #strings.isEmpty(q)}" class="py-10 text-center">
-            <p class="text-sm font-semibold text-ink-700">No tickets yet</p>
-            <p class="mt-1 text-xs text-ink-500">Attendees appear here once orders are confirmed.</p>
+            <p class="text-sm font-semibold text-ink-700" th:text="#{host.checkin.noTickets}">No tickets yet</p>
+            <p class="mt-1 text-xs text-ink-500" th:text="#{host.checkin.noTicketsSub}">Attendees appear here once orders are confirmed.</p>
           </li>
           <li th:if="${#lists.isEmpty(doorList) && !#strings.isEmpty(q)}" class="py-10 text-center">
-            <p class="text-sm font-semibold text-ink-700">No match for &ldquo;<span th:text="${q}">ali</span>&rdquo;</p>
-            <p class="mt-1 text-xs text-ink-500">Try part of the name, ticket code or order #.</p>
+            <p class="text-sm font-semibold text-ink-700" th:text="#{host.checkin.noMatch(${q})}">No match for &ldquo;ali&rdquo;</p>
+            <p class="mt-1 text-xs text-ink-500" th:text="#{host.checkin.noMatchSub}">Try part of the name, ticket code or order #.</p>
           </li>
         </ul>
-        <p th:if="${#lists.size(doorList) == 50}" class="mt-3 rounded-xl bg-ink-50 px-4 py-2.5 text-center text-xs font-medium text-ink-500">Showing first 50 — refine the search to narrow it down.</p>
+        <p th:if="${#lists.size(doorList) == 50}" class="mt-3 rounded-xl bg-ink-50 px-4 py-2.5 text-center text-xs font-medium text-ink-500" th:text="#{host.checkin.first50}">Showing first 50 — refine the search to narrow it down.</p>
       </section>
 
       </div>
 
       <div th:if="${ev == null}" class="mt-6 rounded-2xl border border-ink-100 bg-white px-6 py-16 text-center shadow-card">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-scan-line"/></svg></span>
-        <h3 class="mt-4 font-display text-lg font-bold text-ink-900">No event selected</h3>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500">Create and publish an event first — then check attendees in from this screen.</p>
-        <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>Create event</a>
+        <h3 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{host.checkin.noEvent}">No event selected</h3>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{host.checkin.noEventSub}">Create and publish an event first — then check attendees in from this screen.</p>
+        <a th:href="@{/host/events/new}" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{host.nav.createEvent}">Create event</span></a>
       </div>
 
     </div>
@@ -240,10 +241,10 @@
         qrSetRunning(true);
       }).catch(function () {
         qrSetRunning(false);
-        qrShowError('Camera unavailable on this device or permission denied — type the code below or use a USB scanner.');
+        qrShowError(qrStatus ? qrStatus.getAttribute('data-msg-unavailable') : '');
       });
     } catch (e) {
-      qrShowError('Camera scanning is not available here — type the code below or use a USB scanner.');
+      qrShowError(qrStatus ? qrStatus.getAttribute('data-msg-noscanner') : '');
     }
   });
 

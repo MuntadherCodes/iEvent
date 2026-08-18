@@ -64,8 +64,11 @@ public class ExtrasController {
                 .body(qr.ticketQrPng(t.getCode()));
     }
 
-    /** Printable single-ticket PDF. */
+    /** Printable single-ticket PDF. Transactional: the PDF renderer walks the
+     *  ticket's LAZY event/ticketType associations and OSIV is off — without a
+     *  transaction this 500'd with LazyInitializationException. */
     @GetMapping("/t/{code}/ticket.pdf")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<byte[]> ticketPdf(@PathVariable String code) {
         Ticket t = tickets.findByCode(code)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

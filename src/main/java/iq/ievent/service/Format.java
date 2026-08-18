@@ -13,33 +13,49 @@ public final class Format {
 
     public static final ZoneId BAGHDAD = ZoneId.of("Asia/Baghdad");
 
-    private static final DateTimeFormatter CARD_DATE =
-            DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH);
-    private static final DateTimeFormatter TIME =
-            DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
-    private static final DateTimeFormatter LONG_DATE =
-            DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.ENGLISH);
-    private static final DateTimeFormatter MONTH_SHORT =
-            DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH);
+    /** Arabic locale for date words (day/month names); digits stay Western. */
+    private static final Locale ARABIC = new Locale("ar");
 
     private Format() {}
 
+    /** Current display locale: Arabic unless the request is on /en. */
+    private static Locale displayLocale() {
+        Locale l = org.springframework.context.i18n.LocaleContextHolder.getLocale();
+        return l != null && "en".equals(l.getLanguage()) ? Locale.ENGLISH : ARABIC;
+    }
+
+    private static boolean isEnglish() {
+        return displayLocale() == Locale.ENGLISH;
+    }
+
     public static String cardDateLine(OffsetDateTime startsAt) {
+        Locale loc = displayLocale();
         ZonedDateTime z = startsAt.atZoneSameInstant(BAGHDAD);
-        return (z.format(CARD_DATE) + " · " + z.format(TIME)).toUpperCase(Locale.ENGLISH);
+        String s = z.format(DateTimeFormatter.ofPattern("EEE, MMM d", loc)) + " · "
+                + z.format(DateTimeFormatter.ofPattern("h:mm a", loc));
+        return isEnglish() ? s.toUpperCase(Locale.ENGLISH) : s;
     }
 
     public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        return longDateLine(startsAt, endsAt, displayLocale());
+    }
+
+    /** Explicit-locale variant — PDFs must stay English (Helvetica has no Arabic glyphs). */
+    public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt, Locale loc) {
         ZonedDateTime s = startsAt.atZoneSameInstant(BAGHDAD);
-        String base = s.format(LONG_DATE) + " · " + s.format(TIME);
+        DateTimeFormatter time = DateTimeFormatter.ofPattern("h:mm a", loc);
+        String base = s.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", loc)) + " · " + s.format(time);
         if (endsAt != null) {
-            base += " – " + endsAt.atZoneSameInstant(BAGHDAD).format(TIME);
+            base += " – " + endsAt.atZoneSameInstant(BAGHDAD).format(time);
         }
         return base;
     }
 
     public static String monthShort(OffsetDateTime startsAt) {
-        return startsAt.atZoneSameInstant(BAGHDAD).format(MONTH_SHORT).toUpperCase(Locale.ENGLISH);
+        Locale loc = displayLocale();
+        String s = startsAt.atZoneSameInstant(BAGHDAD)
+                .format(DateTimeFormatter.ofPattern("MMM", loc));
+        return isEnglish() ? s.toUpperCase(Locale.ENGLISH) : s;
     }
 
     public static String dayOfMonth(OffsetDateTime startsAt) {
@@ -47,16 +63,18 @@ public final class Format {
     }
 
     public static String iqd(long amount) {
-        return String.format(Locale.ENGLISH, "%,d IQD", amount);
+        // Western digits in both languages (common for prices in Iraq).
+        return String.format(Locale.ENGLISH, "%,d", amount) + (isEnglish() ? " IQD" : " د.ع");
     }
 
     public static String priceLineFromMin(Long minPrice) {
-        if (minPrice == null || minPrice == 0) return "Free";
-        return "From " + iqd(minPrice);
+        if (minPrice == null || minPrice == 0) return isEnglish() ? "Free" : "مجاني";
+        return (isEnglish() ? "From " : "ابتداءً من ") + iqd(minPrice);
     }
 
     public static String priceLabel(long price) {
-        return price == 0 ? "Free" : iqd(price);
+        if (price == 0) return isEnglish() ? "Free" : "مجاني";
+        return iqd(price);
     }
 
     public static String compactCount(long n) {
@@ -65,31 +83,46 @@ public final class Format {
         return String.format(Locale.ENGLISH, "%dK", n / 1000);
     }
 
-    /** "just now", "5m ago", "3h ago", "2d ago", else a short date. */
+    /** "just now", "5m ago", "3h ago", "2d ago", else a short date (localized). */
     public static String timeAgo(OffsetDateTime when) {
         if (when == null) return "";
+        boolean en = isEnglish();
         long mins = java.time.Duration.between(when, OffsetDateTime.now()).toMinutes();
-        if (mins < 1) return "just now";
-        if (mins < 60) return mins + "m ago";
+        if (mins < 1) return en ? "just now" : "الآن";
+        if (mins < 60) return en ? mins + "m ago" : "منذ " + mins + " د";
         long hours = mins / 60;
-        if (hours < 24) return hours + "h ago";
+        if (hours < 24) return en ? hours + "h ago" : "منذ " + hours + " س";
         long days = hours / 24;
-        if (days < 7) return days + "d ago";
+        if (days < 7) return en ? days + "d ago" : "منذ " + days + " ي";
         return cardDateLine(when);
     }
 
     public static String categoryLabel(Event.Category c) {
+        if (isEnglish()) {
+            return switch (c) {
+                case MUSIC -> "Music";
+                case TECH -> "Tech";
+                case BUSINESS -> "Business";
+                case ARTS -> "Arts & Culture";
+                case FOOD -> "Food & Drink";
+                case SPORTS -> "Sports";
+                case COMMUNITY -> "Community";
+                case EDUCATION -> "Education";
+                case FILM -> "Film & Media";
+                case FAMILY -> "Family";
+            };
+        }
         return switch (c) {
-            case MUSIC -> "Music";
-            case TECH -> "Tech";
-            case BUSINESS -> "Business";
-            case ARTS -> "Arts & Culture";
-            case FOOD -> "Food & Drink";
-            case SPORTS -> "Sports";
-            case COMMUNITY -> "Community";
-            case EDUCATION -> "Education";
-            case FILM -> "Film & Media";
-            case FAMILY -> "Family";
+            case MUSIC -> "موسيقى";
+            case TECH -> "تقنية";
+            case BUSINESS -> "أعمال";
+            case ARTS -> "فنون وثقافة";
+            case FOOD -> "مأكولات ومشروبات";
+            case SPORTS -> "رياضة";
+            case COMMUNITY -> "مجتمع";
+            case EDUCATION -> "تعليم";
+            case FILM -> "سينما وإعلام";
+            case FAMILY -> "عائلة";
         };
     }
 

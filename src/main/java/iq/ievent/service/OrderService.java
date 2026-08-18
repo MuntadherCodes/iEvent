@@ -4,6 +4,8 @@ import iq.ievent.domain.*;
 import iq.ievent.repo.*;
 import iq.ievent.service.PromoService.Applied;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ import java.time.Year;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,6 +45,7 @@ public class OrderService {
     private final MailService mail;
     private final PromoService promoService;
     private final NotificationService notifications;
+    private final MessageSource messages;
     private final SecureRandom random = new SecureRandom();
     private final Path uploadDir;
 
@@ -53,6 +57,7 @@ public class OrderService {
                         MailService mail,
                         PromoService promoService,
                         NotificationService notifications,
+                        MessageSource messages,
                         @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.orders = orders;
         this.tickets = tickets;
@@ -62,7 +67,26 @@ public class OrderService {
         this.mail = mail;
         this.promoService = promoService;
         this.notifications = notifications;
+        this.messages = messages;
         this.uploadDir = Path.of(uploadDir);
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
+    }
+
+    /** Localized message in an explicit recipient locale (buyer/host-directed texts). */
+    private String msgFor(Locale locale, String code, Object... args) {
+        return messages.getMessage(code, args, locale);
+    }
+
+    /** The user's preferred language ("en"/"ar"; null or missing user → ar). */
+    private Locale localeForUser(Long userId) {
+        if (userId == null) return new Locale("ar");
+        List<String> langs = jdbc.query("SELECT preferred_lang FROM users WHERE id = ?",
+                (rs, i) -> rs.getString(1), userId);
+        return !langs.isEmpty() && "en".equals(langs.get(0)) ? Locale.ENGLISH : new Locale("ar");
     }
 
     /**
@@ -79,7 +103,7 @@ public class OrderService {
                           boolean keepUpdated) {
         Event event = events.findBySlug(slug)
                 .filter(e -> e.getStatus() == Event.Status.LIVE)
-                .orElseThrow(() -> new CheckoutException("This event is not on sale."));
+                .orElseThrow(() -> new CheckoutException(msg("checkout.eventNotOnSale")));
 
         Map<TicketType, Integer> selection = new LinkedHashMap<>();
         int totalQty = 0;
@@ -87,18 +111,18 @@ public class OrderService {
             int qty = entry.getValue() == null ? 0 : entry.getValue();
             if (qty <= 0) continue;
             TicketType tt = ticketTypes.findById(entry.getKey())
-                    .orElseThrow(() -> new CheckoutException("Unknown ticket type."));
+                    .orElseThrow(() -> new CheckoutException(msg("checkout.unknownTicketType")));
             if (!tt.getEvent().getId().equals(event.getId())) {
-                throw new CheckoutException("Ticket does not belong to this event.");
+                throw new CheckoutException(msg("checkout.ticketWrongEvent"));
             }
             if (tt.getStatus() != TicketType.Status.ON_SALE) {
-                throw new CheckoutException("'" + tt.getName() + "' is not on sale.");
+                throw new CheckoutException(msg("checkout.typeNotOnSale", tt.getName()));
             }
             selection.put(tt, qty);
             totalQty += qty;
         }
-        if (totalQty == 0) throw new CheckoutException("Pick at least one ticket.");
-        if (totalQty > 10) throw new CheckoutException("Maximum 10 tickets per order.");
+        if (totalQty == 0) throw new CheckoutException(msg("checkout.pickAtLeastOne"));
+        if (totalQty > 10) throw new CheckoutException(msg("checkout.maxTickets"));
 
         // atomic inventory reservation
         for (Map.Entry<TicketType, Integer> entry : selection.entrySet()) {
@@ -106,8 +130,7 @@ public class OrderService {
                     "UPDATE ticket_types SET sold = sold + ? WHERE id = ? AND sold + ? <= quantity",
                     entry.getValue(), entry.getKey().getId(), entry.getValue());
             if (updated == 0) {
-                throw new CheckoutException("'" + entry.getKey().getName()
-                        + "' just sold out — reduce the quantity and try again.");
+                throw new CheckoutException(msg("checkout.soldOut", entry.getKey().getName()));
             }
         }
 
@@ -124,18 +147,17 @@ public class OrderService {
 
         Applied applied = promoService.preview(event, promoCode, subtotal).orElse(null);
         if (promoCode != null && !promoCode.isBlank() && applied == null) {
-            throw new CheckoutException("Promo code '" + promoCode.trim() + "' is not valid for this event.");
+            throw new CheckoutException(msg("checkout.promoInvalid", promoCode.trim()));
         }
         long discount = applied == null ? 0 : applied.discountIqd();
         if (applied != null && !promoService.redeem(applied.promo())) {
-            throw new CheckoutException("That promo code just ran out of uses.");
+            throw new CheckoutException(msg("checkout.promoUsedUp"));
         }
         long total = Math.max(0, subtotal - discount) + fee;
 
         boolean free = total == 0;
         if (!free && !event.getOrganization().isDirectPaymentsEnabled()) {
-            throw new CheckoutException(
-                    "This organizer has not enabled a payment method yet. Please check back soon.");
+            throw new CheckoutException(msg("checkout.noPaymentMethod"));
         }
 
         Order order = new Order();
@@ -181,30 +203,41 @@ public class OrderService {
             jdbc.update("UPDATE users SET notify_events = TRUE WHERE id = ?", buyer.getId());
         }
 
+        final Locale locale = LocaleContextHolder.getLocale();
         if (free) {
             List<Ticket> issued = issueTickets(order);
-            mail.sendOrderConfirmed(order, issued);
+            mail.sendOrderConfirmed(order, issued, locale);
             notifications.notify(buyer.getId(), "ORDER_CONFIRMED",
-                    "Tickets confirmed — " + event.getTitle(),
-                    "Order " + order.getOrderCode() + " · your tickets are ready.",
+                    msg("notif.orderConfirmed.title", event.getTitle()),
+                    msg("notif.orderConfirmed.body", order.getOrderCode()),
                     "/me/tickets");
         } else {
-            mail.sendOrderPending(order);
+            mail.sendOrderPending(order, locale);
             notifications.notify(buyer.getId(), "ORDER_PENDING",
-                    "Order received — " + event.getTitle(),
-                    "Order " + order.getOrderCode()
-                            + " is waiting for the organizer to confirm your transfer.",
+                    msg("notif.orderPending.title", event.getTitle()),
+                    msg("notif.orderPending.body", order.getOrderCode()),
                     "/me/tickets");
             Organization org = event.getOrganization();
+            // Host-directed texts localize to the ORG OWNER's preferred language,
+            // not the buyer's request locale.
+            final Locale hostLocale = localeForUser(org.getOwnerUserId());
+            String newOrderBody;
+            Locale prev = LocaleContextHolder.getLocale();
+            LocaleContextHolder.setLocale(hostLocale); // Format.iqd suffix follows the recipient
+            try {
+                newOrderBody = order.getBuyerName() + " · " + Format.iqd(order.getTotalIqd())
+                        + " · " + order.getOrderCode();
+            } finally {
+                LocaleContextHolder.setLocale(prev);
+            }
             notifications.notify(org.getOwnerUserId(), "NEW_ORDER",
-                    "New order to confirm — " + event.getTitle(),
-                    order.getBuyerName() + " · " + Format.iqd(order.getTotalIqd())
-                            + " · " + order.getOrderCode(),
+                    msgFor(hostLocale, "notif.newOrder.title", event.getTitle()),
+                    newOrderBody,
                     "/host/orders?f=1&status=pending");
             if (org.isNotifyPendingOrders()) {
                 final Order saved = order;
                 jdbc.query("SELECT email FROM users WHERE id = ?",
-                        rs -> { mail.sendPendingOrderAlert(rs.getString(1), saved); },
+                        rs -> { mail.sendPendingOrderAlert(rs.getString(1), saved, hostLocale); },
                         org.getOwnerUserId());
             }
         }
@@ -216,12 +249,12 @@ public class OrderService {
     @Transactional
     public Order refund(Long orderId, Long hostOrgId) {
         Order order = orders.findById(orderId)
-                .orElseThrow(() -> new CheckoutException("Order not found."));
+                .orElseThrow(() -> new CheckoutException(msg("checkout.orderNotFound")));
         if (!order.getEvent().getOrganization().getId().equals(hostOrgId)) {
-            throw new CheckoutException("Order does not belong to your organization.");
+            throw new CheckoutException(msg("checkout.orderNotYours"));
         }
         if (order.getStatus() != Order.Status.CONFIRMED) {
-            throw new CheckoutException("Only confirmed orders can be refunded.");
+            throw new CheckoutException(msg("checkout.onlyConfirmedRefund"));
         }
         order.setStatus(Order.Status.REFUNDED);
         for (OrderItem item : order.getItems()) {
@@ -230,10 +263,11 @@ public class OrderService {
         }
         jdbc.update("UPDATE tickets SET status = 'VOID' WHERE order_id = ?", order.getId());
         order.getEvent().getTitle(); // init for async mail
-        mail.sendOrderRefunded(order);
+        Locale buyerLocale = localeForUser(order.getBuyerUserId());
+        mail.sendOrderRefunded(order, buyerLocale);
         notifications.notify(order.getBuyerUserId(), "ORDER_REFUNDED",
-                "Order refunded — " + order.getEvent().getTitle(),
-                "Order " + order.getOrderCode() + " was refunded; tickets are no longer valid.",
+                msgFor(buyerLocale, "notif.orderRefunded.title", order.getEvent().getTitle()),
+                msgFor(buyerLocale, "notif.orderRefunded.body", order.getOrderCode()),
                 "/me/tickets");
         return orders.save(order);
     }
@@ -244,11 +278,11 @@ public class OrderService {
         Order order = orders.findById(orderId)
                 .filter(o -> o.getEvent().getOrganization().getId().equals(hostOrgId))
                 .filter(o -> o.getStatus() == Order.Status.CONFIRMED)
-                .orElseThrow(() -> new CheckoutException("Only confirmed orders can be re-sent."));
+                .orElseThrow(() -> new CheckoutException(msg("checkout.onlyConfirmedResend")));
         List<Ticket> list = tickets.findByOrderIdOrderByIdAsc(order.getId());
         list.forEach(t -> t.getTicketType().getName());
         order.getEvent().getTitle();
-        mail.sendOrderConfirmed(order, list);
+        mail.sendOrderConfirmed(order, list, localeForUser(order.getBuyerUserId()));
         return order;
     }
 
@@ -258,10 +292,11 @@ public class OrderService {
         order.setStatus(Order.Status.CONFIRMED);
         order.setConfirmedAt(OffsetDateTime.now());
         List<Ticket> issued = issueTickets(order);
-        mail.sendOrderConfirmed(order, issued);
+        Locale buyerLocale = localeForUser(order.getBuyerUserId());
+        mail.sendOrderConfirmed(order, issued, buyerLocale);
         notifications.notify(order.getBuyerUserId(), "ORDER_CONFIRMED",
-                "Order confirmed — " + order.getEvent().getTitle(),
-                "The organizer confirmed " + order.getOrderCode() + "; your tickets are ready.",
+                msgFor(buyerLocale, "notif.orderApproved.title", order.getEvent().getTitle()),
+                msgFor(buyerLocale, "notif.orderApproved.body", order.getOrderCode()),
                 "/me/tickets");
         return order;
     }
@@ -274,22 +309,23 @@ public class OrderService {
             jdbc.update("UPDATE ticket_types SET sold = GREATEST(0, sold - ?) WHERE id = ?",
                     item.getQuantity(), item.getTicketType().getId());
         }
-        mail.sendOrderRejected(order);
+        Locale buyerLocale = localeForUser(order.getBuyerUserId());
+        mail.sendOrderRejected(order, buyerLocale);
         notifications.notify(order.getBuyerUserId(), "ORDER_REJECTED",
-                "Order could not be confirmed — " + order.getEvent().getTitle(),
-                "The organizer could not verify the transfer for " + order.getOrderCode() + ".",
+                msgFor(buyerLocale, "notif.orderRejected.title", order.getEvent().getTitle()),
+                msgFor(buyerLocale, "notif.orderRejected.body", order.getOrderCode()),
                 "/me/tickets");
         return order;
     }
 
     private Order ownedPendingOrder(Long orderId, Long hostOrgId) {
         Order order = orders.findById(orderId)
-                .orElseThrow(() -> new CheckoutException("Order not found."));
+                .orElseThrow(() -> new CheckoutException(msg("checkout.orderNotFound")));
         if (!order.getEvent().getOrganization().getId().equals(hostOrgId)) {
-            throw new CheckoutException("Order does not belong to your organization.");
+            throw new CheckoutException(msg("checkout.orderNotYours"));
         }
         if (order.getStatus() != Order.Status.PENDING_CONFIRMATION) {
-            throw new CheckoutException("Order is not awaiting confirmation.");
+            throw new CheckoutException(msg("checkout.notAwaiting"));
         }
         return order;
     }
@@ -347,13 +383,13 @@ public class OrderService {
     private String storeReceipt(MultipartFile receipt, String orderCode) {
         if (receipt == null || receipt.isEmpty()) return null;
         if (receipt.getSize() > RECEIPT_MAX_BYTES) {
-            throw new CheckoutException("Receipt file is too large (max 5 MB).");
+            throw new CheckoutException(msg("checkout.receiptTooLarge"));
         }
         String original = receipt.getOriginalFilename() == null ? "receipt" : receipt.getOriginalFilename();
         String ext = original.contains(".")
                 ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
         if (!RECEIPT_EXTENSIONS.contains(ext)) {
-            throw new CheckoutException("Receipt must be a JPG, PNG, WEBP or PDF file.");
+            throw new CheckoutException(msg("checkout.receiptType"));
         }
         try {
             Path dir = uploadDir.resolve("receipts");
@@ -362,7 +398,7 @@ public class OrderService {
             Files.copy(receipt.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
             return target.toString();
         } catch (IOException e) {
-            throw new CheckoutException("Could not store the receipt file. Please try again.");
+            throw new CheckoutException(msg("checkout.receiptStoreFailed"));
         }
     }
 

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('My tickets — iEvent')}"></head>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{public.title.tickets})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
@@ -11,22 +11,22 @@
 
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl">My tickets</h1>
-      <p class="mt-2 text-ink-500">All your bookings and RSVPs in one place.</p>
+      <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{public.nav.myTickets}">My tickets</h1>
+      <p class="mt-2 text-ink-500" th:text="#{public.tickets.sub}">All your bookings and RSVPs in one place.</p>
     </div>
     <a th:href="@{/browse}" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
-      <svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg>Browse events
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg>[[#{public.nav.browse}]]
     </a>
   </div>
 
   <!-- Tabs -->
-  <div class="mt-8 flex gap-2 border-b border-ink-100" role="tablist" aria-label="Ticket filters">
+  <div class="mt-8 flex gap-2 border-b border-ink-100" role="tablist" th:attr="aria-label=#{public.tickets.filtersAria}" aria-label="Ticket filters">
     <button id="tabUpcoming" type="button" role="tab" aria-selected="true" aria-controls="panelUpcoming"
             class="border-b-2 border-brand-500 px-4 py-3 text-sm font-bold text-brand-600"
-            th:text="'Upcoming (' + ${upcomingOrders.size()} + ')'">Upcoming (2)</button>
+            th:text="#{public.org.upcomingTab(${'' + upcomingOrders.size()})}">Upcoming (2)</button>
     <button id="tabPast" type="button" role="tab" aria-selected="false" aria-controls="panelPast"
             class="border-b-2 border-transparent px-4 py-3 text-sm font-medium text-ink-500 transition hover:text-ink-800"
-            th:text="'Past (' + ${pastOrders.size()} + ')'">Past (3)</button>
+            th:text="#{public.tickets.pastTab(${'' + pastOrders.size()})}">Past (3)</button>
   </div>
 
   <!-- ===== Upcoming panel ===== -->
@@ -62,26 +62,26 @@
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
             <p class="text-xs font-bold uppercase tracking-wide text-brand-600" th:text="${o.dateLine()}">Sat, Sep 12 · 7:00 PM</p>
-            <span th:if="${o.statusKey() == 'CONFIRMED'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Confirmed</span>
-            <span th:if="${o.statusKey() == 'PENDING_CONFIRMATION'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Pending</span>
-            <span th:if="${o.statusKey() == 'REJECTED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Rejected</span>
-            <span th:if="${o.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Cancelled</span>
-            <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Refunded</span>
+            <span th:if="${o.statusKey() == 'CONFIRMED'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.confirmed}]]</span>
+            <span th:if="${o.statusKey() == 'PENDING_CONFIRMATION'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.pending}]]</span>
+            <span th:if="${o.statusKey() == 'REJECTED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.rejected}]]</span>
+            <span th:if="${o.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.cancelled}]]</span>
+            <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.refunded}]]</span>
           </div>
           <h2 class="mt-1 font-display text-lg font-bold leading-snug text-ink-900"><a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="transition hover:text-brand-600" th:text="${o.eventTitle()}">Baghdad Nights Music Festival</a></h2>
-          <p class="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use th:attr="href=${o.online()} ? '#i-laptop' : '#i-map-pin'"/></svg><span th:text="${o.venueLine()}">Al-Zawraa Park, Baghdad</span> · Order <span class="tabular-nums" th:text="'#' + ${o.orderCode()}">#EVT-2026-08451</span></p>
-          <span th:each="line : ${o.itemLines()}" class="mr-1.5 mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="${line}">2 × General Admission</span></span>
+          <p class="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use th:attr="href=${o.online()} ? '#i-laptop' : '#i-map-pin'"/></svg><span th:text="${o.venueLine()}">Al-Zawraa Park, Baghdad</span> · [[#{public.confirm.orderWord}]] <span class="tabular-nums" th:text="'#' + ${o.orderCode()}">#EVT-2026-08451</span></p>
+          <span th:each="line : ${o.itemLines()}" class="me-1.5 mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="${line}">2 × General Admission</span></span>
           <!-- Online event: join link (revealed only when the order is confirmed) -->
           <div th:if="${o.online() && o.onlineUrl() != null}" class="mt-3">
-            <a th:href="${o.onlineUrl()}" target="_blank" rel="noopener" class="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-2 text-xs font-semibold text-white shadow-pop transition hover:bg-green-700 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-external-link"/></svg>Join online event</a>
+            <a th:href="${o.onlineUrl()}" target="_blank" rel="noopener" class="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-2 text-xs font-semibold text-white shadow-pop transition hover:bg-green-700 active:scale-[.98]"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-external-link"/></svg>[[#{public.confirm.joinOnline}]]</a>
           </div>
-          <p th:if="${o.online() && o.onlineUrl() == null && o.statusKey() == 'PENDING_CONFIRMATION'}" class="mt-2 flex items-center gap-1.5 text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>The join link unlocks when the organizer confirms your order.</p>
+          <p th:if="${o.online() && o.onlineUrl() == null && o.statusKey() == 'PENDING_CONFIRMATION'}" class="mt-2 flex items-center gap-1.5 text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.tickets.joinLockedNote}]]</p>
         </div>
         <div class="flex shrink-0 gap-2 sm:flex-col md:flex-row">
           <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
-            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-qr-code"/></svg>View order
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-qr-code"/></svg>[[#{public.tickets.viewOrder}]]
           </a>
-          <a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">Details</a>
+          <a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.tickets.details}">Details</a>
         </div>
       </div>
 
@@ -96,9 +96,9 @@
             <span class="hidden text-xs tabular-nums text-ink-400 sm:inline" th:text="${t.code()}">EVT-08451-A</span>
           </p>
           <span class="flex shrink-0 gap-2">
-            <a th:href="@{/t/{c}(c=${t.code()})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-eye"/></svg>Status</a>
-            <a th:href="@{/t/{c}/qr.png(c=${t.code()})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-qr-code"/></svg>QR</a>
-            <a th:href="@{/t/{c}/ticket.pdf(c=${t.code()})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-download"/></svg>PDF</a>
+            <a th:href="@{/t/{c}(c=${t.code()})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-eye"/></svg>[[#{public.tickets.status}]]</a>
+            <a th:href="@{/t/{c}/qr.png(c=${t.code()})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-qr-code"/></svg>[[#{public.tickets.qr}]]</a>
+            <a th:href="@{/t/{c}/ticket.pdf(c=${t.code()})}" class="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-download"/></svg>[[#{public.stub.pdf}]]</a>
           </span>
         </div>
       </div>
@@ -107,9 +107,9 @@
     <!-- Empty state -->
     <div th:if="${upcomingOrders.isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
       <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-ticket"/></svg></div>
-      <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">No upcoming tickets</h3>
-      <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">When you book or RSVP, your tickets land here automatically.</p>
-      <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Find your next event</a>
+      <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.tickets.noUpcoming}">No upcoming tickets</h3>
+      <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500" th:text="#{public.tickets.noUpcomingSub}">When you book or RSVP, your tickets land here automatically.</p>
+      <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.tickets.findNext}">Find your next event</a>
     </div>
   </div>
 
@@ -146,25 +146,25 @@
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
             <p class="text-xs font-bold uppercase tracking-wide text-ink-400" th:text="${o.dateLine()}">Thu, Jul 17 · 6:00 PM</p>
-            <span th:if="${o.statusKey() == 'CONFIRMED'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Confirmed</span>
-            <span th:if="${o.statusKey() == 'PENDING_CONFIRMATION'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Pending</span>
-            <span th:if="${o.statusKey() == 'REJECTED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Rejected</span>
-            <span th:if="${o.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Cancelled</span>
-            <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>Refunded</span>
+            <span th:if="${o.statusKey() == 'CONFIRMED'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.confirmed}]]</span>
+            <span th:if="${o.statusKey() == 'PENDING_CONFIRMATION'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.pending}]]</span>
+            <span th:if="${o.statusKey() == 'REJECTED'}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.rejected}]]</span>
+            <span th:if="${o.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.cancelled}]]</span>
+            <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.refunded}]]</span>
           </div>
           <h2 class="mt-1 font-display text-base font-bold leading-snug text-ink-900"><a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="transition hover:text-brand-600" th:text="${o.eventTitle()}">Startup Mixer Baghdad</a></h2>
           <p class="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use th:attr="href=${o.online()} ? '#i-laptop' : '#i-map-pin'"/></svg><span th:text="${o.venueLine()}">The Station, Baghdad</span> · <span th:each="line,it : ${o.itemLines()}"><span th:text="${line}">1 × Free</span><span th:if="${!it.last}"> · </span></span></p>
         </div>
-        <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">View order<svg class="h-4 w-4" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.tickets.viewOrder}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
     </article>
 
     <!-- Empty state -->
     <div th:if="${pastOrders.isEmpty()}" class="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-12 text-center">
       <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-100 text-brand-600"><svg class="h-9 w-9" aria-hidden="true"><use href="#i-ticket"/></svg></div>
-      <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900">That's everything so far</h3>
-      <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500">Events you've attended will show up here after they end.</p>
-      <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">Find your next event</a>
+      <h3 class="mt-4 font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.tickets.everything}">That's everything so far</h3>
+      <p class="mx-auto mt-1 max-w-xs text-sm text-ink-500" th:text="#{public.tickets.everythingSub}">Events you've attended will show up here after they end.</p>
+      <a th:href="@{/browse}" class="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.tickets.findNext}">Find your next event</a>
     </div>
   </div>
 

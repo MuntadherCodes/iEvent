@@ -26,12 +26,39 @@ public class GlobalModelAdvice {
     }
 
     @ModelAttribute
-    public void globals(@AuthenticationPrincipal UserDetails principal, Model model) {
+    public void globals(@AuthenticationPrincipal UserDetails principal, Model model,
+                        jakarta.servlet.http.HttpServletRequest request) {
         model.addAttribute("googleLoginEnabled", googleLoginEnabled);
         model.addAttribute("mapsKey", mapsKey.isBlank() ? null : mapsKey);
         // Controllers may overwrite this with their own lookup; this default keeps
         // pages that don't (error page, simple views) consistent for OAuth + form users.
-        model.addAttribute("currentUser",
-                principal == null ? null : userService.byEmail(principal.getUsername()));
+        iq.ievent.domain.User current =
+                principal == null ? null : userService.byEmail(principal.getUsername());
+        model.addAttribute("currentUser", current);
+
+        // ---- locale / RTL (Arabic-first) ----
+        java.util.Locale locale = org.springframework.context.i18n.LocaleContextHolder.getLocale();
+        boolean en = "en".equals(locale.getLanguage());
+        // Remember the signed-in user's language (writes only on change) so
+        // emails/notifications later localize to the RECIPIENT's preference.
+        if (current != null) {
+            try { userService.rememberLanguage(current, en ? "en" : "ar"); }
+            catch (Exception ignored) { }
+        }
+        model.addAttribute("lang", en ? "en" : "ar");
+        model.addAttribute("dir", en ? "ltr" : "rtl");
+        model.addAttribute("rtl", !en);
+        // Same-page language switch targets (request URI is already /en-stripped).
+        // On the Boot error dispatch, prefer the URI that actually failed.
+        Object failedUri = request.getAttribute("jakarta.servlet.error.request_uri");
+        String path = failedUri instanceof String f && f.startsWith("/") ? f : request.getRequestURI();
+        if (path.equals("/en")) path = "/";
+        else if (path.startsWith("/en/")) path = path.substring(3);
+        String qs = request.getQueryString();
+        String qsPart = qs == null || qs.isEmpty() ? "" : "?" + qs;
+        String full = path + qsPart;
+        model.addAttribute("urlEn", "/en" + ("/".equals(path) ? "" : path) + qsPart);
+        model.addAttribute("urlAr", "/set-lang?to=ar&next="
+                + java.net.URLEncoder.encode(full, java.nio.charset.StandardCharsets.UTF_8));
     }
 }

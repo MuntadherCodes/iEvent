@@ -9,6 +9,8 @@ import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.TicketTypeRepository;
 import iq.ievent.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,7 @@ public class HostService {
     private final TeamService teamService;
     private final MailService mail;
     private final NotificationService notifications;
+    private final MessageSource messages;
     private final String baseUrl;
     private final java.nio.file.Path uploadDir;
 
@@ -67,6 +70,7 @@ public class HostService {
                        TeamService teamService,
                        MailService mail,
                        NotificationService notifications,
+                       MessageSource messages,
                        @Value("${app.base-url}") String baseUrl,
                        @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.organizations = organizations;
@@ -77,20 +81,31 @@ public class HostService {
         this.teamService = teamService;
         this.mail = mail;
         this.notifications = notifications;
+        this.messages = messages;
         this.baseUrl = baseUrl;
         this.uploadDir = java.nio.file.Path.of(uploadDir);
+    }
+
+    /** Localized user-facing message in the current request locale. */
+    private String msg(String code, Object... args) {
+        return messages.getMessage(code, args, LocaleContextHolder.getLocale());
+    }
+
+    /** Localized message in an explicit recipient locale (buyer-directed texts). */
+    private String msgFor(java.util.Locale locale, String code, Object... args) {
+        return messages.getMessage(code, args, locale);
     }
 
     /** Stores/replaces the event cover image. Returns an error message or null. */
     @Transactional
     public String storeCover(Event event, MultipartFile cover) {
         if (cover == null || cover.isEmpty()) return null;
-        if (cover.getSize() > 3 * 1024 * 1024) return "Cover image is too large (max 3 MB).";
+        if (cover.getSize() > 3 * 1024 * 1024) return msg("host.cover.tooLarge");
         String original = cover.getOriginalFilename() == null ? "" : cover.getOriginalFilename();
         String ext = original.contains(".")
                 ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
         if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
-            return "Cover must be a JPG, PNG or WEBP image.";
+            return msg("host.cover.badType");
         }
         try {
             java.nio.file.Path dir = uploadDir.resolve("covers");
@@ -106,7 +121,7 @@ public class HostService {
             events.save(event);
             return null;
         } catch (java.io.IOException e) {
-            return "Could not store the cover image — try again.";
+            return msg("host.cover.storeFailed");
         }
     }
 
@@ -270,7 +285,7 @@ public class HostService {
     @Transactional
     public String upsertTicketType(Event event, Long ttId, String name, long priceIqd,
                                    int quantity, String status) {
-        if (name == null || name.isBlank()) return "Ticket name is required.";
+        if (name == null || name.isBlank()) return msg("host.ticket.nameRequired");
         TicketType tt;
         if (ttId == null) {
             tt = new TicketType();
@@ -280,9 +295,9 @@ public class HostService {
             tt = ticketTypes.findById(ttId)
                     .filter(x -> x.getEvent().getId().equals(event.getId()))
                     .orElse(null);
-            if (tt == null) return "Unknown ticket type.";
+            if (tt == null) return msg("host.ticket.unknown");
             if (quantity < tt.getSold()) {
-                return "Quantity cannot be below tickets already sold (" + tt.getSold() + ").";
+                return msg("host.ticket.belowSold", String.valueOf(tt.getSold()));
             }
         }
         tt.setName(name.trim());
@@ -307,6 +322,8 @@ public class HostService {
     @Transactional(readOnly = true)
     public List<DayPoint> dailySales(Long orgId, int days) {
         int d = days == 7 || days == 90 ? days : 30;
+        Locale chartLocale = "en".equals(LocaleContextHolder.getLocale().getLanguage())
+                ? Locale.ENGLISH : new Locale("ar");
         return jdbc.query("""
                 SELECT d::date AS day, COALESCE(SUM(o.total_iqd), 0) AS amount
                 FROM generate_series(now() - make_interval(days => ?), now(), interval '1 day') d
@@ -315,7 +332,7 @@ public class HostService {
                 GROUP BY d::date ORDER BY d::date
                 """,
                 (rs, i) -> new DayPoint(
-                        rs.getDate(1).toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH)),
+                        rs.getDate(1).toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM d", chartLocale)),
                         rs.getLong(2)),
                 d - 1, orgId);
     }
@@ -374,11 +391,9 @@ public class HostService {
     public void cancelEvent(Event event) {
         event.setStatus(Event.Status.CANCELLED);
         events.save(event);
-        notifyBuyers(event,
-                "Event cancelled: " + event.getTitle(),
-                "We're sorry — the organizer has cancelled " + event.getTitle() + ".\n\n"
-                        + "If you paid for tickets, the organizer will arrange your refund through "
-                        + "the payment method you used. Tickets for this event are no longer valid.");
+        notifyBuyers(event, locale -> new String[] {
+                msgFor(locale, "mail.eventCancelled.subject", event.getTitle()),
+                msgFor(locale, "mail.eventCancelled.body", event.getTitle())});
     }
 
     /** Moves the event to a new date/time and emails every buyer. */
@@ -390,32 +405,65 @@ public class HostService {
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
         events.save(event);
-        notifyBuyers(event,
-                "New date for " + event.getTitle(),
-                "The organizer has moved " + event.getTitle() + " to a new date:\n\n"
-                        + Format.longDateLine(event.getStartsAt(), event.getEndsAt())
-                        + "\n\nYour existing tickets remain valid for the new date.");
+        notifyBuyers(event, locale -> {
+            // Format.* reads LocaleContextHolder — pin it so the recipient's date
+            // line localizes even though we're still on the actor's thread.
+            java.util.Locale previous = LocaleContextHolder.getLocale();
+            LocaleContextHolder.setLocale(locale);
+            try {
+                return new String[] {
+                        msgFor(locale, "mail.eventPostponed.subject", event.getTitle()),
+                        msgFor(locale, "mail.eventPostponed.body", event.getTitle(),
+                                Format.longDateLine(event.getStartsAt(), event.getEndsAt()))};
+            } finally {
+                LocaleContextHolder.setLocale(previous);
+            }
+        });
     }
 
-    private void notifyBuyers(Event event, String subject, String body) {
-        List<String> emails = jdbc.queryForList("""
-                SELECT DISTINCT o.buyer_email FROM orders o
+    /** One (userId, email, preferredLang) row per affected buyer. */
+    private record BuyerRecipient(Long userId, String email, String lang) {}
+
+    /**
+     * Emails + notifies every confirmed/pending buyer, each in THEIR preferred
+     * language (users.preferred_lang; null → ar) — not the acting host's locale.
+     * The texts function renders {subject, body} for a given locale; only the
+     * two site locales exist, so both variants are built once up front.
+     */
+    private void notifyBuyers(Event event,
+                              java.util.function.Function<java.util.Locale, String[]> texts) {
+        List<BuyerRecipient> recipients = jdbc.query("""
+                SELECT DISTINCT o.buyer_user_id, o.buyer_email, u.preferred_lang
+                FROM orders o
+                LEFT JOIN users u ON u.id = o.buyer_user_id
                 WHERE o.event_id = ? AND o.status IN ('CONFIRMED', 'PENDING_CONFIRMATION')
-                """, String.class, event.getId());
+                """,
+                (rs, i) -> new BuyerRecipient(rs.getObject(1, Long.class),
+                        rs.getString(2), rs.getString(3)),
+                event.getId());
         String url = baseUrl + "/events/" + event.getSlug();
-        for (String email : emails) {
-            mail.sendCampaign(email, subject, body, event.getTitle(), url);
-        }
-        // in-app notifications for buyers who have accounts
-        List<Long> userIds = jdbc.queryForList("""
-                SELECT DISTINCT o.buyer_user_id FROM orders o
-                WHERE o.event_id = ? AND o.status IN ('CONFIRMED', 'PENDING_CONFIRMATION')
-                """, Long.class, event.getId());
         String type = event.getStatus() == Event.Status.CANCELLED ? "EVENT_CANCELLED" : "EVENT_POSTPONED";
-        for (Long uid : userIds) {
-            notifications.notify(uid, type, subject,
-                    body.length() > 380 ? body.substring(0, 380) : body,
-                    "/events/" + event.getSlug());
+        final java.util.Locale en = java.util.Locale.ENGLISH;
+        final java.util.Locale ar = new java.util.Locale("ar");
+        final String[] enTexts = texts.apply(en);
+        final String[] arTexts = texts.apply(ar);
+        // The DISTINCT triple can repeat an email (two accounts) or a user id
+        // (two buyer emails) — send each email and each notification only once.
+        java.util.Set<String> mailedEmails = new java.util.HashSet<>();
+        java.util.Set<Long> notifiedUsers = new java.util.HashSet<>();
+        for (BuyerRecipient r : recipients) {
+            boolean english = "en".equals(r.lang());
+            String subject = english ? enTexts[0] : arTexts[0];
+            String body = english ? enTexts[1] : arTexts[1];
+            if (r.email() != null && mailedEmails.add(r.email())) {
+                mail.sendCampaign(r.email(), subject, body, event.getTitle(), url,
+                        english ? en : ar);
+            }
+            if (r.userId() != null && notifiedUsers.add(r.userId())) {
+                notifications.notify(r.userId(), type, subject,
+                        body.length() > 380 ? body.substring(0, 380) : body,
+                        "/events/" + event.getSlug());
+            }
         }
     }
 
@@ -501,8 +549,8 @@ public class HostService {
         return nz(v);
     }
 
-    private static String deltaLabel(long now, long prev) {
-        if (prev == 0) return now == 0 ? "—" : "new";
+    private String deltaLabel(long now, long prev) {
+        if (prev == 0) return now == 0 ? "—" : msg("host.delta.new");
         long pct = Math.round((now - prev) * 100.0 / prev);
         return (pct >= 0 ? "+" : "") + pct + "%";
     }
@@ -558,12 +606,12 @@ public class HostService {
         org.setBrandColor(color != null && color.matches("#[0-9a-fA-F]{6}") ? color : null);
         org.setNotifyPendingOrders(notifyPendingOrders);
         if (logo != null && !logo.isEmpty()) {
-            if (logo.getSize() > 1024 * 1024) return "Logo is too large (max 1 MB).";
+            if (logo.getSize() > 1024 * 1024) return msg("host.logo.tooLarge");
             String original = logo.getOriginalFilename() == null ? "" : logo.getOriginalFilename();
             String ext = original.contains(".")
                     ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
             if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
-                return "Logo must be a JPG, PNG or WEBP image.";
+                return msg("host.logo.badType");
             }
             try {
                 java.nio.file.Path dir = uploadDir.resolve("logos");
@@ -573,16 +621,16 @@ public class HostService {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 org.setLogoPath(target.toString());
             } catch (java.io.IOException e) {
-                return "Could not store the logo — try again.";
+                return msg("host.logo.storeFailed");
             }
         }
         if (cover != null && !cover.isEmpty()) {
-            if (cover.getSize() > 3 * 1024 * 1024) return "Cover image is too large (max 3 MB).";
+            if (cover.getSize() > 3 * 1024 * 1024) return msg("host.cover.tooLarge");
             String original = cover.getOriginalFilename() == null ? "" : cover.getOriginalFilename();
             String ext = original.contains(".")
                     ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
             if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
-                return "Cover must be a JPG, PNG or WEBP image.";
+                return msg("host.cover.badType");
             }
             try {
                 java.nio.file.Path dir = uploadDir.resolve("org-covers");
@@ -592,7 +640,7 @@ public class HostService {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 org.setCoverImagePath(target.toString());
             } catch (java.io.IOException e) {
-                return "Could not store the cover image — try again.";
+                return msg("host.cover.storeFailed");
             }
         }
         organizations.save(org);
