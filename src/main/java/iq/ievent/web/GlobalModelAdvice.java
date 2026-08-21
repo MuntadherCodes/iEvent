@@ -48,6 +48,13 @@ public class GlobalModelAdvice {
         iq.ievent.domain.User current =
                 principal == null ? null : userService.byEmail(principal.getUsername());
         model.addAttribute("currentUser", current);
+        // Nav CTA text (top pill, drawer list item, bottom button) switches
+        // "Host an event" → "Host console" once the account is a host — set on
+        // creating an org (HostService) or being invited onto one (TeamService),
+        // same signal event.html's own rail already keyed off locally.
+        model.addAttribute("isHost", current != null
+                && (current.getRole() == iq.ievent.domain.User.Role.HOST
+                        || current.getRole() == iq.ievent.domain.User.Role.ADMIN));
 
         // ---- locale / RTL (Arabic-first) ----
         java.util.Locale locale = org.springframework.context.i18n.LocaleContextHolder.getLocale();
