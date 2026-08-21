@@ -20,8 +20,12 @@
    `MAIL_SMTP_AUTH=true`, `MAIL_SMTP_STARTTLS=true`, `SEED_DEMO=false`.
    Optional: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (Sign in with Google —
    remember to add `https://<domain>/login/oauth2/code/google` as an authorized
-   redirect URI in the Google Cloud console) and `GOOGLE_MAPS_API_KEY`
-   (venue maps; restrict the key to your domain).
+   redirect URI in the Google Cloud console), `GOOGLE_MAPS_API_KEY`
+   (venue maps + venue search autocomplete; restrict the key to your domain,
+   and confirm the Maps Embed API, Maps JavaScript API, and Places API are
+   all enabled for it), `OPENAI_API_KEY` (the "Write it for me" AI content
+   button; hides when unset), and `PEXELS_API_KEY` (the cover-picker's
+   "search photos" tab; hides when unset).
 4. `docker compose -f docker-compose.staging.yml up -d --build`
 5. Verify: `https://<domain>/actuator/health` → `{"status":"UP"}`; register a
    user; send a test order; check the email arrives via Mailjet.
