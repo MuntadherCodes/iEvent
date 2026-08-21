@@ -44,6 +44,9 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    mail:
+      enabled: false
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
