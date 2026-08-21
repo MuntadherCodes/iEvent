@@ -101,7 +101,10 @@
               <ul class="mt-4 divide-y divide-ink-50">
                 <li th:each="m : ${members}" class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
                   <div class="flex min-w-0 flex-1 items-center gap-3">
-                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${m.initials()}">FA</span>
+                    <span class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                      <img th:if="${m.avatarUrl() != null}" th:src="${m.avatarUrl()}" alt="" referrerpolicy="no-referrer" class="h-full w-full object-cover">
+                      <span th:if="${m.avatarUrl() == null}" th:text="${m.initials()}">FA</span>
+                    </span>
                     <div class="min-w-0">
                       <p class="truncate font-semibold text-ink-900">
                         <span th:text="${m.fullName()}">Fahad Al-Thakur</span>
@@ -262,7 +265,7 @@
               </div>
               <div class="mt-4 flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3.5 py-2.5 text-xs leading-relaxed text-sky-800">
                 <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
-                <span><span th:text="#{host.set.feeNote1}">Booking fee</span> <span class="font-semibold tabular-nums" th:text="#{host.set.feeAmount}">1,500 IQD</span> <span th:text="#{host.set.feeNote2}">per paid ticket, paid by the buyer. The iEvent Payments online gateway arrives in phase 2.</span></span>
+                <span><span th:text="#{host.set.feeNote1}">Booking fee</span> <span class="font-semibold tabular-nums" th:text="#{host.set.feeAmount}">750 IQD or 3% + 2,000 IQD</span> <span th:text="#{host.set.feeNote2}">per paid ticket, paid by the buyer. The iEvent Payments online gateway arrives in phase 2.</span></span>
               </div>
             </div>
           </section>

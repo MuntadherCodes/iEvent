@@ -221,14 +221,27 @@ public class UserAreaController {
         return "favorites";
     }
 
-    @PostMapping("/events/{slug}/like")
+    @PostMapping("/e/{slug}/like")
     public String toggleLike(@PathVariable String slug,
                              @AuthenticationPrincipal UserDetails principal,
                              @RequestHeader(value = "Referer", required = false) String referer) {
         User user = principal == null ? null : userService.byEmail(principal.getUsername());
         if (user == null) return "redirect:/auth/login";
         events.findBySlug(slug).ifPresent(e -> interactions.toggleLike(user.getId(), e.getId()));
-        return "redirect:" + (referer != null && referer.contains("/events/") ? "/events/" + slug : "/favorites");
+        return "redirect:" + refererPath(referer, "/favorites");
+    }
+
+    /** Same-origin path+query from a Referer header (never the raw header — avoids an open redirect). */
+    private static String refererPath(String referer, String fallback) {
+        if (referer == null) return fallback;
+        try {
+            java.net.URI u = java.net.URI.create(referer);
+            String path = u.getRawPath();
+            if (path == null || !path.startsWith("/")) return fallback;
+            return u.getRawQuery() != null ? path + "?" + u.getRawQuery() : path;
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     @GetMapping("/organizers/{handle}")

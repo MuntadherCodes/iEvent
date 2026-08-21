@@ -79,13 +79,15 @@ public class ExtrasController {
                 .body(pdf.ticketsPdf(java.util.List.of(t)));
     }
 
-    /** Short link used by the embeddable widget and social shares. */
-    @GetMapping("/e/{slug}")
-    public String shortLink(@PathVariable String slug) {
-        return "redirect:/events/" + slug;
+    /** Legacy path kept working for any already-shared /events/{slug} links.
+     *  Slugs are Arabic by default — must be path-segment-encoded, or
+     *  sendRedirect throws on the non-Latin1 characters in the raw string. */
+    @GetMapping("/events/{slug}")
+    public String legacyEventLink(@PathVariable String slug) {
+        return "redirect:/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, StandardCharsets.UTF_8);
     }
 
-    @GetMapping("/events/{slug}/calendar.ics")
+    @GetMapping("/e/{slug}/calendar.ics")
     public ResponseEntity<byte[]> eventIcs(@PathVariable String slug) {
         Event e = events.findBySlug(slug)
                 .filter(ev -> ev.getStatus() == Event.Status.LIVE || ev.getStatus() == Event.Status.ENDED)
@@ -129,7 +131,7 @@ public class ExtrasController {
           .append("DTEND:").append(ICS_STAMP.format(end)).append("\r\n")
           .append("SUMMARY:").append(icsEscape(e.getTitle())).append("\r\n")
           .append("LOCATION:").append(icsEscape(location)).append("\r\n")
-          .append("DESCRIPTION:").append(icsEscape("Tickets & details: https://ievent.iq/events/" + e.getSlug()))
+          .append("DESCRIPTION:").append(icsEscape("Tickets & details: https://ievent.iq/e/" + e.getSlug()))
           .append("\r\n")
           .append("END:VEVENT\r\n")
           .append("END:VCALENDAR\r\n");

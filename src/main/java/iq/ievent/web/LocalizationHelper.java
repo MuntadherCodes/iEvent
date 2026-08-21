@@ -38,6 +38,11 @@ public class LocalizationHelper {
         return !"en".equals(LocaleContextHolder.getLocale().getLanguage());
     }
 
+    /** Platform booking fee for one ticket at this price — see Format.bookingFeeFor. */
+    public long bookingFee(long priceIqd) {
+        return iq.ievent.service.Format.bookingFeeFor(priceIqd);
+    }
+
     /** Localized label for an Event.Category enum name (e.g. "MUSIC" → "موسيقى"). */
     public String category(String enumName) {
         try {

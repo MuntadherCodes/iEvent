@@ -27,7 +27,7 @@ public class TeamService {
         public boolean canManage() { return owner() || "MANAGER".equals(role); }
     }
 
-    public record Member(long id, String fullName, String email, String role, String initials) {}
+    public record Member(long id, String fullName, String email, String role, String initials, String avatarUrl) {}
 
     private final OrganizationRepository organizations;
     private final UserRepository users;
@@ -68,14 +68,14 @@ public class TeamService {
     public List<Member> members(Organization org) {
         List<Member> out = new java.util.ArrayList<>();
         users.findById(org.getOwnerUserId()).ifPresent(o ->
-                out.add(new Member(0, o.getFullName(), o.getEmail(), "OWNER", o.initials())));
+                out.add(new Member(0, o.getFullName(), o.getEmail(), "OWNER", o.initials(), o.getAvatarUrl())));
         out.addAll(jdbc.query("""
-                SELECT m.id, u.full_name, u.email, m.role
+                SELECT m.id, u.full_name, u.email, m.role, u.avatar_url
                 FROM org_members m JOIN users u ON u.id = m.user_id
                 WHERE m.organization_id = ? ORDER BY m.created_at ASC
                 """,
                 (rs, i) -> new Member(rs.getLong(1), rs.getString(2), rs.getString(3),
-                        rs.getString(4), initials(rs.getString(2))),
+                        rs.getString(4), initials(rs.getString(2)), rs.getString(5)),
                 org.getId()));
         return out;
     }

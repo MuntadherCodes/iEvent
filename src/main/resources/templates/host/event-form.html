@@ -87,6 +87,10 @@
       </div>
 
       <form id="createForm" th:action="@{/host/events/new}" method="post" enctype="multipart/form-data" th:attr="data-payments-ready=${paymentsReady} ? '1' : '0'">
+        <!-- Set once the network autosave below creates the real draft row, so
+             the eventual real submit updates that same row instead of creating
+             a second event. -->
+        <input type="hidden" id="draftEventId" name="draftEventId" value="">
 
         <!-- ============ STEP 1 · BASICS ============ -->
         <section class="step-panel mt-8 space-y-6" data-panel="1">
@@ -118,7 +122,7 @@
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.where.title}">Where is it?</h3>
 
-            <!-- Location type segmented toggle (wireframe: Venue / Online / To be announced) -->
+            <!-- Location type segmented toggle (Venue / Online / To be announced) -->
             <div class="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold" role="radiogroup" th:attr="aria-label=#{wizard.where.typeAria}" aria-label="Location type">
               <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:text-brand-700">
                 <input type="radio" name="locationType" value="VENUE" checked class="loc-type sr-only">
@@ -133,6 +137,16 @@
                 <span class="truncate" th:text="#{wizard.loc.tba}">To be announced</span>
               </label>
             </div>
+
+            <!-- Announcement-only: independent of location — an announcement can still
+                 have a real venue, be online, or be TBA; it just carries no tickets. -->
+            <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3.5 transition hover:border-brand-300 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+              <input type="checkbox" id="ev-announce-only" name="announceOnly" value="true" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span>
+                <span class="block text-sm font-semibold text-ink-800" th:text="#{wizard.loc.announceOnly}">Announcement only — no tickets</span>
+                <span class="mt-0.5 block text-xs text-ink-500" th:text="#{wizard.loc.announceOnlyNote}">No tickets are sold for this event — it's shown as an informational announcement only.</span>
+              </span>
+            </label>
 
             <!-- VENUE fields -->
             <div id="locVenueFields" class="mt-5 space-y-4">
@@ -214,7 +228,6 @@
                   <input type="checkbox" disabled class="h-4 w-4 rounded border-ink-300 text-brand-500"> کوردی (KU)
                 </label>
               </div>
-              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.kind.langNote}">Language tags arrive in a later release — they won't be saved yet.</p>
             </div>
           </div>
         </section>
@@ -226,7 +239,7 @@
             <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.banner.subtitle}">Events with a great cover get up to 2× more views.</p>
 
             <!-- Live preview -->
-            <div id="coverPreview" class="relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5">
+            <div id="coverPreview" class="relative mt-5 aspect-[21/9] max-h-56 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5">
               <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-cover" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-cover)"/></svg>
               <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use href="#i-image"/></svg>
               <img id="coverPreviewImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
@@ -239,6 +252,24 @@
               <label class="mt-3 block text-sm font-semibold text-ink-800" for="cover-image" th:text="#{wizard.banner.upload}">Upload a banner photo</label>
               <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-2 block w-full max-w-xs text-sm text-ink-600 file:me-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-600">
               <p class="mt-2 text-xs text-ink-400" th:text="#{wizard.banner.uploadHelp}">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
+            </div>
+
+            <!-- Pexels stock-photo picker — hidden entirely when PEXELS_API_KEY
+                 isn't configured (see GlobalModelAdvice's "pexelsAvailable"). -->
+            <div th:if="${pexelsAvailable}" id="gallery-picker" class="mt-5">
+              <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orSearch}">…or search free stock photos</p>
+              <div class="mt-2 flex gap-2">
+                <input type="text" id="pexelsQuery" class="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.banner.searchPlaceholder}" placeholder="e.g. music festival, conference, food">
+                <button type="button" id="pexelsSearchBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-900 disabled:cursor-wait disabled:opacity-60"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg><span th:text="#{wizard.banner.searchBtn}">Search</span></button>
+              </div>
+              <p id="pexelsMsg" class="mt-2 hidden text-sm text-ink-500"></p>
+              <div id="pexelsResults" class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4"></div>
+              <div id="gallerySelectedWrap" class="mt-4 hidden">
+                <p class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.banner.selected}">Selected images</p>
+                <div id="gallerySelectedList" class="mt-2 flex flex-wrap gap-2"></div>
+                <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.banner.sliderNote}">2 or more images become an auto-slider on your event page.</p>
+              </div>
+              <div id="galleryHiddenFields"></div>
             </div>
 
             <p class="mt-6 text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orTheme}">…or pick a color theme</p>
@@ -263,8 +294,17 @@
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.summary.title}">Event summary</h3>
-            <p class="text-sm text-ink-500" th:text="#{wizard.summary.subtitle}">One or two lines shown on your event card in the directory.</p>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.summary.title}">Event summary</h3>
+                <p class="text-sm text-ink-500" th:text="#{wizard.summary.subtitle}">One or two lines shown on your event card in the directory.</p>
+              </div>
+              <button th:if="${aiAvailable}" type="button" id="aiSummaryBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                <span data-ai-btn-label th:text="#{wizard.ai.writeForMe}">Write it for me</span>
+              </button>
+            </div>
+            <p id="aiSummaryError" class="mt-2 hidden text-sm text-rose-600"></p>
             <textarea id="ev-summary" name="summary" rows="3" maxlength="160" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.summary.placeholder}" placeholder="A sunset food carnival on the Corniche — 40+ street food stalls, live music and family fun." th:attr="aria-label=#{wizard.summary.title}" aria-label="Event summary"></textarea>
             <p class="mt-1.5 text-end text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
           </div>
@@ -272,6 +312,16 @@
 
         <!-- ============ STEP 3 · TICKETS ============ -->
         <section class="step-panel mt-8 hidden space-y-6" data-panel="3">
+          <!-- Shown instead of the ticket builder when the "announcement only" checkbox
+               (in the Where step, independent of location type) is on — those events
+               carry no ticket types at all, so the fields below are simply left empty
+               (HostController skips blank ticket rows on save). -->
+          <div id="announceOnlyTicketsNote" class="hidden rounded-2xl border border-ink-100 bg-white p-6 text-center shadow-card sm:p-8">
+            <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-megaphone"/></svg></span>
+            <h2 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{wizard.tickets.announceOnlyTitle}">No tickets needed</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{wizard.tickets.announceOnlySub}">"Announcement only" events don't need tickets — this is just information shared with visitors.</p>
+          </div>
+          <div id="ticketsBuilder">
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.tickets.title}">Set up your tickets</h2>
             <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.tickets.subtitle}">Fill in the rows you need — leave the rest empty. Price 0 = free ticket.</p>
@@ -344,7 +394,7 @@
           <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
           <div id="feeCard" class="rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:p-6">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
-            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">1,500 IQD booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
+            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">750 IQD (or 3% + 2,000 IQD, capped at 15,000 IQD) booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" checked class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
@@ -358,14 +408,24 @@
           </div>
           <!-- Free events carry no fee — shown instead of the fee card when the toggle is on -->
           <p id="feeFreeNote" class="hidden rounded-2xl border border-ink-100 bg-white px-5 py-4 text-sm text-ink-500 shadow-card" th:text="#{wizard.fee.freeNote}">Free events never carry a booking fee — attendees pay nothing.</p>
+          </div>
         </section>
 
         <!-- ============ STEP 4 · DETAILS ============ -->
         <section class="step-panel mt-8 hidden space-y-6" data-panel="4">
           <div class="grid gap-6 lg:grid-cols-[1fr_260px]">
             <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-              <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.details.title}">Tell people more</h2>
-              <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.details.subtitle}">A rich description helps your event stand out in the directory.</p>
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.details.title}">Tell people more</h2>
+                  <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.details.subtitle}">A rich description helps your event stand out in the directory.</p>
+                </div>
+                <button th:if="${aiAvailable}" type="button" id="aiWriteBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                  <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                  <span data-ai-btn-label th:text="#{wizard.ai.writeForMe}">Write it for me</span>
+                </button>
+              </div>
+              <p id="aiWriteError" class="mt-2 hidden text-sm text-rose-600"></p>
               <div class="mt-4 rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
                 <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
                   <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
@@ -398,20 +458,29 @@
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.lineup.title}">Lineup / agenda</h3>
-            <p class="mt-1 text-sm text-ink-500"><span th:text="#{wizard.lineup.sub1}">One act or agenda item per line, e.g. </span><span class="font-medium text-ink-700" th:text="#{wizard.lineup.example}">Sunset stage — 7:00 PM</span><span th:text="#{wizard.lineup.sub2}">. Shown on your event page.</span></p>
-            <textarea name="lineup" rows="4" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.lineup.placeholder}" placeholder="Gates open · food stalls &amp; family zone — 4:30 PM&#10;Sunset stage — live oud &amp; band sets — 7:00 PM" th:attr="aria-label=#{wizard.lineup.aria}" aria-label="Lineup, one act per line"></textarea>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.lineup.title}">Lineup / agenda</h3>
+                <p class="mt-1 text-sm text-ink-500"><span th:text="#{wizard.lineup.sub1}">One act or agenda item per line, e.g. </span><span class="font-medium text-ink-700" th:text="#{wizard.lineup.example}">Sunset stage — 7:00 PM</span><span th:text="#{wizard.lineup.sub2}">. Shown on your event page.</span></p>
+              </div>
+              <button th:if="${aiAvailable}" type="button" id="aiLineupBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                <span data-ai-btn-label th:text="#{wizard.ai.writeForMe}">Write it for me</span>
+              </button>
+            </div>
+            <p id="aiLineupError" class="mt-2 hidden text-sm text-rose-600"></p>
+            <textarea id="ev-lineup" name="lineup" rows="4" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.lineup.placeholder}" placeholder="Gates open · food stalls &amp; family zone — 4:30 PM&#10;Sunset stage — live oud &amp; band sets — 7:00 PM" th:attr="aria-label=#{wizard.lineup.aria}" aria-label="Lineup, one act per line"></textarea>
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <div class="grid gap-5 sm:grid-cols-2">
-              <div>
+            <div id="detailsGridRefundVis" class="grid gap-5 sm:grid-cols-2">
+              <div id="refundPolicyField">
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund" th:text="#{wizard.refund.title}">Refund policy</label>
                 <div class="relative">
                   <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="UP_TO_7_DAYS" selected th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</option>
+                    <option value="UP_TO_7_DAYS" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</option>
                     <option value="UP_TO_48H" th:text="#{wizard.refund.48h}">Refunds up to 48 hours before event</option>
-                    <option value="NO_REFUNDS" th:text="#{wizard.refund.none}">No refunds</option>
+                    <option value="NO_REFUNDS" selected th:text="#{wizard.refund.none}">No refunds</option>
                   </select>
                   <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </div>
@@ -519,7 +588,7 @@
 </div>
 
 <!-- Localized strings for inline JS (review step, validation, counters, autosave) -->
-<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted}"></div>
+<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage}"></div>
 
 <!-- Google Places config: rendered only when a Maps key is configured -->
 <div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
@@ -557,6 +626,12 @@
   function locType() {
     var checked = document.querySelector('input[name="locationType"]:checked');
     return checked ? checked.value : 'VENUE';
+  }
+
+  // Announcement-only: independent checkbox, not tied to location type
+  function announceOnly() {
+    var cb = document.getElementById('ev-announce-only');
+    return !!(cb && cb.checked);
   }
 
   // Display label of the selected city (localized option text; value stays English)
@@ -671,7 +746,7 @@
         return false;
       }
     }
-    if (n === 3) {
+    if (n === 3 && !announceOnly()) {
       var ok = false;
       document.querySelectorAll('.ticket-row').forEach(function (row) {
         var name = row.querySelector('.tt-name').value.trim();
@@ -778,8 +853,43 @@
     radio.addEventListener('change', renderLoc);
   });
 
+  // Announcement-only toggle: independent of location — swaps the Tickets
+  // step's builder for a "no tickets needed" note.
+  var ticketsBuilder = document.getElementById('ticketsBuilder');
+  var announceOnlyTicketsNote = document.getElementById('announceOnlyTicketsNote');
+  function renderAnnounceOnly() {
+    var on = announceOnly();
+    if (ticketsBuilder) ticketsBuilder.classList.toggle('hidden', on);
+    if (announceOnlyTicketsNote) announceOnlyTicketsNote.classList.toggle('hidden', !on);
+  }
+  var announceOnlyCheckbox = document.getElementById('ev-announce-only');
+  if (announceOnlyCheckbox) announceOnlyCheckbox.addEventListener('change', renderAnnounceOnly);
+  renderAnnounceOnly();
+
+  // Refund policy field: pointless (and hidden) for announcement-only events
+  // (no tickets at all) or fully free ones (nothing to refund) — mirrors the
+  // same rule the public event page uses to hide the refund section.
+  var refundPolicyField = document.getElementById('refundPolicyField');
+  var detailsGridRefundVis = document.getElementById('detailsGridRefundVis');
+  function renderRefundVisibility() {
+    if (!refundPolicyField) return;
+    var freeToggleEl = document.getElementById('freeToggle');
+    var anyPaid = false;
+    document.querySelectorAll('input[name="ttPrice"]').forEach(function (inp) {
+      if ((parseInt(inp.value, 10) || 0) > 0) anyPaid = true;
+    });
+    var hide = announceOnly() || (freeToggleEl && freeToggleEl.checked) || !anyPaid;
+    refundPolicyField.classList.toggle('hidden', hide);
+    if (detailsGridRefundVis) detailsGridRefundVis.classList.toggle('sm:grid-cols-2', !hide);
+  }
+  if (announceOnlyCheckbox) announceOnlyCheckbox.addEventListener('change', renderRefundVisibility);
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.name === 'ttPrice') renderRefundVisibility();
+  });
+  renderRefundVisibility();
+
   // Cover theme live preview
-  var GRAD_BASE = 'relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 ';
+  var GRAD_BASE = 'relative mt-5 aspect-[21/9] max-h-56 overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 ';
   var preview = document.getElementById('coverPreview');
   document.querySelectorAll('.cover-theme').forEach(function (radio) {
     radio.addEventListener('change', function () {
@@ -830,10 +940,18 @@
     feeCard.classList.toggle('hidden', on);
     feeFreeNote.classList.toggle('hidden', !on);
     updateFeeExample();
+    renderRefundVisibility();
   });
 
   // Dynamic booking-fee example (R12 #2): reflect the real top ticket price.
   function fmtIqdFee(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
+  // Mirrors Format.bookingFeeFor server-side: 750 flat at/under 15,000 IQD,
+  // else 3% + 2,000 IQD, capped at 15,000 IQD.
+  function bookingFeeFor(price) {
+    if (price <= 0) return 0;
+    if (price <= 15000) return 750;
+    return Math.min(15000, Math.round(price * 0.03) + 2000);
+  }
   function updateFeeExample() {
     if (!feeCard) return;
     var top = 0;
@@ -847,7 +965,8 @@
     if (!showCard) return;
     var pass = feeCard.querySelector('.fee-note-pass');
     var abs = feeCard.querySelector('.fee-note-absorb');
-    [ [pass, top + 1500], [abs, Math.max(0, top - 1500)] ].forEach(function (pair) {
+    var fee = bookingFeeFor(top);
+    [ [pass, top + fee], [abs, Math.max(0, top - fee)] ].forEach(function (pair) {
       var el = pair[0];
       if (!el || !el.dataset.tpl) return;
       var cur = el.dataset.currency || 'IQD';
@@ -1030,6 +1149,79 @@
   render();
 
   // ------------------------------------------------------------------
+  // Network autosave: a real DRAFT row on the server, not just the
+  // localStorage backup above. Two phases:
+  //  1) Before step 1's required fields (title/category/city/date/start
+  //     time) are all filled, there's nothing valid to create yet — the
+  //     localStorage backup above is the only safety net during that phase.
+  //  2) Once they're all filled, the next tick creates the real draft via
+  //     /events/autosave-start and stores its id in #draftEventId; every
+  //     later tick PATCHes that same row via /events/{id}/autosave so the
+  //     draft survives a lost tab or a different device, and shows up as a
+  //     real (deletable) row in "My events" even if the wizard is abandoned.
+  //  Ticket types and the cover image are excluded — they're only ever
+  //  written on an explicit Save/Publish, same as the localStorage draft.
+  // ------------------------------------------------------------------
+  (function networkAutosave() {
+    var draftIdInput = document.getElementById('draftEventId');
+    var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+    var netTimer = null;
+    var netSaving = false;
+    var netPending = false;
+
+    function required(name) {
+      var el = createForm.elements[name];
+      return el ? (el.value || '').trim() : '';
+    }
+
+    function step1Ready() {
+      return required('title') && required('category') && required('city')
+          && required('date') && required('startTime');
+    }
+
+    function formDataWithoutFile() {
+      var fd = new FormData(createForm);
+      fd.delete('coverImage');
+      return fd;
+    }
+
+    function netSaveNow() {
+      if (restoring || netSaving || !step1Ready()) return;
+      netSaving = true;
+      var id = draftIdInput.value;
+      var req = id
+        ? fetch('/host/events/' + id + '/autosave', {
+            method: 'POST', headers: (function () { var h = {}; h[csrfHeader] = csrfToken; return h; })(),
+            body: formDataWithoutFile()
+          })
+        : fetch('/host/events/autosave-start', {
+            method: 'POST', headers: (function () { var h = {}; h[csrfHeader] = csrfToken; return h; })(),
+            body: formDataWithoutFile()
+          });
+      req.then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.id) draftIdInput.value = data.id;
+        })
+        .catch(function () { /* offline / transient — the localStorage backup still covers this device */ })
+        .finally(function () {
+          netSaving = false;
+          if (netPending) { netPending = false; netSaveNow(); }
+        });
+    }
+
+    function scheduleNetSave() {
+      if (restoring) return;
+      if (netSaving) { netPending = true; return; }
+      if (netTimer) return;
+      netTimer = setTimeout(function () { netTimer = null; netSaveNow(); }, 2000);
+    }
+
+    createForm.addEventListener('input', scheduleNetSave);
+    createForm.addEventListener('change', scheduleNetSave);
+  })();
+
+  // ------------------------------------------------------------------
   // Google Places venue picker — active only when the server rendered
   // #placesCfg (Maps key configured) AND the location type is VENUE.
   // Without a key none of this runs and the manual fields work as before.
@@ -1178,6 +1370,235 @@
     });
     // Autosave restore writes the textarea directly — mirror it back into the editor
     window.__syncDescEditor = function () { ed.innerHTML = ta.value || ''; };
+  })();
+
+  // ---- "Write it for me" (AI-generated copy: description, summary, lineup) ----
+  (function () {
+    var titleInput = document.getElementById('ev-title');
+    var catSelect = document.getElementById('ev-cat');
+    var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+    // Local i18n lookup — the wizard's own msg() is private to a different IIFE.
+    var i18nEl = document.getElementById('wizI18n');
+    function aiMsg(name) { return (i18nEl && i18nEl.getAttribute('data-' + name)) || ''; }
+
+    function wireAiButton(btnId, errorId, kind, applyResult) {
+      var btn = document.getElementById(btnId);
+      if (!btn) return; // hidden server-side when AI isn't configured
+      var errorEl = document.getElementById(errorId);
+      var labelEl = btn.querySelector('[data-ai-btn-label]');
+      var defaultLabel = labelEl.textContent;
+
+      btn.addEventListener('click', function () {
+        errorEl.classList.add('hidden');
+        var title = (titleInput.value || '').trim();
+        if (!title) {
+          errorEl.textContent = aiMsg('ai-need-title');
+          errorEl.classList.remove('hidden');
+          titleInput.focus();
+          return;
+        }
+        var category = catSelect && catSelect.selectedOptions.length ? catSelect.selectedOptions[0].textContent.trim() : '';
+        btn.disabled = true;
+        labelEl.textContent = aiMsg('ai-generating');
+        var body = new URLSearchParams({ title: title, category: category, lang: document.documentElement.lang, kind: kind });
+        var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        headers[csrfHeader] = csrfToken;
+        fetch('/host/events/ai/write', { method: 'POST', headers: headers, body: body.toString() })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (!result.ok) throw new Error('generation_failed');
+            applyResult(result.data.text || '');
+          })
+          .catch(function () {
+            errorEl.textContent = aiMsg('ai-error');
+            errorEl.classList.remove('hidden');
+          })
+          .finally(function () {
+            btn.disabled = false;
+            labelEl.textContent = defaultLabel;
+          });
+      });
+    }
+
+    wireAiButton('aiWriteBtn', 'aiWriteError', 'DESCRIPTION', function (text) {
+      // The backend returns ready-made HTML (h4 section headers + p + b) —
+      // sanitized again server-side on save, same as any other rich-text edit.
+      var ed = document.getElementById('ev-desc-editor');
+      ed.innerHTML = text;
+      ed.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    wireAiButton('aiSummaryBtn', 'aiSummaryError', 'SUMMARY', function (text) {
+      var ta = document.getElementById('ev-summary');
+      ta.value = text.slice(0, 160);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    wireAiButton('aiLineupBtn', 'aiLineupError', 'LINEUP', function (text) {
+      var ta = document.getElementById('ev-lineup');
+      ta.value = text;
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  })();
+
+  // ---- Stock-photo picker (Pexels) — search, multi-select, feeds the
+  // gallery hidden fields the server turns into event_images rows. ----
+  (function () {
+    var picker = document.getElementById('gallery-picker');
+    if (!picker) return; // pexelsAvailable is false — hidden server-side
+    var i18nEl = document.getElementById('wizI18n');
+    function pMsg(name) { return (i18nEl && i18nEl.getAttribute('data-pexels-' + name)) || ''; }
+
+    var queryInput = document.getElementById('pexelsQuery');
+    var searchBtn = document.getElementById('pexelsSearchBtn');
+    var msgEl = document.getElementById('pexelsMsg');
+    var resultsEl = document.getElementById('pexelsResults');
+    var selectedWrap = document.getElementById('gallerySelectedWrap');
+    var selectedListEl = document.getElementById('gallerySelectedList');
+    var hiddenFieldsEl = document.getElementById('galleryHiddenFields');
+    var coverInput = document.getElementById('cover-image');
+    var coverImg = document.getElementById('coverPreviewImg');
+
+    var selected = []; // {url, thumbnailUrl, creditName, creditUrl}, in pick order
+
+    function showMsg(text) {
+      if (!text) { msgEl.classList.add('hidden'); return; }
+      msgEl.textContent = text;
+      msgEl.classList.remove('hidden');
+    }
+
+    function isSelected(url) { return selected.some(function (s) { return s.url === url; }); }
+
+    function syncThumb(btn, url) {
+      var on = isSelected(url);
+      var check = btn.querySelector('.pexels-check');
+      btn.classList.toggle('ring-brand-500', on);
+      check.classList.toggle('hidden', !on);
+      check.classList.toggle('flex', on);
+    }
+
+    function syncAllThumbs() {
+      resultsEl.querySelectorAll('[data-url]').forEach(function (btn) {
+        syncThumb(btn, btn.getAttribute('data-url'));
+      });
+    }
+
+    function toggle(p) {
+      var idx = selected.findIndex(function (s) { return s.url === p.fullUrl; });
+      if (idx >= 0) selected.splice(idx, 1);
+      else selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl });
+      renderSelected();
+      syncAllThumbs();
+    }
+
+    function removeSelected(url) {
+      selected = selected.filter(function (s) { return s.url !== url; });
+      renderSelected();
+      syncAllThumbs();
+    }
+
+    function hiddenInput(name, value) {
+      var el = document.createElement('input');
+      el.type = 'hidden';
+      el.name = name;
+      el.value = value || '';
+      return el;
+    }
+
+    function renderSelected() {
+      selectedWrap.classList.toggle('hidden', selected.length === 0);
+      selectedListEl.innerHTML = '';
+      selected.forEach(function (s) {
+        var wrap = document.createElement('div');
+        wrap.className = 'group relative h-16 w-16 overflow-hidden rounded-lg ring-1 ring-ink-100';
+        var img = document.createElement('img');
+        img.src = s.thumbnailUrl || s.url;
+        img.alt = '';
+        img.className = 'h-full w-full object-cover';
+        wrap.appendChild(img);
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100';
+        rm.setAttribute('aria-label', pMsg('remove'));
+        rm.innerHTML = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        rm.addEventListener('click', function () { removeSelected(s.url); });
+        wrap.appendChild(rm);
+        selectedListEl.appendChild(wrap);
+      });
+
+      hiddenFieldsEl.innerHTML = '';
+      selected.forEach(function (s) {
+        hiddenFieldsEl.appendChild(hiddenInput('galleryUrl', s.url));
+        hiddenFieldsEl.appendChild(hiddenInput('galleryCreditName', s.creditName));
+        hiddenFieldsEl.appendChild(hiddenInput('galleryCreditUrl', s.creditUrl));
+      });
+
+      // An uploaded file always wins as the primary cover, same as on save —
+      // only take over the live preview when no file is currently chosen.
+      if (coverInput.files && coverInput.files.length) return;
+      if (selected.length) {
+        coverImg.src = selected[0].url;
+        coverImg.classList.remove('hidden');
+      } else {
+        coverImg.classList.add('hidden');
+        coverImg.removeAttribute('src');
+      }
+    }
+
+    function renderResults(photos) {
+      resultsEl.innerHTML = '';
+      photos.forEach(function (p) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'group relative aspect-square overflow-hidden rounded-lg ring-2 ring-transparent transition hover:ring-brand-300';
+        btn.setAttribute('data-url', p.fullUrl);
+        var img = document.createElement('img');
+        img.src = p.thumbnailUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.className = 'h-full w-full object-cover';
+        btn.appendChild(img);
+        var check = document.createElement('span');
+        check.className = 'pexels-check pointer-events-none absolute inset-0 hidden items-center justify-center bg-brand-500/50';
+        check.innerHTML = '<svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+        btn.appendChild(check);
+        btn.addEventListener('click', function () { toggle(p); });
+        resultsEl.appendChild(btn);
+      });
+      syncAllThumbs();
+    }
+
+    function doSearch() {
+      var q = queryInput.value.trim();
+      if (!q) return;
+      searchBtn.disabled = true;
+      showMsg(pMsg('searching'));
+      resultsEl.innerHTML = '';
+      fetch('/host/events/pexels-search?q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+        .then(function (result) {
+          searchBtn.disabled = false;
+          if (!result.ok) { showMsg(pMsg('search-error')); return; }
+          var photos = result.data.photos || [];
+          if (!photos.length) { showMsg(pMsg('no-results')); return; }
+          showMsg('');
+          renderResults(photos);
+        })
+        .catch(function () {
+          searchBtn.disabled = false;
+          showMsg(pMsg('search-error'));
+        });
+    }
+
+    searchBtn.addEventListener('click', doSearch);
+    queryInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+    });
+    // A cleared file input hands the live preview back to whatever's picked.
+    coverInput.addEventListener('change', function () {
+      if (!coverInput.files || !coverInput.files.length) renderSelected();
+    });
   })();
 
 </script>

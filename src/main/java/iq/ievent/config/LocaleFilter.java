@@ -73,16 +73,26 @@ public class LocaleFilter extends OncePerRequestFilter {
                        String strippedPath, Locale locale) throws ServletException, IOException {
         HttpServletRequest effective = request;
         if (strippedPath != null) {
-            final String sp = strippedPath;
+            // getRequestURI() stays percent-encoded (matches how Tomcat provides it on a
+            // normal, un-wrapped request) but getServletPath() must be decoded — per the
+            // servlet spec it's never percent-encoded. Leaving both encoded (as this used
+            // to) makes Spring Security's StrictHttpFirewall see a "%" in getServletPath()
+            // it doesn't expect and reject the request as a potential double-encoding
+            // attack (RequestRejectedException: "potentially malicious String %") — this
+            // only ever showed up for slugs containing non-ASCII (e.g. Arabic) characters,
+            // since ASCII paths have nothing left to decode either way.
+            final String encodedPath = strippedPath;
+            final String decodedPath = org.springframework.web.util.UriUtils.decode(
+                    encodedPath, java.nio.charset.StandardCharsets.UTF_8);
             effective = new HttpServletRequestWrapper(request) {
-                @Override public String getRequestURI() { return sp; }
-                @Override public String getServletPath() { return sp; }
+                @Override public String getRequestURI() { return encodedPath; }
+                @Override public String getServletPath() { return decodedPath; }
                 @Override public StringBuffer getRequestURL() {
                     StringBuffer url = new StringBuffer();
                     url.append(getScheme()).append("://").append(getServerName());
                     int port = getServerPort();
                     if (port != 80 && port != 443) url.append(':').append(port);
-                    return url.append(sp);
+                    return url.append(encodedPath);
                 }
             };
         }
@@ -115,11 +125,18 @@ public class LocaleFilter extends OncePerRequestFilter {
 
     /** Only page navigations get language-redirected — never assets or APIs. */
     private static boolean isPagePath(String path) {
+        // Root-level static files (sw.js, site.webmanifest under /img/favicon/ are
+        // already caught by the /img/ prefix, but sw.js MUST live at the origin
+        // root for its scope to cover the whole site) can't be redirected at all —
+        // a service worker registration is required by spec to fail outright if its
+        // script URL resolves via a redirect, so bouncing /sw.js to /en/sw.js would
+        // silently break installability for every English-cookie visitor.
         return !(path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/img/")
                 || path.startsWith("/media/") || path.startsWith("/api/")
                 || path.startsWith("/actuator/") || path.equals("/favicon.ico")
                 || path.endsWith(".png") || path.endsWith(".pdf") || path.endsWith(".ics")
-                || path.endsWith(".csv") || path.equals("/error"));
+                || path.endsWith(".csv") || path.endsWith(".js") || path.endsWith(".webmanifest")
+                || path.endsWith(".ico") || path.endsWith(".svg") || path.equals("/error"));
     }
 
     private static String safePath(String p) {

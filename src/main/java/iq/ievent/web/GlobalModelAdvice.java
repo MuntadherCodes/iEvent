@@ -15,14 +15,25 @@ public class GlobalModelAdvice {
 
     private final boolean googleLoginEnabled;
     private final String mapsKey;
+    private final boolean aiAvailable;
+    private final boolean pexelsAvailable;
     private final UserService userService;
+    private final String siteBaseUrl;
 
     public GlobalModelAdvice(@Value("${app.google.client-id:}") String googleClientId,
                              @Value("${app.google.maps-key:}") String mapsKey,
+                             @Value("${app.openai.api-key:}") String openaiApiKey,
+                             @Value("${app.pexels.api-key:}") String pexelsApiKey,
+                             @Value("${app.base-url}") String siteBaseUrl,
                              UserService userService) {
         this.googleLoginEnabled = googleClientId != null && !googleClientId.isBlank();
         this.mapsKey = mapsKey == null ? "" : mapsKey;
+        this.aiAvailable = openaiApiKey != null && !openaiApiKey.isBlank();
+        this.pexelsAvailable = pexelsApiKey != null && !pexelsApiKey.isBlank();
         this.userService = userService;
+        // Trimmed once here so every canonical/hreflang/OG URL built in templates
+        // via siteBaseUrl + path doesn't end up with an accidental "//".
+        this.siteBaseUrl = siteBaseUrl.endsWith("/") ? siteBaseUrl.substring(0, siteBaseUrl.length() - 1) : siteBaseUrl;
     }
 
     @ModelAttribute
@@ -30,6 +41,8 @@ public class GlobalModelAdvice {
                         jakarta.servlet.http.HttpServletRequest request) {
         model.addAttribute("googleLoginEnabled", googleLoginEnabled);
         model.addAttribute("mapsKey", mapsKey.isBlank() ? null : mapsKey);
+        model.addAttribute("aiAvailable", aiAvailable);
+        model.addAttribute("pexelsAvailable", pexelsAvailable);
         // Controllers may overwrite this with their own lookup; this default keeps
         // pages that don't (error page, simple views) consistent for OAuth + form users.
         iq.ievent.domain.User current =
@@ -60,5 +73,9 @@ public class GlobalModelAdvice {
         model.addAttribute("urlEn", "/en" + ("/".equals(path) ? "" : path) + qsPart);
         model.addAttribute("urlAr", "/set-lang?to=ar&next="
                 + java.net.URLEncoder.encode(full, java.nio.charset.StandardCharsets.UTF_8));
+
+        // ---- SEO: canonical / hreflang, built from the query-free path ----
+        model.addAttribute("siteBaseUrl", siteBaseUrl);
+        model.addAttribute("canonicalPath", path);
     }
 }

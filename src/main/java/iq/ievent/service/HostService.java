@@ -1,9 +1,11 @@
 package iq.ievent.service;
 
 import iq.ievent.domain.Event;
+import iq.ievent.domain.EventImage;
 import iq.ievent.domain.Organization;
 import iq.ievent.domain.TicketType;
 import iq.ievent.domain.User;
+import iq.ievent.repo.EventImageRepository;
 import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.TicketTypeRepository;
@@ -49,6 +51,7 @@ public class HostService {
     private final OrganizationRepository organizations;
     private final EventRepository events;
     private final TicketTypeRepository ticketTypes;
+    private final EventImageRepository eventImages;
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final TeamService teamService;
@@ -65,6 +68,7 @@ public class HostService {
     public HostService(OrganizationRepository organizations,
                        EventRepository events,
                        TicketTypeRepository ticketTypes,
+                       EventImageRepository eventImages,
                        UserRepository users,
                        JdbcTemplate jdbc,
                        TeamService teamService,
@@ -76,6 +80,7 @@ public class HostService {
         this.organizations = organizations;
         this.events = events;
         this.ticketTypes = ticketTypes;
+        this.eventImages = eventImages;
         this.users = users;
         this.jdbc = jdbc;
         this.teamService = teamService;
@@ -133,6 +138,83 @@ public class HostService {
             event.setCoverImagePath(null);
             events.save(event);
         }
+    }
+
+    public record GalleryImageForm(String url, String creditName, String creditUrl) {}
+
+    /** Applies the wizard's picked stock photos (Pexels). If the event has no
+     *  uploaded file (coverImagePath), the first pick becomes the primary cover
+     *  (coverImageUrl) and the rest are the extra gallery; if a file WAS
+     *  uploaded, that file stays primary and every pick becomes gallery —
+     *  either way, 2+ images total is what makes the public page a slider.
+     *  An empty list clears both, matching "the user removed all their picks". */
+    @Transactional
+    public void replaceGalleryImages(Event event, List<GalleryImageForm> picks) {
+        eventImages.deleteByEventId(event.getId());
+        List<GalleryImageForm> valid = picks == null ? List.of()
+                : picks.stream().filter(p -> p.url() != null && !p.url().isBlank()).toList();
+        int start = 0;
+        if (event.getCoverImagePath() == null && !valid.isEmpty()) {
+            GalleryImageForm primary = valid.get(0);
+            event.setCoverImageUrl(primary.url());
+            event.setCoverImageCreditName(primary.creditName());
+            event.setCoverImageCreditUrl(primary.creditUrl());
+            start = 1;
+        } else {
+            event.setCoverImageUrl(null);
+            event.setCoverImageCreditName(null);
+            event.setCoverImageCreditUrl(null);
+        }
+        events.save(event);
+        int order = 0;
+        for (int i = start; i < valid.size(); i++) {
+            GalleryImageForm p = valid.get(i);
+            EventImage img = new EventImage();
+            img.setEvent(event);
+            img.setUrl(p.url());
+            img.setCreditName(p.creditName());
+            img.setCreditUrl(p.creditUrl());
+            img.setSortOrder(order++);
+            eventImages.save(img);
+        }
+    }
+
+    /** Every image on the event's public page, primary first, with attribution —
+     *  0 items means the gradient/theme fallback, 1 means a static cover, 2+
+     *  means a slider. */
+    public record GalleryImage(String url, String creditName, String creditUrl) {}
+
+    @Transactional(readOnly = true)
+    public List<GalleryImage> gallery(Event event) {
+        List<GalleryImage> out = new java.util.ArrayList<>();
+        if (event.getCoverImagePath() != null) {
+            out.add(new GalleryImage("/media/event-cover/" + event.getId(), null, null));
+        } else if (event.getCoverImageUrl() != null) {
+            out.add(new GalleryImage(event.getCoverImageUrl(),
+                    event.getCoverImageCreditName(), event.getCoverImageCreditUrl()));
+        }
+        eventImages.findByEventIdOrderBySortOrderAsc(event.getId())
+                .forEach(img -> out.add(new GalleryImage(img.getUrl(), img.getCreditName(), img.getCreditUrl())));
+        return out;
+    }
+
+    /** What the picker widget itself manages, as picks it can re-render and
+     *  resubmit unchanged — used to pre-populate the edit page so a save that
+     *  never touches the picker doesn't wipe the existing gallery. Unlike
+     *  {@link #gallery}, this excludes an uploaded-file primary: that slot is
+     *  managed by the separate upload input / "remove cover" checkbox, not
+     *  the picker, so showing it there too would let removing it via the
+     *  picker silently disagree with what "remove cover" actually does. */
+    @Transactional(readOnly = true)
+    public List<GalleryImageForm> currentGalleryPicks(Event event) {
+        List<GalleryImageForm> out = new java.util.ArrayList<>();
+        if (event.getCoverImagePath() == null && event.getCoverImageUrl() != null) {
+            out.add(new GalleryImageForm(event.getCoverImageUrl(),
+                    event.getCoverImageCreditName(), event.getCoverImageCreditUrl()));
+        }
+        eventImages.findByEventIdOrderBySortOrderAsc(event.getId())
+                .forEach(img -> out.add(new GalleryImageForm(img.getUrl(), img.getCreditName(), img.getCreditUrl())));
+        return out;
     }
 
     @Transactional
@@ -247,7 +329,18 @@ public class HostService {
         e.setStatus(Event.Status.DRAFT);
         e.setCoverTheme(Format.coverTheme(category));
         e = events.save(e);
+        replaceTicketTypes(e, ticketForms);
+        return e;
+    }
 
+    /** Replaces every ticket type on the event with the submitted set. Draft-only by
+     *  contract of its callers (the create wizard's own draft, or a wizard-autosaved
+     *  draft being finalized) — a ticket type that already has real order_items would
+     *  reject the delete via its FK, which is the intended safety net since a LIVE
+     *  event's ticket types must go through the per-row edit endpoint instead. */
+    @Transactional
+    public void replaceTicketTypes(Event e, List<TicketTypeForm> ticketForms) {
+        ticketTypes.deleteByEventId(e.getId());
         int order = 0;
         for (TicketTypeForm form : ticketForms) {
             if (form.name() == null || form.name().isBlank() || form.quantity() == null) continue;
@@ -260,7 +353,6 @@ public class HostService {
             tt.setStatus(TicketType.Status.ON_SALE);
             ticketTypes.save(tt);
         }
-        return e;
     }
 
     @Transactional
@@ -339,7 +431,10 @@ public class HostService {
 
     /** Per-event earnings. Fee handling depends on events.fee_mode:
      *  PASS   — buyers paid the booking fee on top; host nets the full gross.
-     *  ABSORB — host swallows 1,500 IQD per confirmed paid ticket; net = gross − absorbed. */
+     *  ABSORB — host swallows the booking fee per confirmed paid ticket; net = gross − absorbed.
+     *  The CASE below mirrors Format.bookingFeeFor exactly (750 flat at/under 15,000 IQD,
+     *  else 3% + 2,000 capped at 15,000) — an aggregate SQL sum can't call that Java method
+     *  directly, so if the fee structure ever changes, update both places. */
     @Transactional(readOnly = true)
     public List<EarningsRow> earnings(Long orgId) {
         return jdbc.query("""
@@ -351,11 +446,13 @@ public class HostService {
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS gross,
                        (SELECT COALESCE(SUM(o.booking_fee_iqd), 0) FROM orders o
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS buyer_fees,
-                       (SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi
-                          JOIN orders o ON o.id = oi.order_id
+                       (SELECT COALESCE(SUM(oi.quantity *
+                                CASE WHEN oi.unit_price_iqd <= 15000 THEN 750
+                                     ELSE LEAST(15000, ROUND(oi.unit_price_iqd * 0.03) + 2000) END), 0)
+                          FROM order_items oi JOIN orders o ON o.id = oi.order_id
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED'
                            AND oi.unit_price_iqd > 0
-                           AND o.booking_fee_iqd = 0) AS absorbed_paid_sold
+                           AND o.booking_fee_iqd = 0) AS absorbed_fee
                 FROM events e
                 WHERE e.organization_id = ?
                 ORDER BY gross DESC, e.starts_at DESC
@@ -366,7 +463,7 @@ public class HostService {
                     // Each order self-describes the mode it was charged under:
                     // paid tickets with booking_fee_iqd = 0 were absorbed by the
                     // host — so flipping fee_mode later never rewrites history.
-                    long absorbed = rs.getLong(6) * iq.ievent.service.OrderService.BOOKING_FEE_PER_PAID_TICKET;
+                    long absorbed = rs.getLong(6);
                     long net = Math.max(0, gross - absorbed);
                     return new EarningsRow(rs.getLong(1), rs.getString(2), rs.getLong(3),
                             Format.iqd(gross), Format.iqd(buyerFees + absorbed), Format.iqd(net));
@@ -384,6 +481,15 @@ public class HostService {
     public void unpublish(Event event) {
         event.setStatus(Event.Status.DRAFT);
         events.save(event);
+    }
+
+    /** Draft-only deletion. Ticket types cascade in the schema; orders/tickets don't,
+     *  so a draft that somehow already has real orders (published, then unpublished
+     *  back to draft) throws DataIntegrityViolationException instead of silently
+     *  destroying revenue history — the caller turns that into a friendly message. */
+    @Transactional
+    public void deleteEvent(Event event) {
+        events.delete(event);
     }
 
     /** Cancels the event and emails every confirmed/pending buyer. */
@@ -441,7 +547,7 @@ public class HostService {
                 (rs, i) -> new BuyerRecipient(rs.getObject(1, Long.class),
                         rs.getString(2), rs.getString(3)),
                 event.getId());
-        String url = baseUrl + "/events/" + event.getSlug();
+        String url = baseUrl + "/e/" + event.getSlug();
         String type = event.getStatus() == Event.Status.CANCELLED ? "EVENT_CANCELLED" : "EVENT_POSTPONED";
         final java.util.Locale en = java.util.Locale.ENGLISH;
         final java.util.Locale ar = new java.util.Locale("ar");
@@ -462,7 +568,7 @@ public class HostService {
             if (r.userId() != null && notifiedUsers.add(r.userId())) {
                 notifications.notify(r.userId(), type, subject,
                         body.length() > 380 ? body.substring(0, 380) : body,
-                        "/events/" + event.getSlug());
+                        "/e/" + event.getSlug());
             }
         }
     }
@@ -490,6 +596,7 @@ public class HostService {
         copy.setLocationType(source.getLocationType());
         copy.setOnlineUrl(source.getOnlineUrl());
         copy.setMapsUrl(source.getMapsUrl());
+        copy.setAnnounceOnly(source.isAnnounceOnly());
         copy.setStatus(Event.Status.DRAFT);
         copy.setCoverTheme(source.getCoverTheme());
         copy = events.save(copy);

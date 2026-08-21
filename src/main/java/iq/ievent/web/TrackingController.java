@@ -18,7 +18,9 @@ public class TrackingController {
     @GetMapping("/l/{code}")
     public String follow(@PathVariable String code) {
         return tracking.resolveAndCount(code)
-                .map(slug -> "redirect:/events/" + slug + "?via=" + code)
+                .map(slug -> "redirect:/e/"
+                        + org.springframework.web.util.UriUtils.encodePathSegment(slug, java.nio.charset.StandardCharsets.UTF_8)
+                        + "?via=" + code)
                 .orElse("redirect:/browse");
     }
 }

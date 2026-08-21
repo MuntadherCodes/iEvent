@@ -51,6 +51,11 @@ app:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}
     maps-key: ${GOOGLE_MAPS_API_KEY:}
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-4o-mini}
+  pexels:
+    api-key: ${PEXELS_API_KEY:}
   upload-dir: ${APP_UPLOAD_DIR:/app/data/uploads}
   mail:
     mode: ${MAIL_MODE:mailpit}

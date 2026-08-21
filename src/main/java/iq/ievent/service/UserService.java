@@ -32,6 +32,24 @@ public class UserService implements UserDetailsService {
         return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
+    /** Avatar URLs for whichever of the given emails belong to a registered account
+     *  with a photo (e.g. a Google avatar) — used to show a real photo instead of an
+     *  initial for ticket holders/buyers who happen to also have an account. Emails
+     *  with no match (guest checkout, no photo, local account) are simply absent. */
+    @Transactional(readOnly = true)
+    public java.util.Map<String, String> avatarsByEmail(java.util.Collection<String> emails) {
+        List<String> distinct = emails.stream()
+                .filter(e -> e != null && !e.isBlank())
+                .map(e -> e.trim().toLowerCase())
+                .distinct().toList();
+        if (distinct.isEmpty()) return java.util.Map.of();
+        java.util.Map<String, String> out = new java.util.HashMap<>();
+        for (User u : users.findWithAvatarByEmailIgnoreCaseIn(distinct)) {
+            out.put(u.getEmail().toLowerCase(), u.getAvatarUrl());
+        }
+        return out;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {

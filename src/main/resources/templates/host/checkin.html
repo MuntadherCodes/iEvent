@@ -76,7 +76,7 @@
           </div>
         </div>
         <p id="qr-status" class="mt-3 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800"
-           th:attr="data-msg-unavailable=#{host.checkin.cameraUnavailable},data-msg-noscanner=#{host.checkin.cameraNotHere}"></p>
+           th:attr="data-msg-unavailable=#{host.checkin.cameraUnavailable},data-msg-noscanner=#{host.checkin.cameraNotHere},data-msg-needs-https=#{host.checkin.cameraNeedsHttps}"></p>
       </section>
 
       <!-- Manual entry card (dark panel) -->
@@ -135,7 +135,10 @@
 
         <ul id="door-list" class="mt-3 divide-y divide-ink-50">
           <li th:each="r : ${doorList}" class="door-row flex items-center gap-3 py-3" th:attr="data-state=${r.checkedIn()} ? 'in' : 'pending'">
-            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
+            <span class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+              <img th:if="${r.avatarUrl() != null}" th:src="${r.avatarUrl()}" alt="" referrerpolicy="no-referrer" class="h-full w-full object-cover">
+              <span th:if="${r.avatarUrl() == null}" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
+            </span>
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold text-ink-900" th:text="${r.holderName()}">Ali Hassan</p>
               <p class="truncate text-xs text-ink-500"><span th:text="${r.typeName()}">GA</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.orderCode()}">EVT-2026-04127</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.code()}">TKT-8841-A</span></p>
@@ -229,6 +232,15 @@
 
   if (qrStartBtn) qrStartBtn.addEventListener('click', function () {
     if (qrStatus) qrStatus.classList.add('hidden');
+    // getUserMedia (camera) is blocked outright on an insecure origin — no
+    // permission prompt ever appears, it just silently fails. That's a
+    // browser policy (HTTPS or localhost only), not something to work around
+    // here, but the generic "camera unavailable" message left people thinking
+    // the button was just broken. Name the real cause instead.
+    if (!window.isSecureContext) {
+      qrShowError(qrStatus ? qrStatus.getAttribute('data-msg-needs-https') : '');
+      return;
+    }
     try {
       if (typeof Html5Qrcode === 'undefined') throw new Error('scanner library not loaded');
       if (!qrScanner) qrScanner = new Html5Qrcode('qr-reader');

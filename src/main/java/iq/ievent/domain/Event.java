@@ -57,6 +57,17 @@ public class Event {
     @Column(name = "cover_image_path")
     private String coverImagePath;
 
+    /** External URL (Pexels) used as the primary cover when no file was
+     *  uploaded — coverImagePath always wins if both are somehow set. */
+    @Column(name = "cover_image_url")
+    private String coverImageUrl;
+
+    @Column(name = "cover_image_credit_name")
+    private String coverImageCreditName;
+
+    @Column(name = "cover_image_credit_url")
+    private String coverImageCreditUrl;
+
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
@@ -70,10 +81,15 @@ public class Event {
     private String visibility = "PUBLIC";
 
     @Column(name = "refund_policy", nullable = false)
-    private String refundPolicy = "UP_TO_7_DAYS";
+    private String refundPolicy = "NO_REFUNDS";
 
     @Column(name = "location_type", nullable = false)
     private String locationType = "VENUE";
+
+    /** No tickets are sold — the event is a pure informational listing. Independent of
+     *  locationType: an announce-only event can still have a real venue, be online, or be TBA. */
+    @Column(name = "announce_only", nullable = false)
+    private boolean announceOnly = false;
 
     @Column(name = "online_url")
     private String onlineUrl;
@@ -120,6 +136,12 @@ public class Event {
     public void setCoverTheme(String coverTheme) { this.coverTheme = coverTheme; }
     public String getCoverImagePath() { return coverImagePath; }
     public void setCoverImagePath(String coverImagePath) { this.coverImagePath = coverImagePath; }
+    public String getCoverImageUrl() { return coverImageUrl; }
+    public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
+    public String getCoverImageCreditName() { return coverImageCreditName; }
+    public void setCoverImageCreditName(String coverImageCreditName) { this.coverImageCreditName = coverImageCreditName; }
+    public String getCoverImageCreditUrl() { return coverImageCreditUrl; }
+    public void setCoverImageCreditUrl(String coverImageCreditUrl) { this.coverImageCreditUrl = coverImageCreditUrl; }
     public long getViewCount() { return viewCount; }
     public void setViewCount(long viewCount) { this.viewCount = viewCount; }
     public String getSummary() { return summary; }
@@ -132,6 +154,8 @@ public class Event {
     public void setVisibility(String visibility) { this.visibility = visibility; }
     public String getLocationType() { return locationType; }
     public void setLocationType(String locationType) { this.locationType = locationType; }
+    public boolean isAnnounceOnly() { return announceOnly; }
+    public void setAnnounceOnly(boolean announceOnly) { this.announceOnly = announceOnly; }
     public String getOnlineUrl() { return onlineUrl; }
     public void setOnlineUrl(String onlineUrl) { this.onlineUrl = onlineUrl; }
     public String getMapsUrl() { return mapsUrl; }

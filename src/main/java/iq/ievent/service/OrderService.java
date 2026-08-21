@@ -28,7 +28,6 @@ import java.util.Set;
 @Service
 public class OrderService {
 
-    public static final long BOOKING_FEE_PER_PAID_TICKET = 1_500L;
     private static final String CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford base32
     private static final Set<String> RECEIPT_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "pdf");
     private static final long RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
@@ -134,16 +133,20 @@ public class OrderService {
             }
         }
 
+        // Each ticket type's fee depends on its own price (Format.bookingFeeFor),
+        // not a flat per-order rate, so this sums per type rather than counting
+        // paid tickets and multiplying by one number.
         long subtotal = 0;
-        long paidTickets = 0;
+        long fee = 0;
+        boolean absorb = "ABSORB".equals(event.getFeeMode());
         for (Map.Entry<TicketType, Integer> entry : selection.entrySet()) {
-            subtotal += entry.getKey().getPriceIqd() * entry.getValue();
-            if (entry.getKey().getPriceIqd() > 0) paidTickets += entry.getValue();
+            long price = entry.getKey().getPriceIqd();
+            int qty = entry.getValue();
+            subtotal += price * qty;
+            // ABSORB fee mode: the organizer swallows the booking fee (deducted in
+            // earnings), so the buyer pays face value only.
+            if (!absorb) fee += Format.bookingFeeFor(price) * qty;
         }
-        // ABSORB fee mode: the organizer swallows the booking fee (deducted in
-        // earnings), so the buyer pays face value only.
-        long fee = "ABSORB".equals(event.getFeeMode()) ? 0
-                : paidTickets * BOOKING_FEE_PER_PAID_TICKET;
 
         Applied applied = promoService.preview(event, promoCode, subtotal).orElse(null);
         if (promoCode != null && !promoCode.isBlank() && applied == null) {

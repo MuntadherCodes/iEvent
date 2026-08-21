@@ -77,7 +77,7 @@ public class HostController {
                                 String createdLine) {}
 
     public record AttendeeRow(Long ticketId, String holderName, String typeName, String orderCode,
-                              String code, boolean checkedIn, String checkedInLine) {}
+                              String code, boolean checkedIn, String checkedInLine, String avatarUrl) {}
 
     public record CheckinResult(boolean ok, String message, String holderName, String typeName) {}
 
@@ -93,6 +93,8 @@ public class HostController {
 
     private final String baseUrl;
     private final iq.ievent.service.MailService mailService;
+    private final iq.ievent.service.AiContentService aiContentService;
+    private final iq.ievent.service.PexelsService pexelsService;
     private final MessageSource messages;
 
     public HostController(UserService userService, HostService hostService, OrderService orderService,
@@ -100,6 +102,8 @@ public class HostController {
                           EventRepository events, LikeCountRepository likeCounts,
                           org.springframework.jdbc.core.JdbcTemplate jdbc,
                           iq.ievent.service.MailService mailService,
+                          iq.ievent.service.AiContentService aiContentService,
+                          iq.ievent.service.PexelsService pexelsService,
                           MessageSource messages,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
@@ -112,6 +116,8 @@ public class HostController {
         this.likeCounts = likeCounts;
         this.jdbc = jdbc;
         this.mailService = mailService;
+        this.aiContentService = aiContentService;
+        this.pexelsService = pexelsService;
         this.messages = messages;
         this.baseUrl = baseUrl;
     }
@@ -119,6 +125,58 @@ public class HostController {
     /** Localized user-facing message in the current request locale. */
     private String msg(String code, Object... args) {
         return messages.getMessage(code, args, LocaleContextHolder.getLocale());
+    }
+
+    /** Wizard "Write it for me" — generates event copy via OpenAI for the
+     *  description, summary, or lineup/agenda field (see "kind").
+     *  "lang" is passed explicitly from document.documentElement.lang rather than
+     *  relying on the ambient request locale: this endpoint's own URL is never
+     *  under the "/en" prefix (the fetch always POSTs the bare path), so the
+     *  usual URL-based locale resolution wouldn't see which language page the
+     *  host is actually on. Hidden client-side (see GlobalModelAdvice's
+     *  "aiAvailable") whenever OPENAI_API_KEY isn't configured. */
+    @PostMapping("/events/ai/write")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, String>> aiWrite(
+            @RequestParam String title, @RequestParam(required = false) String category,
+            @RequestParam(required = false) String lang, @RequestParam(defaultValue = "DESCRIPTION") String kind,
+            @AuthenticationPrincipal UserDetails principal) {
+        user(principal); // require auth
+        if (!aiContentService.available() || title == null || title.isBlank()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "unavailable"));
+        }
+        iq.ievent.service.AiContentService.Kind parsedKind;
+        try {
+            parsedKind = iq.ievent.service.AiContentService.Kind.valueOf(kind.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "bad_kind"));
+        }
+        try {
+            String text = aiContentService.generate(parsedKind, title.strip(), category, !"en".equals(lang));
+            return ResponseEntity.ok(java.util.Map.of("text", text));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of("error", "generation_failed"));
+        }
+    }
+
+    /** Wizard cover-picker "search stock photos" tab. Hidden client-side (see
+     *  GlobalModelAdvice's "pexelsAvailable") whenever PEXELS_API_KEY isn't
+     *  configured. Just a thin auth-gated proxy — the API key never reaches
+     *  the browser. */
+    @GetMapping("/events/pexels-search")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> pexelsSearch(
+            @RequestParam String q, @AuthenticationPrincipal UserDetails principal) {
+        user(principal);
+        if (!pexelsService.available() || q == null || q.isBlank()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "unavailable"));
+        }
+        try {
+            List<iq.ievent.service.PexelsService.Photo> photos = pexelsService.search(q.strip());
+            return ResponseEntity.ok(java.util.Map.of("photos", photos));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of("error", "search_failed"));
+        }
     }
 
     private User user(UserDetails principal) {
@@ -264,6 +322,7 @@ public class HostController {
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
                               @RequestParam(name = "freeEvent", defaultValue = "false") boolean freeEvent,
+                              @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
                               @RequestParam(name = "ttName", required = false) List<String> ttNames,
                               @RequestParam(name = "ttPrice", required = false) List<String> ttPrices,
                               @RequestParam(name = "ttQty", required = false) List<String> ttQtys,
@@ -271,6 +330,10 @@ public class HostController {
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
+                              @RequestParam(required = false) Long draftEventId,
+                              @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
+                              @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
+                              @RequestParam(name = "galleryCreditUrl", required = false) List<String> galleryCreditUrls,
                               RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
@@ -294,17 +357,35 @@ public class HostController {
                     forms.add(new HostService.TicketTypeForm(name, price, qty));
                 }
             }
-            Event created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
-                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
-                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
-                    description, forms);
+            // draftEventId: the wizard autosaved a real draft row mid-flow (see
+            // /events/autosave-start) — finish that same row instead of creating a
+            // second, duplicate event.
+            Event existingDraft = draftEventId == null ? null
+                    : hostService.eventOf(org.getId(), draftEventId)
+                            .filter(e -> e.getStatus() == Event.Status.DRAFT).orElse(null);
+            Event created;
+            if (existingDraft != null) {
+                hostService.updateEvent(existingDraft, title, Event.Category.valueOf(category), city,
+                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
+                        endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                hostService.replaceTicketTypes(existingDraft, forms);
+                created = existingDraft;
+            } else {
+                created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
+                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
+                        endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
+                        description, forms);
+            }
             created.setLocationType(loc.type());
             created.setOnlineUrl(loc.onlineUrl());
             created.setMapsUrl(loc.mapsUrl());
+            created.setAnnounceOnly(announceOnly);
             applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode);
             hostService.applyCoverTheme(created, coverTheme);
             String coverError = hostService.storeCover(created, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
+            hostService.replaceGalleryImages(created,
+                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls));
             if ("publish".equals(action)) {
                 hostService.publish(created);
                 redirect.addFlashAttribute("published", true);
@@ -313,6 +394,85 @@ public class HostController {
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.createFailed", e.getMessage()));
             return "redirect:/host/events/new";
+        }
+    }
+
+    // ---------- autosave (real server persistence, not just the browser's localStorage backup) ----------
+
+    /** Fires once the wizard's step-1 required fields are all filled — creates the
+     *  real draft row so it survives a lost tab / different device, then every
+     *  later field the wizard collects PATCHes that same row via /events/{id}/autosave.
+     *  Deliberately minimal: no location/description/tickets yet, just enough to exist. */
+    @PostMapping("/events/autosave-start")
+    @ResponseBody
+    public java.util.Map<String, Object> autosaveStart(@AuthenticationPrincipal UserDetails principal,
+                                                        @RequestParam String title,
+                                                        @RequestParam String category,
+                                                        @RequestParam String city,
+                                                        @RequestParam String date,
+                                                        @RequestParam String startTime) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return java.util.Map.of("error", "no-org");
+        requireManage(u);
+        try {
+            Event created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
+                    null, null, LocalDate.parse(date), LocalTime.parse(startTime), null, "", List.of());
+            return java.util.Map.of("id", created.getId());
+        } catch (Exception e) {
+            return java.util.Map.of("error", e.getMessage() == null ? "failed" : e.getMessage());
+        }
+    }
+
+    /** Periodic PATCH for an already-autosaved wizard draft, or a real edit-page draft
+     *  (event-edit.html points its own autosave timer at this too). Mirrors the fields
+     *  {@link #updateEvent} accepts, minus ticket types and the cover image — those only
+     *  change on an explicit Save/Publish click, not on every few seconds of typing. */
+    @PostMapping("/events/{id}/autosave")
+    @ResponseBody
+    public java.util.Map<String, Object> autosave(@PathVariable Long id,
+                              @AuthenticationPrincipal UserDetails principal,
+                              @RequestParam String title,
+                              @RequestParam String category,
+                              @RequestParam String city,
+                              @RequestParam(required = false) String venueName,
+                              @RequestParam(required = false) String venueAddress,
+                              @RequestParam(required = false) String locationType,
+                              @RequestParam(required = false) String onlineUrl,
+                              @RequestParam(required = false) String mapsUrl,
+                              @RequestParam String date,
+                              @RequestParam String startTime,
+                              @RequestParam(required = false) String endTime,
+                              @RequestParam(required = false) String description,
+                              @RequestParam(required = false) String summary,
+                              @RequestParam(required = false) String tags,
+                              @RequestParam(required = false) String lineup,
+                              @RequestParam(required = false) String visibility,
+                              @RequestParam(required = false) String refundPolicy,
+                              @RequestParam(required = false) String feeMode,
+                              @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
+                              @RequestParam(name = "coverTheme", required = false) String coverTheme) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return java.util.Map.of("error", "no-org");
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id).orElse(null);
+        if (ev == null) return java.util.Map.of("error", "not-found");
+        LocationForm loc = locationForm(locationType, venueName, venueAddress, onlineUrl, mapsUrl);
+        if (loc.error() != null) return java.util.Map.of("error", loc.error());
+        try {
+            hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
+                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
+                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+            ev.setLocationType(loc.type());
+            ev.setOnlineUrl(loc.onlineUrl());
+            ev.setMapsUrl(loc.mapsUrl());
+            ev.setAnnounceOnly(announceOnly);
+            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode);
+            hostService.applyCoverTheme(ev, coverTheme);
+            return java.util.Map.of("ok", true);
+        } catch (Exception e) {
+            return java.util.Map.of("error", e.getMessage() == null ? "failed" : e.getMessage());
         }
     }
 
@@ -410,6 +570,7 @@ public class HostController {
                 ev.getLocationType() == null ? "VENUE" : ev.getLocationType(),
                 ev.getOnlineUrl() == null ? "" : ev.getOnlineUrl(),
                 ev.getMapsUrl() == null ? "" : ev.getMapsUrl(),
+                ev.isAnnounceOnly(),
                 ev.getFeeMode() == null ? "PASS" : ev.getFeeMode()));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
@@ -424,10 +585,35 @@ public class HostController {
         model.addAttribute("coverThemes", HostService.COVER_THEMES);
         model.addAttribute("currentTheme", ev.getCoverTheme());
         model.addAttribute("hasCoverImage", ev.getCoverImagePath() != null);
-        model.addAttribute("coverImageUrl",
-                ev.getCoverImagePath() == null ? null : "/media/event-cover/" + ev.getId());
+        model.addAttribute("coverImageUrl", Format.coverUrl(ev));
+        model.addAttribute("galleryImagesJson", galleryImagesJson(hostService.currentGalleryPicks(ev)));
         model.addAttribute("postponeDate", z.toLocalDate().toString());
         return "host/event-edit";
+    }
+
+    /** Pre-populates the edit page's picker widget — a small hand-built JSON
+     *  array (url/thumbnailUrl/creditName/creditUrl) rather than pulling in
+     *  Jackson's ObjectMapper for four already-plain-text fields. Escaping
+     *  "</" defends against breaking out of the surrounding &lt;script&gt; tag
+     *  if a credit name/URL ever contained it. */
+    private String galleryImagesJson(List<HostService.GalleryImageForm> picks) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < picks.size(); i++) {
+            HostService.GalleryImageForm p = picks.get(i);
+            if (i > 0) sb.append(',');
+            sb.append("{\"url\":").append(jsonString(p.url()))
+              .append(",\"thumbnailUrl\":").append(jsonString(p.url()))
+              .append(",\"creditName\":").append(jsonString(p.creditName()))
+              .append(",\"creditUrl\":").append(jsonString(p.creditUrl()))
+              .append('}');
+        }
+        return sb.append(']').toString();
+    }
+
+    private static String jsonString(String s) {
+        if (s == null) return "null";
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("</", "<\\/").replace("\n", "\\n").replace("\r", "") + "\"";
     }
 
     public record EventEditView(String title, String category, String city, String venueName,
@@ -435,7 +621,7 @@ public class HostController {
                                 String description, String summary, String tags, String lineup,
                                 String visibility, String refundPolicy,
                                 String locationType, String onlineUrl, String mapsUrl,
-                                String feeMode) {}
+                                boolean announceOnly, String feeMode) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -461,10 +647,14 @@ public class HostController {
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
+                              @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
                               @RequestParam(name = "removeCover", defaultValue = "false") boolean removeCover,
+                              @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
+                              @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
+                              @RequestParam(name = "galleryCreditUrl", required = false) List<String> galleryCreditUrls,
                               RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
@@ -484,12 +674,15 @@ public class HostController {
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
+            ev.setAnnounceOnly(announceOnly);
             applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode);
             hostService.applyCoverTheme(ev, coverTheme);
             if (removeCover) hostService.removeCover(ev);
             String coverError = hostService.storeCover(ev, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
             else redirect.addFlashAttribute("saved", true);
+            hostService.replaceGalleryImages(ev,
+                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls));
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.saveFailed", e.getMessage()));
         }
@@ -530,8 +723,10 @@ public class HostController {
     /**
      * Whitelists the location type (VENUE/ONLINE/TBA, default VENUE) and derives the
      * dependent fields: VENUE requires a venue name and may carry a Google Maps link;
-     * ONLINE stores the meeting link (revealed to confirmed buyers only) and a
-     * "Online event" venue placeholder; TBA stores "To be announced".
+     * ONLINE stores the meeting link (revealed to confirmed buyers only) and a "Online
+     * event" venue placeholder; TBA stores "To be announced". Whether the event sells
+     * tickets at all is a separate flag (Event.announceOnly, see applyExtras) —
+     * independent of location, since an announce-only event can still have a real venue.
      */
     private LocationForm locationForm(String locationType, String venueName,
                                       String venueAddress, String onlineUrl, String mapsUrl) {
@@ -570,11 +765,27 @@ public class HostController {
         ev.setLineup(lineup == null || lineup.isBlank() ? null : lineup.strip());
         ev.setVisibility("UNLISTED".equalsIgnoreCase(visibility) ? "UNLISTED" : "PUBLIC");
         ev.setRefundPolicy(
-                "NO_REFUNDS".equals(refundPolicy) || "UP_TO_48H".equals(refundPolicy)
-                        ? refundPolicy : "UP_TO_7_DAYS");
+                "UP_TO_7_DAYS".equals(refundPolicy) || "UP_TO_48H".equals(refundPolicy)
+                        ? refundPolicy : "NO_REFUNDS");
         // Booking fee mode, whitelisted: ABSORB (organizer swallows the fee) or PASS (buyer pays it).
         ev.setFeeMode("ABSORB".equals(feeMode) ? "ABSORB" : "PASS");
         events.save(ev);
+    }
+
+    /** Parallel arrays (one per picked stock photo) into gallery-form records —
+     *  same shape as the ttName/ttPrice/ttQty ticket-row arrays above. */
+    private List<HostService.GalleryImageForm> buildGalleryPicks(
+            List<String> urls, List<String> creditNames, List<String> creditUrls) {
+        if (urls == null) return List.of();
+        List<HostService.GalleryImageForm> out = new ArrayList<>();
+        for (int i = 0; i < urls.size(); i++) {
+            String url = urls.get(i);
+            if (url == null || url.isBlank()) continue;
+            String name = creditNames != null && i < creditNames.size() ? creditNames.get(i) : null;
+            String link = creditUrls != null && i < creditUrls.size() ? creditUrls.get(i) : null;
+            out.add(new HostService.GalleryImageForm(url, name, link));
+        }
+        return out;
     }
 
     // ---------- lifecycle: duplicate / cancel / postpone ----------
@@ -665,6 +876,30 @@ public class HostController {
         return "redirect:/host/events/" + id;
     }
 
+    /** Drafts only — an event that ever went LIVE keeps its history and can only be cancelled. */
+    @PostMapping("/events/{id}/delete")
+    public String delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                         RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (ev.getStatus() != Event.Status.DRAFT) {
+            redirect.addFlashAttribute("error", msg("flash.event.deleteNotDraft"));
+            return "redirect:/host/events";
+        }
+        try {
+            hostService.deleteEvent(ev);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            redirect.addFlashAttribute("error", msg("flash.event.deleteHasOrders"));
+            return "redirect:/host/events";
+        }
+        redirect.addFlashAttribute("actioned", msg("flash.event.deleted"));
+        return "redirect:/host/events";
+    }
+
     // ---------- orders ----------
 
     @GetMapping("/orders")
@@ -752,8 +987,11 @@ public class HostController {
                 selected = toRow(ev);
                 String qLike = q == null || q.isBlank() ? null
                         : "%" + q.trim().toLowerCase() + "%";
-                rows = tickets.searchForEvent(ev.getId(), qLike).stream()
-                        .map(this::toRow).toList();
+                List<Ticket> matched = tickets.searchForEvent(ev.getId(), qLike);
+                java.util.Map<String, String> avatars = userService.avatarsByEmail(matched.stream()
+                        .map(t -> t.getHolderEmail() != null ? t.getHolderEmail() : t.getOrder().getBuyerEmail())
+                        .toList());
+                rows = matched.stream().map(t -> toRow(t, avatars)).toList();
             }
         } else if (!options.isEmpty()) {
             return "redirect:/host/attendees?event=" + options.get(0).id();
@@ -824,8 +1062,11 @@ public class HostController {
                 total = tickets.countByEventId(ev.getId());
                 String qLike = q == null || q.isBlank() ? null
                         : "%" + q.trim().toLowerCase() + "%";
-                doorList = tickets.searchForEvent(ev.getId(), qLike).stream()
-                        .limit(50).map(this::toRow).toList();
+                List<Ticket> doorMatched = tickets.searchForEvent(ev.getId(), qLike).stream().limit(50).toList();
+                java.util.Map<String, String> doorAvatars = userService.avatarsByEmail(doorMatched.stream()
+                        .map(t -> t.getHolderEmail() != null ? t.getHolderEmail() : t.getOrder().getBuyerEmail())
+                        .toList());
+                doorList = doorMatched.stream().map(t -> toRow(t, doorAvatars)).toList();
             }
         } else if (!options.isEmpty()) {
             return "redirect:/host/checkin?event=" + options.get(0).id();
@@ -938,7 +1179,7 @@ public class HostController {
                 e.getStatus().name(),
                 Format.cardDateLine(e.getStartsAt()), e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                 sold, cap, sold + " / " + cap, Format.iqd(revenue),
-                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                Format.coverUrl(e),
                 e.getCoverTheme());
     }
 
@@ -958,11 +1199,13 @@ public class HostController {
                 o.getTransferReference());
     }
 
-    private AttendeeRow toRow(Ticket t) {
+    private AttendeeRow toRow(Ticket t, java.util.Map<String, String> avatars) {
+        String email = t.getHolderEmail() != null ? t.getHolderEmail() : t.getOrder().getBuyerEmail();
         return new AttendeeRow(t.getId(), t.getHolderName(), t.getTicketType().getName(),
                 t.getOrder().getOrderCode(), t.getCode(),
                 t.getStatus() == Ticket.Status.CHECKED_IN,
-                t.getCheckedInAt() == null ? null : Format.cardDateLine(t.getCheckedInAt()));
+                t.getCheckedInAt() == null ? null : Format.cardDateLine(t.getCheckedInAt()),
+                email == null ? null : avatars.get(email.trim().toLowerCase()));
     }
 
     private String statusLabel(String name) {

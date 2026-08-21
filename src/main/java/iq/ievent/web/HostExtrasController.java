@@ -76,7 +76,7 @@ public class HostExtrasController {
     public record ARow(Long ticketId, String holderName, String initial, String typeName,
                        String orderCode, String code, String email, String purchasedLine,
                        String status, boolean checkedIn, boolean voided, String checkedInLine,
-                       Long orderId, boolean resendable) {}
+                       Long orderId, boolean resendable, String avatarUrl) {}
 
     /** Stats strip + progress ring for the attendees page. Pct is 0–100. */
     public record AStats(long total, long checkedIn, long remaining, long voided,
@@ -207,7 +207,10 @@ public class HostExtrasController {
         model.addAttribute("eventOptions", sortForSelect(hostService.eventsOf(orgId)));
         model.addAttribute("ev", new IdTitle(ev.getId(), ev.getTitle(), ev.getSlug()));
         model.addAttribute("evDateLine", Format.cardDateLine(ev.getStartsAt()));
-        model.addAttribute("rows", filtered.stream().map(this::toARow).toList());
+        java.util.Map<String, String> avatars = userService.avatarsByEmail(filtered.stream()
+                .map(t -> t.getHolderEmail() != null ? t.getHolderEmail() : t.getOrder().getBuyerEmail())
+                .toList());
+        model.addAttribute("rows", filtered.stream().map(t -> toARow(t, avatars)).toList());
         model.addAttribute("q", q == null ? "" : q);
         model.addAttribute("typeFilter", type == null ? "" : type);
         model.addAttribute("statusFilter", status == null ? "" : status);
@@ -564,7 +567,7 @@ public class HostExtrasController {
             return "redirect:/host/marketing?tab=email";
         }
         String linkUrl = event != null
-                ? baseUrl + "/events/" + event.getSlug()
+                ? baseUrl + "/e/" + event.getSlug()
                 : baseUrl + "/organizers/" + access.org().getHandle();
         int sent = campaignService.send(access.org(), event, aud, subject.trim(), message.trim(), linkUrl);
         redirect.addFlashAttribute("created",
@@ -830,7 +833,7 @@ public class HostExtrasController {
     // Mapping helpers
     // ============================================================
 
-    private ARow toARow(Ticket t) {
+    private ARow toARow(Ticket t, java.util.Map<String, String> avatars) {
         String email = t.getHolderEmail() != null ? t.getHolderEmail()
                 : t.getOrder().getBuyerEmail();
         boolean confirmed = t.getOrder().getStatus() == Order.Status.CONFIRMED;
@@ -843,7 +846,8 @@ public class HostExtrasController {
                 t.getStatus() == Ticket.Status.CHECKED_IN,
                 t.getStatus() == Ticket.Status.VOID,
                 t.getCheckedInAt() == null ? null : Format.cardDateLine(t.getCheckedInAt()),
-                t.getOrder().getId(), confirmed);
+                t.getOrder().getId(), confirmed,
+                email == null ? null : avatars.get(email.trim().toLowerCase()));
     }
 
     private AStats attendeeStats(List<Ticket> all) {
@@ -930,7 +934,7 @@ public class HostExtrasController {
     }
 
     private ShareRow toShareRow(Event e) {
-        String url = baseUrl + "/events/" + e.getSlug();
+        String url = baseUrl + "/e/" + e.getSlug();
         String encUrl = URLEncoder.encode(url, StandardCharsets.UTF_8);
         String encTitle = URLEncoder.encode(e.getTitle(), StandardCharsets.UTF_8);
         String encBoth = URLEncoder.encode(e.getTitle() + " — " + url, StandardCharsets.UTF_8);

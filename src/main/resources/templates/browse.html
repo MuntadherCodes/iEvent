@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{public.meta.browseDescription}">
 <head th:replace="~{fragments/layout :: head(#{public.title.browse})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
@@ -10,7 +10,7 @@
 <main id="main">
 
   <!-- ============ PAGE HERO ============ -->
-  <section class="border-b border-ink-100 bg-brand-50/60">
+  <section class="border-b border-ink-100 bg-[rgb(137_125_198/41%)]">
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10 lg:px-8">
       <nav class="text-sm text-ink-500" th:attr="aria-label=#{public.browse.breadcrumbAria}" aria-label="Breadcrumb">
         <ol class="flex flex-wrap items-center gap-1.5">

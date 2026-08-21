@@ -162,11 +162,17 @@
           </div>
         </div>
         <!-- Chart plot stays LTR (time axis + Latin digits) even on the Arabic console -->
-        <div dir="ltr" class="mt-4 flex h-40 items-end gap-1" th:classappend="${salesRange == 90} ? 'gap-px' : ''">
-          <div th:each="p : ${salesPoints}" class="group relative flex-1">
-            <div class="w-full rounded-t bg-brand-400 transition group-hover:bg-brand-500" th:style="'height:' + (${mx} > 0 ? ${100 * p.amountIqd() / mx} : 0) + '%; min-height:2px'"></div>
+        <div th:if="${mx > 0}" dir="ltr" class="mt-4 flex h-40 items-end gap-1" th:classappend="${salesRange == 90} ? 'gap-px' : ''">
+          <div th:each="p : ${salesPoints}" class="group relative flex h-full flex-1 flex-col justify-end">
+            <div class="w-full rounded-t bg-brand-400 transition group-hover:bg-brand-500" th:style="'height:' + (${100 * p.amountIqd() / mx}) + '%; min-height:2px'"></div>
             <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-900 px-2 py-1 text-[10px] font-semibold text-white group-hover:block" th:text="${p.label()}">Aug 15</span>
           </div>
+        </div>
+        <!-- All-zero period (e.g. every ticket sold was free) looks identical to a
+             broken chart at 2px bar height — spell it out instead. -->
+        <div th:if="${mx == 0}" class="mt-4 flex h-40 flex-col items-center justify-center gap-2 text-center">
+          <svg class="h-8 w-8 text-ink-300" aria-hidden="true"><use href="#i-chart-line"/></svg>
+          <p class="max-w-xs text-sm font-medium text-ink-500" th:text="#{host.dash.noSalesYet}">No paid sales in this period — free tickets don't count toward revenue.</p>
         </div>
       </section>
 
@@ -180,9 +186,20 @@
             <a th:href="@{/host/events}" class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><span th:text="#{host.dash.seeAll}">See all</span> <svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           </div>
           <ul class="divide-y divide-ink-50">
-            <li th:each="e : ${upcoming}">
+            <li th:each="e : ${upcoming}"
+                th:with="grad=${e.coverTheme() == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
+                         : (e.coverTheme() == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
+                         : (e.coverTheme() == 'business'  ? 'from-ink-800 via-ink-700 to-brand-700'
+                         : (e.coverTheme() == 'arts'      ? 'from-amber-400 via-orange-400 to-rose-400'
+                         : (e.coverTheme() == 'food'      ? 'from-rose-400 via-red-400 to-orange-400'
+                         : (e.coverTheme() == 'sports'    ? 'from-emerald-400 via-teal-400 to-cyan-500'
+                         : (e.coverTheme() == 'education' ? 'from-sky-400 via-blue-500 to-indigo-500'
+                         : (e.coverTheme() == 'film'      ? 'from-slate-600 via-ink-700 to-brand-800'
+                         : (e.coverTheme() == 'family'    ? 'from-emerald-600 via-teal-500 to-sky-500'
+                         :                                  'from-brand-400 via-brand-500 to-indigo-500'))))))))}">
               <a th:href="@{/host/events/{id}(id=${e.id()})}" class="flex items-center gap-4 px-5 py-4 transition hover:bg-brand-50/40">
-                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-violet-500 via-brand-500 to-fuchsia-500 ring-1 ring-black/5"><svg class="h-6 w-6 text-white/40" aria-hidden="true"><use href="#i-ticket"/></svg></span>
+                <img th:if="${e.coverImageUrl() != null}" th:src="${e.coverImageUrl()}" alt="" class="h-12 w-12 shrink-0 rounded-xl object-cover ring-1 ring-black/5">
+                <span th:if="${e.coverImageUrl() == null}" class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br ring-1 ring-black/5" th:classappend="${grad}"><svg class="h-6 w-6 text-white/40" aria-hidden="true"><use href="#i-ticket"/></svg></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <p class="truncate font-semibold text-ink-900" th:text="${e.title()}">Baghdad Nights Music Festival</p>

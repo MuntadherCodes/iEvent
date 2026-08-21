@@ -43,7 +43,8 @@ public final class Views {
             String title,
             String categoryLabel,
             String coverTheme,
-            String coverImageUrl,   // null → gradient fallback
+            String coverImageUrl,   // null → gradient fallback; always allImages.get(0) when allImages isn't empty
+            List<String> allImages, // primary + extras, in display order — 2+ makes the page a slider
             String city,
             String venueName,
             String venueAddress,
@@ -56,6 +57,7 @@ public final class Views {
             OrganizerView organizer,
             List<TicketTypeView> ticketTypes,
             String locationType,     // VENUE | ONLINE | TBA
+            boolean announceOnly,    // no tickets sold — independent of locationType
             String mapsUrl) {}       // organizer-provided exact-pin link, or null
 
     public record CityCount(String city, long count) {}

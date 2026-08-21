@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org"
+      th:with="pageDescription=${org.bio != null and !org.bio.isBlank() ? org.bio : @t.msg('public.meta.organizerDescription', org.name, org.city != null ? @t.city(org.city) : @t.city('Baghdad'))}">
 <head th:replace="~{fragments/layout :: head(${org.name} + #{public.title.suffix})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
@@ -86,7 +87,7 @@
       <!-- PAST -->
       <div id="tab-past" role="tabpanel" class="tab-panel hidden pt-8">
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" th:if="${!ox.pastEvents().isEmpty()}">
-          <a th:each="p : ${ox.pastEvents()}" th:href="@{/events/{s}(s=${p.slug()})}"
+          <a th:each="p : ${ox.pastEvents()}" th:href="@{/e/{s}(s=${p.slug()})}"
              class="group block rounded-2xl border border-ink-100 bg-white opacity-70 shadow-card transition hover:-translate-y-0.5 hover:opacity-90 hover:shadow-cardHover"
              th:with="pgrad=${p.coverTheme() == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                       : (p.coverTheme() == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -155,7 +156,7 @@
   </section>
 
   <!-- ============ TRUST BAND ============ -->
-  <section class="border-t border-ink-100 bg-brand-50 py-8">
+  <section class="border-t border-ink-100 bg-brand-100 py-8">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
       <p class="flex items-center gap-3 text-sm font-medium text-ink-700">
         <svg class="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-shield-check"/></svg>
@@ -167,7 +168,9 @@
 
 </main>
 
-<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:with="footerFlush=${true}">
+  <footer th:replace="~{fragments/layout :: footer}"></footer>
+</div>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
 <script>

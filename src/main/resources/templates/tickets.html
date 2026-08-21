@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="noIndex=${true}">
 <head th:replace="~{fragments/layout :: head(#{public.title.tickets})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased">
 
@@ -68,7 +68,7 @@
             <span th:if="${o.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.cancelled}]]</span>
             <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.refunded}]]</span>
           </div>
-          <h2 class="mt-1 font-display text-lg font-bold leading-snug text-ink-900"><a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="transition hover:text-brand-600" th:text="${o.eventTitle()}">Baghdad Nights Music Festival</a></h2>
+          <h2 class="mt-1 font-display text-lg font-bold leading-snug text-ink-900"><a th:href="@{/e/{s}(s=${o.eventSlug()})}" class="transition hover:text-brand-600" th:text="${o.eventTitle()}">Baghdad Nights Music Festival</a></h2>
           <p class="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use th:attr="href=${o.online()} ? '#i-laptop' : '#i-map-pin'"/></svg><span th:text="${o.venueLine()}">Al-Zawraa Park, Baghdad</span> · [[#{public.confirm.orderWord}]] <span class="tabular-nums" th:text="'#' + ${o.orderCode()}">#EVT-2026-08451</span></p>
           <span th:each="line : ${o.itemLines()}" class="me-1.5 mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="${line}">2 × General Admission</span></span>
           <!-- Online event: join link (revealed only when the order is confirmed) -->
@@ -78,10 +78,10 @@
           <p th:if="${o.online() && o.onlineUrl() == null && o.statusKey() == 'PENDING_CONFIRMATION'}" class="mt-2 flex items-center gap-1.5 text-xs text-ink-500"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.tickets.joinLockedNote}]]</p>
         </div>
         <div class="flex shrink-0 gap-2 sm:flex-col md:flex-row">
-          <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
-            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-qr-code"/></svg>[[#{public.tickets.viewOrder}]]
+          <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
+            <svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-qr-code"/></svg>[[#{public.tickets.viewOrder}]]
           </a>
-          <a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.tickets.details}">Details</a>
+          <a th:href="@{/e/{s}(s=${o.eventSlug()})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center whitespace-nowrap rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.tickets.details}">Details</a>
         </div>
       </div>
 
@@ -152,10 +152,10 @@
             <span th:if="${o.statusKey() == 'CANCELLED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.cancelled}]]</span>
             <span th:if="${o.statusKey() == 'REFUNDED'}" class="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-semibold text-ink-600"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.tickets.refunded}]]</span>
           </div>
-          <h2 class="mt-1 font-display text-base font-bold leading-snug text-ink-900"><a th:href="@{/events/{s}(s=${o.eventSlug()})}" class="transition hover:text-brand-600" th:text="${o.eventTitle()}">Startup Mixer Baghdad</a></h2>
+          <h2 class="mt-1 font-display text-base font-bold leading-snug text-ink-900"><a th:href="@{/e/{s}(s=${o.eventSlug()})}" class="transition hover:text-brand-600" th:text="${o.eventTitle()}">Startup Mixer Baghdad</a></h2>
           <p class="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use th:attr="href=${o.online()} ? '#i-laptop' : '#i-map-pin'"/></svg><span th:text="${o.venueLine()}">The Station, Baghdad</span> · <span th:each="line,it : ${o.itemLines()}"><span th:text="${line}">1 × Free</span><span th:if="${!it.last}"> · </span></span></p>
         </div>
-        <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.tickets.viewOrder}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <a th:href="@{/orders/{c}(c=${o.orderCode()})}" class="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">[[#{public.tickets.viewOrder}]]<svg class="h-4 w-4 shrink-0 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
     </article>
 

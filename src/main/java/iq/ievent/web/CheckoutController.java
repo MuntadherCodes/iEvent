@@ -91,7 +91,7 @@ public class CheckoutController {
         return userService.byEmail(principal.getUsername());
     }
 
-    @GetMapping("/events/{slug}/checkout")
+    @GetMapping("/e/{slug}/checkout")
     @Transactional(readOnly = true)
     public String checkout(@PathVariable String slug,
                            @RequestParam Map<String, String> params,
@@ -134,21 +134,23 @@ public class CheckoutController {
                 }
             }
         }
-        long subtotal = 0;
-        long paidCount = 0;
-        int totalQty = 0;
-        for (var tt : event.ticketTypes()) {
-            int q = quantities.get(tt.id());
-            subtotal += tt.priceIqd() * q;
-            if (tt.priceIqd() > 0) paidCount += q;
-            totalQty += q;
-        }
         // ABSORB fee mode: organizer swallows the booking fee — buyer pays face
         // value, so the DISPLAYED total must match what OrderService will charge.
         boolean absorbFee = eventRepo.findBySlug(slug)
                 .map(e -> "ABSORB".equals(e.getFeeMode())).orElse(false);
-        long feePerPaidTicket = absorbFee ? 0 : OrderService.BOOKING_FEE_PER_PAID_TICKET;
-        long fee = paidCount * feePerPaidTicket;
+        long subtotal = 0;
+        long fee = 0;
+        boolean anyPaidTicket = false;
+        int totalQty = 0;
+        for (var tt : event.ticketTypes()) {
+            int q = quantities.get(tt.id());
+            subtotal += tt.priceIqd() * q;
+            if (tt.priceIqd() > 0) {
+                anyPaidTicket = true;
+                if (!absorbFee) fee += Format.bookingFeeFor(tt.priceIqd()) * q;
+            }
+            totalQty += q;
+        }
 
         // promo preview (?promo=CODE)
         String promo = params.get("promo");
@@ -175,7 +177,8 @@ public class CheckoutController {
         model.addAttribute("totalQty", totalQty);
         model.addAttribute("subtotalLabel", Format.iqd(subtotal));
         model.addAttribute("feeLabel", Format.iqd(fee));
-        model.addAttribute("feePerPaidTicket", feePerPaidTicket);
+        model.addAttribute("absorbFee", absorbFee);
+        model.addAttribute("anyFeeShown", !absorbFee && anyPaidTicket);
         model.addAttribute("discountLabel", discount > 0 ? Format.iqd(discount) : null);
         model.addAttribute("promo", promo == null ? "" : promo.trim());
         model.addAttribute("promoOk", promoOk);
@@ -192,7 +195,7 @@ public class CheckoutController {
         return "checkout";
     }
 
-    @PostMapping("/events/{slug}/checkout")
+    @PostMapping("/e/{slug}/checkout")
     public String placeOrder(@PathVariable String slug,
                              @RequestParam Map<String, String> params,
                              @RequestParam(name = "buyerName") String buyerName,
@@ -223,7 +226,7 @@ public class CheckoutController {
             StringBuilder nextQs = new StringBuilder();
             quantities.forEach((id, q) -> nextQs.append(nextQs.length() == 0 ? "?" : "&")
                     .append("qty-").append(id).append("=").append(Math.max(0, Math.min(10, q))));
-            String next = "/events/" + slug + "/checkout" + nextQs;
+            String next = "/e/" + slug + "/checkout" + nextQs;
             return "redirect:/auth/login?next="
                     + java.net.URLEncoder.encode(next, java.nio.charset.StandardCharsets.UTF_8);
         }
@@ -236,7 +239,8 @@ public class CheckoutController {
             redirect.addFlashAttribute("error", e.getMessage());
             StringBuilder qs = new StringBuilder();
             quantities.forEach((id, q) -> qs.append("&qty-").append(id).append("=").append(q));
-            return "redirect:/events/" + slug + "/checkout?_e" + qs;
+            return "redirect:/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, java.nio.charset.StandardCharsets.UTF_8)
+                    + "/checkout?_e" + qs;
         }
     }
 

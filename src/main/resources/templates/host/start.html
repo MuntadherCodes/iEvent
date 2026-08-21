@@ -11,8 +11,9 @@
 <header class="sticky top-0 z-50 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
   <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
     <a th:href="@{/}" class="flex shrink-0 items-center gap-2" th:aria-label="#{host.nav.homeAria}" aria-label="iEvent home">
-      <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
-      <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span>
+      <img th:if="${!rtl}" th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
+      <span th:if="${!rtl}" class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
+      <img th:if="${rtl}" th:src="@{/img/brand-mark-color-arabic.png}" alt="iEvent" class="h-11 w-auto">
     </a>
     <a th:href="@{/}" class="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800"><span th:text="#{host.start.exit}">Exit</span><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></a>
   </div>
@@ -97,6 +98,14 @@
             <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Karbala" th:attr="data-label=${@t.city('Karbala')}" aria-pressed="false" th:text="${@t.city('Karbala')}">Karbala</button>
             <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Mosul" th:attr="data-label=${@t.city('Mosul')}" aria-pressed="false" th:text="${@t.city('Mosul')}">Mosul</button>
             <button type="button" class="ob-chip city-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" data-value="Duhok" th:attr="data-label=${@t.city('Duhok')}" aria-pressed="false" th:text="${@t.city('Duhok')}">Duhok</button>
+            <button type="button" id="otherCityBtn" class="ob-chip min-h-[48px] rounded-full border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" aria-pressed="false" th:text="#{host.start.otherCity}">Other</button>
+          </div>
+          <div id="otherCityWrap" class="mt-3 hidden">
+            <select id="otherCitySelect" class="w-full max-w-xs rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{host.start.otherCity}" aria-label="Other">
+              <option value="" th:text="#{host.start.otherCityPlaceholder}">Select a governorate…</option>
+              <option th:each="c : ${@t.cities().?[en != 'Baghdad' and en != 'Erbil' and en != 'Basra' and en != 'Sulaymaniyah' and en != 'Najaf' and en != 'Karbala' and en != 'Mosul' and en != 'Duhok']}"
+                      th:value="${c.en()}" th:text="${rtl} ? ${c.ar()} : ${c.en()}">Kirkuk</option>
+            </select>
           </div>
           <h2 class="mt-10 font-display text-lg font-bold text-ink-900" th:text="#{host.start.q3b}">How many people do you expect at a typical event?</h2>
           <div class="mt-4 flex flex-wrap gap-3">
@@ -159,7 +168,7 @@
             </button>
             <p class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 text-sm text-ink-600">
               <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
-              <span><span th:text="#{host.start.feeNote1}">Free events are free. Paid tickets: </span><strong class="font-semibold text-ink-800" th:text="#{host.start.feeNote2}">1,500 IQD booking fee per ticket</strong><span th:text="#{host.start.feeNote3}"> — paid by the buyer.</span></span>
+              <span><span th:text="#{host.start.feeNote1}">Free events are free. Paid tickets: </span><strong class="font-semibold text-ink-800" th:text="#{host.start.feeNote2}">750 IQD (or 3% + 2,000 IQD) booking fee per ticket</strong><span th:text="#{host.start.feeNote3}"> — paid by the buyer.</span></span>
             </p>
           </div>
         </section>
@@ -230,6 +239,9 @@
   var stepText = document.getElementById('stepText');
   var cityInput = document.getElementById('cityInput');
   var summaryLine = document.getElementById('summaryLine');
+  var otherCityBtn = document.getElementById('otherCityBtn');
+  var otherCityWrap = document.getElementById('otherCityWrap');
+  var otherCitySelect = document.getElementById('otherCitySelect');
   var stepPattern = stepText.getAttribute('data-step-pattern') || 'Step {n} of {m}';
 
   var CHIP_OFF = ['border-ink-200', 'bg-white', 'text-ink-700', 'hover:border-brand-400', 'hover:text-brand-600'];
@@ -253,7 +265,14 @@
     var cats = picks('.cat-chip');
     var freq = picks('.freq-chip');
     var cityChip = document.querySelector('.city-chip[aria-pressed="true"]');
-    var city = cityChip ? (cityChip.getAttribute('data-label') || cityChip.getAttribute('data-value')) : cityInput.value;
+    var city;
+    if (cityChip) {
+      city = cityChip.getAttribute('data-label') || cityChip.getAttribute('data-value');
+    } else if (otherCityBtn.getAttribute('aria-pressed') === 'true' && otherCitySelect.value) {
+      city = otherCitySelect.options[otherCitySelect.selectedIndex].text;
+    } else {
+      city = cityInput.value;
+    }
     var withPat = summaryLine.getAttribute('data-sum-with') || 'You’ll host {cats} events{freq} · in {city}.';
     var withoutPat = summaryLine.getAttribute('data-sum-without') || 'You’ll host events{freq} · in {city}.';
     var sep = summaryLine.getAttribute('data-freq-sep') || ' · ';
@@ -314,8 +333,22 @@
   cityChips.forEach(function (btn) {
     btn.addEventListener('click', function () {
       cityChips.forEach(function (b) { setChip(b, b === btn); });
+      setChip(otherCityBtn, false);
+      otherCityWrap.classList.add('hidden');
       cityInput.value = btn.getAttribute('data-value');
     });
+  });
+
+  // Step 3: "Other" reveals a dropdown covering the remaining governorates
+  otherCityBtn.addEventListener('click', function () {
+    cityChips.forEach(function (b) { setChip(b, false); });
+    setChip(otherCityBtn, true);
+    otherCityWrap.classList.remove('hidden');
+    otherCitySelect.focus();
+    if (otherCitySelect.value) cityInput.value = otherCitySelect.value;
+  });
+  otherCitySelect.addEventListener('change', function () {
+    cityInput.value = otherCitySelect.value;
   });
 })();
 </script>

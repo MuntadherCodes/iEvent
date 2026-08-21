@@ -39,24 +39,34 @@ public class GoogleOAuthConfig {
         return new InMemoryClientRegistrationRepository(google);
     }
 
-    /** Matches or provisions the local account for a Google identity. */
+    /** Matches or provisions the local account for a Google identity. Refreshes the
+     *  avatar from Google on every login (only writes when it actually changed) so a
+     *  new Google photo follows the account without needing re-provisioning. */
     private static User provision(UserRepository users, PasswordEncoder passwordEncoder,
-                                  SecureRandom random, String email, String name) {
+                                  SecureRandom random, String email, String name, String pictureUrl) {
         if (email == null || email.isBlank()) {
             throw new OAuth2AuthenticationException("Google account has no email");
         }
-        return users.findByEmailIgnoreCase(email).orElseGet(() -> {
-            User u = new User();
-            u.setEmail(email.toLowerCase());
-            u.setFullName(name == null || name.isBlank() ? email : name);
-            byte[] noise = new byte[32];
-            random.nextBytes(noise);
-            u.setPasswordHash(passwordEncoder.encode(Base64.getEncoder().encodeToString(noise)));
-            u.setRole(User.Role.USER);
-            u.setAuthProvider("google");
-            u.setPreferredLang(iq.ievent.service.UserService.currentLang());
-            return users.save(u);
-        });
+        var existing = users.findByEmailIgnoreCase(email);
+        if (existing.isPresent()) {
+            User u = existing.get();
+            if (pictureUrl != null && !pictureUrl.isBlank() && !pictureUrl.equals(u.getAvatarUrl())) {
+                u.setAvatarUrl(pictureUrl);
+                users.save(u);
+            }
+            return u;
+        }
+        User u = new User();
+        u.setEmail(email.toLowerCase());
+        u.setFullName(name == null || name.isBlank() ? email : name);
+        byte[] noise = new byte[32];
+        random.nextBytes(noise);
+        u.setPasswordHash(passwordEncoder.encode(Base64.getEncoder().encodeToString(noise)));
+        u.setRole(User.Role.USER);
+        u.setAuthProvider("google");
+        u.setPreferredLang(iq.ievent.service.UserService.currentLang());
+        if (pictureUrl != null && !pictureUrl.isBlank()) u.setAvatarUrl(pictureUrl);
+        return users.save(u);
     }
 
     /** Plain-OAuth2 path (used when the registration has no "openid" scope). */
@@ -68,7 +78,7 @@ public class GoogleOAuthConfig {
         return request -> {
             OAuth2User oauth = delegate.loadUser(request);
             User user = provision(users, passwordEncoder, random,
-                    oauth.getAttribute("email"), oauth.getAttribute("name"));
+                    oauth.getAttribute("email"), oauth.getAttribute("name"), oauth.getAttribute("picture"));
             return new AppOAuth2User(user, oauth.getAttributes());
         };
     }
@@ -90,7 +100,7 @@ public class GoogleOAuthConfig {
         return request -> {
             org.springframework.security.oauth2.core.oidc.user.OidcUser oidc = delegate.loadUser(request);
             User user = provision(users, passwordEncoder, random,
-                    oidc.getEmail(), oidc.getFullName());
+                    oidc.getEmail(), oidc.getFullName(), oidc.getPicture());
             return new AppOidcUser(user, oidc);
         };
     }

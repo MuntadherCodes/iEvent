@@ -21,6 +21,10 @@
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
         <span th:text="${actioned}">Done.</span>
       </div>
+      <div th:if="${error}" class="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+        <span th:text="${error}">Something went wrong.</span>
+      </div>
 
       <!-- Header row -->
       <div class="flex flex-col gap-4">
@@ -119,7 +123,7 @@
                     <a th:href="@{/host/events/{id}(id=${e.id()})}" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{host.events.manage}">Manage</a>
                     <details class="relative">
                       <summary class="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 [&amp;::-webkit-details-marker]:hidden" th:attr="aria-label=#{host.events.moreOptions(${e.title()})}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-ellipsis"/></svg></summary>
-                      <div class="absolute end-0 z-20 mt-1 w-44 rounded-xl border border-ink-100 bg-white p-1.5 text-start shadow-cardHover">
+                      <div class="fixed z-20 w-44 rounded-xl border border-ink-100 bg-white p-1.5 text-start shadow-cardHover">
                         <a th:href="@{/host/events/{id}(id=${e.id()})}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-chart-line"/></svg><span th:text="#{host.events.openConsole}">Open console</span></a>
                         <a th:href="@{/host/events/{id}/edit(id=${e.id()})}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-pencil"/></svg><span th:text="#{host.events.edit}">Edit</span></a>
                         <form th:if="${canManage}" th:action="@{/host/events/{id}/duplicate(id=${e.id()})}" method="post">
@@ -130,6 +134,9 @@
                         </form>
                         <form th:if="${canManage && e.statusKey() == 'LIVE'}" th:action="@{/host/events/{id}/unpublish(id=${e.id()})}" method="post">
                           <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-eye"/></svg><span th:text="#{host.events.unpublish}">Unpublish</span></button>
+                        </form>
+                        <form th:if="${canManage && e.statusKey() == 'DRAFT'}" th:action="@{/host/events/{id}/delete(id=${e.id()})}" method="post">
+                          <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50" th:attr="data-confirm=#{host.events.deleteConfirm}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-trash-2"/></svg><span th:text="#{host.events.delete}">Delete</span></button>
                         </form>
                       </div>
                     </details>
@@ -190,10 +197,56 @@
 </div>
 
 <script>
-  // Close any open row menu when clicking elsewhere
+  // Row-actions dropdowns: position as fixed so they escape the table's
+  // overflow-x-auto scroll wrapper (which would otherwise clip them), and
+  // close them on outside click, scroll, or resize.
+  var rowMenus = document.querySelectorAll('main details.relative');
+  var rtl = document.documentElement.getAttribute('dir') === 'rtl';
+
+  function closeRowMenus(except) {
+    rowMenus.forEach(function (d) {
+      if (d !== except) d.removeAttribute('open');
+    });
+  }
+
+  function positionRowMenu(details) {
+    var summary = details.querySelector('summary');
+    var panel = details.querySelector(':scope > div');
+    if (!summary || !panel) return;
+    var rect = summary.getBoundingClientRect();
+    panel.style.top = (rect.bottom + 4) + 'px';
+    // "end-0" is a logical offset: inset-inline-end maps to physical
+    // "left" under RTL and "right" under LTR.
+    if (rtl) {
+      panel.style.left = rect.left + 'px';
+      panel.style.right = 'auto';
+    } else {
+      panel.style.right = (window.innerWidth - rect.right) + 'px';
+      panel.style.left = 'auto';
+    }
+  }
+
+  rowMenus.forEach(function (details) {
+    details.addEventListener('toggle', function () {
+      if (details.open) {
+        closeRowMenus(details);
+        positionRowMenu(details);
+      }
+    });
+  });
+
   document.addEventListener('click', function (e) {
-    document.querySelectorAll('details[open]').forEach(function (d) {
-      if (!d.contains(e.target)) d.removeAttribute('open');
+    rowMenus.forEach(function (d) {
+      if (d.open && !d.contains(e.target)) d.removeAttribute('open');
+    });
+  });
+  window.addEventListener('scroll', function () { closeRowMenus(); }, true);
+  window.addEventListener('resize', function () { closeRowMenus(); });
+
+  // Confirm dialogs (localized via data-confirm)
+  document.querySelectorAll('button[data-confirm]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      if (!window.confirm(btn.getAttribute('data-confirm'))) e.preventDefault();
     });
   });
 </script>

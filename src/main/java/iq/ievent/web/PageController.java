@@ -179,7 +179,7 @@ public class PageController {
         return items;
     }
 
-    @GetMapping("/events/{slug}")
+    @GetMapping("/e/{slug}")
     public String event(@PathVariable String slug,
                         @AuthenticationPrincipal UserDetails principal,
                         Model model) {
@@ -227,10 +227,15 @@ public class PageController {
         // ---- wireframe extras computed server-side ----
         String statusName = entity.getStatus().name();
         model.addAttribute("eventStatus", statusName);
-        model.addAttribute("purchasable", entity.getStatus() == Event.Status.LIVE);
-        model.addAttribute("feePerPaidTicket",
-                "ABSORB".equals(entity.getFeeMode()) ? 0L
-                        : iq.ievent.service.OrderService.BOOKING_FEE_PER_PAID_TICKET);
+        model.addAttribute("purchasable",
+                entity.getStatus() == Event.Status.LIVE && !entity.isAnnounceOnly());
+        // Fee now depends on each ticket type's own price (Format.bookingFeeFor / @t.bookingFee
+        // in the template) rather than one flat number, so the model only needs to say whether
+        // buyers pay a fee at all here (ABSORB events never show a fee on the public page).
+        boolean absorbFee = "ABSORB".equals(entity.getFeeMode());
+        model.addAttribute("absorbFee", absorbFee);
+        boolean anyFeeShown = !absorbFee && detail.ticketTypes().stream().anyMatch(t -> t.priceIqd() > 0);
+        model.addAttribute("anyFeeShown", anyFeeShown);
         // First buyable ticket type defaults to qty 1 in the rail (user request R9).
         model.addAttribute("defaultQtyTypeId", detail.ticketTypes().stream()
                 .filter(t -> "ON_SALE".equals(t.status()) && t.remaining() > 0)
@@ -262,11 +267,18 @@ public class PageController {
                 org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId());
         List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
                 .map(String::trim).filter(p -> !p.isEmpty()).toList();
+        String primary = Format.coverUrl(e);
+        List<String> allImages = new ArrayList<>();
+        if (primary != null) allImages.add(primary);
+        allImages.addAll(jdbc.query(
+                "SELECT url FROM event_images WHERE event_id = ? ORDER BY sort_order",
+                (rs, i) -> rs.getString(1), e.getId()));
         return new EventDetail(
                 e.getSlug(), e.getTitle(),
                 Format.categoryLabel(e.getCategory()),
                 e.getCoverTheme(),
-                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                primary,
+                allImages,
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
                 Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
                 Format.monthShort(e.getStartsAt()),
@@ -277,6 +289,7 @@ public class PageController {
                 organizer,
                 List.of(),
                 e.getLocationType(),
+                e.isAnnounceOnly(),
                 e.getMapsUrl());
     }
 
@@ -357,7 +370,7 @@ public class PageController {
             long n = attended.getOrDefault(e.getId(), 0L);
             pastCards.add(new PastEventCard(
                     e.getSlug(), e.getTitle(), e.getCoverTheme(),
-                    e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                    Format.coverUrl(e),
                     e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                     Format.cardDateLine(e.getStartsAt()),
                     n > 0 ? msg("page.attended", String.format(Locale.ENGLISH, "%,d", n)) : null));

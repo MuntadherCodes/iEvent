@@ -1,8 +1,10 @@
 package iq.ievent.service;
 
 import iq.ievent.domain.Event;
+import iq.ievent.domain.EventImage;
 import iq.ievent.domain.Organization;
 import iq.ievent.domain.TicketType;
+import iq.ievent.repo.EventImageRepository;
 import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.LikeCountRepository;
 import iq.ievent.repo.TicketTypeRepository;
@@ -34,15 +36,27 @@ public class CatalogService {
     private final TicketTypeRepository ticketTypes;
     private final LikeCountRepository likeCounts;
     private final iq.ievent.repo.PaymentMethodRepository paymentMethods;
+    private final EventImageRepository eventImages;
 
     public CatalogService(EventRepository events,
                           TicketTypeRepository ticketTypes,
                           LikeCountRepository likeCounts,
-                          iq.ievent.repo.PaymentMethodRepository paymentMethods) {
+                          iq.ievent.repo.PaymentMethodRepository paymentMethods,
+                          EventImageRepository eventImages) {
         this.events = events;
         this.ticketTypes = ticketTypes;
         this.likeCounts = likeCounts;
         this.paymentMethods = paymentMethods;
+        this.eventImages = eventImages;
+    }
+
+    /** Primary cover + every extra image, in display order — 2+ means the
+     *  event page renders a slider instead of a single static cover. */
+    private List<String> galleryUrls(Event e, String primary) {
+        List<String> out = new java.util.ArrayList<>();
+        if (primary != null) out.add(primary);
+        eventImages.findByEventIdOrderBySortOrderAsc(e.getId()).forEach(img -> out.add(img.getUrl()));
+        return out;
     }
 
     public List<EventCard> upcomingThisWeek(int limit) {
@@ -198,7 +212,7 @@ public class CatalogService {
                     e.getTitle(),
                     Format.categoryLabel(e.getCategory()),
                     e.getCoverTheme(),
-                    e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                    Format.coverUrl(e),
                     e.getCity(),
                     Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                     Format.cardDateLine(e.getStartsAt()),
@@ -242,11 +256,13 @@ public class CatalogService {
                 .filter(p -> !p.isEmpty())
                 .toList();
 
+        String primary = Format.coverUrl(e);
         return new EventDetail(
                 e.getSlug(), e.getTitle(),
                 Format.categoryLabel(e.getCategory()),
                 e.getCoverTheme(),
-                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                primary,
+                galleryUrls(e, primary),
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
                 Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
                 Format.monthShort(e.getStartsAt()),
@@ -259,6 +275,7 @@ public class CatalogService {
                 organizer,
                 ttViews,
                 e.getLocationType(),
+                e.isAnnounceOnly(),
                 e.getMapsUrl());
     }
 

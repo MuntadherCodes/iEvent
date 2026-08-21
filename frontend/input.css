@@ -1,1 +1,34 @@
 @tailwind base;@tailwind components;@tailwind utilities;
+
+@layer base {
+  /* Arabic glyphs render visually smaller than Latin ones at the same
+     font-size (different x-height/metrics in the fallback Arabic font), so
+     bump the root size to keep perceived text size consistent with English.
+     Tailwind's utilities are rem-based, so this scales every text-* size,
+     spacing tied to em/rem, etc. uniformly. Scoped to the host/dashboard
+     area only (detected via #hostSidebar, present on every host page) —
+     the public site's Arabic type was already sized fine at 100%.
+     #hostSidebar is defined in fragments/host-layout.html. */
+  html[lang="ar"]:has(#hostSidebar) {
+    font-size: 112.5%;
+  }
+}
+
+@layer components {
+  /* Host dashboard sidebar: user-togglable collapse to an icon-only rail on
+     desktop (lg+), persisted in localStorage (see the head script in
+     fragments/host-layout.html for the read, and the sidebar fragment for
+     the toggle button + write + the class-stripping logic that reverts
+     each element to its true base — pre-"lg:" — look, the same one already
+     used responsively for the md-only tablet rail). Only the two
+     unambiguous, single-value overrides live here as plain CSS; every
+     other visual change (hiding labels, re-centering, restoring each
+     element's own base padding) is handled in JS because different
+     elements have different base values and a single guessed CSS override
+     can't fit them all (that mismatch previously made the "Create event"
+     button sit flush against the rail edges instead of keeping its margin). */
+  @media (min-width: 1024px) {
+    html[data-sidebar="collapsed"] #hostSidebar { width: 5rem; }
+    html[data-sidebar="collapsed"] .lg\:ps-64 { padding-inline-start: 5rem; }
+  }
+}

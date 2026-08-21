@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="noIndex=${true}">
 <head th:replace="~{fragments/layout :: head(#{public.title.checkoutPrefix} + ${event.title} + #{public.title.suffix})}"></head>
 <body class="bg-white font-body text-ink-800 antialiased"
       th:with="isFree=${isFreeOrder},
@@ -32,12 +32,13 @@
 <header class="sticky top-0 z-50 border-b border-ink-100 bg-white backdrop-blur md:bg-white/95 md:supports-[backdrop-filter]:bg-white/80">
   <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
     <a th:href="@{/}" class="flex shrink-0 items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
-      <img th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
-      <span class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span>
+      <img th:if="${!rtl}" th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
+      <span th:if="${!rtl}" class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
+      <img th:if="${rtl}" th:src="@{/img/brand-mark-color-arabic.png}" alt="iEvent" class="h-11 w-auto">
     </a>
     <span class="hidden items-center gap-1.5 text-sm font-medium text-ink-500 sm:flex"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.event.secureCheckout}]]</span>
     <div class="ms-auto flex items-center gap-2 sm:gap-3">
-      <a th:href="@{/events/{s}(s=${event.slug})}" class="grid h-11 w-11 place-items-center rounded-xl border border-ink-200 text-ink-500 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.checkout.backAria}" aria-label="Back to event">
+      <a th:href="@{/e/{s}(s=${event.slug})}" class="grid h-11 w-11 place-items-center rounded-xl border border-ink-200 text-ink-500 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.checkout.backAria}" aria-label="Back to event">
         <svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg>
       </a>
     </div>
@@ -59,7 +60,7 @@
   </div>
 
   <!-- ===== Checkout form ===== -->
-  <form method="post" th:action="@{/events/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
+  <form method="post" th:action="@{/e/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
     <!-- Applied promo code carries into the order -->
     <input type="hidden" name="promo" th:value="${promo}">
 
@@ -71,7 +72,7 @@
       </button>
       <div id="mobileSummaryBody" class="hidden border-t border-ink-100 px-5 py-4 text-sm">
         <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="sum-sub font-semibold tabular-nums" th:text="${subtotalLabel}">0 IQD</span></div>
-        <div th:if="${feePerPaidTicket > 0}" class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.bookingFeeLine}">Booking fee (1,500 IQD per paid ticket)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
+        <div th:if="${anyFeeShown}" class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.bookingFeeLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
         <div th:if="${discountLabel != null}" class="flex justify-between py-1 text-green-700"><span>[[#{public.checkout.discount}]]<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span><span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span></div>
         <a th:if="${discountLabel == null}" href="#promoSection" class="mt-1 inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.checkout.havePromo}]]</a>
         <div class="mt-2 flex justify-between border-t border-dashed border-ink-200 pt-3"><span class="font-bold text-ink-900" th:text="#{public.event.total}">Total</span><span class="sum-total font-display font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</span></div>
@@ -90,7 +91,7 @@
           <div class="mt-5 space-y-3">
             <div th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE'}"
                  class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3.5 transition hover:border-brand-400"
-                 data-ticket-row th:attr="data-id=${tt.id},data-price=${tt.priceIqd},data-fee=${tt.priceIqd > 0 ? feePerPaidTicket : 0},data-name=${tt.name}">
+                 data-ticket-row th:attr="data-id=${tt.id},data-price=${tt.priceIqd},data-fee=${!absorbFee and tt.priceIqd > 0 ? @t.bookingFee(tt.priceIqd) : 0},data-name=${tt.name}">
               <div>
                 <p class="text-sm font-semibold text-ink-900" th:text="${tt.name}">General Admission</p>
                 <p class="text-xs tabular-nums text-ink-500" th:text="${tt.priceLabel}">35,000 IQD</p>
@@ -104,7 +105,7 @@
               </div>
             </div>
           </div>
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${feePerPaidTicket > 0} ? #{public.checkout.feeNote} : #{public.event.noBookingFee}">Booking fee 1,500 IQD per paid ticket. Free tickets have no fee.</span></p>
+          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${anyFeeShown} ? #{public.checkout.feeNote} : #{public.event.noBookingFee}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that. Free tickets have no fee.</span></p>
         </section>
 
         <!-- Ticket holders -->
@@ -318,7 +319,7 @@
               <span class="sum-line-amt font-semibold tabular-nums text-ink-800"></span>
             </div>
             <div class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="sum-sub font-semibold tabular-nums text-ink-800" th:text="${subtotalLabel}">0 IQD</span></div>
-            <div th:if="${feePerPaidTicket > 0}" class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.feeSummaryLine}">Booking fee (1,500 IQD × paid ticket)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
+            <div th:if="${anyFeeShown}" class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.feeSummaryLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
             <div th:if="${discountLabel != null}" id="discountLine" th:attr="data-discount=${discountLabel}" class="flex justify-between text-green-700">
               <span>[[#{public.checkout.discount}]]<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span>
               <span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span>
@@ -347,7 +348,7 @@
 
   <!-- Promo apply: standalone GET form (targeted from the rail via the form attribute; no nested forms).
        Hidden qty inputs mirror the steppers — kept in sync by the recompute() script. -->
-  <form id="promoForm" method="get" th:action="@{/events/{s}/checkout(s=${event.slug})}" class="hidden">
+  <form id="promoForm" method="get" th:action="@{/e/{s}/checkout(s=${event.slug})}" class="hidden">
     <th:block th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE'}">
       <input type="hidden" class="promo-qty" th:attr="data-id=${tt.id}" th:name="'qty-' + ${tt.id}" th:value="${quantities.get(tt.id) ?: 0}">
     </th:block>

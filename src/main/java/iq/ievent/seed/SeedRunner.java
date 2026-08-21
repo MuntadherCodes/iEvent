@@ -216,7 +216,7 @@ public class SeedRunner implements CommandLineRunner {
                 String guest = DEMO_GUESTS[rnd.nextInt(DEMO_GUESTS.length)];
                 String email = guest.toLowerCase().replace(" ", ".") + "@example.iq";
                 User buyer = user(email, guest, "Password123!", User.Role.USER);
-                long fee = price != null && price > 0 ? 1_500L : 0L;
+                long fee = price != null ? iq.ievent.service.Format.bookingFeeFor(price) : 0L;
                 String code = String.format("EVT-DEMO-%05d", seq++);
                 Long orderId = jdbc.queryForObject("""
                         INSERT INTO orders (order_code, event_id, buyer_user_id, buyer_name, buyer_email,

@@ -47,6 +47,11 @@ public class User {
     @Column(name = "preferred_lang")
     private String preferredLang;
 
+    /** Google account photo URL (set on Google sign-in); null for local accounts
+     *  or Google accounts with no photo — initials render instead. */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -71,6 +76,8 @@ public class User {
     public void setPreferredLang(String preferredLang) { this.preferredLang = preferredLang; }
     public String getInterests() { return interests; }
     public void setInterests(String interests) { this.interests = interests; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public String initials() {
         String[] parts = fullName == null ? new String[0] : fullName.trim().split("\\s+");

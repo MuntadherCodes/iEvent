@@ -55,7 +55,7 @@
       </div>
 
       <!-- Event details form -->
-      <form id="editForm" th:action="@{/host/events/{id}/edit(id=${ev.id()})}" method="post" enctype="multipart/form-data" class="mt-6 space-y-6" th:attr="data-autosave-key='ievent-edit-' + ${ev.id()}">
+      <form id="editForm" th:action="@{/host/events/{id}/edit(id=${ev.id()})}" method="post" enctype="multipart/form-data" class="mt-6 space-y-6" th:attr="data-autosave-key='ievent-edit-' + ${ev.id()},data-event-id=${ev.id()}">
 
         <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
           <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.edit.title}">Event details</h2>
@@ -95,6 +95,16 @@
                 <span class="truncate" th:text="#{wizard.loc.tba}">To be announced</span>
               </label>
             </div>
+
+            <!-- Announcement-only: independent of location — an announcement can still
+                 have a real venue, be online, or be TBA; it just carries no tickets. -->
+            <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3.5 transition hover:border-brand-300 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+              <input type="checkbox" id="ev-announce-only" name="announceOnly" value="true" th:checked="${evEntity.announceOnly()}" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span>
+                <span class="block text-sm font-semibold text-ink-800" th:text="#{wizard.loc.announceOnly}">Announcement only — no tickets</span>
+                <span class="mt-0.5 block text-xs text-ink-500" th:text="#{wizard.loc.announceOnlyNote}">No tickets are sold for this event — it's shown as an informational announcement only.</span>
+              </span>
+            </label>
 
             <!-- VENUE fields -->
             <div id="locVenueFields" class="mt-4 grid gap-4 sm:grid-cols-2" th:classappend="${evEntity.locationType() != 'VENUE'} ? 'hidden' : ''">
@@ -150,12 +160,26 @@
             </div>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-summary" th:text="#{wizard.edit.summary}">Summary</label>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-summary" th:text="#{wizard.edit.summary}">Summary</label>
+              <button th:if="${aiAvailable}" type="button" id="aiSummaryBtn" class="mb-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                <span data-ai-btn-label th:text="#{wizard.ai.writeForMe}">Write it for me</span>
+              </button>
+            </div>
+            <p id="aiSummaryError" class="mb-1.5 hidden text-sm text-rose-600"></p>
             <textarea id="ev-summary" name="summary" rows="2" maxlength="160" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.summary.subtitle}" placeholder="One or two lines shown on your event card in the directory." th:text="${evEntity.summary()}"></textarea>
             <p class="mt-1.5 text-end text-xs tabular-nums text-ink-400"><span id="summaryCount">0</span> / 160</p>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc" th:text="#{wizard.edit.description}">Description</label>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc" th:text="#{wizard.edit.description}">Description</label>
+              <button th:if="${aiAvailable}" type="button" id="aiWriteBtn" class="mb-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                <span data-ai-btn-label th:text="#{wizard.ai.writeForMe}">Write it for me</span>
+              </button>
+            </div>
+            <p id="aiWriteError" class="mb-1.5 hidden text-sm text-rose-600"></p>
             <div class="rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
               <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
                   <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
@@ -175,12 +199,26 @@
             <textarea id="ev-desc" name="description" class="hidden" aria-hidden="true" tabindex="-1" th:text="${evEntity.description()}"></textarea>
           </div>
           <div class="mt-5">
-            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup" th:text="#{wizard.lineup.title}">Lineup / agenda</label>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup" th:text="#{wizard.lineup.title}">Lineup / agenda</label>
+              <button th:if="${aiAvailable}" type="button" id="aiLineupBtn" class="mb-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                <span data-ai-btn-label th:text="#{wizard.ai.writeForMe}">Write it for me</span>
+              </button>
+            </div>
+            <p id="aiLineupError" class="mb-1.5 hidden text-sm text-rose-600"></p>
             <textarea id="ev-lineup" name="lineup" rows="4" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.edit.lineupPlaceholder}" placeholder="One act per line, e.g. Sunset stage — 7:00 PM" th:text="${evEntity.lineup()}"></textarea>
             <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.edit.lineupNote}">One act or agenda item per line — shown on your event page.</p>
           </div>
-          <div class="mt-5 grid gap-4 sm:grid-cols-2">
-            <div>
+          <!-- Refund policy is pointless (and hidden) for announcement-only events (no
+               tickets at all) or fully free ones (nothing to refund) — mirrors the same
+               rule the public event page uses to hide its refund section. Ticket prices
+               here are saved data (each row is its own form), not live wizard input, so
+               this is computed server-side rather than reactively in JS. -->
+          <div class="mt-5 grid gap-4"
+               th:with="hideRefund=${evEntity.announceOnly() or ticketRows.?[priceIqd > 0].isEmpty()}"
+               th:classappend="${hideRefund} ? '' : 'sm:grid-cols-2'">
+            <div th:if="${!hideRefund}">
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund" th:text="#{wizard.refund.title}">Refund policy</label>
               <div class="relative">
                 <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
@@ -216,7 +254,7 @@
           <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) — hidden for free events -->
           <div id="editFeeCard" class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
-            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">1,500 IQD booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
+            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">750 IQD (or 3% + 2,000 IQD, capped at 15,000 IQD) booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" th:checked="${evEntity.feeMode() != 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
@@ -273,6 +311,27 @@
               <img id="coverNewPreviewImg" class="aspect-[16/9] w-full rounded-xl object-cover ring-1 ring-black/5" th:alt="#{wizard.cover.newAlt}" alt="New cover preview">
               <p class="mt-2 text-xs font-semibold text-brand-700" th:text="#{wizard.cover.newNote}">New photo — applied when you click Save changes.</p>
             </div>
+          </div>
+
+          <!-- Pexels stock-photo picker — hidden entirely when PEXELS_API_KEY
+               isn't configured (see GlobalModelAdvice's "pexelsAvailable").
+               Pre-populated from the event's saved gallery so a save that never
+               touches this widget resubmits the same images unchanged. -->
+          <div th:if="${pexelsAvailable}" id="gallery-picker" class="mt-6">
+            <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orSearch}">…or search free stock photos</p>
+            <div class="mt-2 flex gap-2">
+              <input type="text" id="pexelsQuery" class="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.banner.searchPlaceholder}" placeholder="e.g. music festival, conference, food">
+              <button type="button" id="pexelsSearchBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-900 disabled:cursor-wait disabled:opacity-60"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg><span th:text="#{wizard.banner.searchBtn}">Search</span></button>
+            </div>
+            <p id="pexelsMsg" class="mt-2 hidden text-sm text-ink-500"></p>
+            <div id="pexelsResults" class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4"></div>
+            <div id="gallerySelectedWrap" class="mt-4 hidden">
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.banner.selected}">Selected images</p>
+              <div id="gallerySelectedList" class="mt-2 flex flex-wrap gap-2"></div>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.banner.sliderNote}">2 or more images become an auto-slider on your event page.</p>
+            </div>
+            <div id="galleryHiddenFields"></div>
+            <script type="application/json" id="galleryInitial" th:utext="${galleryImagesJson}">[]</script>
           </div>
 
           <div class="mt-6 flex items-center gap-3 border-t border-ink-100 pt-5">
@@ -377,7 +436,7 @@
             <p class="mt-0.5 text-sm text-ink-500" th:if="${!isDraft && !isLive && !isCancelled}" th:text="#{wizard.pub.endedNote}">This event has ended.</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <a th:if="${isDraft}" th:href="@{/events/{s}(s=${ev.slug()})}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-eye"/></svg><span th:text="#{wizard.pub.preview}">Preview event</span></a>
+            <a th:if="${isDraft}" th:href="@{/e/{s}(s=${ev.slug()})}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-eye"/></svg><span th:text="#{wizard.pub.preview}">Preview event</span></a>
             <form th:if="${isDraft}" th:action="@{/host/events/{id}/publish(id=${ev.id()})}" method="post">
               <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{wizard.pub.publish}">Publish</span></button>
             </form>
@@ -441,7 +500,7 @@
 </div>
 
 <!-- Localized strings for inline JS -->
-<div id="wizI18n" hidden th:attr="data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity}"></div>
+<div id="wizI18n" hidden th:attr="data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage}"></div>
 
 <!-- Google Places config: rendered only when a Maps key is configured -->
 <div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
@@ -556,6 +615,13 @@
     // free; otherwise fill the pass/absorb notes from the real ticket price.
     var feeCard = document.getElementById('editFeeCard');
     function fmtIqd(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
+    // Mirrors Format.bookingFeeFor server-side: 750 flat at/under 15,000 IQD,
+    // else 3% + 2,000 IQD, capped at 15,000 IQD.
+    function bookingFeeFor(price) {
+      if (price <= 0) return 0;
+      if (price <= 15000) return 750;
+      return Math.min(15000, Math.round(price * 0.03) + 2000);
+    }
     function updateFeeExample() {
       if (!feeCard) return;
       var top = 0;
@@ -567,7 +633,8 @@
       if (top <= 0) return;
       var pass = feeCard.querySelector('.fee-note-pass');
       var abs = feeCard.querySelector('.fee-note-absorb');
-      [ [pass, top + 1500], [abs, Math.max(0, top - 1500)] ].forEach(function (pair) {
+      var fee = bookingFeeFor(top);
+      [ [pass, top + fee], [abs, Math.max(0, top - fee)] ].forEach(function (pair) {
         var el = pair[0];
         if (!el || !el.dataset.tpl) return;
         var cur = el.dataset.currency || 'IQD';
@@ -721,6 +788,61 @@
       try { localStorage.removeItem(KEY); } catch (e) {}
       hideBanner();
     });
+  })();
+
+  // ------------------------------------------------------------------
+  // Network autosave: an existing draft always has a real id, so — unlike
+  // the create wizard, which has to wait for step 1 — this PATCHes
+  // /events/{id}/autosave on every tick straight away. localStorage above
+  // stays as the instant, offline-safe backup; the "saved" tick now only
+  // lights up once the server has actually confirmed the save.
+  // ------------------------------------------------------------------
+  (function networkAutosave() {
+    var form = document.getElementById('editForm');
+    if (!form) return;
+    var eventId = form.getAttribute('data-event-id');
+    if (!eventId) return;
+    var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+    var netTimer = null;
+    var netSaving = false;
+    var netPending = false;
+
+    function tick(show) {
+      var el = document.getElementById('autosaveTick');
+      if (!el) return;
+      el.classList.toggle('hidden', !show);
+      el.classList.toggle('inline-flex', show);
+    }
+
+    function formDataWithoutFile() {
+      var fd = new FormData(form);
+      fd.delete('coverImage');
+      return fd;
+    }
+
+    function netSaveNow() {
+      if (netSaving) return;
+      netSaving = true;
+      var headers = {}; headers[csrfHeader] = csrfToken;
+      fetch('/host/events/' + eventId + '/autosave', { method: 'POST', headers: headers, body: formDataWithoutFile() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { if (data && data.ok) tick(true); })
+        .catch(function () { /* offline / transient — localStorage above still has it */ })
+        .finally(function () {
+          netSaving = false;
+          if (netPending) { netPending = false; netSaveNow(); }
+        });
+    }
+
+    function scheduleNetSave() {
+      if (netSaving) { netPending = true; return; }
+      if (netTimer) return;
+      netTimer = setTimeout(function () { netTimer = null; netSaveNow(); }, 2000);
+    }
+
+    form.addEventListener('input', scheduleNetSave);
+    form.addEventListener('change', scheduleNetSave);
   })();
 
   // ------------------------------------------------------------------
@@ -894,6 +1016,222 @@
     });
     // Autosave restore writes the textarea directly — mirror it back into the editor
     window.__syncDescEditor = function () { ed.innerHTML = ta.value || ''; };
+  })();
+
+  // ---- "Write it for me" (AI-generated copy: description, summary, lineup) ----
+  (function () {
+    var titleInput = document.getElementById('ev-title');
+    var catSelect = document.getElementById('ev-cat');
+    var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    function wireAiButton(btnId, errorId, kind, applyResult) {
+      var btn = document.getElementById(btnId);
+      if (!btn) return; // hidden server-side when AI isn't configured
+      var errorEl = document.getElementById(errorId);
+      var labelEl = btn.querySelector('[data-ai-btn-label]');
+      var defaultLabel = labelEl.textContent;
+
+      btn.addEventListener('click', function () {
+        errorEl.classList.add('hidden');
+        var title = (titleInput.value || '').trim();
+        if (!title) {
+          errorEl.textContent = wizMsg('ai-need-title');
+          errorEl.classList.remove('hidden');
+          titleInput.focus();
+          return;
+        }
+        var category = catSelect && catSelect.selectedOptions.length ? catSelect.selectedOptions[0].textContent.trim() : '';
+        btn.disabled = true;
+        labelEl.textContent = wizMsg('ai-generating');
+        var body = new URLSearchParams({ title: title, category: category, lang: document.documentElement.lang, kind: kind });
+        var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        headers[csrfHeader] = csrfToken;
+        fetch('/host/events/ai/write', { method: 'POST', headers: headers, body: body.toString() })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (!result.ok) throw new Error('generation_failed');
+            applyResult(result.data.text || '');
+          })
+          .catch(function () {
+            errorEl.textContent = wizMsg('ai-error');
+            errorEl.classList.remove('hidden');
+          })
+          .finally(function () {
+            btn.disabled = false;
+            labelEl.textContent = defaultLabel;
+          });
+      });
+    }
+
+    wireAiButton('aiWriteBtn', 'aiWriteError', 'DESCRIPTION', function (text) {
+      // The backend returns ready-made HTML (h4 section headers + p + b) —
+      // sanitized again server-side on save, same as any other rich-text edit.
+      var ed = document.getElementById('ev-desc-editor');
+      ed.innerHTML = text;
+      ed.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    wireAiButton('aiSummaryBtn', 'aiSummaryError', 'SUMMARY', function (text) {
+      var ta = document.getElementById('ev-summary');
+      ta.value = text.slice(0, 160);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    wireAiButton('aiLineupBtn', 'aiLineupError', 'LINEUP', function (text) {
+      var ta = document.getElementById('ev-lineup');
+      ta.value = text;
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  })();
+
+  // ---- Stock-photo picker (Pexels) — same widget as the create wizard, but
+  // pre-populated from #galleryInitial so a save that never touches it
+  // resubmits the event's existing gallery unchanged instead of wiping it. ----
+  (function () {
+    var picker = document.getElementById('gallery-picker');
+    if (!picker) return; // pexelsAvailable is false — hidden server-side
+    var i18nEl = document.getElementById('wizI18n');
+    function pMsg(name) { return (i18nEl && i18nEl.getAttribute('data-pexels-' + name)) || ''; }
+
+    var queryInput = document.getElementById('pexelsQuery');
+    var searchBtn = document.getElementById('pexelsSearchBtn');
+    var msgEl = document.getElementById('pexelsMsg');
+    var resultsEl = document.getElementById('pexelsResults');
+    var selectedWrap = document.getElementById('gallerySelectedWrap');
+    var selectedListEl = document.getElementById('gallerySelectedList');
+    var hiddenFieldsEl = document.getElementById('galleryHiddenFields');
+
+    var selected = [];
+    try {
+      var raw = document.getElementById('galleryInitial').textContent;
+      selected = raw ? JSON.parse(raw) : [];
+    } catch (e) { selected = []; }
+
+    function showMsg(text) {
+      if (!text) { msgEl.classList.add('hidden'); return; }
+      msgEl.textContent = text;
+      msgEl.classList.remove('hidden');
+    }
+
+    function isSelected(url) { return selected.some(function (s) { return s.url === url; }); }
+
+    function syncThumb(btn, url) {
+      var on = isSelected(url);
+      var check = btn.querySelector('.pexels-check');
+      btn.classList.toggle('ring-brand-500', on);
+      check.classList.toggle('hidden', !on);
+      check.classList.toggle('flex', on);
+    }
+
+    function syncAllThumbs() {
+      resultsEl.querySelectorAll('[data-url]').forEach(function (btn) {
+        syncThumb(btn, btn.getAttribute('data-url'));
+      });
+    }
+
+    function toggle(p) {
+      var idx = selected.findIndex(function (s) { return s.url === p.fullUrl; });
+      if (idx >= 0) selected.splice(idx, 1);
+      else selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl });
+      renderSelected();
+      syncAllThumbs();
+    }
+
+    function removeSelected(url) {
+      selected = selected.filter(function (s) { return s.url !== url; });
+      renderSelected();
+      syncAllThumbs();
+    }
+
+    function hiddenInput(name, value) {
+      var el = document.createElement('input');
+      el.type = 'hidden';
+      el.name = name;
+      el.value = value || '';
+      return el;
+    }
+
+    function renderSelected() {
+      selectedWrap.classList.toggle('hidden', selected.length === 0);
+      selectedListEl.innerHTML = '';
+      selected.forEach(function (s) {
+        var wrap = document.createElement('div');
+        wrap.className = 'group relative h-16 w-16 overflow-hidden rounded-lg ring-1 ring-ink-100';
+        var img = document.createElement('img');
+        img.src = s.thumbnailUrl || s.url;
+        img.alt = '';
+        img.className = 'h-full w-full object-cover';
+        wrap.appendChild(img);
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100';
+        rm.setAttribute('aria-label', pMsg('remove'));
+        rm.innerHTML = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        rm.addEventListener('click', function () { removeSelected(s.url); });
+        wrap.appendChild(rm);
+        selectedListEl.appendChild(wrap);
+      });
+
+      hiddenFieldsEl.innerHTML = '';
+      selected.forEach(function (s) {
+        hiddenFieldsEl.appendChild(hiddenInput('galleryUrl', s.url));
+        hiddenFieldsEl.appendChild(hiddenInput('galleryCreditName', s.creditName));
+        hiddenFieldsEl.appendChild(hiddenInput('galleryCreditUrl', s.creditUrl));
+      });
+    }
+
+    function renderResults(photos) {
+      resultsEl.innerHTML = '';
+      photos.forEach(function (p) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'group relative aspect-square overflow-hidden rounded-lg ring-2 ring-transparent transition hover:ring-brand-300';
+        btn.setAttribute('data-url', p.fullUrl);
+        var img = document.createElement('img');
+        img.src = p.thumbnailUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.className = 'h-full w-full object-cover';
+        btn.appendChild(img);
+        var check = document.createElement('span');
+        check.className = 'pexels-check pointer-events-none absolute inset-0 hidden items-center justify-center bg-brand-500/50';
+        check.innerHTML = '<svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+        btn.appendChild(check);
+        btn.addEventListener('click', function () { toggle(p); });
+        resultsEl.appendChild(btn);
+      });
+      syncAllThumbs();
+    }
+
+    function doSearch() {
+      var q = queryInput.value.trim();
+      if (!q) return;
+      searchBtn.disabled = true;
+      showMsg(pMsg('searching'));
+      resultsEl.innerHTML = '';
+      fetch('/host/events/pexels-search?q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+        .then(function (result) {
+          searchBtn.disabled = false;
+          if (!result.ok) { showMsg(pMsg('search-error')); return; }
+          var photos = result.data.photos || [];
+          if (!photos.length) { showMsg(pMsg('no-results')); return; }
+          showMsg('');
+          renderResults(photos);
+        })
+        .catch(function () {
+          searchBtn.disabled = false;
+          showMsg(pMsg('search-error'));
+        });
+    }
+
+    searchBtn.addEventListener('click', doSearch);
+    queryInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+    });
+
+    renderSelected(); // reflect the pre-populated gallery in the hidden fields immediately
   })();
 
 </script>

@@ -13,6 +13,32 @@ public final class Format {
 
     public static final ZoneId BAGHDAD = ZoneId.of("Asia/Baghdad");
 
+    /** The event's primary cover, wherever it's shown as a single thumbnail
+     *  (cards, dashboard, checkout) — an uploaded file always wins; a
+     *  Pexels-picked primary (no file uploaded) is the fallback; null means
+     *  the gradient/theme placeholder. */
+    public static String coverUrl(Event e) {
+        if (e.getCoverImagePath() != null) return "/media/event-cover/" + e.getId();
+        return e.getCoverImageUrl();
+    }
+
+    public static final long BOOKING_FEE_FLAT_THRESHOLD_IQD = 15_000L;
+    public static final long BOOKING_FEE_FLAT_IQD = 750L;
+    public static final double BOOKING_FEE_PERCENT = 0.03;
+    public static final long BOOKING_FEE_PERCENT_ADDON_IQD = 2_000L;
+    public static final long BOOKING_FEE_MAX_IQD = 15_000L;
+
+    /** Platform booking fee for one ticket at this price: 750 IQD flat at or
+     *  under 15,000 IQD; above that, 3% of price + 2,000 IQD, capped at
+     *  15,000 IQD no matter how high the price climbs. Free tickets (price 0)
+     *  never carry a fee. */
+    public static long bookingFeeFor(long priceIqd) {
+        if (priceIqd <= 0) return 0;
+        if (priceIqd <= BOOKING_FEE_FLAT_THRESHOLD_IQD) return BOOKING_FEE_FLAT_IQD;
+        long percentFee = Math.round(priceIqd * BOOKING_FEE_PERCENT) + BOOKING_FEE_PERCENT_ADDON_IQD;
+        return Math.min(BOOKING_FEE_MAX_IQD, percentFee);
+    }
+
     /** Arabic locale for date words (day/month names); digits stay Western. */
     private static final Locale ARABIC = new Locale("ar");
 
@@ -31,7 +57,7 @@ public final class Format {
     public static String cardDateLine(OffsetDateTime startsAt) {
         Locale loc = displayLocale();
         ZonedDateTime z = startsAt.atZoneSameInstant(BAGHDAD);
-        String s = z.format(DateTimeFormatter.ofPattern("EEE, MMM d", loc)) + " · "
+        String s = z.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", loc)) + " · "
                 + z.format(DateTimeFormatter.ofPattern("h:mm a", loc));
         return isEnglish() ? s.toUpperCase(Locale.ENGLISH) : s;
     }
@@ -44,7 +70,7 @@ public final class Format {
     public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt, Locale loc) {
         ZonedDateTime s = startsAt.atZoneSameInstant(BAGHDAD);
         DateTimeFormatter time = DateTimeFormatter.ofPattern("h:mm a", loc);
-        String base = s.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", loc)) + " · " + s.format(time);
+        String base = s.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", loc)) + " · " + s.format(time);
         if (endsAt != null) {
             base += " – " + endsAt.atZoneSameInstant(BAGHDAD).format(time);
         }
