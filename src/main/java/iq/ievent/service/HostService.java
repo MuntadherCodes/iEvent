@@ -446,9 +446,9 @@ public class HostService {
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS gross,
                        (SELECT COALESCE(SUM(o.booking_fee_iqd), 0) FROM orders o
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED') AS buyer_fees,
-                       (SELECT COALESCE(SUM(oi.quantity *
+                       (SELECT CASE WHEN ? THEN 0 ELSE COALESCE(SUM(oi.quantity *
                                 CASE WHEN oi.unit_price_iqd <= 15000 THEN 750
-                                     ELSE LEAST(15000, ROUND(oi.unit_price_iqd * 0.03) + 2000) END), 0)
+                                     ELSE LEAST(15000, ROUND(oi.unit_price_iqd * 0.03) + 2000) END), 0) END
                           FROM order_items oi JOIN orders o ON o.id = oi.order_id
                          WHERE o.event_id = e.id AND o.status = 'CONFIRMED'
                            AND oi.unit_price_iqd > 0
@@ -463,12 +463,17 @@ public class HostService {
                     // Each order self-describes the mode it was charged under:
                     // paid tickets with booking_fee_iqd = 0 were absorbed by the
                     // host — so flipping fee_mode later never rewrites history.
+                    // While the platform fee is waived (Format.BOOKING_FEE_WAIVED),
+                    // EVERY paid order has booking_fee_iqd = 0 regardless of
+                    // fee_mode, so that signal alone can't distinguish "absorbed"
+                    // from "nothing was ever charged" — the query short-circuits
+                    // absorbed to 0 in that case instead of guessing.
                     long absorbed = rs.getLong(6);
                     long net = Math.max(0, gross - absorbed);
                     return new EarningsRow(rs.getLong(1), rs.getString(2), rs.getLong(3),
                             Format.iqd(gross), Format.iqd(buyerFees + absorbed), Format.iqd(net));
                 },
-                orgId);
+                Format.BOOKING_FEE_WAIVED, orgId);
     }
 
     @Transactional

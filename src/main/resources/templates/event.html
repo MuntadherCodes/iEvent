@@ -325,7 +325,7 @@
             </th:block>
           </div>
 
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${anyFeeShown} ? #{public.event.bookingFee} : #{public.event.noBookingFee}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that.</span></p>
+          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:if="${anyFeeShown and feeWaived}" th:text="#{public.checkout.feeWaivedNote}">Booking fee waived — free for everyone during the beta period.</span><span th:if="${anyFeeShown and !feeWaived}" th:text="#{public.event.bookingFee}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that.</span><span th:unless="${anyFeeShown}" th:text="#{public.event.noBookingFee}">No booking fee.</span></p>
 
           <div class="mt-4 flex items-center justify-between border-t border-ink-100 pt-4">
             <span class="text-sm font-semibold text-ink-600" th:text="#{public.event.total}">Total</span>

@@ -28,11 +28,17 @@ public final class Format {
     public static final long BOOKING_FEE_PERCENT_ADDON_IQD = 2_000L;
     public static final long BOOKING_FEE_MAX_IQD = 15_000L;
 
+    /** Beta: the platform charges no booking fee yet. Flip to false to turn
+     *  the tiered formula below back on for new orders — it's kept intact,
+     *  not deleted, for exactly that switch-over. */
+    public static final boolean BOOKING_FEE_WAIVED = true;
+
     /** Platform booking fee for one ticket at this price: 750 IQD flat at or
      *  under 15,000 IQD; above that, 3% of price + 2,000 IQD, capped at
      *  15,000 IQD no matter how high the price climbs. Free tickets (price 0)
      *  never carry a fee. */
     public static long bookingFeeFor(long priceIqd) {
+        if (BOOKING_FEE_WAIVED) return 0;
         if (priceIqd <= 0) return 0;
         if (priceIqd <= BOOKING_FEE_FLAT_THRESHOLD_IQD) return BOOKING_FEE_FLAT_IQD;
         long percentFee = Math.round(priceIqd * BOOKING_FEE_PERCENT) + BOOKING_FEE_PERCENT_ADDON_IQD;

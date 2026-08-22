@@ -72,7 +72,7 @@
       </button>
       <div id="mobileSummaryBody" class="hidden border-t border-ink-100 px-5 py-4 text-sm">
         <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="sum-sub font-semibold tabular-nums" th:text="${subtotalLabel}">0 IQD</span></div>
-        <div th:if="${anyFeeShown}" class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.bookingFeeLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
+        <div th:if="${anyFeeShown}" class="flex justify-between py-1"><span class="text-ink-500"><span th:classappend="${feeWaived} ? 'line-through decoration-ink-300'" th:text="#{public.checkout.bookingFeeLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span> <span th:if="${feeWaived}" class="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-bold text-green-700" th:text="#{public.fee.waivedBadge}">Waived</span></span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
         <div th:if="${discountLabel != null}" class="flex justify-between py-1 text-green-700"><span>[[#{public.checkout.discount}]]<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span><span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span></div>
         <a th:if="${discountLabel == null}" href="#promoSection" class="mt-1 inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.checkout.havePromo}]]</a>
         <div class="mt-2 flex justify-between border-t border-dashed border-ink-200 pt-3"><span class="font-bold text-ink-900" th:text="#{public.event.total}">Total</span><span class="sum-total font-display font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</span></div>
@@ -105,7 +105,7 @@
               </div>
             </div>
           </div>
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${anyFeeShown} ? #{public.checkout.feeNote} : #{public.event.noBookingFee}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that. Free tickets have no fee.</span></p>
+          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:if="${anyFeeShown and feeWaived}" th:text="#{public.checkout.feeWaivedNote}">Booking fee waived — free for everyone during the beta period.</span><span th:if="${anyFeeShown and !feeWaived}" th:text="#{public.checkout.feeNote}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that. Free tickets have no fee.</span><span th:unless="${anyFeeShown}" th:text="#{public.event.noBookingFee}">No booking fee.</span></p>
         </section>
 
         <!-- Ticket holders -->
@@ -319,7 +319,7 @@
               <span class="sum-line-amt font-semibold tabular-nums text-ink-800"></span>
             </div>
             <div class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="sum-sub font-semibold tabular-nums text-ink-800" th:text="${subtotalLabel}">0 IQD</span></div>
-            <div th:if="${anyFeeShown}" class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.feeSummaryLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
+            <div th:if="${anyFeeShown}" class="flex justify-between"><span class="text-ink-500"><span th:classappend="${feeWaived} ? 'line-through decoration-ink-300'" th:text="#{public.checkout.feeSummaryLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span> <span th:if="${feeWaived}" class="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-bold text-green-700" th:text="#{public.fee.waivedBadge}">Waived</span></span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
             <div th:if="${discountLabel != null}" id="discountLine" th:attr="data-discount=${discountLabel}" class="flex justify-between text-green-700">
               <span>[[#{public.checkout.discount}]]<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span>
               <span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span>

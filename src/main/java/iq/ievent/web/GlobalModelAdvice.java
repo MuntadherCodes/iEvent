@@ -43,6 +43,7 @@ public class GlobalModelAdvice {
         model.addAttribute("mapsKey", mapsKey.isBlank() ? null : mapsKey);
         model.addAttribute("aiAvailable", aiAvailable);
         model.addAttribute("pexelsAvailable", pexelsAvailable);
+        model.addAttribute("feeWaived", iq.ievent.service.Format.BOOKING_FEE_WAIVED);
         // Controllers may overwrite this with their own lookup; this default keeps
         // pages that don't (error page, simple views) consistent for OAuth + form users.
         iq.ievent.domain.User current =

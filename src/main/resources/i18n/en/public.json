@@ -105,6 +105,8 @@
   "public.checkout.email": "Email",
   "public.checkout.emailPh": "you@email.com",
   "public.checkout.feeNote": "Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD (capped at 15,000 IQD) above that. Free tickets have no fee.",
+  "public.checkout.feeWaivedNote": "Booking fee waived — free for everyone during the beta period.",
+  "public.fee.waivedBadge": "Waived",
   "public.checkout.feeSummaryLine": "Booking fee (750 IQD, or 3% + 2,000 IQD)",
   "public.checkout.freeNote": "Free registration — tickets are issued instantly.",
   "public.checkout.fullName": "Full name",
