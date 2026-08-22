@@ -156,23 +156,19 @@
       <span th:if="${!rtl}" class="hidden font-display text-lg font-extrabold tracking-tight text-ink-900 min-[420px]:block"><span class="text-brand-500">i</span>Event</span>
       <img th:if="${rtl}" th:src="@{/img/brand-mark-color-arabic.png}" alt="iEvent" class="h-11 w-auto">
     </a>
-    <div class="ms-1 hidden flex-1 items-center md:flex">
-      <form th:action="@{/browse}" method="get" class="flex w-full max-w-md items-center gap-2.5 rounded-full border border-ink-200 bg-ink-50 px-4 py-2.5 transition focus-within:border-brand-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-100">
-        <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-        <input name="q" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchPlaceholder}" placeholder="Search events, venues, organizers…" th:attr="aria-label=#{public.nav.searchAria}" aria-label="Search">
-        <span class="hidden shrink-0 items-center gap-1.5 border-s border-ink-200 ps-3 text-sm font-medium text-ink-500 lg:flex"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg>[[${@t.city('Baghdad')}]]</span>
-      </form>
-    </div>
-    <nav class="ms-auto hidden items-center gap-0.5 md:flex" th:attr="aria-label=#{public.nav.primaryAria}" aria-label="Primary">
-      <a th:href="@{/browse}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
-         th:classappend="${active == 'browse'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
-         th:attr="aria-current=${active == 'browse'} ? 'page' : null" th:text="#{public.nav.browse}">Browse events</a>
-      <a th:href="@{/favorites}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
-         th:classappend="${active == 'saved'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
-         th:attr="aria-current=${active == 'saved'} ? 'page' : null" th:text="#{public.nav.saved}">Saved</a>
-      <a th:href="@{/me/tickets}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
-         th:classappend="${active == 'tickets'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
-         th:attr="aria-current=${active == 'tickets'} ? 'page' : null" th:text="#{public.nav.myTickets}">My tickets</a>
+    <nav class="ms-1 hidden flex-1 items-center md:flex" th:attr="aria-label=#{public.nav.primaryAria}" aria-label="Primary">
+      <div class="flex items-center gap-0.5">
+        <a th:href="@{/browse}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
+           th:classappend="${active == 'browse'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
+           th:attr="aria-current=${active == 'browse'} ? 'page' : null" th:text="#{public.nav.browse}">Browse events</a>
+        <a th:href="@{/favorites}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
+           th:classappend="${active == 'saved'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
+           th:attr="aria-current=${active == 'saved'} ? 'page' : null" th:text="#{public.nav.saved}">Saved</a>
+        <a th:href="@{/me/tickets}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
+           th:classappend="${active == 'tickets'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
+           th:attr="aria-current=${active == 'tickets'} ? 'page' : null" th:text="#{public.nav.myTickets}">My tickets</a>
+      </div>
+      <div class="ms-auto flex items-center gap-0.5">
       <a th:href="@{/host}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
       <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" class="ms-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
         <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? 'EN' : 'AR']]<svg class="h-3 w-3" aria-hidden="true"><use href="#i-chevron-down"/></svg>
@@ -207,6 +203,7 @@
         </form>
       </th:block>
       <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="ms-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-50 hover:text-ink-900" th:text="#{public.nav.signIn}">Sign in</a>
+      </div>
     </nav>
     <!-- Mobile: "Host an event" used to live only inside the collapsed hamburger
          menu, invisible until opened. It's the site's main conversion CTA, so it
