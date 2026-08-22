@@ -278,6 +278,7 @@ public class PageController {
                 Format.categoryLabel(e.getCategory()),
                 e.getCoverTheme(),
                 primary,
+                e.getCoverFocusY(),
                 allImages,
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
                 Format.longDateLine(e.getStartsAt(), e.getEndsAt()),

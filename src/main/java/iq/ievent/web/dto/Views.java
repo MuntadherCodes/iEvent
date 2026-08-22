@@ -44,6 +44,7 @@ public final class Views {
             String categoryLabel,
             String coverTheme,
             String coverImageUrl,   // null → gradient fallback; always allImages.get(0) when allImages isn't empty
+            int coverFocusY,        // vertical focus for the cover crop, 0–100
             List<String> allImages, // primary + extras, in display order — 2+ makes the page a slider
             String city,
             String venueName,

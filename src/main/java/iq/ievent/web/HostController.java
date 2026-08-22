@@ -330,6 +330,7 @@ public class HostController {
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
+                              @RequestParam(required = false) Integer coverFocusY,
                               @RequestParam(required = false) Long draftEventId,
                               @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
                               @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
@@ -382,6 +383,7 @@ public class HostController {
             created.setAnnounceOnly(announceOnly);
             applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode);
             hostService.applyCoverTheme(created, coverTheme);
+            if (coverFocusY != null) hostService.setCoverFocusY(created, coverFocusY);
             String coverError = hostService.storeCover(created, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
             hostService.replaceGalleryImages(created,
@@ -586,6 +588,7 @@ public class HostController {
         model.addAttribute("currentTheme", ev.getCoverTheme());
         model.addAttribute("hasCoverImage", ev.getCoverImagePath() != null);
         model.addAttribute("coverImageUrl", Format.coverUrl(ev));
+        model.addAttribute("coverFocusY", ev.getCoverFocusY());
         model.addAttribute("galleryImagesJson", galleryImagesJson(hostService.currentGalleryPicks(ev)));
         model.addAttribute("postponeDate", z.toLocalDate().toString());
         return "host/event-edit";
@@ -651,6 +654,7 @@ public class HostController {
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
+                              @RequestParam(required = false) Integer coverFocusY,
                               @RequestParam(name = "removeCover", defaultValue = "false") boolean removeCover,
                               @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
                               @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
@@ -677,6 +681,7 @@ public class HostController {
             ev.setAnnounceOnly(announceOnly);
             applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode);
             hostService.applyCoverTheme(ev, coverTheme);
+            if (coverFocusY != null) hostService.setCoverFocusY(ev, coverFocusY);
             if (removeCover) hostService.removeCover(ev);
             String coverError = hostService.storeCover(ev, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);

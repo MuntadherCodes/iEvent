@@ -75,7 +75,7 @@
     <div class="relative mt-5 aspect-[16/9] overflow-hidden rounded-3xl bg-gradient-to-br ring-1 ring-inset ring-black/5 md:aspect-[21/9]" th:classappend="${grad}">
       <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="evc" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#evc)"/></svg>
       <svg th:if="${event.coverImageUrl == null}" class="absolute inset-0 m-auto h-12 w-12 text-white/40 md:h-16 md:w-16" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
-      <img th:if="${event.coverImageUrl != null and #lists.size(event.allImages) <= 1}" th:src="${event.coverImageUrl}" th:alt="${event.title}" class="absolute inset-0 h-full w-full object-cover">
+      <img th:if="${event.coverImageUrl != null and #lists.size(event.allImages) <= 1}" th:src="${event.coverImageUrl}" th:alt="${event.title}" class="absolute inset-0 h-full w-full object-cover" th:style="'object-position: 50% ' + ${event.coverFocusY} + '%'">
 
       <!-- Slider: 2+ images -->
       <div th:if="${#lists.size(event.allImages) > 1}" id="coverSlider" class="absolute inset-0">

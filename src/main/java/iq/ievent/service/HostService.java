@@ -225,6 +225,15 @@ public class HostService {
         }
     }
 
+    /** Sets the cover crop focus regardless of which cover source (upload,
+     *  Pexels, or existing photo) is active — storeCover() only saves on a
+     *  new file, so this can't just piggyback on that call. */
+    @Transactional
+    public void setCoverFocusY(Event event, int focusY) {
+        event.setCoverFocusY(Math.max(0, Math.min(100, focusY)));
+        events.save(event);
+    }
+
     /** Organization the user can act for: as owner or as team member. */
     @Transactional(readOnly = true)
     public Optional<Organization> organizationOf(User user) {

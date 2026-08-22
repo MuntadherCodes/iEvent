@@ -68,6 +68,11 @@ public class Event {
     @Column(name = "cover_image_credit_url")
     private String coverImageCreditUrl;
 
+    /** Vertical crop focus for the cover image, 0 (top) to 100 (bottom),
+     *  50 = centered. Same idea as Organization.coverFocusY. */
+    @Column(name = "cover_focus_y", nullable = false)
+    private int coverFocusY = 50;
+
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
@@ -142,6 +147,8 @@ public class Event {
     public void setCoverImageCreditName(String coverImageCreditName) { this.coverImageCreditName = coverImageCreditName; }
     public String getCoverImageCreditUrl() { return coverImageCreditUrl; }
     public void setCoverImageCreditUrl(String coverImageCreditUrl) { this.coverImageCreditUrl = coverImageCreditUrl; }
+    public int getCoverFocusY() { return coverFocusY; }
+    public void setCoverFocusY(int coverFocusY) { this.coverFocusY = coverFocusY; }
     public long getViewCount() { return viewCount; }
     public void setViewCount(long viewCount) { this.viewCount = viewCount; }
     public String getSummary() { return summary; }
