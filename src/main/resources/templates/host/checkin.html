@@ -22,21 +22,24 @@
         <select id="ci-event" name="event" class="rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
           <option th:each="opt : ${eventOptions}" th:value="${opt.id()}" th:text="${opt.title()}" th:selected="${ev != null && ev.id() == opt.id()}">Baghdad Nights Music Festival</option>
         </select>
-        <span th:if="${ev != null}" class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-users"/></svg><span th:text="#{host.att.checkedIn}">Checked in</span> <span class="font-display font-extrabold tabular-nums" th:text="${checkedIn}">87</span><span class="tabular-nums">/<span th:text="${ticketsTotal}">218</span></span></span>
+        <span th:if="${ev != null}" class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-users"/></svg><span th:text="#{host.att.checkedIn}">Checked in</span> <span id="ci-badge-in" class="font-display font-extrabold tabular-nums" th:text="${checkedIn}">87</span><span class="tabular-nums">/<span id="ci-badge-total" th:text="${ticketsTotal}">218</span></span></span>
       </form>
 
       <!-- Check-in progress bar -->
-      <div th:if="${ev != null && ticketsTotal > 0}" class="mt-4 rounded-2xl border border-ink-100 bg-white px-5 py-4 shadow-card">
+      <div id="ci-progress-wrap" th:if="${ev != null && ticketsTotal > 0}" class="mt-4 rounded-2xl border border-ink-100 bg-white px-5 py-4 shadow-card">
         <div class="flex items-center justify-between text-xs font-semibold">
           <span class="uppercase tracking-wide text-ink-500" th:text="#{host.checkin.progress}">Check-in progress</span>
-          <span class="tabular-nums text-brand-700" th:text="${(checkedIn * 100 / ticketsTotal)} + '%'">40%</span>
+          <span id="ci-progress-pct" class="tabular-nums text-brand-700" th:text="${(checkedIn * 100 / ticketsTotal)} + '%'">40%</span>
         </div>
         <div class="mt-2 h-2 rounded-full bg-ink-100" role="progressbar" th:attr="aria-valuenow=${checkedIn},aria-valuemax=${ticketsTotal}" aria-valuemin="0">
-          <div class="h-2 rounded-full bg-brand-500 transition-all" th:style="'width:' + ${(checkedIn * 100 / ticketsTotal)} + '%'"></div>
+          <div id="ci-progress-bar" class="h-2 rounded-full bg-brand-500 transition-all" th:style="'width:' + ${(checkedIn * 100 / ticketsTotal)} + '%'"></div>
         </div>
       </div>
 
-      <!-- Result flash -->
+      <!-- Result flash — server-rendered only as a no-JS fallback (classic
+           redirect+flash); the AJAX flow below injects the same markup into
+           #ci-flash-slot instead of reloading the page. -->
+      <div id="ci-flash-slot" th:attr="data-checked-in-mark=#{host.checkin.checkedInMark}"></div>
       <div th:if="${result != null && result.ok()}" id="ci-result-ok" class="mt-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4" role="status" aria-live="polite">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span>
         <div>
@@ -79,8 +82,11 @@
            th:attr="data-msg-unavailable=#{host.checkin.cameraUnavailable},data-msg-noscanner=#{host.checkin.cameraNotHere},data-msg-needs-https=#{host.checkin.cameraNeedsHttps}"></p>
       </section>
 
-      <!-- Manual entry card (dark panel) -->
-      <section class="overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" th:aria-label="#{host.checkin.manualAria}" aria-label="Ticket check-in">
+      <!-- Manual entry card (dark panel) — hidden for now, no USB/bluetooth
+           scanner device is in use; the inputs stay in the DOM (just visually
+           hidden) since the camera scanner below still fills #code-input and
+           submits #checkin-form under the hood. -->
+      <section class="hidden overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" th:aria-label="#{host.checkin.manualAria}" aria-label="Ticket check-in">
         <div class="relative p-6 sm:p-8">
           <svg class="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="cam-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#cam-dots)"/></svg>
           <div class="relative">
@@ -102,8 +108,9 @@
         </div>
       </section>
 
-      <!-- Tip card -->
-      <p class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
+      <!-- Tip card — hidden along with the manual entry card above, since it
+           only talks about the scanner-device box. -->
+      <p class="hidden flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
         <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
         <span><span class="font-semibold text-ink-800" th:text="#{host.checkin.tipLabel}">Tip:</span> <span th:text="#{host.checkin.tipBody}">any USB/bluetooth QR scanner types the code into the box — or use the camera above.</span></span>
       </p>
@@ -133,8 +140,8 @@
           <button type="button" class="dl-tab flex-1 rounded-lg px-3 py-2 text-ink-500 hover:text-ink-800" data-filter="in" role="tab" aria-selected="false" th:text="#{host.att.checkedIn}">Checked in</button>
         </div>
 
-        <ul id="door-list" class="mt-3 divide-y divide-ink-50">
-          <li th:each="r : ${doorList}" class="door-row flex items-center gap-3 py-3" th:attr="data-state=${r.checkedIn()} ? 'in' : 'pending'">
+        <ul id="door-list" class="mt-3 divide-y divide-ink-50" th:attr="data-label-checkin=#{host.att.checkIn},data-label-undo=#{host.att.undo}">
+          <li th:each="r : ${doorList}" class="door-row flex items-center gap-3 py-3" th:attr="data-state=${r.checkedIn()} ? 'in' : 'pending',data-ticket-id=${r.ticketId()}">
             <span class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-100 text-sm font-bold text-brand-700">
               <img th:if="${r.avatarUrl() != null}" th:src="${r.avatarUrl()}" alt="" referrerpolicy="no-referrer" class="h-full w-full object-cover">
               <span th:if="${r.avatarUrl() == null}" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
@@ -143,14 +150,12 @@
               <p class="truncate font-semibold text-ink-900" th:text="${r.holderName()}">Ali Hassan</p>
               <p class="truncate text-xs text-ink-500"><span th:text="${r.typeName()}">GA</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.orderCode()}">EVT-2026-04127</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.code()}">TKT-8841-A</span></p>
             </div>
-            <form th:unless="${r.checkedIn()}" th:action="@{/host/tickets/{id}/checkin(id=${r.ticketId()})}" method="post" class="shrink-0">
-              <button type="submit" class="rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.att.checkIn}">Check in</button>
-            </form>
-            <div th:if="${r.checkedIn()}" class="flex shrink-0 flex-col items-end gap-1">
-              <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="${r.checkedInLine()}">Aug 15 · 7:12 PM</span></span>
-              <form th:action="@{/host/tickets/{id}/undo-checkin(id=${r.ticketId()})}" method="post">
-                <button type="submit" class="rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" th:text="#{host.att.undo}">Undo</button>
-              </form>
+            <div th:unless="${r.checkedIn()}" class="door-action shrink-0">
+              <button type="button" class="door-checkin-btn rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.att.checkIn}">Check in</button>
+            </div>
+            <div th:if="${r.checkedIn()}" class="door-action flex shrink-0 flex-col items-end gap-1">
+              <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span class="ci-checkedin-line" th:text="${r.checkedInLine()}">Aug 15 · 7:12 PM</span></span>
+              <button type="button" class="door-undo-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800" th:text="#{host.att.undo}">Undo</button>
             </div>
           </li>
           <li th:if="${#lists.isEmpty(doorList) && #strings.isEmpty(q)}" class="py-10 text-center">
@@ -209,7 +214,17 @@
     if (qrIdle) qrIdle.classList.toggle('hidden', running);
   }
 
+  // true only when the STAFF explicitly hit Stop — guards the decode
+  // callback's auto-resume so it doesn't fight a deliberate stop.
+  var qrManualStop = false;
+  // true for a short cooldown right after a decode: html5-qrcode keeps
+  // firing the success callback for the same code every frame it's still
+  // in view, so without this a single ticket held in front of the camera
+  // for half a second would submit several times.
+  var qrCooldown = false;
+
   function qrStopCamera() {
+    qrManualStop = true;
     if (!qrScanner) return;
     try {
       qrScanner.stop().catch(function () {}).then(function () {
@@ -220,14 +235,22 @@
   }
 
   function qrOnDecode(text) {
+    if (qrCooldown) return;
     var parts = String(text).split(/\/t\//i);
     var code = parts[parts.length - 1].trim().toUpperCase();
-    var input = document.getElementById('code-input');
-    var form = document.getElementById('checkin-form');
-    if (!input || !form || !code) return;
-    input.value = code;
-    try { qrScanner.stop().catch(function () {}); } catch (e) {}
-    form.submit();
+    if (!code) return;
+    qrCooldown = true;
+    try { qrScanner.pause(true); } catch (e) {}
+    ciSubmitCode(code).finally(function () {
+      // Camera stays open and scanning continues automatically — the door
+      // staff only stops it manually via the Stop button — so the next
+      // attendee's ticket can be scanned right away with no extra tap.
+      setTimeout(function () {
+        qrCooldown = false;
+        if (qrManualStop) return;
+        try { qrScanner.resume(); } catch (e) {}
+      }, 1200);
+    });
   }
 
   if (qrStartBtn) qrStartBtn.addEventListener('click', function () {
@@ -244,6 +267,8 @@
     try {
       if (typeof Html5Qrcode === 'undefined') throw new Error('scanner library not loaded');
       if (!qrScanner) qrScanner = new Html5Qrcode('qr-reader');
+      qrManualStop = false;
+      qrCooldown = false;
       qrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: 220 },
@@ -261,6 +286,134 @@
   });
 
   if (qrStopBtn) qrStopBtn.addEventListener('click', qrStopCamera);
+
+  // ---- Shared AJAX check-in plumbing (camera decode, the hidden manual
+  // form, and each door-list row all funnel through this) ----
+  function csrfHeaders() {
+    var token = document.querySelector('meta[name="_csrf"]');
+    var header = document.querySelector('meta[name="_csrf_header"]');
+    var h = { 'X-Requested-With': 'XMLHttpRequest' };
+    if (token && header) h[header.content] = token.content;
+    return h;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function ciUpdateCounts(checkedIn, ticketsTotal) {
+    if (checkedIn == null || ticketsTotal == null) return;
+    var pct = ticketsTotal > 0 ? Math.round(checkedIn * 100 / ticketsTotal) : 0;
+    var badgeIn = document.getElementById('ci-badge-in');
+    if (badgeIn) badgeIn.textContent = checkedIn;
+    var pctEl = document.getElementById('ci-progress-pct');
+    if (pctEl) pctEl.textContent = pct + '%';
+    var barEl = document.getElementById('ci-progress-bar');
+    if (barEl) barEl.style.width = pct + '%';
+  }
+
+  function ciShowFlash(ok, holderName, typeName, message) {
+    var slot = document.getElementById('ci-flash-slot');
+    if (!slot) return;
+    var existing = document.getElementById('ci-result-ok') || document.getElementById('ci-result-err');
+    if (existing) existing.remove();
+    var div = document.createElement('div');
+    div.setAttribute('role', 'status');
+    div.setAttribute('aria-live', 'polite');
+    if (ok) {
+      div.id = 'ci-result-ok';
+      div.className = 'mt-5 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4';
+      div.innerHTML = '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-600 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span>' +
+        '<div><p class="font-display font-bold text-green-800">' + escapeHtml(holderName) + ' — ' + escapeHtml(slot.getAttribute('data-checked-in-mark')) + '</p>' +
+        '<p class="text-sm text-green-700">' + escapeHtml(typeName) + '</p></div>';
+    } else {
+      div.id = 'ci-result-err';
+      div.className = 'mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4';
+      div.innerHTML = '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500 text-white"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></span>' +
+        '<div><p class="font-display font-bold text-rose-800">' + escapeHtml(message) + '</p>' +
+        (holderName ? '<p class="text-sm text-rose-700">' + escapeHtml(holderName) + ' · ' + escapeHtml(typeName) + '</p>' : '') + '</div>';
+    }
+    slot.appendChild(div);
+    ciTrySound(ok ? 'ok' : 'err');
+  }
+
+  function ciSubmitCode(code) {
+    var eventInput = document.querySelector('#checkin-form input[name="event"]');
+    var eventId = eventInput ? eventInput.value : null;
+    if (!eventId) return Promise.resolve();
+    var body = new URLSearchParams({ event: eventId, code: code });
+    var headers = csrfHeaders();
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    return fetch('/host/checkin', { method: 'POST', headers: headers, body: body.toString() })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+      .then(function (data) {
+        ciShowFlash(data.ok, data.holderName, data.typeName, data.message);
+        ciUpdateCounts(data.checkedIn, data.ticketsTotal);
+        if (data.ok && data.ticketId != null) applyDoorRowCheckedIn(data.ticketId, data.checkedInLine);
+      })
+      .catch(function () { /* offline / transient */ });
+  }
+
+  var checkinForm = document.getElementById('checkin-form');
+  if (checkinForm) checkinForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = document.getElementById('code-input');
+    var code = input ? input.value.trim().toUpperCase() : '';
+    if (!code) return;
+    ciSubmitCode(code);
+    if (input) { input.value = ''; input.focus(); }
+  });
+
+  // Door-list rows: swap the trailing action area + status line without
+  // touching the rest of the row, and update the global counts/progress.
+  function doorActionHtml(checkedIn, checkedInLine) {
+    var list = document.getElementById('door-list');
+    var checkinLabel = list ? list.getAttribute('data-label-checkin') : 'Check in';
+    var undoLabel = list ? list.getAttribute('data-label-undo') : 'Undo';
+    if (checkedIn) {
+      return '<span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span class="ci-checkedin-line">' + escapeHtml(checkedInLine || '') + '</span></span>' +
+        '<button type="button" class="door-undo-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-500 transition hover:bg-ink-50 hover:text-ink-800">' + escapeHtml(undoLabel) + '</button>';
+    }
+    return '<button type="button" class="door-checkin-btn rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">' + escapeHtml(checkinLabel) + '</button>';
+  }
+
+  function applyDoorRowState(li, checkedIn, checkedInLine) {
+    if (!li) return;
+    li.setAttribute('data-state', checkedIn ? 'in' : 'pending');
+    var action = li.querySelector('.door-action');
+    if (!action) return;
+    action.className = checkedIn ? 'door-action flex shrink-0 flex-col items-end gap-1' : 'door-action shrink-0';
+    action.innerHTML = doorActionHtml(checkedIn, checkedInLine);
+    var activeFilter = document.querySelector('.dl-tab[aria-selected="true"]');
+    if (activeFilter) applyDoorFilter(activeFilter.getAttribute('data-filter'));
+  }
+
+  function applyDoorRowCheckedIn(ticketId, checkedInLine) {
+    var li = document.querySelector('.door-row[data-ticket-id="' + ticketId + '"]');
+    if (li) applyDoorRowState(li, true, checkedInLine);
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.door-checkin-btn, .door-undo-btn');
+    if (!btn || btn.disabled) return;
+    var li = btn.closest('.door-row');
+    if (!li) return;
+    var ticketId = li.getAttribute('data-ticket-id');
+    var undo = btn.classList.contains('door-undo-btn');
+    btn.disabled = true;
+    fetch('/host/tickets/' + encodeURIComponent(ticketId) + (undo ? '/undo-checkin' : '/checkin'),
+      { method: 'POST', headers: csrfHeaders() })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+      .then(function (data) {
+        applyDoorRowState(li, !undo && data.ok, data.checkedInLine);
+        ciUpdateCounts(data.checkedIn, data.ticketsTotal);
+        if (!undo && data.ok) ciTrySound('ok');
+      })
+      .catch(function () {})
+      .finally(function () { btn.disabled = false; });
+  });
 
   // ---- Check-in feedback sounds (Web Audio, no files; silence is a soft failure) ----
   // Success → short pleasant two-tone chime (880 Hz → 1320 Hz); error → low buzz.

@@ -99,6 +99,35 @@ public class UserService implements UserDetailsService {
         return users.findByEmailIgnoreCase(email).orElse(null);
     }
 
+    public record GuestProvision(User user, boolean created) {}
+
+    /** Guest checkout: matches the buyer's email to an existing account, or
+     *  quietly provisions a new local one (random unusable password — the
+     *  buyer sets a real one later via the password-reset link the checkout
+     *  flow emails them). Mirrors GoogleOAuthConfig's find-or-create pattern,
+     *  including the same race-safe fallback for two concurrent first-time
+     *  checkouts with the same brand-new email. */
+    @Transactional
+    public GuestProvision findOrCreateGuest(String fullName, String email, String phone) {
+        String normalized = email.trim().toLowerCase();
+        var existing = users.findByEmailIgnoreCase(normalized);
+        if (existing.isPresent()) return new GuestProvision(existing.get(), false);
+        User u = new User();
+        u.setEmail(normalized);
+        u.setFullName(fullName == null || fullName.isBlank() ? normalized : fullName.trim());
+        u.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
+        byte[] noise = new byte[32];
+        new java.security.SecureRandom().nextBytes(noise);
+        u.setPasswordHash(passwordEncoder.encode(java.util.Base64.getEncoder().encodeToString(noise)));
+        u.setRole(User.Role.USER);
+        u.setPreferredLang(currentLang());
+        try {
+            return new GuestProvision(users.save(u), true);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return new GuestProvision(users.findByEmailIgnoreCase(normalized).orElseThrow(() -> e), false);
+        }
+    }
+
     @Transactional
     public void updateProfile(User user, String fullName, String phone) {
         user.setFullName(fullName.trim());

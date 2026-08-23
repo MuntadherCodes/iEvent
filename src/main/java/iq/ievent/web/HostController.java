@@ -81,6 +81,10 @@ public class HostController {
 
     public record CheckinResult(boolean ok, String message, String holderName, String typeName) {}
 
+    public record CheckinAjaxResult(boolean ok, String message, String holderName, String typeName,
+                                     Long ticketId, String code, String checkedInLine,
+                                     long checkedIn, long ticketsTotal) {}
+
     private final UserService userService;
     private final HostService hostService;
     private final OrderService orderService;
@@ -140,8 +144,9 @@ public class HostController {
     public ResponseEntity<java.util.Map<String, String>> aiWrite(
             @RequestParam String title, @RequestParam(required = false) String category,
             @RequestParam(required = false) String lang, @RequestParam(defaultValue = "DESCRIPTION") String kind,
+            @RequestParam(required = false) String startTime, @RequestParam(required = false) String endTime,
             @AuthenticationPrincipal UserDetails principal) {
-        user(principal); // require auth
+        requireManage(user(principal));
         if (!aiContentService.available() || title == null || title.isBlank()) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", "unavailable"));
         }
@@ -152,7 +157,7 @@ public class HostController {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", "bad_kind"));
         }
         try {
-            String text = aiContentService.generate(parsedKind, title.strip(), category, !"en".equals(lang));
+            String text = aiContentService.generate(parsedKind, title.strip(), category, !"en".equals(lang), startTime, endTime);
             return ResponseEntity.ok(java.util.Map.of("text", text));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of("error", "generation_failed"));
@@ -167,7 +172,7 @@ public class HostController {
     @ResponseBody
     public ResponseEntity<java.util.Map<String, Object>> pexelsSearch(
             @RequestParam String q, @AuthenticationPrincipal UserDetails principal) {
-        user(principal);
+        requireManage(user(principal));
         if (!pexelsService.available() || q == null || q.isBlank()) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", "unavailable"));
         }
@@ -222,6 +227,14 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        // The overview shows revenue/orders/upcoming-events — all manager+
+        // territory per the team role matrix. A staff-only member has nowhere
+        // useful to land here, so send them straight to the one console page
+        // they actually have (attendee check-in) instead of a locked landing
+        // page right after login.
+        if (hostService.accessOf(u).map(a -> !a.canManage()).orElse(true)) {
+            return "redirect:/host/checkin";
+        }
 
         HostService.HostStats stats = hostService.stats(org.getId());
         List<EventRow> upcoming = hostService.eventsOf(org.getId()).stream()
@@ -253,11 +266,50 @@ public class HostController {
         // Sales chart with 7d/30d/90d range pills
         int days = (range == 7 || range == 90) ? range : 30;
         List<HostService.DayPoint> salesPoints = hostService.dailySales(org.getId(), days);
+        long salesMax = salesPoints.stream().mapToLong(HostService.DayPoint::amountIqd).max().orElse(0L);
         model.addAttribute("salesRange", days);
         model.addAttribute("salesPoints", salesPoints);
-        model.addAttribute("salesMax", salesPoints.stream()
-                .mapToLong(HostService.DayPoint::amountIqd).max().orElse(0L));
+        model.addAttribute("salesMax", salesMax);
+        model.addAttribute("salesMaxLabel", Format.iqd(salesMax));
+        // Formatted per-day amount, parallel to salesPoints — the hover
+        // tooltip previously showed only the date, with no actual figure.
+        model.addAttribute("salesTooltips", salesPoints.stream()
+                .map(p -> Format.iqd(p.amountIqd())).toList());
+        String[] sparkline = sparklinePaths(salesPoints, salesMax);
+        model.addAttribute("salesLinePath", sparkline[0]);
+        model.addAttribute("salesAreaPath", sparkline[1]);
         return "host/dashboard";
+    }
+
+    /** SVG path data for the dashboard sales sparkline — a line graph reads far
+     *  more naturally than bars for a "mostly flat, occasional spike" daily
+     *  series (a wall of near-invisible min-height slivers looked broken).
+     *  Fixed 1000x160 viewBox scaled by the SVG's own width/height attributes,
+     *  so no client-side measurement or JS is needed. Returns [linePath, areaPath]. */
+    private static String[] sparklinePaths(List<HostService.DayPoint> points, long max) {
+        int n = points.size();
+        if (n == 0 || max <= 0) return new String[] { "", "" };
+        double w = 1000, h = 160, pad = 4;
+        double stepX = n > 1 ? w / (n - 1) : 0;
+        double[] xs = new double[n];
+        double[] ys = new double[n];
+        StringBuilder line = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            double x = n > 1 ? i * stepX : w / 2;
+            double amt = points.get(i).amountIqd();
+            double y = h - pad - (amt / (double) max) * (h - 2 * pad);
+            xs[i] = x;
+            ys[i] = y;
+            line.append(i == 0 ? "M" : "L").append(fmtCoord(x)).append(',').append(fmtCoord(y)).append(' ');
+        }
+        StringBuilder area = new StringBuilder("M").append(fmtCoord(xs[0])).append(',').append(fmtCoord(h)).append(' ');
+        for (int i = 0; i < n; i++) area.append("L").append(fmtCoord(xs[i])).append(',').append(fmtCoord(ys[i])).append(' ');
+        area.append("L").append(fmtCoord(xs[n - 1])).append(',').append(fmtCoord(h)).append(" Z");
+        return new String[] { line.toString(), area.toString() };
+    }
+
+    private static String fmtCoord(double d) {
+        return String.format(java.util.Locale.ROOT, "%.1f", d);
     }
 
     // ---------- events ----------
@@ -271,6 +323,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         List<Event> all = hostService.eventsOf(org.getId());
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
@@ -293,6 +346,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
         model.addAttribute("categories", PageController.CATEGORIES);
@@ -335,10 +389,12 @@ public class HostController {
                               @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
                               @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
                               @RequestParam(name = "galleryCreditUrl", required = false) List<String> galleryCreditUrls,
+                              @RequestParam(name = "galleryFocusY", required = false) List<String> galleryFocusYs,
                               RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         LocationForm loc = locationForm(locationType, venueName, venueAddress, onlineUrl, mapsUrl);
         if (loc.error() != null) {
             redirect.addFlashAttribute("error", loc.error());
@@ -387,7 +443,7 @@ public class HostController {
             String coverError = hostService.storeCover(created, coverImage);
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
             hostService.replaceGalleryImages(created,
-                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls));
+                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls, galleryFocusYs));
             if ("publish".equals(action)) {
                 hostService.publish(created);
                 redirect.addFlashAttribute("published", true);
@@ -485,6 +541,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         Event ev = hostService.eventOf(org.getId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         List<TicketTypeRow> ttRows = ticketTypes.findByEventIdOrderBySortOrderAsc(ev.getId()).stream()
@@ -552,6 +609,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireManage(u);
         Event ev = hostService.eventOf(org.getId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         java.time.ZonedDateTime z = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
@@ -595,10 +653,10 @@ public class HostController {
     }
 
     /** Pre-populates the edit page's picker widget — a small hand-built JSON
-     *  array (url/thumbnailUrl/creditName/creditUrl) rather than pulling in
-     *  Jackson's ObjectMapper for four already-plain-text fields. Escaping
-     *  "</" defends against breaking out of the surrounding &lt;script&gt; tag
-     *  if a credit name/URL ever contained it. */
+     *  array (url/thumbnailUrl/creditName/creditUrl/focusY) rather than pulling
+     *  in Jackson's ObjectMapper for five already-plain-text/numeric fields.
+     *  Escaping "</" defends against breaking out of the surrounding
+     *  &lt;script&gt; tag if a credit name/URL ever contained it. */
     private String galleryImagesJson(List<HostService.GalleryImageForm> picks) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < picks.size(); i++) {
@@ -608,6 +666,7 @@ public class HostController {
               .append(",\"thumbnailUrl\":").append(jsonString(p.url()))
               .append(",\"creditName\":").append(jsonString(p.creditName()))
               .append(",\"creditUrl\":").append(jsonString(p.creditUrl()))
+              .append(",\"focusY\":").append(p.focusY())
               .append('}');
         }
         return sb.append(']').toString();
@@ -659,6 +718,7 @@ public class HostController {
                               @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
                               @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
                               @RequestParam(name = "galleryCreditUrl", required = false) List<String> galleryCreditUrls,
+                              @RequestParam(name = "galleryFocusY", required = false) List<String> galleryFocusYs,
                               RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
@@ -687,7 +747,7 @@ public class HostController {
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
             else redirect.addFlashAttribute("saved", true);
             hostService.replaceGalleryImages(ev,
-                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls));
+                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls, galleryFocusYs));
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.saveFailed", e.getMessage()));
         }
@@ -717,6 +777,15 @@ public class HostController {
 
     private void requireManage(User u) {
         if (hostService.accessOf(u).map(a -> !a.canManage()).orElse(true)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+    }
+
+    /** Team, payments & org settings are owner-only — canManage() (owner OR
+     *  manager) is the wrong gate for these, unlike event/order/marketing
+     *  mutations where requireManage is correct. */
+    private void requireOwner(User u) {
+        if (hostService.accessOf(u).map(a -> !a.owner()).orElse(true)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
     }
@@ -780,7 +849,7 @@ public class HostController {
     /** Parallel arrays (one per picked stock photo) into gallery-form records —
      *  same shape as the ttName/ttPrice/ttQty ticket-row arrays above. */
     private List<HostService.GalleryImageForm> buildGalleryPicks(
-            List<String> urls, List<String> creditNames, List<String> creditUrls) {
+            List<String> urls, List<String> creditNames, List<String> creditUrls, List<String> focusYs) {
         if (urls == null) return List.of();
         List<HostService.GalleryImageForm> out = new ArrayList<>();
         for (int i = 0; i < urls.size(); i++) {
@@ -788,7 +857,11 @@ public class HostController {
             if (url == null || url.isBlank()) continue;
             String name = creditNames != null && i < creditNames.size() ? creditNames.get(i) : null;
             String link = creditUrls != null && i < creditUrls.size() ? creditUrls.get(i) : null;
-            out.add(new HostService.GalleryImageForm(url, name, link));
+            int focusY = 50;
+            if (focusYs != null && i < focusYs.size()) {
+                try { focusY = Integer.parseInt(focusYs.get(i)); } catch (Exception ignored) {}
+            }
+            out.add(new HostService.GalleryImageForm(url, name, link, focusY));
         }
         return out;
     }
@@ -959,6 +1032,7 @@ public class HostController {
     public ResponseEntity<FileSystemResource> receipt(@PathVariable Long id,
                                                       @AuthenticationPrincipal UserDetails principal) {
         User u = user(principal);
+        requireManage(u);
         Organization org = hostService.organizationOf(u)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         Order order = orders.findById(id)
@@ -1010,40 +1084,65 @@ public class HostController {
         return "host/attendees";
     }
 
+    private ResponseEntity<?> redirectOrDeny(String path, String requestedWith) {
+        if ("XMLHttpRequest".equals(requestedWith)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.status(HttpStatus.FOUND).header("Location", path).build();
+    }
+
     @PostMapping("/tickets/{id}/checkin")
     @Transactional
-    public String checkin(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
-                          @RequestHeader(value = "Referer", required = false) String referer) {
+    public ResponseEntity<?> checkin(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                          @RequestHeader(value = "Referer", required = false) String referer,
+                          @RequestHeader(value = "X-Requested-With", required = false) String requestedWith) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
-        if (org == null) return "redirect:/host/start";
-        tickets.findById(id)
-                .filter(t -> t.getEvent().getOrganization().getId().equals(org.getId()))
-                .filter(t -> t.getStatus() == Ticket.Status.VALID)
-                .ifPresent(t -> {
-                    t.setStatus(Ticket.Status.CHECKED_IN);
-                    t.setCheckedInAt(OffsetDateTime.now());
-                    tickets.save(t);
-                });
-        return "redirect:" + (referer == null ? "/host/attendees" : referer);
+        if (org == null) return redirectOrDeny("/host/start", requestedWith);
+        Ticket t = tickets.findById(id)
+                .filter(x -> x.getEvent().getOrganization().getId().equals(org.getId()))
+                .orElse(null);
+        boolean ok = t != null && t.getStatus() == Ticket.Status.VALID;
+        if (ok) {
+            t.setStatus(Ticket.Status.CHECKED_IN);
+            t.setCheckedInAt(OffsetDateTime.now());
+            tickets.save(t);
+        }
+        if ("XMLHttpRequest".equals(requestedWith)) {
+            long in = t != null ? tickets.countByEventIdAndStatus(t.getEvent().getId(), Ticket.Status.CHECKED_IN) : 0;
+            long total = t != null ? tickets.countByEventId(t.getEvent().getId()) : 0;
+            return ResponseEntity.ok(new CheckinAjaxResult(ok, ok ? msg("checkin.ok") : msg("checkin.notFound"),
+                    t != null ? t.getHolderName() : null, t != null ? t.getTicketType().getName() : null,
+                    id, t != null ? t.getCode() : null,
+                    t != null && t.getCheckedInAt() != null ? Format.cardDateLine(t.getCheckedInAt()) : null,
+                    in, total));
+        }
+        return ResponseEntity.status(HttpStatus.FOUND).header("Location", referer == null ? "/host/attendees" : referer).build();
     }
 
     @PostMapping("/tickets/{id}/undo-checkin")
     @Transactional
-    public String undoCheckin(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
-                              @RequestHeader(value = "Referer", required = false) String referer) {
+    public ResponseEntity<?> undoCheckin(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
+                              @RequestHeader(value = "Referer", required = false) String referer,
+                              @RequestHeader(value = "X-Requested-With", required = false) String requestedWith) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
-        if (org == null) return "redirect:/host/start";
-        tickets.findById(id)
-                .filter(t -> t.getEvent().getOrganization().getId().equals(org.getId()))
-                .filter(t -> t.getStatus() == Ticket.Status.CHECKED_IN)
-                .ifPresent(t -> {
-                    t.setStatus(Ticket.Status.VALID);
-                    t.setCheckedInAt(null);
-                    tickets.save(t);
-                });
-        return "redirect:" + (referer == null ? "/host/attendees" : referer);
+        if (org == null) return redirectOrDeny("/host/start", requestedWith);
+        Ticket t = tickets.findById(id)
+                .filter(x -> x.getEvent().getOrganization().getId().equals(org.getId()))
+                .orElse(null);
+        boolean ok = t != null && t.getStatus() == Ticket.Status.CHECKED_IN;
+        if (ok) {
+            t.setStatus(Ticket.Status.VALID);
+            t.setCheckedInAt(null);
+            tickets.save(t);
+        }
+        if ("XMLHttpRequest".equals(requestedWith)) {
+            long in = t != null ? tickets.countByEventIdAndStatus(t.getEvent().getId(), Ticket.Status.CHECKED_IN) : 0;
+            long total = t != null ? tickets.countByEventId(t.getEvent().getId()) : 0;
+            return ResponseEntity.ok(new CheckinAjaxResult(ok, null, t != null ? t.getHolderName() : null,
+                    t != null ? t.getTicketType().getName() : null, id, t != null ? t.getCode() : null,
+                    null, in, total));
+        }
+        return ResponseEntity.status(HttpStatus.FOUND).header("Location", referer == null ? "/host/attendees" : referer).build();
     }
 
     @GetMapping("/checkin")
@@ -1089,13 +1188,14 @@ public class HostController {
 
     @PostMapping("/checkin")
     @Transactional
-    public String checkinByCode(@AuthenticationPrincipal UserDetails principal,
+    public ResponseEntity<?> checkinByCode(@AuthenticationPrincipal UserDetails principal,
                                 @RequestParam Long event,
                                 @RequestParam String code,
+                                @RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
                                 RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
-        if (org == null) return "redirect:/host/start";
+        if (org == null) return redirectOrDeny("/host/start", requestedWith);
         String clean = code == null ? "" : code.trim().toUpperCase().replaceAll(".*/T/", "");
         Ticket t = tickets.findByCode(clean).orElse(null);
         CheckinResult result;
@@ -1113,8 +1213,16 @@ public class HostController {
             tickets.save(t);
             result = new CheckinResult(true, msg("checkin.ok"), t.getHolderName(), t.getTicketType().getName());
         }
+        if ("XMLHttpRequest".equals(requestedWith)) {
+            long in = tickets.countByEventIdAndStatus(event, Ticket.Status.CHECKED_IN);
+            long total = tickets.countByEventId(event);
+            return ResponseEntity.ok(new CheckinAjaxResult(result.ok(), result.message(), result.holderName(), result.typeName(),
+                    t != null ? t.getId() : null, t != null ? t.getCode() : null,
+                    t != null && t.getCheckedInAt() != null ? Format.cardDateLine(t.getCheckedInAt()) : null,
+                    in, total));
+        }
         redirect.addFlashAttribute("result", result);
-        return "redirect:/host/checkin?event=" + event;
+        return ResponseEntity.status(HttpStatus.FOUND).header("Location", "/host/checkin?event=" + event).build();
     }
 
     // ---------- payment settings ----------
@@ -1124,6 +1232,12 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        // Payments are owner-only (see the role matrix on the team settings
+        // page) — rather than a raw 403 for whoever clicked one of the several
+        // in-context links pointing here (dashboard checklist, earnings note,
+        // event paywarn banners), show the page in a read-only "ask the owner"
+        // state so those links never dead-end.
+        model.addAttribute("isOwner", hostService.accessOf(u).map(a -> a.owner()).orElse(false));
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
         return "host/settings-payments";
@@ -1140,7 +1254,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
-        requireManage(u);
+        requireOwner(u);
         hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings/payments";
@@ -1152,6 +1266,7 @@ public class HostController {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
+        requireOwner(u);
         mailService.sendCampaign(u.getEmail(), msg("mail.test.subject"), msg("mail.test.body"),
                 org.getName(), baseUrl + "/host", LocaleContextHolder.getLocale());
         redirect.addFlashAttribute("testMailSent", u.getEmail());

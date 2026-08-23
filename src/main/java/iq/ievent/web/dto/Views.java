@@ -38,14 +38,17 @@ public final class Views {
             String initials,
             String logoUrl) {}       // "/media/org-logo/{id}" or null → initials avatar
 
+    /** One image in the event's gallery/slider, with its own crop focus. */
+    public record GalleryImageView(String url, int focusY) {}
+
     public record EventDetail(
             String slug,
             String title,
             String categoryLabel,
             String coverTheme,
-            String coverImageUrl,   // null → gradient fallback; always allImages.get(0) when allImages isn't empty
-            int coverFocusY,        // vertical focus for the cover crop, 0–100
-            List<String> allImages, // primary + extras, in display order — 2+ makes the page a slider
+            String coverImageUrl,   // null → gradient fallback; always allImages.get(0).url() when allImages isn't empty
+            int coverFocusY,        // vertical focus for the cover crop, 0–100 — same as allImages.get(0).focusY()
+            List<GalleryImageView> allImages, // primary + extras, in display order — 2+ makes the page a slider
             String city,
             String venueName,
             String venueAddress,

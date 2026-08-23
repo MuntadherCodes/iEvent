@@ -51,7 +51,7 @@
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-download"/></svg>
             <span th:text="#{host.att.exportCsv}">Export CSV</span>
           </a>
-          <a th:href="@{/host/marketing(tab='email')}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
+          <a th:if="${isOrgManager}" th:href="@{/host/marketing(tab='email')}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg>
             <span th:text="#{host.att.emailAttendees}">Email attendees</span>
           </a>

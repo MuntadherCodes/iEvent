@@ -71,11 +71,11 @@
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start"><span th:text="#{wizard.when.starts}">Starts</span> <span class="text-rose-500">*</span></label>
-              <input id="ev-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+              <input id="ev-start" name="startTime" type="time" step="1800" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end" th:text="#{wizard.when.ends}">Ends</label>
-              <input id="ev-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+              <input id="ev-end" name="endTime" type="time" step="1800" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
           </div>
           <!-- Where is it? — location type toggle + dependent fields -->
@@ -273,27 +273,6 @@
           <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.cover.title}">Event cover</h3>
           <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.cover.subtitle}">Pick a color theme — or upload a photo that replaces it.</p>
 
-          <!-- Current photo -->
-          <div th:if="${hasCoverImage}" class="mt-5 rounded-2xl border border-ink-100 bg-ink-50 p-4">
-            <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.cover.current}">Current cover photo</p>
-            <img id="coverCurrentImg" th:src="${coverImageUrl}" th:alt="#{wizard.cover.currentAlt}" alt="Current event cover" class="mt-3 aspect-[16/9] w-full max-w-md rounded-xl object-cover ring-1 ring-black/5" th:style="'object-position: 50% ' + ${coverFocusY} + '%'">
-            <label class="mt-3 inline-flex cursor-pointer items-center gap-2.5 text-sm font-medium text-ink-700">
-              <input type="checkbox" name="removeCover" value="true" class="h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
-              <span th:text="#{wizard.cover.remove}">Remove photo (back to gradient)</span>
-            </label>
-          </div>
-
-          <!-- Cover crop position — visible now (existing photo) or once a new
-               file is chosen below (see the cover-image change handler). -->
-          <div id="coverFocusWrap" class="mt-4" th:classappend="${hasCoverImage} ? '' : 'hidden'" th:attr="data-has-cover=${hasCoverImage}">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-semibold text-ink-800" for="coverFocusInput" th:text="#{host.set.coverPosition}">Cover position</label>
-              <span class="text-xs tabular-nums text-ink-400"><span id="coverFocusValueLabel" th:text="${coverFocusY}">50</span>%</span>
-            </div>
-            <input id="coverFocusInput" name="coverFocusY" type="range" min="0" max="100" step="1" th:value="${coverFocusY}" class="mt-2 w-full accent-brand-500" th:attr="aria-label=#{host.set.coverFocusAria}" aria-label="Vertical cover crop position">
-            <p class="mt-1 flex justify-between text-[11px] text-ink-400"><span th:text="#{host.set.coverTop}">Top</span><span th:text="#{host.set.coverDrag}">Drag to choose which part of the image shows</span><span th:text="#{host.set.coverBottom}">Bottom</span></p>
-          </div>
-
           <!-- Pexels stock-photo picker — hidden entirely when PEXELS_API_KEY
                isn't configured (see GlobalModelAdvice's "pexelsAvailable").
                Pre-populated from the event's saved gallery so a save that never
@@ -315,19 +294,47 @@
             <script type="application/json" id="galleryInitial" th:utext="${galleryImagesJson}">[]</script>
           </div>
 
+          <!-- Current photo — positioned after the picker so it reflects
+               whatever was just chosen there, same as the create wizard. -->
+          <div th:if="${hasCoverImage}" class="mt-5 rounded-2xl border border-ink-100 bg-ink-50 p-4">
+            <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.cover.current}">Current cover photo</p>
+            <img id="coverCurrentImg" th:src="${coverImageUrl}" th:alt="#{wizard.cover.currentAlt}" alt="Current event cover" class="mt-3 aspect-[16/9] w-full max-w-md rounded-xl object-cover ring-1 ring-black/5" th:style="'object-position: 50% ' + ${coverFocusY} + '%'">
+            <label class="mt-3 inline-flex cursor-pointer items-center gap-2.5 text-sm font-medium text-ink-700">
+              <input type="checkbox" name="removeCover" value="true" class="h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span th:text="#{wizard.cover.remove}">Remove photo (back to gradient)</span>
+            </label>
+          </div>
+
+          <!-- Cover crop position — visible now (existing photo) or once a new
+               file is chosen below (see the cover-image change handler). -->
+          <div id="coverFocusWrap" class="mt-4" th:classappend="${hasCoverImage} ? '' : 'hidden'" th:attr="data-has-cover=${hasCoverImage}">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-semibold text-ink-800" for="coverFocusInput" th:text="#{host.set.coverPosition}">Cover position</label>
+              <span class="text-xs tabular-nums text-ink-400"><span id="coverFocusValueLabel" th:text="${coverFocusY}">50</span>%</span>
+            </div>
+            <input id="coverFocusInput" type="range" min="0" max="100" step="1" th:value="${coverFocusY}" class="mt-2 w-full accent-brand-500" th:attr="aria-label=#{host.set.coverFocusAria}" aria-label="Vertical cover crop position">
+            <input type="hidden" id="coverFocusYHidden" name="coverFocusY" th:value="${coverFocusY}">
+            <p class="mt-1 flex justify-between text-[11px] text-ink-400"><span th:text="#{host.set.coverTop}">Top</span><span th:text="#{host.set.coverDrag}">Drag to choose which part of the image shows</span><span th:text="#{host.set.coverBottom}">Bottom</span></p>
+          </div>
+
           <div class="mt-4 rounded-xl border-2 border-dashed border-ink-300 bg-ink-50 p-3.5 text-center transition hover:border-brand-400 hover:bg-brand-50">
             <label class="block text-xs font-semibold text-ink-800" for="cover-image" th:text="${hasCoverImage} ? #{wizard.cover.replace} : #{wizard.cover.orUpload}">Upload a cover photo</label>
             <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-1.5 block w-full max-w-xs text-xs text-ink-600 file:me-2.5 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-brand-600">
             <p class="mt-1.5 text-[11px] text-ink-400" th:text="#{wizard.banner.uploadHelp}">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
             <!-- Instant preview of the newly chosen file (before saving) -->
             <div id="coverNewPreview" class="mx-auto mt-4 hidden max-w-md text-start">
-              <img id="coverNewPreviewImg" class="aspect-[16/9] w-full rounded-xl object-cover ring-1 ring-black/5" th:alt="#{wizard.cover.newAlt}" alt="New cover preview">
+              <div class="relative">
+                <img id="coverNewPreviewImg" class="aspect-[16/9] w-full rounded-xl object-cover ring-1 ring-black/5" th:alt="#{wizard.cover.newAlt}" alt="New cover preview">
+                <button type="button" id="coverRemoveUploadBtn" class="absolute end-2 top-2 hidden h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80" th:attr="aria-label=#{wizard.cover.removeUpload}" aria-label="Remove uploaded photo">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
               <p class="mt-2 text-xs font-semibold text-brand-700" th:text="#{wizard.cover.newNote}">New photo — applied when you click Save changes.</p>
             </div>
           </div>
 
           <p class="mt-5 text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orTheme}">…or pick a color theme</p>
-          <div class="mt-2 grid grid-cols-5 gap-1.5 sm:gap-2" role="radiogroup" th:attr="aria-label=#{wizard.banner.themesAria}" aria-label="Color themes">
+          <div class="mt-2 grid max-w-xs grid-cols-5 gap-1.5" role="radiogroup" th:attr="aria-label=#{wizard.banner.themesAria}" aria-label="Color themes">
             <label th:each="t : ${coverThemes}" class="group cursor-pointer"
                    th:with="grad=${t == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                             : (t == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -476,11 +483,11 @@
             </div>
             <div class="w-[calc(50%-0.375rem)] sm:w-auto">
               <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-start" th:text="#{wizard.when.starts}">Starts</label>
-              <input id="pp-start" name="startTime" type="time" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
+              <input id="pp-start" name="startTime" type="time" step="1800" required th:value="${evEntity.startTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
             <div class="w-[calc(50%-0.375rem)] sm:w-auto">
               <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end" th:text="#{wizard.when.ends}">Ends</label>
-              <input id="pp-end" name="endTime" type="time" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
+              <input id="pp-end" name="endTime" type="time" step="1800" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:w-auto sm:text-sm">
             </div>
             <button type="submit" th:attr="data-confirm=#{wizard.danger.postponeConfirm}" class="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 sm:w-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="#{wizard.danger.postponeBtn}">Postpone</span></button>
           </form>
@@ -511,12 +518,17 @@
 </div>
 
 <!-- Localized strings for inline JS -->
-<div id="wizI18n" hidden th:attr="data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage}"></div>
+<div id="wizI18n" hidden th:attr="data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage},data-pexels-position=#{wizard.banner.imagePosition}"></div>
 
 <!-- Google Places config: rendered only when a Maps key is configured -->
 <div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
 
+<script th:src="@{/js/time-picker.js}"></script>
 <script>
+  iEventTimePicker.init('ev-start');
+  iEventTimePicker.init('ev-end');
+  iEventTimePicker.init('pp-start');
+  iEventTimePicker.init('pp-end');
   // Localized strings injected by the server (see #wizI18n)
   function wizMsg(name) {
     var el = document.getElementById('wizI18n');
@@ -568,39 +580,20 @@
     renderLocFields();
   })();
 
-  // Cover photo instant preview: FileReader → inline <img> before saving
+  // Cover photo instant preview: FileReader → inline <img> before saving.
+  // Focus-slider / ring / show-hide state is unified with the existing cover
+  // and Pexels picks in the gallery-picker IIFE below (see its own change
+  // listener) — this block only reads the file into a data URL.
   (function () {
     var input = document.getElementById('cover-image');
     var box = document.getElementById('coverNewPreview');
     var img = document.getElementById('coverNewPreviewImg');
-    var focusWrap = document.getElementById('coverFocusWrap');
-    var focusInput = document.getElementById('coverFocusInput');
-    var focusValueLabel = document.getElementById('coverFocusValueLabel');
-    var currentImg = document.getElementById('coverCurrentImg');
-    var hadCoverAtLoad = focusWrap && focusWrap.getAttribute('data-has-cover') === 'true';
-    if (focusInput) focusInput.addEventListener('input', function () {
-      var pos = '50% ' + focusInput.value + '%';
-      if (img) img.style.objectPosition = pos;
-      if (currentImg) currentImg.style.objectPosition = pos;
-      if (focusValueLabel) focusValueLabel.textContent = focusInput.value;
-    });
     if (!input || !box || !img) return;
     input.addEventListener('change', function () {
       var f = input.files && input.files[0];
-      if (!f) {
-        box.classList.add('hidden');
-        img.removeAttribute('src');
-        if (focusWrap && !hadCoverAtLoad) focusWrap.classList.add('hidden');
-        return;
-      }
+      if (!f) { box.classList.add('hidden'); img.removeAttribute('src'); return; }
       var reader = new FileReader();
-      reader.onload = function (e) {
-        img.src = e.target.result;
-        img.style.objectPosition = '50% 50%';
-        box.classList.remove('hidden');
-        if (focusInput) { focusInput.value = 50; focusValueLabel.textContent = '50'; }
-        if (focusWrap) focusWrap.classList.remove('hidden');
-      };
+      reader.onload = function (e) { img.src = e.target.result; box.classList.remove('hidden'); };
       reader.readAsDataURL(f);
     });
   })();
@@ -1071,6 +1064,15 @@
         btn.disabled = true;
         labelEl.textContent = wizMsg('ai-generating');
         var body = new URLSearchParams({ title: title, category: category, lang: document.documentElement.lang, kind: kind });
+        if (kind === 'LINEUP') {
+          // ev-start/ev-end are time-picker.js's canonical hidden fields —
+          // always "HH:mm" 24h — so the agenda suggestion actually fits the
+          // real schedule instead of using generic placeholder times.
+          var st = document.getElementById('ev-start');
+          var et = document.getElementById('ev-end');
+          if (st && st.value) body.append('startTime', st.value);
+          if (et && et.value) body.append('endTime', et.value);
+        }
         var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         headers[csrfHeader] = csrfToken;
         fetch('/host/events/ai/write', { method: 'POST', headers: headers, body: body.toString() })
@@ -1127,12 +1129,100 @@
     var selectedWrap = document.getElementById('gallerySelectedWrap');
     var selectedListEl = document.getElementById('gallerySelectedList');
     var hiddenFieldsEl = document.getElementById('galleryHiddenFields');
+    var coverInput = document.getElementById('cover-image');
+    var coverNewPreview = document.getElementById('coverNewPreview');
+    var coverNewPreviewImg = document.getElementById('coverNewPreviewImg');
+    var coverCurrentImg = document.getElementById('coverCurrentImg');
+    var coverFocusWrap = document.getElementById('coverFocusWrap');
+    var coverFocusInput = document.getElementById('coverFocusInput');
+    var coverFocusValueLabel = document.getElementById('coverFocusValueLabel');
+    var coverFocusYHidden = document.getElementById('coverFocusYHidden');
+    var coverRemoveUploadBtn = document.getElementById('coverRemoveUploadBtn');
+    // Matches HostService.replaceGalleryImages: an uploaded file (existing or
+    // freshly chosen this session) always wins as the primary cover — Pexels
+    // only becomes the primary when the event has none of its own.
+    var hasExistingUpload = coverFocusWrap && coverFocusWrap.getAttribute('data-has-cover') === 'true';
+    var existingFocusY = parseInt((coverFocusInput && coverFocusInput.value) || '50', 10) || 50;
+    var uploadFocusY = 50;
 
     var selected = [];
     try {
       var raw = document.getElementById('galleryInitial').textContent;
       selected = raw ? JSON.parse(raw) : [];
     } catch (e) { selected = []; }
+
+    // Which image the ONE shared "Cover position" slider currently controls:
+    // 'current' (the already-saved cover), 'upload' (a file picked this
+    // session), an index into selected[], or null (nothing to adjust).
+    var activeTarget = hasExistingUpload ? 'current' : (selected.length ? 0 : null);
+
+    // Single source of truth for ring / slider / preview state — replaces
+    // two previously-independent mechanisms (a shared slider hardwired to
+    // the current/uploaded photo only, plus separate per-thumbnail sliders)
+    // that could silently disagree about which image was being adjusted.
+    function syncActiveUI() {
+      selectedListEl.querySelectorAll('[data-pick-idx]').forEach(function (card) {
+        var on = typeof activeTarget === 'number' && +card.getAttribute('data-pick-idx') === activeTarget;
+        card.classList.toggle('ring-2', on);
+        card.classList.toggle('ring-brand-500', on);
+      });
+
+      var hasNewUpload = !!(coverInput.files && coverInput.files.length);
+      if (coverRemoveUploadBtn) {
+        coverRemoveUploadBtn.classList.toggle('hidden', !hasNewUpload);
+        coverRemoveUploadBtn.classList.toggle('flex', hasNewUpload);
+      }
+      if (coverNewPreviewImg) coverNewPreviewImg.classList.toggle('cursor-pointer', hasNewUpload);
+      if (coverCurrentImg) coverCurrentImg.classList.toggle('cursor-pointer', hasExistingUpload && !hasNewUpload);
+      var hasAnything = hasExistingUpload || hasNewUpload || selected.length > 0;
+      coverFocusWrap.classList.toggle('hidden', !hasAnything);
+      if (hasAnything) {
+        var v = activeTarget === 'current' ? existingFocusY
+          : activeTarget === 'upload' ? uploadFocusY
+          : (typeof activeTarget === 'number' && selected[activeTarget]) ? selected[activeTarget].focusY
+          : 50;
+        coverFocusInput.value = v;
+        coverFocusValueLabel.textContent = v;
+      }
+
+      // An uploaded file (existing or new) always wins the primary preview —
+      // adjusting a Pexels pick's position never steals it, it only updates
+      // that pick's own thumbnail, unless neither exists (Pexels wins on save).
+      if (hasNewUpload) return; // coverNewPreviewImg's own src/position is set below by activeTarget==='upload'
+      if (hasExistingUpload) return; // coverCurrentImg stays as-is unless activeTarget==='current' updates it below
+      var s = typeof activeTarget === 'number' ? selected[activeTarget] : null;
+      if (s && coverNewPreview && coverNewPreviewImg) {
+        coverNewPreviewImg.src = s.thumbnailUrl || s.url;
+        coverNewPreviewImg.style.objectPosition = '50% ' + s.focusY + '%';
+        coverNewPreview.classList.remove('hidden');
+      } else if (coverNewPreview && coverNewPreviewImg) {
+        coverNewPreview.classList.add('hidden');
+        coverNewPreviewImg.removeAttribute('src');
+      }
+    }
+
+    coverFocusInput.addEventListener('input', function () {
+      var v = parseInt(coverFocusInput.value, 10) || 50;
+      coverFocusValueLabel.textContent = v;
+      if (activeTarget === 'current') {
+        existingFocusY = v;
+        coverFocusYHidden.value = String(v);
+        if (coverCurrentImg) coverCurrentImg.style.objectPosition = '50% ' + v + '%';
+      } else if (activeTarget === 'upload') {
+        uploadFocusY = v;
+        coverFocusYHidden.value = String(v);
+        if (coverNewPreviewImg) coverNewPreviewImg.style.objectPosition = '50% ' + v + '%';
+      } else if (typeof activeTarget === 'number' && selected[activeTarget]) {
+        selected[activeTarget].focusY = v;
+        var img = selectedListEl.querySelector('[data-pick-idx="' + activeTarget + '"] img');
+        if (img) img.style.objectPosition = '50% ' + v + '%';
+        var hf = hiddenFieldsEl.children[activeTarget * 4 + 3];
+        if (hf) hf.value = String(v);
+        if (!hasExistingUpload && !(coverInput.files && coverInput.files.length) && coverNewPreviewImg) {
+          coverNewPreviewImg.style.objectPosition = '50% ' + v + '%';
+        }
+      }
+    });
 
     function showMsg(text) {
       if (!text) { msgEl.classList.add('hidden'); return; }
@@ -1158,14 +1248,21 @@
 
     function toggle(p) {
       var idx = selected.findIndex(function (s) { return s.url === p.fullUrl; });
-      if (idx >= 0) selected.splice(idx, 1);
-      else selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl });
+      if (idx >= 0) {
+        selected.splice(idx, 1);
+      } else {
+        selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl, focusY: 50 });
+        activeTarget = selected.length - 1; // newly added pick becomes the one being worked on
+      }
       renderSelected();
       syncAllThumbs();
     }
 
     function removeSelected(url) {
+      var idx = selected.findIndex(function (s) { return s.url === url; });
       selected = selected.filter(function (s) { return s.url !== url; });
+      if (activeTarget === idx) activeTarget = null;
+      else if (typeof activeTarget === 'number' && activeTarget > idx) activeTarget -= 1;
       renderSelected();
       syncAllThumbs();
     }
@@ -1178,25 +1275,40 @@
       return el;
     }
 
+    // Mirrors HostService.replaceGalleryImages: with no uploaded file,
+    // selected[0] becomes the primary cover and everyone else is a gallery
+    // extra — every one of them can end up on the public page. Click a
+    // thumbnail to point the ONE shared "Cover position" slider at it.
     function renderSelected() {
       selectedWrap.classList.toggle('hidden', selected.length === 0);
       selectedListEl.innerHTML = '';
-      selected.forEach(function (s) {
+      selected.forEach(function (s, idx) {
+        if (typeof s.focusY !== 'number') s.focusY = 50;
+        var card = document.createElement('div');
+        card.className = 'w-24 shrink-0 cursor-pointer rounded-xl border border-ink-100 bg-white p-1.5 shadow-card transition';
+        card.setAttribute('data-pick-idx', String(idx));
+        card.title = pMsg('position') || 'Click to adjust position';
+        card.addEventListener('click', function () {
+          activeTarget = idx;
+          syncActiveUI();
+        });
         var wrap = document.createElement('div');
-        wrap.className = 'group relative h-16 w-16 overflow-hidden rounded-lg ring-1 ring-ink-100';
+        wrap.className = 'group relative aspect-[4/3] overflow-hidden rounded-lg';
         var img = document.createElement('img');
         img.src = s.thumbnailUrl || s.url;
         img.alt = '';
         img.className = 'h-full w-full object-cover';
+        img.style.objectPosition = '50% ' + s.focusY + '%';
         wrap.appendChild(img);
         var rm = document.createElement('button');
         rm.type = 'button';
         rm.className = 'absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100';
         rm.setAttribute('aria-label', pMsg('remove'));
         rm.innerHTML = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-        rm.addEventListener('click', function () { removeSelected(s.url); });
+        rm.addEventListener('click', function (e) { e.stopPropagation(); removeSelected(s.url); });
         wrap.appendChild(rm);
-        selectedListEl.appendChild(wrap);
+        card.appendChild(wrap);
+        selectedListEl.appendChild(card);
       });
 
       hiddenFieldsEl.innerHTML = '';
@@ -1204,7 +1316,17 @@
         hiddenFieldsEl.appendChild(hiddenInput('galleryUrl', s.url));
         hiddenFieldsEl.appendChild(hiddenInput('galleryCreditName', s.creditName));
         hiddenFieldsEl.appendChild(hiddenInput('galleryCreditUrl', s.creditUrl));
+        hiddenFieldsEl.appendChild(hiddenInput('galleryFocusY', String(s.focusY)));
       });
+
+      if (typeof activeTarget === 'number' && activeTarget >= selected.length) {
+        activeTarget = selected.length ? selected.length - 1
+          : (hasExistingUpload ? 'current' : ((coverInput.files && coverInput.files.length) ? 'upload' : null));
+      }
+      if (activeTarget === null && selected.length && !hasExistingUpload && !(coverInput.files && coverInput.files.length)) {
+        activeTarget = 0;
+      }
+      syncActiveUI();
     }
 
     function renderResults(photos) {
@@ -1255,6 +1377,43 @@
     searchBtn.addEventListener('click', doSearch);
     queryInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+    });
+
+    if (coverRemoveUploadBtn) coverRemoveUploadBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      coverInput.value = '';
+      coverInput.dispatchEvent(new Event('change'));
+    });
+
+    // Clicking either photo box re-selects it as the shared slider's target —
+    // the only way back to it once a Pexels pick has been clicked. Only
+    // wired up when clicking would actually affect what gets saved: the new
+    // upload always would; the existing photo only when no new upload is
+    // queued (otherwise the new file wins on save regardless).
+    if (coverNewPreview) coverNewPreview.addEventListener('click', function () {
+      if (!(coverInput.files && coverInput.files.length)) return;
+      activeTarget = 'upload';
+      syncActiveUI();
+    });
+    if (coverCurrentImg) coverCurrentImg.addEventListener('click', function () {
+      if (!hasExistingUpload || (coverInput.files && coverInput.files.length)) return;
+      activeTarget = 'current';
+      syncActiveUI();
+    });
+
+    // A new upload always takes over the shared slider + preview; a cleared
+    // file hands both back to the existing cover (if any), else whichever
+    // pick was last active, else the first pick (see syncActiveUI).
+    coverInput.addEventListener('change', function () {
+      if (coverInput.files && coverInput.files.length) {
+        uploadFocusY = 50;
+        coverFocusYHidden.value = '50';
+        activeTarget = 'upload';
+        syncActiveUI();
+      } else {
+        activeTarget = hasExistingUpload ? 'current' : (selected.length ? 0 : null);
+        renderSelected();
+      }
     });
 
     renderSelected(); // reflect the pre-populated gallery in the hidden fields immediately

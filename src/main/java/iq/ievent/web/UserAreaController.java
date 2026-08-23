@@ -20,6 +20,7 @@ import iq.ievent.service.UserService;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,10 +30,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Map;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -174,7 +177,7 @@ public class UserAreaController {
                 Format.cardDateLine(e.getStartsAt()),
                 venueLine,
                 Format.coverTheme(e.getCategory()),
-                e.getCoverImagePath() == null ? null : "/media/event-cover/" + e.getId(),
+                Format.coverUrl(e),
                 o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows,
                 online, joinUrl);
     }
@@ -221,27 +224,31 @@ public class UserAreaController {
         return "favorites";
     }
 
+    /** Toggles the like and returns the new state so the button can update
+     *  itself instantly — no page reload (see the shared click handler in
+     *  fragments/layout.html). */
     @PostMapping("/e/{slug}/like")
-    public String toggleLike(@PathVariable String slug,
-                             @AuthenticationPrincipal UserDetails principal,
-                             @RequestHeader(value = "Referer", required = false) String referer) {
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleLike(
+            @PathVariable String slug, @AuthenticationPrincipal UserDetails principal) {
         User user = principal == null ? null : userService.byEmail(principal.getUsername());
-        if (user == null) return "redirect:/auth/login";
-        events.findBySlug(slug).ifPresent(e -> interactions.toggleLike(user.getId(), e.getId()));
-        return "redirect:" + refererPath(referer, "/favorites");
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        Event event = events.findBySlug(slug).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        boolean liked = interactions.toggleLike(user.getId(), event.getId());
+        long likes = counts.likesForEvent(event.getId());
+        return ResponseEntity.ok(Map.of("liked", liked, "likes", likes));
     }
 
-    /** Same-origin path+query from a Referer header (never the raw header — avoids an open redirect). */
-    private static String refererPath(String referer, String fallback) {
-        if (referer == null) return fallback;
-        try {
-            java.net.URI u = java.net.URI.create(referer);
-            String path = u.getRawPath();
-            if (path == null || !path.startsWith("/")) return fallback;
-            return u.getRawQuery() != null ? path + "?" + u.getRawQuery() : path;
-        } catch (Exception e) {
-            return fallback;
-        }
+    /** Every event the signed-in user has liked, by slug — fetched once on
+     *  page load by any page rendering event cards, so the shared card
+     *  fragment can mark its heart buttons filled without every card-list
+     *  method in CatalogService needing to precompute "liked" per event. */
+    @GetMapping("/me/liked-events")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> likedEvents(@AuthenticationPrincipal UserDetails principal) {
+        User user = principal == null ? null : userService.byEmail(principal.getUsername());
+        List<String> slugs = user == null ? List.of() : interactions.likedEventSlugs(user.getId());
+        return ResponseEntity.ok(Map.of("slugs", slugs));
     }
 
     @GetMapping("/organizers/{handle}")
@@ -264,17 +271,19 @@ public class UserAreaController {
         return "organizer";
     }
 
+    /** Toggles the follow and returns the new state + formatted follower
+     *  count so the button can update itself instantly — no page reload. */
     @PostMapping("/organizers/{handle}/follow")
-    public String toggleFollow(@PathVariable String handle,
-                               @AuthenticationPrincipal UserDetails principal,
-                               @RequestHeader(value = "Referer", required = false) String referer) {
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleFollow(
+            @PathVariable String handle, @AuthenticationPrincipal UserDetails principal) {
         User user = principal == null ? null : userService.byEmail(principal.getUsername());
-        if (user == null) return "redirect:/auth/login";
-        organizations.findByHandle(handle)
-                .ifPresent(o -> interactions.toggleFollow(user.getId(), o.getId()));
-        // Unfollow from the favorites "Organizers" tab returns there; otherwise back to the organizer page.
-        if (referer != null && referer.contains("/favorites")) return "redirect:/favorites?tab=organizers";
-        return "redirect:/organizers/" + handle;
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        Organization organization = organizations.findByHandle(handle)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        boolean following = interactions.toggleFollow(user.getId(), organization.getId());
+        String followersLabel = Format.compactCount(counts.followersForOrganization(organization.getId()));
+        return ResponseEntity.ok(Map.of("following", following, "followers", followersLabel));
     }
 
     @GetMapping("/me/profile")

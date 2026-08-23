@@ -1,5 +1,7 @@
 package iq.ievent.web;
 
+import iq.ievent.service.HostService;
+import iq.ievent.service.TeamService;
 import iq.ievent.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +20,7 @@ public class GlobalModelAdvice {
     private final boolean aiAvailable;
     private final boolean pexelsAvailable;
     private final UserService userService;
+    private final HostService hostService;
     private final String siteBaseUrl;
 
     public GlobalModelAdvice(@Value("${app.google.client-id:}") String googleClientId,
@@ -25,12 +28,14 @@ public class GlobalModelAdvice {
                              @Value("${app.openai.api-key:}") String openaiApiKey,
                              @Value("${app.pexels.api-key:}") String pexelsApiKey,
                              @Value("${app.base-url}") String siteBaseUrl,
-                             UserService userService) {
+                             UserService userService,
+                             HostService hostService) {
         this.googleLoginEnabled = googleClientId != null && !googleClientId.isBlank();
         this.mapsKey = mapsKey == null ? "" : mapsKey;
         this.aiAvailable = openaiApiKey != null && !openaiApiKey.isBlank();
         this.pexelsAvailable = pexelsApiKey != null && !pexelsApiKey.isBlank();
         this.userService = userService;
+        this.hostService = hostService;
         // Trimmed once here so every canonical/hreflang/OG URL built in templates
         // via siteBaseUrl + path doesn't end up with an accidental "//".
         this.siteBaseUrl = siteBaseUrl.endsWith("/") ? siteBaseUrl.substring(0, siteBaseUrl.length() - 1) : siteBaseUrl;
@@ -53,9 +58,17 @@ public class GlobalModelAdvice {
         // "Host an event" → "Host console" once the account is a host — set on
         // creating an org (HostService) or being invited onto one (TeamService),
         // same signal event.html's own rail already keyed off locally.
-        model.addAttribute("isHost", current != null
+        boolean isHostRole = current != null
                 && (current.getRole() == iq.ievent.domain.User.Role.HOST
-                        || current.getRole() == iq.ievent.domain.User.Role.ADMIN));
+                        || current.getRole() == iq.ievent.domain.User.Role.ADMIN);
+        model.addAttribute("isHost", isHostRole);
+        // Sidebar nav visibility per the team role matrix — gated here (rather
+        // than per-controller) so a link never dangles into a 403 for whoever
+        // is looking at it. Only looked up for hosts, since regular buyer
+        // accounts never see the host sidebar anyway.
+        var access = isHostRole ? hostService.accessOf(current) : java.util.Optional.<TeamService.Access>empty();
+        model.addAttribute("isOrgOwner", access.map(TeamService.Access::owner).orElse(false));
+        model.addAttribute("isOrgManager", access.map(TeamService.Access::canManage).orElse(false));
 
         // ---- locale / RTL (Arabic-first) ----
         java.util.Locale locale = org.springframework.context.i18n.LocaleContextHolder.getLocale();

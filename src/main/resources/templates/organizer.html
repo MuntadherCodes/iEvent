@@ -2,7 +2,7 @@
 <html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org"
       th:with="pageDescription=${org.bio != null and !org.bio.isBlank() ? org.bio : @t.msg('public.meta.organizerDescription', org.name, org.city != null ? @t.city(org.city) : @t.city('Baghdad'))}">
 <head th:replace="~{fragments/layout :: head(${org.name} + #{public.title.suffix})}"></head>
-<body class="bg-white font-body text-ink-800 antialiased">
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
 
@@ -10,7 +10,7 @@
 
 <!-- Extra profile data (logo, contact, past events) resolved via the pageController bean:
      the /organizers/{handle} handler lives in a controller outside this module. -->
-<main id="main" th:with="ox=${@pageController.organizerExtras(org.handle)}">
+<main id="main" class="flex-1" th:with="ox=${@pageController.organizerExtras(org.handle)}">
 
   <!-- ============ COVER + PROFILE HEAD ============ -->
   <section>
@@ -41,17 +41,15 @@
             <p class="mt-0.5 text-sm font-medium text-ink-500" th:text="'@' + ${org.handle}">@zainevents</p>
             <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-600">
               <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-calendar"/></svg><span class="font-semibold tabular-nums text-ink-900" th:text="${org.eventsHosted}">48</span> [[#{public.home.eventsWord}]]</span>
-              <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-users"/></svg><span class="font-semibold tabular-nums text-ink-900" th:text="${org.followersDisplay}">12.4K</span> [[#{public.event.followers}]]</span>
+              <span class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-users"/></svg><span id="followersCount" class="font-semibold tabular-nums text-ink-900" th:text="${org.followersDisplay}">12.4K</span> [[#{public.event.followers}]]</span>
               <span th:if="${org.city != null}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span class="font-semibold text-ink-900" th:text="${@t.city(org.city)}">Baghdad</span></span>
             </p>
           </div>
         </div>
         <div class="flex gap-3 pb-1">
-          <!-- Follow: signed in → toggle form; signed out → link to login -->
-          <form th:if="${currentUser != null}" th:action="@{/organizers/{h}/follow(h=${org.handle})}" method="post">
-            <button th:if="${!following}" type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null" aria-pressed="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>[[#{public.event.follow}]]</button>
-            <button th:if="${following}" type="submit" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>[[#{public.event.following}]]</button>
-          </form>
+          <!-- Follow: signed in → toggles via fetch (no reload); signed out → link to login -->
+          <button th:if="${currentUser != null and !following}" id="followBtn" type="button" th:attr="data-handle=${org.handle},data-label-follow=#{public.event.follow},data-label-following=#{public.event.following},data-brand-color=${ox.brandColor()}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null" aria-pressed="false"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg><span id="followBtnLabel">[[#{public.event.follow}]]</span></button>
+          <button th:if="${currentUser != null and following}" id="followBtn" type="button" th:attr="data-handle=${org.handle},data-label-follow=#{public.event.follow},data-label-following=#{public.event.following},data-brand-color=${ox.brandColor()}" class="inline-flex items-center gap-2 rounded-xl border border-brand-500 bg-brand-50 px-5 py-3 font-semibold text-brand-700 transition hover:border-brand-600 hover:text-brand-800 active:scale-[.98]" aria-pressed="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg><span id="followBtnLabel">[[#{public.event.following}]]</span></button>
           <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 hover:brightness-95 active:scale-[.98]" th:style="${ox.brandColor() != null} ? ('background: ' + ${ox.brandColor()}) : null"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>[[#{public.event.follow}]]</a>
           <!-- Message button hidden until messaging ships (phase 2) -->
         </div>
@@ -191,6 +189,51 @@
       });
     });
   });
+
+  // Follow/unfollow: toggles via fetch, no page reload.
+  (function () {
+    var btn = document.getElementById('followBtn');
+    if (!btn) return;
+    var label = document.getElementById('followBtnLabel');
+    var followersEl = document.getElementById('followersCount');
+    var icon = btn.querySelector('svg use');
+
+    function applyState(following) {
+      btn.setAttribute('aria-pressed', following ? 'true' : 'false');
+      if (label) label.textContent = following
+        ? btn.getAttribute('data-label-following') : btn.getAttribute('data-label-follow');
+      if (icon) icon.setAttribute('href', following ? '#i-check' : '#i-plus');
+      btn.classList.toggle('bg-brand-500', !following);
+      btn.classList.toggle('text-white', !following);
+      btn.classList.toggle('shadow-pop', !following);
+      btn.classList.toggle('hover:bg-brand-600', !following);
+      btn.classList.toggle('hover:brightness-95', !following);
+      btn.classList.toggle('border', following);
+      btn.classList.toggle('border-brand-500', following);
+      btn.classList.toggle('bg-brand-50', following);
+      btn.classList.toggle('text-brand-700', following);
+      btn.classList.toggle('hover:border-brand-600', following);
+      btn.classList.toggle('hover:text-brand-800', following);
+      var customColor = btn.getAttribute('data-brand-color');
+      btn.style.background = (!following && customColor) ? customColor : '';
+    }
+
+    btn.addEventListener('click', function () {
+      var token = document.querySelector('meta[name="_csrf"]');
+      var header = document.querySelector('meta[name="_csrf_header"]');
+      var headers = { 'X-Requested-With': 'XMLHttpRequest' };
+      if (token && header) headers[header.content] = token.content;
+      btn.disabled = true;
+      fetch('/organizers/' + encodeURIComponent(btn.getAttribute('data-handle')) + '/follow', { method: 'POST', headers: headers })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+        .then(function (data) {
+          applyState(data.following);
+          if (followersEl) followersEl.textContent = data.followers;
+        })
+        .catch(function () { /* offline / transient — state stays as it was */ })
+        .finally(function () { btn.disabled = false; });
+    });
+  })();
 </script>
 </body>
 </html>

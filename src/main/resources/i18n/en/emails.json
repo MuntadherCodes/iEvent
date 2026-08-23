@@ -6,6 +6,9 @@
   "emails.campaign.footer": "© 2026 iEvent · You receive event updates for events you have tickets to. Manage preferences from your",
   "emails.campaign.profileWord": "profile",
 
+  "emails.teamInvite.kicker": "Team invite",
+  "emails.teamInvite.footer": "© 2026 iEvent",
+
   "emails.confirmed.title": "You're going! 🎉",
   "emails.confirmed.orderPrefix": "Your order",
   "emails.confirmed.orderSuffix": "is confirmed.",

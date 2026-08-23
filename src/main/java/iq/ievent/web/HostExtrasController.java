@@ -116,6 +116,7 @@ public class HostExtrasController {
     private final CampaignService campaignService;
     private final TrackingService trackingService;
     private final PaymentMethodService paymentMethodService;
+    private final iq.ievent.service.AiContentService aiContentService;
     private final CampaignRepository campaigns;
     private final OrderRepository orders;
     private final TicketRepository tickets;
@@ -129,6 +130,7 @@ public class HostExtrasController {
                                 MailService mailService, OrderService orderService,
                                 CampaignService campaignService, TrackingService trackingService,
                                 PaymentMethodService paymentMethodService,
+                                iq.ievent.service.AiContentService aiContentService,
                                 CampaignRepository campaigns, OrderRepository orders,
                                 TicketRepository tickets, TicketTypeRepository ticketTypes,
                                 JdbcTemplate jdbc,
@@ -143,6 +145,7 @@ public class HostExtrasController {
         this.campaignService = campaignService;
         this.trackingService = trackingService;
         this.paymentMethodService = paymentMethodService;
+        this.aiContentService = aiContentService;
         this.campaigns = campaigns;
         this.orders = orders;
         this.tickets = tickets;
@@ -169,6 +172,15 @@ public class HostExtrasController {
 
     private static void requireManage(TeamService.Access access) {
         if (access == null || !access.canManage()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+    }
+
+    /** Team, payments & org settings are owner-only — canManage() (owner OR
+     *  manager) is the wrong gate for these, unlike event/order/marketing
+     *  mutations where requireManage is correct. */
+    private static void requireOwner(TeamService.Access access) {
+        if (access == null || !access.owner()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
     }
@@ -318,6 +330,7 @@ public class HostExtrasController {
                          Model model) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
+        requireManage(access);
         Long orgId = access.org().getId();
 
         Order.Status filter = statusParam(status);
@@ -389,6 +402,7 @@ public class HostExtrasController {
                                             @RequestParam(required = false) String to) {
         TeamService.Access access = access(principal);
         if (access == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        requireManage(access);
         Long orgId = access.org().getId();
         Order.Status filter = statusParam(status);
         String needle = q == null || q.isBlank() ? null : q.trim().toLowerCase();
@@ -463,6 +477,7 @@ public class HostExtrasController {
     public String marketing(@AuthenticationPrincipal UserDetails principal, Model model) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
+        requireManage(access);
         Long orgId = access.org().getId();
         List<PromoView> promos = promoService.forOrganization(orgId).stream()
                 .map(this::toView).toList();
@@ -575,6 +590,37 @@ public class HostExtrasController {
         return "redirect:/host/marketing?tab=email";
     }
 
+    /** "Write it for me" for the email campaign composer. Hidden client-side
+     *  (see GlobalModelAdvice's "aiAvailable") whenever OPENAI_API_KEY isn't
+     *  configured. When an event is selected, its real title/category/date/
+     *  venue are looked up server-side and fed to the prompt so the subject
+     *  and body actually reflect that event instead of generic filler. */
+    @PostMapping("/marketing/email/ai-write")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, String>> aiWriteCampaign(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(required = false) Long eventId,
+            @RequestParam(required = false) String lang) {
+        TeamService.Access access = access(principal);
+        if (access == null) return ResponseEntity.status(401).build();
+        requireManage(access);
+        if (!aiContentService.available()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "unavailable"));
+        }
+        Event event = eventId == null ? null : hostService.eventOf(access.org().getId(), eventId).orElse(null);
+        try {
+            var copy = aiContentService.generateCampaign(
+                    event == null ? null : event.getTitle(),
+                    event == null ? null : event.getCategory().name(),
+                    event == null ? null : Format.longDateLine(event.getStartsAt(), event.getEndsAt(), java.util.Locale.ENGLISH),
+                    event == null ? null : event.getVenueName(),
+                    !"en".equals(lang));
+            return ResponseEntity.ok(java.util.Map.of("subject", copy.subject(), "body", copy.body()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of("error", "generation_failed"));
+        }
+    }
+
     /** Creates a tracking link /l/{code} for an event + channel. */
     @PostMapping("/marketing/links")
     public String createTrackingLink(@AuthenticationPrincipal UserDetails principal,
@@ -615,6 +661,7 @@ public class HostExtrasController {
     public String earnings(@AuthenticationPrincipal UserDetails principal, Model model) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
+        requireManage(access);
         Long orgId = access.org().getId();
         List<HostService.EarningsRow> rows = hostService.earnings(orgId);
         HostService.HostStats stats = hostService.stats(orgId);
@@ -660,8 +707,8 @@ public class HostExtrasController {
         model.addAttribute("currentUser", user(principal));
         model.addAttribute("org", access.org());
         model.addAttribute("access", access);
-        model.addAttribute("canManage", access.canManage());
         model.addAttribute("members", teamService.members(access.org()));
+        model.addAttribute("pendingInvites", teamService.pendingInvites(access.org()));
         model.addAttribute("logoUrl", access.org().getLogoPath() == null ? null
                 : "/media/org-logo/" + access.org().getId());
         model.addAttribute("coverUrl", access.org().getCoverImagePath() == null ? null
@@ -679,7 +726,7 @@ public class HostExtrasController {
                           RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         if (name != null && !name.isBlank()) {
             hostService.updateOrganizationProfile(access.org(), name, city, bio);
             redirect.addFlashAttribute("saved", true);
@@ -701,7 +748,7 @@ public class HostExtrasController {
                                RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         if (coverFocusY != null) {
             // Cover crop position (0 = top, 100 = bottom). Set on the entity before
             // saveBranding — it persists the org in the same transaction.
@@ -722,7 +769,7 @@ public class HostExtrasController {
                                     RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         var org = access.org();
         hostService.saveBranding(org, org.getContactEmail(), org.getContactPhone(),
                 org.getWebsite(), org.getInstagram(), org.getBrandColor(),
@@ -756,7 +803,7 @@ public class HostExtrasController {
                                    RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         String error = paymentMethodService.add(access.org(), label, accountNumber,
                 accountName, instructions, qrImage);
         if (error != null) redirect.addFlashAttribute("pmError", error);
@@ -769,7 +816,7 @@ public class HostExtrasController {
                                       @AuthenticationPrincipal UserDetails principal) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         paymentMethodService.toggle(id, access.org().getId());
         return "redirect:/host/settings/payments";
     }
@@ -780,7 +827,7 @@ public class HostExtrasController {
                                       RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         paymentMethodService.delete(id, access.org().getId());
         redirect.addFlashAttribute("pmSuccess", msg("flash.pm.deleted"));
         return "redirect:/host/settings/payments";
@@ -794,7 +841,7 @@ public class HostExtrasController {
                                         RedirectAttributes redirect) {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
-        requireManage(access);
+        requireOwner(access);
         if (qrImage == null || qrImage.isEmpty()) {
             redirect.addFlashAttribute("pmError", msg("flash.pm.chooseQr"));
             return "redirect:/host/settings/payments";
@@ -813,9 +860,38 @@ public class HostExtrasController {
         TeamService.Access access = access(principal);
         if (access == null) return "redirect:/host/start";
         if (!access.owner()) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        String error = teamService.invite(access.org(), email, role);
+        TeamService.InviteResult result = teamService.invite(access.org(), email, role, user(principal),
+                org.springframework.context.i18n.LocaleContextHolder.getLocale());
+        if (result.error() != null) {
+            redirect.addFlashAttribute("teamError", result.error());
+        } else {
+            redirect.addFlashAttribute("invited", email);
+            redirect.addFlashAttribute("invitedPending", result.pending());
+        }
+        return "redirect:/host/settings?tab=team";
+    }
+
+    @PostMapping("/settings/team/invites/{id}/resend")
+    public String resendInvite(@PathVariable long id,
+                               @AuthenticationPrincipal UserDetails principal,
+                               RedirectAttributes redirect) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        if (!access.owner()) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        String error = teamService.resendInvite(access.org(), id,
+                org.springframework.context.i18n.LocaleContextHolder.getLocale());
         if (error != null) redirect.addFlashAttribute("teamError", error);
-        else redirect.addFlashAttribute("invited", email);
+        else redirect.addFlashAttribute("inviteResent", true);
+        return "redirect:/host/settings?tab=team";
+    }
+
+    @PostMapping("/settings/team/invites/{id}/cancel")
+    public String cancelInvite(@PathVariable long id,
+                               @AuthenticationPrincipal UserDetails principal) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        if (!access.owner()) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        teamService.cancelInvite(access.org(), id);
         return "redirect:/host/settings?tab=team";
     }
 

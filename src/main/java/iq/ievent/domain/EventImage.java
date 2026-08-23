@@ -30,6 +30,10 @@ public class EventImage {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
+    /** Vertical crop focus for this image, 0 (top) to 100 (bottom), 50 = centered. */
+    @Column(name = "focus_y", nullable = false)
+    private int focusY = 50;
+
     public Long getId() { return id; }
     public Event getEvent() { return event; }
     public void setEvent(Event event) { this.event = event; }
@@ -41,4 +45,6 @@ public class EventImage {
     public void setCreditUrl(String creditUrl) { this.creditUrl = creditUrl; }
     public int getSortOrder() { return sortOrder; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
+    public int getFocusY() { return focusY; }
+    public void setFocusY(int focusY) { this.focusY = focusY; }
 }

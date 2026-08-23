@@ -38,17 +38,20 @@ public class MailService {
     private final JavaMailSender sender;
     private final TemplateEngine templates;
     private final MessageSource messages;
+    private final TicketPdfService ticketPdf;
     private final String from;
     private final String baseUrl;
 
     public MailService(JavaMailSender sender,
                        TemplateEngine templates,
                        MessageSource messages,
+                       TicketPdfService ticketPdf,
                        @Value("${app.mail.from}") String from,
                        @Value("${app.base-url}") String baseUrl) {
         this.sender = sender;
         this.templates = templates;
         this.messages = messages;
+        this.ticketPdf = ticketPdf;
         this.from = from;
         this.baseUrl = baseUrl;
     }
@@ -146,6 +149,53 @@ public class MailService {
              "email/order-rejected", order, null, locale);
     }
 
+    /** A brand-new invite: the recipient has no iEvent account yet (or the
+     *  organizer chose to invite by email regardless) — the button links to
+     *  the public accept-invite page, which prompts sign-in/registration
+     *  before actually joining the team. */
+    @Async
+    public void sendTeamInvite(String to, String orgName, String roleLabel, String acceptUrl, Locale locale) {
+        sendTeamMail(to, msg("mail.teamInvite.subject", locale, orgName),
+                msg("mail.teamInvite.body", locale, orgName, roleLabel),
+                acceptUrl, msg("mail.teamInvite.accept", locale), locale);
+    }
+
+    /** The recipient already had an account and was added immediately — no
+     *  accept step needed, so the button just goes straight to the dashboard. */
+    @Async
+    public void sendTeamAdded(String to, String orgName, String roleLabel, Locale locale) {
+        sendTeamMail(to, msg("mail.teamAdded.subject", locale, orgName),
+                msg("mail.teamAdded.body", locale, orgName, roleLabel),
+                baseUrl + "/host", msg("mail.teamAdded.goDashboard", locale), locale);
+    }
+
+    private void sendTeamMail(String to, String subject, String bodyText, String buttonUrl, String buttonLabel, Locale locale) {
+        Locale loc = safe(locale);
+        Locale previous = LocaleContextHolder.getLocale();
+        LocaleContextHolder.setLocale(loc);
+        try {
+            Context ctx = new Context(loc);
+            ctx.setVariable("bodyText", bodyText);
+            ctx.setVariable("buttonUrl", buttonUrl);
+            ctx.setVariable("buttonLabel", buttonLabel);
+            ctx.setVariable("mailLang", isEnglish(loc) ? "en" : "ar");
+            ctx.setVariable("mailDir", isEnglish(loc) ? "ltr" : "rtl");
+            String html = templates.process("email/team-invite", ctx);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            sender.send(message);
+            log.info("Sent team mail to {}", to);
+        } catch (Exception e) {
+            log.error("Team mail failed to {}", to, e);
+        } finally {
+            LocaleContextHolder.setLocale(previous);
+        }
+    }
+
     private void send(String to, String subject, String template, Order order,
                       List<Ticket> tickets, Locale locale) {
         Locale loc = safe(locale);
@@ -164,12 +214,22 @@ public class MailService {
                     order.getEvent().getStartsAt(), order.getEvent().getEndsAt()));
             String html = templates.process(template, ctx);
 
+            // Tickets are only ever passed for the confirmed email — free
+            // orders confirm instantly at checkout, paid ones only once the
+            // organizer approves — so attaching here covers both cases: the
+            // moment tickets are valid, the buyer has the PDF in their inbox.
+            boolean attachTickets = tickets != null && !tickets.isEmpty();
             MimeMessage message = sender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, attachTickets, "UTF-8");
             helper.setFrom(from);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);
+            if (attachTickets) {
+                byte[] pdf = ticketPdf.ticketsPdf(tickets);
+                helper.addAttachment(order.getOrderCode() + "-tickets.pdf",
+                        new org.springframework.core.io.ByteArrayResource(pdf), "application/pdf");
+            }
             sender.send(message);
             log.info("Sent mail '{}' to {}", template, to);
         } catch (Exception e) {

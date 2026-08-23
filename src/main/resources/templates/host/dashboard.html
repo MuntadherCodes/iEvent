@@ -161,11 +161,32 @@
             <a th:href="@{/host(range=90)}" class="rounded-full px-4 py-1.5 transition" th:classappend="${salesRange == 90} ? 'bg-white text-brand-700 shadow-sm' : 'text-ink-500 hover:text-ink-800'" th:attr="aria-current=${salesRange == 90} ? 'true' : null" th:text="#{host.dash.range90}">90d</a>
           </div>
         </div>
-        <!-- Chart plot stays LTR (time axis + Latin digits) even on the Arabic console -->
-        <div th:if="${mx > 0}" dir="ltr" class="mt-4 flex h-40 items-end gap-1" th:classappend="${salesRange == 90} ? 'gap-px' : ''">
-          <div th:each="p : ${salesPoints}" class="group relative flex h-full flex-1 flex-col justify-end">
-            <div class="w-full rounded-t bg-brand-400 transition group-hover:bg-brand-500" th:style="'height:' + (${100 * p.amountIqd() / mx}) + '%; min-height:2px'"></div>
-            <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-900 px-2 py-1 text-[10px] font-semibold text-white group-hover:block" th:text="${p.label()}">Aug 15</span>
+        <!-- Chart plot stays LTR (time axis + Latin digits) even on the Arabic console.
+             A line graph reads far more naturally than bars for a "mostly flat,
+             occasional spike" daily series — the old bar chart's min-height
+             slivers across an all-zero stretch looked identical to a broken
+             chart. The SVG path is pre-computed server-side (fixed 1000x160
+             viewBox); the invisible per-day columns on top just carry the
+             existing hover-tooltip behavior. -->
+        <div th:if="${mx > 0}" dir="ltr" class="relative mt-4 h-40">
+          <span class="absolute start-0 top-0 z-10 rounded-md bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-ink-500"><span th:text="#{host.dash.chartPeak}">Peak</span> <span th:text="${salesMaxLabel}">120,000 IQD</span></span>
+          <svg viewBox="0 0 1000 160" preserveAspectRatio="none" class="absolute inset-0 h-full w-full" aria-hidden="true">
+            <defs>
+              <linearGradient id="salesFillGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8f7ac9" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#8f7ac9" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path th:attr="d=${salesAreaPath}" fill="url(#salesFillGrad)"></path>
+            <path th:attr="d=${salesLinePath}" fill="none" stroke="#8f7ac9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+          </svg>
+          <div class="absolute inset-0 flex">
+            <div th:each="p, st : ${salesPoints}" class="group relative h-full flex-1">
+              <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-900 px-2 py-1 text-center text-[10px] font-semibold text-white group-hover:block">
+                <span th:text="${p.label()}">Aug 15</span><br>
+                <span th:text="${salesTooltips[st.index]}">50,000 IQD</span>
+              </span>
+            </div>
           </div>
         </div>
         <!-- All-zero period (e.g. every ticket sold was free) looks identical to a

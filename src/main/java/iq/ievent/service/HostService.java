@@ -140,14 +140,16 @@ public class HostService {
         }
     }
 
-    public record GalleryImageForm(String url, String creditName, String creditUrl) {}
+    public record GalleryImageForm(String url, String creditName, String creditUrl, int focusY) {}
 
     /** Applies the wizard's picked stock photos (Pexels). If the event has no
      *  uploaded file (coverImagePath), the first pick becomes the primary cover
-     *  (coverImageUrl) and the rest are the extra gallery; if a file WAS
-     *  uploaded, that file stays primary and every pick becomes gallery —
-     *  either way, 2+ images total is what makes the public page a slider.
-     *  An empty list clears both, matching "the user removed all their picks". */
+     *  (coverImageUrl, with its focusY carried onto the event's own
+     *  coverFocusY) and the rest are the extra gallery, each keeping its own
+     *  focusY; if a file WAS uploaded, that file stays primary and every pick
+     *  becomes gallery — either way, 2+ images total is what makes the public
+     *  page a slider. An empty list clears both, matching "the user removed
+     *  all their picks". */
     @Transactional
     public void replaceGalleryImages(Event event, List<GalleryImageForm> picks) {
         eventImages.deleteByEventId(event.getId());
@@ -159,6 +161,7 @@ public class HostService {
             event.setCoverImageUrl(primary.url());
             event.setCoverImageCreditName(primary.creditName());
             event.setCoverImageCreditUrl(primary.creditUrl());
+            event.setCoverFocusY(Math.max(0, Math.min(100, primary.focusY())));
             start = 1;
         } else {
             event.setCoverImageUrl(null);
@@ -175,6 +178,7 @@ public class HostService {
             img.setCreditName(p.creditName());
             img.setCreditUrl(p.creditUrl());
             img.setSortOrder(order++);
+            img.setFocusY(Math.max(0, Math.min(100, p.focusY())));
             eventImages.save(img);
         }
     }
@@ -210,10 +214,10 @@ public class HostService {
         List<GalleryImageForm> out = new java.util.ArrayList<>();
         if (event.getCoverImagePath() == null && event.getCoverImageUrl() != null) {
             out.add(new GalleryImageForm(event.getCoverImageUrl(),
-                    event.getCoverImageCreditName(), event.getCoverImageCreditUrl()));
+                    event.getCoverImageCreditName(), event.getCoverImageCreditUrl(), event.getCoverFocusY()));
         }
         eventImages.findByEventIdOrderBySortOrderAsc(event.getId())
-                .forEach(img -> out.add(new GalleryImageForm(img.getUrl(), img.getCreditName(), img.getCreditUrl())));
+                .forEach(img -> out.add(new GalleryImageForm(img.getUrl(), img.getCreditName(), img.getCreditUrl(), img.getFocusY())));
         return out;
     }
 

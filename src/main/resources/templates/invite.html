@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{team.invite.pageTitle})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+
+<main id="main" class="flex-1">
+  <section class="relative overflow-hidden bg-gradient-to-b from-brand-50 to-white">
+    <div class="pointer-events-none absolute -start-24 -top-24 h-80 w-80 rounded-full bg-brand-200/50 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -end-20 top-32 h-72 w-72 rounded-full bg-fuchsia-200/40 blur-3xl" aria-hidden="true"></div>
+    <div class="relative mx-auto max-w-lg px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+
+      <!-- Invalid / already-used / not found -->
+      <div th:if="${invite == null}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-rose-50 text-rose-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-circle-alert"/></svg></span>
+        <h1 class="mt-5 font-display text-xl font-bold text-ink-900" th:text="#{team.invite.invalid}">This invite link is invalid or has already been used.</h1>
+        <a th:href="@{/}" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-house"/></svg>[[#{public.error.backHome}]]</a>
+      </div>
+
+      <!-- Expired -->
+      <div th:if="${invite != null and invite.expired()}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-50 text-amber-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-circle-alert"/></svg></span>
+        <h1 class="mt-5 font-display text-xl font-bold text-ink-900" th:text="#{team.invite.expired}">This invite has expired — ask the organizer to send a new one.</h1>
+        <a th:href="@{/}" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-house"/></svg>[[#{public.error.backHome}]]</a>
+      </div>
+
+      <!-- Valid, live invite -->
+      <div th:if="${invite != null and !invite.expired()}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-users"/></svg></span>
+        <h1 class="mt-5 font-display text-xl font-bold text-ink-900" th:text="#{host.set.inviteMember}">Team invite</h1>
+        <p class="mt-2 text-sm text-ink-500">
+          <span th:text="${invite.orgName()}">Zain Events Co.</span> —
+          <span th:text="${invite.role() == 'MANAGER'} ? #{host.set.manager} : #{host.set.doorStaff}">Manager</span>
+        </p>
+        <p class="mt-1 text-xs text-ink-400" th:text="${invite.email()}">sara@example.com</p>
+
+        <!-- Logged in with the matching email: can accept directly -->
+        <form th:if="${loggedInEmail != null and emailMatches}" th:action="@{/invite/{token}/accept(token=${token})}" method="post" class="mt-6">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg>[[#{mail.teamInvite.accept}]]</button>
+        </form>
+
+        <!-- Logged in with a DIFFERENT email -->
+        <div th:if="${loggedInEmail != null and !emailMatches}" class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-start text-sm text-amber-800">
+          <p th:text="#{team.invite.wrongEmail(${invite.email()})}">This invite was sent to sara@example.com. Log in with that email address to accept it.</p>
+          <form th:action="@{/auth/logout}" method="post" class="mt-2">
+            <button type="submit" class="font-semibold text-brand-700 underline">[[#{public.nav.signIn}]]</button>
+          </form>
+        </div>
+
+        <!-- Not logged in: sign in or register, looping back here -->
+        <div th:if="${loggedInEmail == null}" class="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <a th:href="@{/auth/login(next='/invite/' + ${token})}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600">[[#{public.nav.signIn}]]</a>
+          <a th:href="@{/auth/register(next='/invite/' + ${token})}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">[[#{public.checkout.createAccount}]]</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

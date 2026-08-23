@@ -162,6 +162,13 @@ public class OrderService {
         if (!free && !event.getOrganization().isDirectPaymentsEnabled()) {
             throw new CheckoutException(msg("checkout.noPaymentMethod"));
         }
+        if (!free) {
+            boolean hasRef = transferReference != null && !transferReference.isBlank();
+            boolean hasReceipt = receipt != null && !receipt.isEmpty();
+            if (!hasRef && !hasReceipt) {
+                throw new CheckoutException(msg("checkout.proofRequired"));
+            }
+        }
 
         Order order = new Order();
         order.setOrderCode(uniqueOrderCode());

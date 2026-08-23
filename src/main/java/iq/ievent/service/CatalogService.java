@@ -11,6 +11,7 @@ import iq.ievent.repo.TicketTypeRepository;
 import iq.ievent.web.dto.Views.CityCount;
 import iq.ievent.web.dto.Views.EventCard;
 import iq.ievent.web.dto.Views.EventDetail;
+import iq.ievent.web.dto.Views.GalleryImageView;
 import iq.ievent.web.dto.Views.OrganizerView;
 import iq.ievent.web.dto.Views.TicketTypeView;
 import org.springframework.data.domain.Page;
@@ -52,10 +53,11 @@ public class CatalogService {
 
     /** Primary cover + every extra image, in display order — 2+ means the
      *  event page renders a slider instead of a single static cover. */
-    private List<String> galleryUrls(Event e, String primary) {
-        List<String> out = new java.util.ArrayList<>();
-        if (primary != null) out.add(primary);
-        eventImages.findByEventIdOrderBySortOrderAsc(e.getId()).forEach(img -> out.add(img.getUrl()));
+    private List<GalleryImageView> galleryUrls(Event e, String primary) {
+        List<GalleryImageView> out = new ArrayList<>();
+        if (primary != null) out.add(new GalleryImageView(primary, e.getCoverFocusY()));
+        eventImages.findByEventIdOrderBySortOrderAsc(e.getId())
+                .forEach(img -> out.add(new GalleryImageView(img.getUrl(), img.getFocusY())));
         return out;
     }
 

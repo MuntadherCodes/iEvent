@@ -30,7 +30,18 @@
         <span th:text="${pmError}">Something went wrong.</span>
       </div>
 
-      <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+      <!-- Payments are owner-only (see the role matrix on the team settings
+           page) — several in-context links elsewhere (dashboard checklist,
+           earnings note, event paywarn banners) point here regardless of
+           who clicks them, so managers/staff land on this locked notice
+           instead of a raw 403. -->
+      <div th:unless="${isOwner}" class="rounded-2xl border border-ink-100 bg-white p-8 text-center shadow-card">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-ink-100 text-ink-500"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-lock"/></svg></span>
+        <h1 class="mt-5 font-display text-xl font-bold text-ink-900" th:text="#{host.set.paymentsFees}">Payments &amp; fees</h1>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-ink-500" th:text="#{host.pay.onlyOwner}">Only the organization's owner can view or change payment settings.</p>
+      </div>
+
+      <div th:if="${isOwner}" class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
         <h2 class="font-display text-lg font-bold text-ink-900" th:text="#{host.set.paymentsFees}">Payments &amp; fees</h2>
         <p class="mt-1 text-sm text-ink-500" th:text="#{host.pay.chooseHow}">Choose how buyers pay for your tickets.</p>
 
@@ -90,7 +101,7 @@
       </div>
 
       <!-- Direct payment methods -->
-      <div class="rounded-2xl border border-brand-200 bg-white p-5 shadow-card sm:p-6" th:with="pmethods=${@paymentMethodService.forOrganization(org.id)}">
+      <div th:if="${isOwner}" class="rounded-2xl border border-brand-200 bg-white p-5 shadow-card sm:p-6" th:with="pmethods=${@paymentMethodService.forOrganization(org.id)}">
         <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-600" aria-hidden="true"><use href="#i-qr-code"/></svg><span th:text="#{host.pay.directSetup}">Direct payment setup</span></h2>
         <p class="mt-1 text-sm text-ink-500"><span th:text="#{host.pay.directSetupSub1}">Add every wallet, card or bank account you accept. Buyers will see</span> <span class="font-semibold text-ink-700" th:text="#{host.pay.allEnabledMethods}">all enabled methods</span> <span th:text="#{host.pay.directSetupSub2}">at checkout and pick the one they want to pay with.</span></p>
 
@@ -194,7 +205,7 @@
       </div>
 
       <!-- Email delivery -->
-      <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+      <div th:if="${isOwner}" class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
         <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-mail"/></svg><span th:text="#{host.pay.emailDelivery}">Email delivery</span></h2>
         <p class="mt-2 text-sm leading-relaxed text-ink-600"><span th:text="#{host.pay.mailLocal1}">Local dev: emails land in the</span> <span class="font-semibold text-ink-800">Mailpit</span> <span th:text="#{host.pay.mailLocal2}">inbox (the port you set as</span> <code dir="ltr" class="rounded bg-ink-50 px-1.5 py-0.5 font-mono text-xs text-ink-700">MAILPIT_UI_PORT</code><span th:text="#{host.pay.mailLocal3}">, default</span> <span class="font-mono tabular-nums">8025</span><span th:text="#{host.pay.mailLocal4}">). Production:</span> <span class="font-semibold text-ink-800">Mailjet</span> <span th:text="#{host.pay.mailLocal5}">via env keys.</span></p>
         <div th:if="${testMailSent != null}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">

@@ -110,11 +110,11 @@
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start"><span th:text="#{wizard.when.starts}">Starts</span> <span class="text-rose-500">*</span></label>
-                <input id="ev-start" name="startTime" type="time" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+                <input id="ev-start" name="startTime" type="time" step="1800" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end" th:text="#{wizard.when.ends}">Ends</label>
-                <input id="ev-end" name="endTime" type="time" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+                <input id="ev-end" name="endTime" type="time" step="1800" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
             </div>
           </div>
@@ -238,24 +238,6 @@
             <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.banner.title}">Make it look great</h2>
             <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.banner.subtitle}">Events with a great cover get up to 2× more views.</p>
 
-            <!-- Live preview -->
-            <div id="coverPreview" class="relative mt-5 aspect-[21/9] max-h-56 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5">
-              <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-cover" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-cover)"/></svg>
-              <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use href="#i-image"/></svg>
-              <img id="coverPreviewImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
-              <span class="absolute bottom-3 start-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="#{wizard.banner.coverPreview}">Cover preview</span>
-            </div>
-
-            <!-- Cover crop position — shown once an image (upload or Pexels) is chosen -->
-            <div id="coverFocusWrap" class="mt-3 hidden">
-              <div class="flex items-center justify-between">
-                <label class="text-sm font-semibold text-ink-800" for="coverFocusInput" th:text="#{host.set.coverPosition}">Cover position</label>
-                <span class="text-xs tabular-nums text-ink-400"><span id="coverFocusValueLabel">50</span>%</span>
-              </div>
-              <input id="coverFocusInput" name="coverFocusY" type="range" min="0" max="100" step="1" value="50" class="mt-2 w-full accent-brand-500" th:attr="aria-label=#{host.set.coverFocusAria}" aria-label="Vertical cover crop position">
-              <p class="mt-1 flex justify-between text-[11px] text-ink-400"><span th:text="#{host.set.coverTop}">Top</span><span th:text="#{host.set.coverDrag}">Drag to choose which part of the image shows</span><span th:text="#{host.set.coverBottom}">Bottom</span></p>
-            </div>
-
             <!-- Pexels stock-photo picker — hidden entirely when PEXELS_API_KEY
                  isn't configured (see GlobalModelAdvice's "pexelsAvailable"). -->
             <div th:if="${pexelsAvailable}" id="gallery-picker" class="mt-5">
@@ -274,6 +256,30 @@
               <div id="galleryHiddenFields"></div>
             </div>
 
+            <!-- Live preview: reflects whichever image currently wins as the
+                 primary cover (uploaded file, else the first selected pick) —
+                 positioned after the picker so it shows what was just chosen. -->
+            <div id="coverPreview" class="relative mt-5 aspect-[21/9] max-h-56 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-indigo-500 ring-1 ring-inset ring-black/5">
+              <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-cover" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#p-cover)"/></svg>
+              <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use href="#i-image"/></svg>
+              <img id="coverPreviewImg" class="absolute inset-0 hidden h-full w-full object-cover" alt="">
+              <span class="absolute bottom-3 start-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="#{wizard.banner.coverPreview}">Cover preview</span>
+              <button type="button" id="coverRemoveUploadBtn" class="absolute end-3 top-3 hidden h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80" th:attr="aria-label=#{wizard.cover.removeUpload}" aria-label="Remove uploaded photo">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <!-- Cover crop position — shown once an image (upload or Pexels) is chosen -->
+            <div id="coverFocusWrap" class="mt-3 hidden">
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-semibold text-ink-800" for="coverFocusInput" th:text="#{host.set.coverPosition}">Cover position</label>
+                <span class="text-xs tabular-nums text-ink-400"><span id="coverFocusValueLabel">50</span>%</span>
+              </div>
+              <input id="coverFocusInput" type="range" min="0" max="100" step="1" value="50" class="mt-2 w-full accent-brand-500" th:attr="aria-label=#{host.set.coverFocusAria}" aria-label="Vertical cover crop position">
+              <input type="hidden" id="coverFocusYHidden" name="coverFocusY" value="50">
+              <p class="mt-1 flex justify-between text-[11px] text-ink-400"><span th:text="#{host.set.coverTop}">Top</span><span th:text="#{host.set.coverDrag}">Drag to choose which part of the image shows</span><span th:text="#{host.set.coverBottom}">Bottom</span></p>
+            </div>
+
             <!-- Upload dropzone -->
             <div class="mt-4 rounded-xl border-2 border-dashed border-ink-300 bg-ink-50 p-3.5 text-center transition hover:border-brand-400 hover:bg-brand-50">
               <label class="block text-xs font-semibold text-ink-800" for="cover-image" th:text="#{wizard.banner.upload}">Upload a banner photo</label>
@@ -282,7 +288,7 @@
             </div>
 
             <p class="mt-5 text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orTheme}">…or pick a color theme</p>
-            <div class="mt-2 grid grid-cols-5 gap-1.5 sm:gap-2" role="radiogroup" th:attr="aria-label=#{wizard.banner.themesAria}" aria-label="Color themes">
+            <div class="mt-2 grid max-w-xs grid-cols-5 gap-1.5" role="radiogroup" th:attr="aria-label=#{wizard.banner.themesAria}" aria-label="Color themes">
               <label th:each="t : ${coverThemes}" class="group cursor-pointer"
                      th:with="grad=${t == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                               : (t == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -597,13 +603,16 @@
 </div>
 
 <!-- Localized strings for inline JS (review step, validation, counters, autosave) -->
-<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage}"></div>
+<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage},data-pexels-position=#{wizard.banner.imagePosition}"></div>
 
 <!-- Google Places config: rendered only when a Maps key is configured -->
 <div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
 
+<script th:src="@{/js/time-picker.js}"></script>
 <script>
 (function () {
+  iEventTimePicker.init('ev-start');
+  iEventTimePicker.init('ev-end');
   var current = 1, total = 5;
   var panels = document.querySelectorAll('.step-panel');
   var stepBtns = document.querySelectorAll('.step-btn');
@@ -630,6 +639,56 @@
     wizError.classList.remove('hidden');
     wizError.classList.add('flex');
   }
+
+  // Ticket-step validation only shows a banner above the stepper, which is
+  // easy to miss once the user has scrolled down to the ticket rows
+  // themselves — so on failure we also redden the actual empty field(s) and
+  // scroll to the first one, instead of leaving it to a banner they can't see.
+  function markTicketFieldError(inp) {
+    inp.classList.add('border-rose-400', 'ring-4', 'ring-rose-100');
+  }
+  function clearTicketFieldErrors() {
+    document.querySelectorAll('.tt-name, .tt-qty').forEach(function (inp) {
+      inp.classList.remove('border-rose-400', 'ring-4', 'ring-rose-100');
+    });
+  }
+  function highlightTicketErrors() {
+    clearTicketFieldErrors();
+    var anyPartial = false;
+    var firstInvalid = null;
+    document.querySelectorAll('.ticket-row').forEach(function (row) {
+      var nameInp = row.querySelector('.tt-name');
+      var qtyInp = row.querySelector('.tt-qty');
+      var name = nameInp.value.trim();
+      var qty = qtyInp.value;
+      var complete = name && qty && +qty > 0;
+      if (complete) return;
+      var partial = !!name || (qty && +qty > 0);
+      if (!partial) return;
+      anyPartial = true;
+      if (!name) { markTicketFieldError(nameInp); firstInvalid = firstInvalid || nameInp; }
+      if (!(qty && +qty > 0)) { markTicketFieldError(qtyInp); firstInvalid = firstInvalid || qtyInp; }
+    });
+    if (!anyPartial) {
+      var firstRow = document.querySelector('.ticket-row');
+      if (firstRow) {
+        var nameInp = firstRow.querySelector('.tt-name');
+        var qtyInp = firstRow.querySelector('.tt-qty');
+        markTicketFieldError(nameInp);
+        markTicketFieldError(qtyInp);
+        firstInvalid = nameInp;
+      }
+    }
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalid.focus({ preventScroll: true });
+    }
+  }
+  document.querySelectorAll('.tt-name, .tt-qty').forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      inp.classList.remove('border-rose-400', 'ring-4', 'ring-rose-100');
+    });
+  });
 
   // Location type: which pill is checked (VENUE default)
   function locType() {
@@ -722,10 +781,15 @@
       payWarn.classList.toggle('flex', show);
     }
 
-    // Review cover mirrors the uploaded photo or the chosen theme gradient
+    // Review cover mirrors whatever the live preview is currently showing —
+    // uploaded photo, Pexels pick, or (if neither) the chosen theme gradient.
+    // Reading coverImg's own current state (rather than re-deriving from
+    // coverDataUrl, which only the upload path ever set) is what makes this
+    // work for a Pexels-only pick too, and carries over its crop position.
     var rvImg = document.getElementById('rv-coverImg');
-    if (coverDataUrl) {
-      rvImg.src = coverDataUrl;
+    if (!coverImg.classList.contains('hidden') && coverImg.getAttribute('src')) {
+      rvImg.src = coverImg.src;
+      rvImg.style.objectPosition = coverImg.style.objectPosition || '50% 50%';
       rvImg.classList.remove('hidden');
     } else {
       rvImg.classList.add('hidden');
@@ -744,8 +808,15 @@
       for (var i = 0; i < required.length; i++) {
         if (!required[i].value.trim()) {
           showError(msg('step1-required'));
-          required[i].reportValidity();
-          required[i].focus();
+          // ev-start is enhanced by time-picker.js into a hidden canonical
+          // field with a separate visible/focusable proxy — redirect there.
+          var displayId = required[i].dataset.displayId;
+          if (displayId) {
+            document.getElementById(displayId).focus();
+          } else {
+            required[i].reportValidity();
+            required[i].focus();
+          }
           return false;
         }
       }
@@ -764,8 +835,10 @@
       });
       if (!ok) {
         showError(msg('ticket-required'));
+        highlightTicketErrors();
         return false;
       }
+      clearTicketFieldErrors();
     }
     hideError();
     return true;
@@ -906,35 +979,23 @@
     });
   });
 
-  // Cover photo instant preview: FileReader → <img> laid over the gradient
+  // Cover photo instant preview: FileReader → <img> laid over the gradient.
+  // Focus-slider / ring / show-hide state for this image is unified with the
+  // Pexels picks below (see the gallery-picker IIFE's own change listener),
+  // so this block only ever deals with reading the file into a data URL.
   var coverDataUrl = null;
   var coverInput = document.getElementById('cover-image');
   var coverImg = document.getElementById('coverPreviewImg');
   var coverFocusWrap = document.getElementById('coverFocusWrap');
   var coverFocusInput = document.getElementById('coverFocusInput');
   var coverFocusValueLabel = document.getElementById('coverFocusValueLabel');
-  coverFocusInput.addEventListener('input', function () {
-    coverImg.style.objectPosition = '50% ' + coverFocusInput.value + '%';
-    coverFocusValueLabel.textContent = coverFocusInput.value;
-  });
   coverInput.addEventListener('change', function () {
     var f = coverInput.files && coverInput.files[0];
-    if (!f) {
-      coverDataUrl = null;
-      coverImg.classList.add('hidden');
-      coverImg.removeAttribute('src');
-      coverFocusWrap.classList.add('hidden');
-      return;
-    }
+    if (!f) { coverDataUrl = null; return; }
     var reader = new FileReader();
     reader.onload = function (e) {
       coverDataUrl = e.target.result;
       coverImg.src = coverDataUrl;
-      coverImg.style.objectPosition = '50% 50%';
-      coverImg.classList.remove('hidden');
-      coverFocusInput.value = 50;
-      coverFocusValueLabel.textContent = '50';
-      coverFocusWrap.classList.remove('hidden');
     };
     reader.readAsDataURL(f);
   });
@@ -1423,6 +1484,15 @@
         btn.disabled = true;
         labelEl.textContent = aiMsg('ai-generating');
         var body = new URLSearchParams({ title: title, category: category, lang: document.documentElement.lang, kind: kind });
+        if (kind === 'LINEUP') {
+          // ev-start/ev-end are time-picker.js's canonical hidden fields —
+          // always "HH:mm" 24h regardless of what the visible field shows —
+          // so the agenda suggestion can actually fit within the real schedule.
+          var st = document.getElementById('ev-start');
+          var et = document.getElementById('ev-end');
+          if (st && st.value) body.append('startTime', st.value);
+          if (et && et.value) body.append('endTime', et.value);
+        }
         var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         headers[csrfHeader] = csrfToken;
         fetch('/host/events/ai/write', { method: 'POST', headers: headers, body: body.toString() })
@@ -1479,12 +1549,86 @@
     var selectedListEl = document.getElementById('gallerySelectedList');
     var hiddenFieldsEl = document.getElementById('galleryHiddenFields');
     var coverInput = document.getElementById('cover-image');
+    var coverPreview = document.getElementById('coverPreview');
     var coverImg = document.getElementById('coverPreviewImg');
     var coverFocusWrap = document.getElementById('coverFocusWrap');
     var coverFocusInput = document.getElementById('coverFocusInput');
     var coverFocusValueLabel = document.getElementById('coverFocusValueLabel');
+    var coverFocusYHidden = document.getElementById('coverFocusYHidden');
+    var coverRemoveUploadBtn = document.getElementById('coverRemoveUploadBtn');
 
-    var selected = []; // {url, thumbnailUrl, creditName, creditUrl}, in pick order
+    var selected = []; // {url, thumbnailUrl, creditName, creditUrl, focusY}, in pick order
+    var uploadFocusY = 50; // the uploaded file's own crop position, tracked separately
+    // Which image the ONE shared "Cover position" slider currently controls:
+    // null (nothing to adjust yet), 'upload', or an index into selected[].
+    var activeTarget = null;
+
+    // Single source of truth for ring / slider / big-preview state, called
+    // after every change to selected[], activeTarget or the upload input —
+    // this replaces two previously-independent mechanisms (a shared slider
+    // hardwired to the upload only, plus separate per-thumbnail sliders)
+    // that could silently disagree about which image was being adjusted.
+    function syncActiveUI() {
+      selectedListEl.querySelectorAll('[data-pick-idx]').forEach(function (card) {
+        var on = typeof activeTarget === 'number' && +card.getAttribute('data-pick-idx') === activeTarget;
+        card.classList.toggle('ring-2', on);
+        card.classList.toggle('ring-brand-500', on);
+      });
+
+      var hasUpload = !!(coverInput.files && coverInput.files.length);
+      coverRemoveUploadBtn.classList.toggle('hidden', !hasUpload);
+      coverRemoveUploadBtn.classList.toggle('flex', hasUpload);
+      // Once you've clicked away to a Pexels pick, this is the only way back
+      // to re-selecting the uploaded photo itself for readjustment.
+      coverPreview.classList.toggle('cursor-pointer', hasUpload);
+      coverPreview.title = hasUpload ? (pMsg('position') || 'Click to adjust position') : '';
+      var hasAnything = hasUpload || selected.length > 0;
+      coverFocusWrap.classList.toggle('hidden', !hasAnything);
+      if (hasAnything) {
+        var v = activeTarget === 'upload' ? uploadFocusY
+          : (typeof activeTarget === 'number' && selected[activeTarget]) ? selected[activeTarget].focusY
+          : 50;
+        coverFocusInput.value = v;
+        coverFocusValueLabel.textContent = v;
+      }
+
+      // The uploaded file always wins the big preview slot when present —
+      // adjusting a Pexels pick's position (ring elsewhere) never steals it,
+      // it only updates that pick's own thumbnail.
+      if (hasUpload) {
+        coverImg.style.objectPosition = '50% ' + uploadFocusY + '%';
+        coverImg.classList.remove('hidden');
+        return;
+      }
+      var s = typeof activeTarget === 'number' ? selected[activeTarget] : null;
+      if (s) {
+        coverImg.src = s.url;
+        coverImg.style.objectPosition = '50% ' + s.focusY + '%';
+        coverImg.classList.remove('hidden');
+      } else {
+        coverImg.classList.add('hidden');
+        coverImg.removeAttribute('src');
+      }
+    }
+
+    coverFocusInput.addEventListener('input', function () {
+      var v = parseInt(coverFocusInput.value, 10) || 50;
+      coverFocusValueLabel.textContent = v;
+      if (activeTarget === 'upload') {
+        uploadFocusY = v;
+        coverFocusYHidden.value = String(v);
+        coverImg.style.objectPosition = '50% ' + v + '%';
+      } else if (typeof activeTarget === 'number' && selected[activeTarget]) {
+        selected[activeTarget].focusY = v;
+        var img = selectedListEl.querySelector('[data-pick-idx="' + activeTarget + '"] img');
+        if (img) img.style.objectPosition = '50% ' + v + '%';
+        var hf = hiddenFieldsEl.children[activeTarget * 4 + 3];
+        if (hf) hf.value = String(v);
+        if (!(coverInput.files && coverInput.files.length)) {
+          coverImg.style.objectPosition = '50% ' + v + '%';
+        }
+      }
+    });
 
     function showMsg(text) {
       if (!text) { msgEl.classList.add('hidden'); return; }
@@ -1510,14 +1654,21 @@
 
     function toggle(p) {
       var idx = selected.findIndex(function (s) { return s.url === p.fullUrl; });
-      if (idx >= 0) selected.splice(idx, 1);
-      else selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl });
+      if (idx >= 0) {
+        selected.splice(idx, 1);
+      } else {
+        selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl, focusY: 50 });
+        activeTarget = selected.length - 1; // newly added pick becomes the one being worked on
+      }
       renderSelected();
       syncAllThumbs();
     }
 
     function removeSelected(url) {
+      var idx = selected.findIndex(function (s) { return s.url === url; });
       selected = selected.filter(function (s) { return s.url !== url; });
+      if (activeTarget === idx) activeTarget = null;
+      else if (typeof activeTarget === 'number' && activeTarget > idx) activeTarget -= 1;
       renderSelected();
       syncAllThumbs();
     }
@@ -1530,49 +1681,57 @@
       return el;
     }
 
+    // Mirrors Format.coverUrl / HostService.replaceGalleryImages: with no
+    // uploaded file, selected[0] becomes the primary cover and everyone else
+    // (including all of them when a file IS uploaded) is a slider extra —
+    // every one of them can end up on the public page. Click a thumbnail to
+    // point the ONE shared "Cover position" slider at it (see syncActiveUI).
     function renderSelected() {
       selectedWrap.classList.toggle('hidden', selected.length === 0);
       selectedListEl.innerHTML = '';
-      selected.forEach(function (s) {
+      selected.forEach(function (s, idx) {
+        if (typeof s.focusY !== 'number') s.focusY = 50;
+        var card = document.createElement('div');
+        card.className = 'w-24 shrink-0 cursor-pointer rounded-xl border border-ink-100 bg-white p-1.5 shadow-card transition';
+        card.setAttribute('data-pick-idx', String(idx));
+        card.title = pMsg('position') || 'Click to adjust position';
+        card.addEventListener('click', function () {
+          activeTarget = idx;
+          syncActiveUI();
+        });
         var wrap = document.createElement('div');
-        wrap.className = 'group relative h-16 w-16 overflow-hidden rounded-lg ring-1 ring-ink-100';
+        wrap.className = 'group relative aspect-[4/3] overflow-hidden rounded-lg';
         var img = document.createElement('img');
         img.src = s.thumbnailUrl || s.url;
         img.alt = '';
         img.className = 'h-full w-full object-cover';
+        img.style.objectPosition = '50% ' + s.focusY + '%';
         wrap.appendChild(img);
         var rm = document.createElement('button');
         rm.type = 'button';
         rm.className = 'absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100';
         rm.setAttribute('aria-label', pMsg('remove'));
         rm.innerHTML = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-        rm.addEventListener('click', function () { removeSelected(s.url); });
+        rm.addEventListener('click', function (e) { e.stopPropagation(); removeSelected(s.url); });
         wrap.appendChild(rm);
-        selectedListEl.appendChild(wrap);
+        card.appendChild(wrap);
+        selectedListEl.appendChild(card);
       });
-
       hiddenFieldsEl.innerHTML = '';
       selected.forEach(function (s) {
         hiddenFieldsEl.appendChild(hiddenInput('galleryUrl', s.url));
         hiddenFieldsEl.appendChild(hiddenInput('galleryCreditName', s.creditName));
         hiddenFieldsEl.appendChild(hiddenInput('galleryCreditUrl', s.creditUrl));
+        hiddenFieldsEl.appendChild(hiddenInput('galleryFocusY', String(s.focusY)));
       });
 
-      // An uploaded file always wins as the primary cover, same as on save —
-      // only take over the live preview when no file is currently chosen.
-      if (coverInput.files && coverInput.files.length) return;
-      if (selected.length) {
-        coverImg.src = selected[0].url;
-        coverImg.style.objectPosition = '50% 50%';
-        coverImg.classList.remove('hidden');
-        coverFocusInput.value = 50;
-        coverFocusValueLabel.textContent = '50';
-        coverFocusWrap.classList.remove('hidden');
-      } else {
-        coverImg.classList.add('hidden');
-        coverImg.removeAttribute('src');
-        coverFocusWrap.classList.add('hidden');
+      if (typeof activeTarget === 'number' && activeTarget >= selected.length) {
+        activeTarget = selected.length ? selected.length - 1 : ((coverInput.files && coverInput.files.length) ? 'upload' : null);
       }
+      if (activeTarget === null && selected.length && !(coverInput.files && coverInput.files.length)) {
+        activeTarget = 0;
+      }
+      syncActiveUI();
     }
 
     function renderResults(photos) {
@@ -1624,9 +1783,34 @@
     queryInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
     });
-    // A cleared file input hands the live preview back to whatever's picked.
+    coverRemoveUploadBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      coverInput.value = '';
+      coverInput.dispatchEvent(new Event('change'));
+    });
+
+    // Clicking the big preview re-selects the uploaded photo as the shared
+    // slider's target — the only way back to it once a Pexels pick has been
+    // clicked (its own thumbnail has no separate "reselect upload" control).
+    coverPreview.addEventListener('click', function () {
+      if (!(coverInput.files && coverInput.files.length)) return;
+      activeTarget = 'upload';
+      syncActiveUI();
+    });
+
+    // A new upload always takes over the shared slider + big preview; a
+    // cleared file hands both back to whichever pick was last active, or
+    // the first pick if none was (see syncActiveUI for the actual rules).
     coverInput.addEventListener('change', function () {
-      if (!coverInput.files || !coverInput.files.length) renderSelected();
+      if (coverInput.files && coverInput.files.length) {
+        uploadFocusY = 50;
+        coverFocusYHidden.value = '50';
+        activeTarget = 'upload';
+        syncActiveUI();
+      } else {
+        activeTarget = selected.length ? 0 : null;
+        renderSelected();
+      }
     });
   })();
 

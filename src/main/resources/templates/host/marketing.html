@@ -141,8 +141,17 @@
 
           <!-- Composer -->
           <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-            <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.newCampaign}">New email campaign</h3>
-            <p class="mt-1 text-sm text-ink-500" th:text="#{host.mkt.newCampaignSub}">A link to your event page (or organizer profile) is added automatically.</p>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-display text-lg font-bold text-ink-900" th:text="#{host.mkt.newCampaign}">New email campaign</h3>
+                <p class="mt-1 text-sm text-ink-500" th:text="#{host.mkt.newCampaignSub}">A link to your event page (or organizer profile) is added automatically.</p>
+              </div>
+              <button th:if="${aiAvailable and canManage}" type="button" id="aiCampaignBtn" th:attr="data-generating=#{host.mkt.aiGenerating},data-error=#{host.mkt.aiError}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sparkles"/></svg>
+                <span data-ai-btn-label th:text="#{host.mkt.aiWrite}">Write it for me</span>
+              </button>
+            </div>
+            <p id="aiCampaignError" class="mt-2 hidden text-sm text-rose-600"></p>
 
             <form th:if="${canManage}" th:action="@{/host/marketing/email}" method="post" class="mt-4">
               <div>
@@ -558,6 +567,46 @@
       setTimeout(function () { btn.textContent = old; }, 1500);
     });
   });
+
+  // ---- "Write it for me" for the email campaign composer: fills subject +
+  // message together (one call) so they stay consistent, grounded in the
+  // selected event's real title/date/venue looked up server-side. ----
+  (function () {
+    var btn = document.getElementById('aiCampaignBtn');
+    if (!btn) return; // hidden server-side when AI isn't configured or user can't manage
+    var errorEl = document.getElementById('aiCampaignError');
+    var labelEl = btn.querySelector('[data-ai-btn-label]');
+    var defaultLabel = labelEl.textContent;
+    var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    btn.addEventListener('click', function () {
+      errorEl.classList.add('hidden');
+      var eventSelect = document.getElementById('em-event');
+      var eventId = eventSelect ? eventSelect.value : '';
+      btn.disabled = true;
+      labelEl.textContent = btn.getAttribute('data-generating') || defaultLabel;
+      var body = new URLSearchParams({ lang: document.documentElement.lang });
+      if (eventId) body.append('eventId', eventId);
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      headers[csrfHeader] = csrfToken;
+      fetch('/host/marketing/email/ai-write', { method: 'POST', headers: headers, body: body.toString() })
+        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+        .then(function (result) {
+          if (!result.ok) throw new Error('generation_failed');
+          document.getElementById('em-subject').value = result.data.subject || '';
+          document.getElementById('em-body').value = result.data.body || '';
+        })
+        .catch(function () {
+          errorEl.textContent = btn.getAttribute('data-error') || 'Something went wrong — try again.';
+          errorEl.classList.remove('hidden');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          labelEl.textContent = defaultLabel;
+        });
+    });
+  })();
 
   // ---- Widgets tab: builder controls drive the live preview + embed snippet ----
   // Panels are server-rendered per event; the picker switches which pair is visible

@@ -7,6 +7,7 @@ import iq.ievent.service.Format;
 import iq.ievent.service.UserService;
 import iq.ievent.web.dto.Views.EventCard;
 import iq.ievent.web.dto.Views.EventDetail;
+import iq.ievent.web.dto.Views.GalleryImageView;
 import iq.ievent.web.dto.Views.LineupItem;
 import iq.ievent.web.dto.Views.OrganizerExtras;
 import iq.ievent.web.dto.Views.OrganizerView;
@@ -268,11 +269,11 @@ public class PageController {
         List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
                 .map(String::trim).filter(p -> !p.isEmpty()).toList();
         String primary = Format.coverUrl(e);
-        List<String> allImages = new ArrayList<>();
-        if (primary != null) allImages.add(primary);
+        List<GalleryImageView> allImages = new ArrayList<>();
+        if (primary != null) allImages.add(new GalleryImageView(primary, e.getCoverFocusY()));
         allImages.addAll(jdbc.query(
-                "SELECT url FROM event_images WHERE event_id = ? ORDER BY sort_order",
-                (rs, i) -> rs.getString(1), e.getId()));
+                "SELECT url, focus_y FROM event_images WHERE event_id = ? ORDER BY sort_order",
+                (rs, i) -> new GalleryImageView(rs.getString(1), rs.getInt(2)), e.getId()));
         return new EventDetail(
                 e.getSlug(), e.getTitle(),
                 Format.categoryLabel(e.getCategory()),

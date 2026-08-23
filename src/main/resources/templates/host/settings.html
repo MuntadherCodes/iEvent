@@ -29,7 +29,11 @@
       </div>
       <div th:if="${invited}" class="mt-5 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
-        <span><span class="font-semibold" th:text="${invited}">sara@example.com</span><span th:text="#{host.set.invitedSuffix}"> was added to your team.</span></span>
+        <span><span class="font-semibold" th:text="${invited}">sara@example.com</span><span th:text="${invitedPending} ? #{host.set.invitedPendingSuffix} : #{host.set.invitedSuffix}"> was added to your team.</span></span>
+      </div>
+      <div th:if="${inviteResent}" class="mt-5 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        <span th:text="#{host.set.inviteResentMsg}">Invite resent.</span>
       </div>
       <div th:if="${teamError}" class="mt-5 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
@@ -61,7 +65,7 @@
               <div class="mt-5 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="org-name"><span th:text="#{host.set.orgName}">Organization name</span> <span class="text-rose-500">*</span></label>
-                  <input id="org-name" name="name" type="text" required th:value="${org.name}" th:disabled="${!canManage}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
+                  <input id="org-name" name="name" type="text" required th:value="${org.name}" th:disabled="${!access.owner()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
                 </div>
                 <div>
                   <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="org-handle" th:text="#{host.set.handle}">Handle</label>
@@ -74,7 +78,7 @@
                 <div>
                   <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="org-city" th:text="#{host.set.city}">City</label>
                   <div class="relative">
-                    <select id="org-city" name="city" th:disabled="${!canManage}" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
+                    <select id="org-city" name="city" th:disabled="${!access.owner()}" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
                       <option th:each="c : ${@t.cities()}" th:value="${c.en()}" th:text="${@t.city(c.en())}" th:selected="${org.city == c.en()}">Baghdad</option>
                     </select>
                     <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
@@ -82,12 +86,12 @@
                 </div>
                 <div class="sm:col-span-2">
                   <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="org-bio" th:text="#{host.set.bio}">Bio</label>
-                  <textarea id="org-bio" name="bio" rows="3" th:disabled="${!canManage}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500" th:text="${org.bio}"></textarea>
+                  <textarea id="org-bio" name="bio" rows="3" th:disabled="${!access.owner()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500" th:text="${org.bio}"></textarea>
                 </div>
               </div>
               <div class="mt-5 flex items-center gap-3 border-t border-ink-100 pt-5">
-                <button th:if="${canManage}" type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.saveChanges}">Save changes</button>
-                <p th:unless="${canManage}" class="flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyManagersOrg}">Only owners and managers can edit the organization profile.</span></p>
+                <button th:if="${access.owner()}" type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.saveChanges}">Save changes</button>
+                <p th:unless="${access.owner()}" class="flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyManagersOrg}">Only owners and managers can edit the organization profile.</span></p>
               </div>
             </form>
           </section>
@@ -124,6 +128,27 @@
                 </li>
               </ul>
 
+              <!-- Pending invites (owner only) — sent but not yet accepted -->
+              <div th:if="${access.owner() and !#lists.isEmpty(pendingInvites)}" class="mt-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{host.set.pendingInvites}">Pending invites</p>
+                <ul class="mt-2 divide-y divide-ink-50 rounded-xl border border-ink-100">
+                  <li th:each="i : ${pendingInvites}" class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-semibold text-ink-800" th:text="${i.email}">sara@example.com</p>
+                      <p class="text-xs text-ink-400" th:text="${i.role == 'MANAGER'} ? #{host.set.manager} : #{host.set.doorStaff}">Manager</p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                      <form th:action="@{/host/settings/team/invites/{id}/resend(id=${i.id})}" method="post">
+                        <button type="submit" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{host.set.resendInvite}">Resend</button>
+                      </form>
+                      <form th:action="@{/host/settings/team/invites/{id}/cancel(id=${i.id})}" method="post">
+                        <button type="submit" class="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50" th:text="#{host.set.cancelInvite}">Cancel</button>
+                      </form>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
               <!-- Invite (owner only) -->
               <div th:if="${access.owner()}" class="mt-4 rounded-xl border-2 border-dashed border-ink-200 p-4">
                 <p class="flex items-center gap-1.5 text-sm font-semibold text-ink-800"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{host.set.inviteMember}">Invite member</span></p>
@@ -138,7 +163,7 @@
                   </div>
                   <button type="submit" class="rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.sendInvite}">Send invite</button>
                 </form>
-                <p class="mt-2 text-xs text-ink-400" th:text="#{host.set.inviteHint}">The person needs an iEvent account with this email first.</p>
+                <p class="mt-2 text-xs text-ink-400" th:text="#{host.set.inviteHint}">We'll email them an invite to join — no account needed yet.</p>
               </div>
               <p th:unless="${access.owner()}" class="mt-4 flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyOwnerInvite}">Only the owner can invite or remove team members.</span></p>
             </div>
@@ -180,7 +205,7 @@
                       <img th:if="${logoUrl != null}" th:src="${logoUrl}" th:alt="#{host.set.currentLogoAlt}" alt="Current logo" class="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-ink-100">
                       <span th:if="${logoUrl == null}" class="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-500"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-image"/></svg></span>
                       <div class="min-w-0">
-                        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" th:disabled="${!canManage}" class="block w-full text-xs text-ink-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3.5 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100" th:aria-label="#{host.set.uploadLogoAria}" aria-label="Upload logo">
+                        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" th:disabled="${!access.owner()}" class="block w-full text-xs text-ink-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3.5 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100" th:aria-label="#{host.set.uploadLogoAria}" aria-label="Upload logo">
                         <p class="mt-1 text-xs text-ink-400" th:text="#{host.set.logoHint}">JPG, PNG or WEBP · max 1 MB</p>
                       </div>
                     </div>
@@ -193,7 +218,7 @@
                         <span class="inline-flex items-center gap-1.5 text-xs font-semibold"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-image"/></svg><span th:text="#{host.set.noCover}">No cover yet</span></span>
                       </div>
                       <div class="mt-3 min-w-0">
-                        <input type="file" name="cover" accept="image/png,image/jpeg,image/webp" th:disabled="${!canManage}" class="block w-full text-xs text-ink-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3.5 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100" th:aria-label="#{host.set.uploadCoverAria}" aria-label="Upload profile cover">
+                        <input type="file" name="cover" accept="image/png,image/jpeg,image/webp" th:disabled="${!access.owner()}" class="block w-full text-xs text-ink-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3.5 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100" th:aria-label="#{host.set.uploadCoverAria}" aria-label="Upload profile cover">
                         <p class="mt-1 text-xs text-ink-400" th:text="#{host.set.coverHint}">Shown across the top of your organizer page · recommended ≥1600×400 · JPG, PNG or WEBP · max 3 MB</p>
                       </div>
                       <!-- Cover crop position (only meaningful once a cover exists) -->
@@ -202,7 +227,7 @@
                           <label class="text-sm font-semibold text-ink-800" for="cover-focus" th:text="#{host.set.coverPosition}">Cover position</label>
                           <span class="text-xs tabular-nums text-ink-400"><span id="cover-focus-value" th:text="${org.coverFocusY}">50</span>%</span>
                         </div>
-                        <input id="cover-focus" name="coverFocusY" type="range" min="0" max="100" step="1" th:value="${org.coverFocusY}" th:disabled="${!canManage}" class="mt-2 w-full accent-brand-500" th:aria-label="#{host.set.coverFocusAria}" aria-label="Vertical cover crop position">
+                        <input id="cover-focus" name="coverFocusY" type="range" min="0" max="100" step="1" th:value="${org.coverFocusY}" th:disabled="${!access.owner()}" class="mt-2 w-full accent-brand-500" th:aria-label="#{host.set.coverFocusAria}" aria-label="Vertical cover crop position">
                         <p class="mt-1 flex justify-between text-[11px] text-ink-400"><span th:text="#{host.set.coverTop}">Top</span><span th:text="#{host.set.coverDrag}">Drag to choose which part of the image shows</span><span th:text="#{host.set.coverBottom}">Bottom</span></p>
                       </div>
                     </div>
@@ -210,7 +235,7 @@
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="brand-color" th:text="#{host.mkt.brandColor}">Brand color</label>
                     <div class="flex items-center gap-3">
-                      <input id="brand-color" name="brandColor" type="color" th:value="${brandColorValue}" th:disabled="${!canManage}" class="h-11 w-16 cursor-pointer rounded-lg border border-ink-200 bg-white p-1">
+                      <input id="brand-color" name="brandColor" type="color" th:value="${brandColorValue}" th:disabled="${!access.owner()}" class="h-11 w-16 cursor-pointer rounded-lg border border-ink-200 bg-white p-1">
                       <span id="brand-swatch" class="h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/10" aria-hidden="true" th:style="'background: ' + ${brandColorValue}"></span>
                       <span id="brand-hex" dir="ltr" class="font-mono text-xs tabular-nums text-ink-500" th:text="${brandColorValue}">#8f7ac9</span>
                     </div>
@@ -220,28 +245,28 @@
                 <div class="grid content-start gap-4">
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="c-email" th:text="#{host.set.contactEmail}">Contact email</label>
-                    <input id="c-email" name="contactEmail" type="email" th:value="${org.contactEmail}" th:disabled="${!canManage}" placeholder="hello@zainevents.iq" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
+                    <input id="c-email" name="contactEmail" type="email" th:value="${org.contactEmail}" th:disabled="${!access.owner()}" placeholder="hello@zainevents.iq" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
                   </div>
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="c-phone" th:text="#{host.set.contactPhone}">Contact phone</label>
-                    <input id="c-phone" name="contactPhone" type="tel" th:value="${org.contactPhone}" th:disabled="${!canManage}" placeholder="+964 770 555 0102" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
+                    <input id="c-phone" name="contactPhone" type="tel" th:value="${org.contactPhone}" th:disabled="${!access.owner()}" placeholder="+964 770 555 0102" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
                   </div>
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="c-site" th:text="#{host.set.website}">Website</label>
-                    <input id="c-site" name="website" type="text" th:value="${org.website}" th:disabled="${!canManage}" placeholder="zainevents.iq" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
+                    <input id="c-site" name="website" type="text" th:value="${org.website}" th:disabled="${!access.owner()}" placeholder="zainevents.iq" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
                   </div>
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="c-insta" th:text="#{host.set.instagram}">Instagram</label>
                     <div class="flex overflow-hidden rounded-xl border border-ink-200 focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100" dir="ltr">
                       <span class="flex items-center bg-ink-50 px-3 text-sm text-ink-500">@</span>
-                      <input id="c-insta" name="instagram" type="text" th:value="${org.instagram}" th:disabled="${!canManage}" placeholder="zainevents" class="w-full px-3 py-3 text-sm outline-none disabled:bg-ink-50 disabled:text-ink-500">
+                      <input id="c-insta" name="instagram" type="text" th:value="${org.instagram}" th:disabled="${!access.owner()}" placeholder="zainevents" class="w-full px-3 py-3 text-sm outline-none disabled:bg-ink-50 disabled:text-ink-500">
                     </div>
                   </div>
                 </div>
               </div>
               <div class="mt-5 flex items-center gap-3 border-t border-ink-100 pt-5">
-                <button th:if="${canManage}" type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.saveChanges}">Save changes</button>
-                <p th:unless="${canManage}" class="flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyManagersBranding}">Only owners and managers can edit branding.</span></p>
+                <button th:if="${access.owner()}" type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.saveChanges}">Save changes</button>
+                <p th:unless="${access.owner()}" class="flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyManagersBranding}">Only owners and managers can edit branding.</span></p>
               </div>
             </form>
           </section>
@@ -282,7 +307,7 @@
                     <p class="text-xs text-ink-500" th:text="#{host.set.notifPendingSub}">Instant email when a buyer uploads a transfer receipt that needs your approval</p>
                   </div>
                   <label class="relative inline-block h-7 w-12 shrink-0 cursor-pointer" th:title="#{host.set.notifPendingAria}" title="Notify on pending orders">
-                    <input type="checkbox" name="notifyPendingOrders" value="true" th:checked="${org.notifyPendingOrders}" th:disabled="${!canManage}" class="peer sr-only" th:aria-label="#{host.set.notifPendingAria}" aria-label="Notify on pending orders">
+                    <input type="checkbox" name="notifyPendingOrders" value="true" th:checked="${org.notifyPendingOrders}" th:disabled="${!access.owner()}" class="peer sr-only" th:aria-label="#{host.set.notifPendingAria}" aria-label="Notify on pending orders">
                     <span class="absolute inset-0 rounded-full bg-ink-200 transition peer-checked:bg-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400"></span>
                     <span class="absolute start-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5 rtl:peer-checked:-translate-x-5"></span>
                   </label>
@@ -301,8 +326,8 @@
                 </li>
               </ul>
               <div class="mt-4 flex items-center gap-3 border-t border-ink-100 pt-5">
-                <button th:if="${canManage}" type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.saveNotifications}">Save notifications</button>
-                <p th:unless="${canManage}" class="flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyManagersNotif}">Only owners and managers can change notifications.</span></p>
+                <button th:if="${access.owner()}" type="submit" class="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{host.set.saveNotifications}">Save notifications</button>
+                <p th:unless="${access.owner()}" class="flex items-center gap-2 text-sm text-ink-500"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{host.set.onlyManagersNotif}">Only owners and managers can change notifications.</span></p>
               </div>
             </form>
           </section>

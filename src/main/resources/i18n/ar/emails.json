@@ -6,6 +6,9 @@
   "emails.campaign.footer": "© 2026 iEvent · تصلك تحديثات الفعاليات التي تملك تذاكر لها. يمكنك إدارة التفضيلات من",
   "emails.campaign.profileWord": "ملفك الشخصي",
 
+  "emails.teamInvite.kicker": "دعوة انضمام للفريق",
+  "emails.teamInvite.footer": "© 2026 iEvent",
+
   "emails.confirmed.title": "أنت ذاهب! 🎉",
   "emails.confirmed.orderPrefix": "طلبك",
   "emails.confirmed.orderSuffix": "مؤكد.",

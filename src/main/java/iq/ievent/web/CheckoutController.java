@@ -8,6 +8,7 @@ import iq.ievent.repo.TicketRepository;
 import iq.ievent.service.CatalogService;
 import iq.ievent.service.Format;
 import iq.ievent.service.OrderService;
+import iq.ievent.service.PasswordResetService;
 import iq.ievent.service.PromoService;
 import iq.ievent.service.QrService;
 import iq.ievent.service.UserService;
@@ -15,8 +16,12 @@ import iq.ievent.web.dto.Views.EventDetail;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -61,6 +66,7 @@ public class CheckoutController {
     private final PromoService promoService;
     private final iq.ievent.repo.EventRepository eventRepo;
     private final iq.ievent.service.TicketPdfService ticketPdf;
+    private final PasswordResetService passwordResetService;
     private final MessageSource messages;
 
     public CheckoutController(CatalogService catalog, OrderService orderService,
@@ -68,6 +74,7 @@ public class CheckoutController {
                               QrService qr, UserService userService,
                               PromoService promoService, iq.ievent.repo.EventRepository eventRepo,
                               iq.ievent.service.TicketPdfService ticketPdf,
+                              PasswordResetService passwordResetService,
                               MessageSource messages) {
         this.catalog = catalog;
         this.orderService = orderService;
@@ -78,6 +85,7 @@ public class CheckoutController {
         this.promoService = promoService;
         this.eventRepo = eventRepo;
         this.ticketPdf = ticketPdf;
+        this.passwordResetService = passwordResetService;
         this.messages = messages;
     }
 
@@ -89,6 +97,23 @@ public class CheckoutController {
     private User currentUser(UserDetails principal) {
         if (principal == null) return null;
         return userService.byEmail(principal.getUsername());
+    }
+
+    /** Guest checkout never shows a login form (there's no password to type),
+     *  but /orders/{code} — like the rest of the site — requires an
+     *  authenticated session. This establishes one programmatically right
+     *  after the order is placed so the buyer lands on their own confirmation
+     *  page instead of hitting the auth wall for an account they never
+     *  "signed in" to. A real sign-in (password-set link, or Google if the
+     *  email matches) is only needed again once this session ends. */
+    private void autoLogin(User user, jakarta.servlet.http.HttpServletRequest request,
+                           jakarta.servlet.http.HttpServletResponse response) {
+        UserDetails details = userService.loadUserByUsername(user.getEmail());
+        var authToken = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authToken);
+        SecurityContextHolder.setContext(context);
+        new HttpSessionSecurityContextRepository().saveContext(context, request, response);
     }
 
     @GetMapping("/e/{slug}/checkout")
@@ -208,8 +233,11 @@ public class CheckoutController {
                              @RequestParam(name = "holderEmail", required = false) List<String> holderEmails,
                              @RequestParam(name = "keepUpdated", defaultValue = "false") boolean keepUpdated,
                              @AuthenticationPrincipal UserDetails principal,
+                             jakarta.servlet.http.HttpServletRequest request,
+                             jakarta.servlet.http.HttpServletResponse response,
                              RedirectAttributes redirect) {
         User user = currentUser(principal);
+        boolean wasGuest = user == null;
         Map<Long, Integer> quantities = new HashMap<>();
         for (Map.Entry<String, String> entry : params.entrySet()) {
             if (entry.getKey().startsWith("qty-")) {
@@ -220,20 +248,30 @@ public class CheckoutController {
             }
         }
         if (user == null) {
-            // #11 safety net: the session expired (or JS was bypassed) and an
-            // anonymous POST arrived. Send the buyer to sign in with a ?next=
-            // that reconstructs this checkout GET including the picked quantities.
-            StringBuilder nextQs = new StringBuilder();
-            quantities.forEach((id, q) -> nextQs.append(nextQs.length() == 0 ? "?" : "&")
-                    .append("qty-").append(id).append("=").append(Math.max(0, Math.min(10, q))));
-            String next = "/e/" + slug + "/checkout" + nextQs;
-            return "redirect:/auth/login?next="
-                    + java.net.URLEncoder.encode(next, java.nio.charset.StandardCharsets.UTF_8);
+            // Guest checkout: no account required to buy. The buyer's email
+            // becomes (or already is) a real account behind the scenes so
+            // "sign in with the same email" later actually works — brand-new
+            // accounts get a password-set link by mail, existing ones just
+            // use their normal password.
+            String email = buyerEmail == null ? "" : buyerEmail.trim();
+            if (email.isEmpty()) {
+                redirect.addFlashAttribute("error", msg("checkout.buyerEmailRequired"));
+                StringBuilder qs = new StringBuilder();
+                quantities.forEach((id, q) -> qs.append("&qty-").append(id).append("=").append(q));
+                return "redirect:/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, java.nio.charset.StandardCharsets.UTF_8)
+                        + "/checkout?_e" + qs;
+            }
+            UserService.GuestProvision guest = userService.findOrCreateGuest(buyerName, email, buyerPhone);
+            user = guest.user();
+            if (guest.created()) {
+                passwordResetService.requestReset(user.getEmail());
+            }
         }
         try {
             Order order = orderService.checkout(user, slug, quantities,
                     buyerName, buyerEmail, buyerPhone, transferReference, receipt,
                     promo, holderNames, holderEmails, keepUpdated);
+            if (wasGuest) autoLogin(user, request, response);
             return "redirect:/orders/" + order.getOrderCode();
         } catch (OrderService.CheckoutException e) {
             redirect.addFlashAttribute("error", e.getMessage());

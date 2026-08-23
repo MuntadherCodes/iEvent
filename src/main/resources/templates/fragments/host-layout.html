@@ -3,6 +3,7 @@
 <head th:fragment="head(title)">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
 <meta name="_csrf" th:content="${_csrf.token}">
 <meta name="_csrf_header" th:content="${_csrf.headerName}">
 <title th:text="${title}">iEvent Host</title>
@@ -96,20 +97,20 @@ Responsive behavior:
       <svg class="hidden h-4 w-4 rtl:rotate-180" data-icon="expand" aria-hidden="true"><use href="#i-chevron-right"/></svg>
     </button>
   </div>
-  <div class="px-3 pt-5 lg:px-4">
+  <div th:if="${isOrgManager}" class="px-3 pt-5 lg:px-4">
     <a th:href="@{/host/events/new}" th:title="#{host.nav.createEvent}" title="Create event" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-0 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] lg:px-4">
       <svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>
       <span class="hidden lg:inline" th:text="#{host.nav.createEvent}">Create event</span>
     </a>
   </div>
   <nav class="mt-5 flex-1 space-y-0.5 overflow-y-auto px-2 pb-6 text-sm lg:px-3" th:aria-label="#{host.nav.dashboardAria}" aria-label="Dashboard">
-    <a th:href="@{/host}" th:title="#{host.nav.overview}" title="Overview" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+    <a th:if="${isOrgManager}" th:href="@{/host}" th:title="#{host.nav.overview}" title="Overview" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'overview'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'overview'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'overview'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-house"/></svg><span class="hidden lg:inline" th:text="#{host.nav.overview}">Overview</span></a>
-    <a th:href="@{/host/events}" th:title="#{host.nav.myEvents}" title="My events" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+    <a th:if="${isOrgManager}" th:href="@{/host/events}" th:title="#{host.nav.myEvents}" title="My events" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'events'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'events'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'events'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-calendar"/></svg><span class="hidden lg:inline" th:text="#{host.nav.myEvents}">My events</span></a>
-    <a th:href="@{/host/orders}" th:title="#{host.nav.orders}" title="Orders" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+    <a th:if="${isOrgManager}" th:href="@{/host/orders}" th:title="#{host.nav.orders}" title="Orders" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'orders'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'orders'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'orders'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-receipt"/></svg><span class="hidden flex-1 lg:inline" th:text="#{host.nav.orders}">Orders</span><span th:if="${pendingCount != null && pendingCount > 0}" class="hidden rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tabular-nums text-amber-700 lg:inline" th:text="${pendingCount}">4</span></a>
     <a th:href="@{/host/attendees}" th:title="#{host.nav.attendees}" title="Attendees" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
@@ -118,14 +119,14 @@ Responsive behavior:
     <a th:href="@{/host/checkin}" th:title="#{host.nav.checkin}" title="Check-in" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'checkin'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'checkin'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'checkin'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-scan-line"/></svg><span class="hidden lg:inline" th:text="#{host.nav.checkin}">Check-in</span></a>
-    <a th:href="@{/host/marketing}" th:title="#{host.nav.marketing}" title="Marketing" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+    <a th:if="${isOrgManager}" th:href="@{/host/marketing}" th:title="#{host.nav.marketing}" title="Marketing" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'marketing'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'marketing'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'marketing'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-megaphone"/></svg><span class="hidden lg:inline" th:text="#{host.nav.marketing}">Marketing</span></a>
     <div class="pt-3"><p class="hidden px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-400 lg:block" th:text="#{host.nav.organization}">Organization</p><hr class="mx-2 border-ink-100 lg:hidden"></div>
-    <a th:href="@{/host/earnings}" th:title="#{host.nav.earnings}" title="Earnings" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+    <a th:if="${isOrgManager}" th:href="@{/host/earnings}" th:title="#{host.nav.earnings}" title="Earnings" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'earnings'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'earnings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'earnings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-wallet"/></svg><span class="hidden lg:inline" th:text="#{host.nav.earnings}">Earnings</span></a>
-    <a th:href="@{/host/settings/payments}" th:title="#{host.nav.payments}" title="Payments" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
+    <a th:if="${isOrgOwner}" th:href="@{/host/settings/payments}" th:title="#{host.nav.payments}" title="Payments" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
        th:classappend="${active == 'payments'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'payments'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'payments'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-credit-card"/></svg><span class="hidden lg:inline" th:text="#{host.nav.payments}">Payments</span></a>
     <a th:href="@{/host/settings}" th:title="#{host.nav.settingsTeam}" title="Settings &amp; team" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 transition lg:justify-start lg:px-3"
@@ -261,13 +262,22 @@ Responsive behavior:
 </header>
 
 <!-- ============ MOBILE BOTTOM TAB BAR FRAGMENT (<md only) ============ -->
-<nav th:fragment="bottomTabs(active)" class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-ink-100 bg-white/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 text-[10px] font-semibold text-ink-500 backdrop-blur md:hidden" th:aria-label="#{host.nav.dashboardTabsAria}" aria-label="Dashboard tabs">
+<th:block th:fragment="bottomTabs(active)">
+<nav th:if="${isOrgManager}" class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-ink-100 bg-white/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 text-[10px] font-semibold text-ink-500 backdrop-blur md:hidden" th:aria-label="#{host.nav.dashboardTabsAria}" aria-label="Dashboard tabs">
   <a th:href="@{/host}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'overview'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-house"/></svg><span th:text="#{host.nav.overview}">Overview</span></a>
   <a th:href="@{/host/events}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'events'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg><span th:text="#{host.nav.eventsTab}">Events</span></a>
   <a th:href="@{/host/events/new}" class="flex flex-col items-center py-1" th:aria-label="#{host.nav.createEvent}" aria-label="Create event"><span class="-mt-5 grid h-12 w-12 place-items-center rounded-full bg-brand-500 text-white shadow-pop"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-plus"/></svg></span></a>
   <a th:href="@{/host/orders}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'orders'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-receipt"/></svg><span th:text="#{host.nav.orders}">Orders</span></a>
   <a th:href="@{/host/checkin}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'checkin'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-scan-line"/></svg><span th:text="#{host.nav.checkin}">Check-in</span></a>
 </nav>
+<!-- Staff-only accounts don't get the full 5-tab bar (events/orders/overview
+     are manager+ territory) — a smaller 2-tab bar covering the one thing
+     they actually have keeps mobile check-in usable instead of just vanishing. -->
+<nav th:unless="${isOrgManager}" class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 border-t border-ink-100 bg-white/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 text-[10px] font-semibold text-ink-500 backdrop-blur md:hidden" th:aria-label="#{host.nav.dashboardTabsAria}" aria-label="Dashboard tabs">
+  <a th:href="@{/host/attendees}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'attendees'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-users"/></svg><span th:text="#{host.nav.attendees}">Attendees</span></a>
+  <a th:href="@{/host/checkin}" class="flex flex-col items-center gap-1 py-1" th:classappend="${active == 'checkin'} ? 'text-brand-600' : ''"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-scan-line"/></svg><span th:text="#{host.nav.checkin}">Check-in</span></a>
+</nav>
+</th:block>
 
 </body>
 </html>

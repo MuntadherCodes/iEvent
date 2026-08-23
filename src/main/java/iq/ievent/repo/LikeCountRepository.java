@@ -28,6 +28,11 @@ public class LikeCountRepository {
         return out;
     }
 
+    public long likesForEvent(long eventId) {
+        Long n = jdbc.queryForObject("SELECT count(*) FROM event_likes WHERE event_id = ?", Long.class, eventId);
+        return n == null ? 0 : n;
+    }
+
     public long followersForOrganization(long organizationId) {
         Long n = jdbc.queryForObject("SELECT count(*) FROM follows WHERE organization_id = ?", Long.class, organizationId);
         return n == null ? 0 : n;

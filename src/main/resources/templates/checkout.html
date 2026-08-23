@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="noIndex=${true}">
 <head th:replace="~{fragments/layout :: head(#{public.title.checkoutPrefix} + ${event.title} + #{public.title.suffix})}"></head>
-<body class="bg-white font-body text-ink-800 antialiased"
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased"
       th:with="isFree=${isFreeOrder},
                grad=${event.coverTheme == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
                : (event.coverTheme == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -45,7 +45,7 @@
   </div>
 </header>
 
-<main id="main" class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10" th:attr="data-currency=#{common.iqd}">
+<main id="main" class="w-full mx-auto max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10" th:attr="data-currency=#{common.iqd}">
 
   <!-- Error flash -->
   <div th:if="${error}" class="mb-6 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
@@ -53,14 +53,15 @@
     <span th:text="${error}">Something went wrong with your order.</span>
   </div>
 
-  <!-- ===== Signed-out notice (#11: the page still renders — sign-in happens at the submit step and brings the buyer back here) ===== -->
+  <!-- ===== Signed-out notice: guest checkout is the default path — no login
+       required. Signing in is offered only as an optional alternative below. ===== -->
   <div th:if="${currentUser == null}" class="mb-6 flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">
     <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
-    <span th:text="#{public.checkout.signedOutNotice}">Pick your tickets below — you'll sign in at the last step and come right back here with your selection.</span>
+    <span th:text="#{public.checkout.signedOutNotice}">No account needed — check out as a guest and we'll email your tickets. Want to save your order history? You can sign in below instead.</span>
   </div>
 
   <!-- ===== Checkout form ===== -->
-  <form method="post" th:action="@{/e/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
+  <form id="checkoutForm" method="post" th:action="@{/e/{s}/checkout(s=${event.slug})}" enctype="multipart/form-data">
     <!-- Applied promo code carries into the order -->
     <input type="hidden" name="promo" th:value="${promo}">
 
@@ -252,6 +253,10 @@
               <span id="receiptLabel" th:attr="data-attached-suffix=#{public.checkout.attachedSuffix}" th:text="#{public.checkout.uploadReceipt}">Upload transfer receipt (screenshot or PDF)</span>
               <input id="receiptInput" type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only">
             </label>
+            <p id="proofError" class="mt-2 hidden flex items-start gap-1.5 text-sm font-medium text-rose-600">
+              <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+              <span th:text="#{public.checkout.proofRequired}">Add a transfer reference or upload your receipt so the organizer can verify your payment.</span>
+            </p>
 
             <!-- Info note -->
             <p class="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-800"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${!paymentMethods.isEmpty()} ? #{public.checkout.reviewNoteMulti} : #{public.checkout.reviewNoteSingle}">The organizer reviews your transfer and confirms your tickets — usually within a few hours.</span></p>
@@ -269,27 +274,18 @@
               <input type="checkbox" name="keepUpdated" value="true" checked class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
               [[#{public.checkout.keepUpdated}]]
             </label>
-            <label class="flex items-start gap-2.5 text-sm text-ink-400">
-              <input type="checkbox" disabled class="mt-0.5 h-4 w-4 rounded border-ink-200">
-              <span>[[#{public.checkout.smsReminder}]]</span>
-            </label>
           </div>
         </section>
 
-        <!-- Submit (signed in) / Sign-in continuation (#11, anonymous) -->
+        <!-- Submit: guest checkout works without an account; signing in is
+             offered below only as an optional alternative for anonymous buyers. -->
         <div>
-          <button th:if="${currentUser != null}" id="submitBtn" type="submit"
+          <button id="submitBtn" type="submit"
                   class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-4 text-lg font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
                   th:attr="disabled=${totalQty == 0 || (!isFree && !hasPayment)} ? 'disabled' : null">
             <svg class="h-5 w-5" aria-hidden="true"><use href="#i-lock"/></svg><span id="submitLabel" th:attr="data-free-label=#{public.checkout.registerFree},data-paid-label=#{public.checkout.submitOrder}" th:text="${isFree} ? #{public.checkout.registerFree} : #{public.checkout.submitOrder}">Submit order for confirmation</span>
           </button>
-          <th:block th:if="${currentUser == null}">
-            <a id="signInToOrder" th:href="@{/auth/login(next=${checkoutNext})}"
-               class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-4 text-lg font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
-              <svg class="h-5 w-5" aria-hidden="true"><use href="#i-lock"/></svg>[[#{public.checkout.signInToOrder}]]
-            </a>
-            <p class="mt-3 text-center text-sm text-ink-500">[[#{public.checkout.newTo}]] <a id="registerToOrder" th:href="@{/auth/register(next=${checkoutNext})}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.createAccount}">Create an account</a> [[#{public.checkout.selectionBack}]]</p>
-          </th:block>
+          <p th:if="${currentUser == null}" class="mt-3 text-center text-sm text-ink-500">[[#{public.checkout.preferAccount}]] <a id="signInToOrder" th:href="@{/auth/login(next=${checkoutNext})}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.signInToOrder}">Sign in</a> [[#{public.checkout.orWord}]] <a id="registerToOrder" th:href="@{/auth/register(next=${checkoutNext})}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.createAccount}">create an account</a> [[#{public.checkout.selectionBack}]]</p>
           <p class="mt-3 text-center text-xs text-ink-500">[[#{public.checkout.agreePrefix}]] <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.terms}">Terms</a> [[#{public.checkout.agreeMiddle}]] <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.refundPolicyLink}">refund policy</a>.</p>
         </div>
       </div>
@@ -537,6 +533,13 @@
   var receiptInput = document.getElementById('receiptInput');
   var receiptLabel = document.getElementById('receiptLabel');
   var receiptDefault = receiptLabel ? receiptLabel.textContent : '';
+  var proofError = document.getElementById('proofError');
+  var transferRefInput = document.getElementById('transferReference');
+  function hasPaymentProof() {
+    var hasRef = transferRefInput && transferRefInput.value.trim().length > 0;
+    var hasReceipt = receiptInput && receiptInput.files && receiptInput.files.length > 0;
+    return hasRef || hasReceipt;
+  }
   if (receiptInput) receiptInput.addEventListener('change', function () {
     if (receiptInput.files && receiptInput.files.length > 0) {
       receiptLabel.textContent = receiptInput.files[0].name + (receiptLabel.getAttribute('data-attached-suffix') || ' attached');
@@ -545,7 +548,76 @@
       receiptLabel.textContent = receiptDefault;
       receiptLabel.classList.remove('text-green-700');
     }
+    if (proofError && hasPaymentProof()) proofError.classList.add('hidden');
   });
+  if (transferRefInput) transferRefInput.addEventListener('input', function () {
+    if (proofError && hasPaymentProof()) proofError.classList.add('hidden');
+  });
+
+  // At least one of transfer reference / receipt is required for paid
+  // (non-free) orders, so the organizer has something to verify against.
+  var checkoutForm = document.getElementById('checkoutForm');
+  if (checkoutForm) checkoutForm.addEventListener('submit', function (e) {
+    var payingDirect = directPanel && !directPanel.classList.contains('hidden');
+    if (payingDirect && !hasPaymentProof()) {
+      e.preventDefault();
+      if (proofError) proofError.classList.remove('hidden');
+      var dropzone = receiptInput ? receiptInput.closest('label') : null;
+      if (dropzone) dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+
+  // #4: an optional mid-checkout sign-in/register detour shouldn't force the
+  // buyer to retype what they already filled in — the ticket quantities
+  // already survive via the next= URL, so this only needs the free-typed
+  // fields (buyer + per-ticket holder details) that don't fit in a query string.
+  var DRAFT_KEY = 'ievent.checkoutDraft';
+  function stashCheckoutDraft() {
+    try {
+      var holders = [];
+      document.querySelectorAll('.holder-row').forEach(function (row) {
+        var nameEl = row.querySelector('.holder-name');
+        var emailEl = row.querySelector('.holder-email');
+        holders.push({ name: nameEl ? nameEl.value : '', email: emailEl ? emailEl.value : '' });
+      });
+      var draft = {
+        buyerName: (document.getElementById('buyerName') || {}).value || '',
+        buyerEmail: (document.getElementById('buyerEmail') || {}).value || '',
+        buyerPhone: (document.getElementById('buyerPhone') || {}).value || '',
+        holders: holders
+      };
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch (e) { /* storage unavailable — buyer just retypes, no crash */ }
+  }
+  ['signInToOrder', 'registerToOrder'].forEach(function (id) {
+    var link = document.getElementById(id);
+    if (link) link.addEventListener('click', stashCheckoutDraft);
+  });
+
+  (function restoreCheckoutDraft() {
+    var raw;
+    try { raw = sessionStorage.getItem(DRAFT_KEY); } catch (e) { return; }
+    if (!raw) return;
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    var draft;
+    try { draft = JSON.parse(raw); } catch (e) { return; }
+    if (!draft) return;
+    var nameEl = document.getElementById('buyerName');
+    var emailEl = document.getElementById('buyerEmail');
+    var phoneEl = document.getElementById('buyerPhone');
+    if (nameEl && draft.buyerName) nameEl.value = draft.buyerName;
+    if (emailEl && draft.buyerEmail) emailEl.value = draft.buyerEmail;
+    if (phoneEl && draft.buyerPhone) phoneEl.value = draft.buyerPhone;
+    var holderRows = document.querySelectorAll('.holder-row');
+    (draft.holders || []).forEach(function (h, i) {
+      var row = holderRows[i];
+      if (!row) return;
+      var n = row.querySelector('.holder-name');
+      var em = row.querySelector('.holder-email');
+      if (n && h.name) n.value = h.name;
+      if (em && h.email) em.value = h.email;
+    });
+  })();
 </script>
 </body>
 </html>

@@ -38,6 +38,16 @@ public class InteractionService {
                 Long.class, userId);
     }
 
+    /** Slugs (not ids) since event cards everywhere key their like button off
+     *  the slug — lets any page mark its cards as already-liked in one small
+     *  fetch on load instead of the server needing to precompute "liked" on
+     *  every card list (home/browse/related/etc. all share one code path). */
+    public List<String> likedEventSlugs(long userId) {
+        return jdbc.queryForList(
+                "SELECT e.slug FROM event_likes l JOIN events e ON e.id = l.event_id WHERE l.user_id = ? ORDER BY l.created_at DESC",
+                String.class, userId);
+    }
+
     @Transactional
     public boolean toggleFollow(long userId, long organizationId) {
         int removed = jdbc.update("DELETE FROM follows WHERE user_id = ? AND organization_id = ?",

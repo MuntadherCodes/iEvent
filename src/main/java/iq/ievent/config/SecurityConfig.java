@@ -122,7 +122,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
-                        "/auth/**", "/t/**", "/e/**", "/l/**", "/newsletter", "/media/**", "/css/**", "/img/**", "/js/**",
+                        "/auth/**", "/t/**", "/e/**", "/l/**", "/invite/*", "/newsletter", "/media/**", "/css/**", "/img/**", "/js/**",
                         "/favicon.ico", "/sw.js", "/actuator/health", "/error", "/set-lang", "/.well-known/**")
                 .permitAll()
                 .anyRequest().authenticated())
@@ -149,7 +149,14 @@ public class SecurityConfig {
                 .userInfoEndpoint(u -> u
                         .userService(googleUserService.getObject())
                         .oidcUserService(googleOidcUserService.getObject()))
-                .successHandler(new HostAwareSuccessHandler()));
+                .successHandler(new HostAwareSuccessHandler())
+                // Distinct from form login's failureUrl above: without this,
+                // Spring's default OAuth2 failure handler redirects to the
+                // exact same "/auth/login?error" the password form uses, so
+                // the login page showed "wrong email or password" for a
+                // failed Google sign-in — misleading, since no password was
+                // ever typed. See auth/login.html's oauth_error block.
+                .failureUrl("/auth/login?oauth_error"));
         }
         return http.build();
     }

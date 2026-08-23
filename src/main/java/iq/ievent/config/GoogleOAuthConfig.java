@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -66,7 +67,19 @@ public class GoogleOAuthConfig {
         u.setAuthProvider("google");
         u.setPreferredLang(iq.ievent.service.UserService.currentLang());
         if (pictureUrl != null && !pictureUrl.isBlank()) u.setAvatarUrl(pictureUrl);
-        return users.save(u);
+        try {
+            return users.save(u);
+        } catch (DataIntegrityViolationException e) {
+            // Two sign-ins for the same brand-new Google email raced the
+            // findByEmailIgnoreCase check above — the other one already
+            // inserted the row (ux_users_email) between our check and this
+            // insert. That's not a real failure, just a lost race: the
+            // account exists now, so use it instead of surfacing a 500 that
+            // Spring Security would otherwise turn into a misleading
+            // "wrong password" message on the login page.
+            return users.findByEmailIgnoreCase(email)
+                    .orElseThrow(() -> e);
+        }
     }
 
     /** Plain-OAuth2 path (used when the registration has no "openid" scope). */

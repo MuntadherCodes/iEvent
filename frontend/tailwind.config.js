@@ -1,5 +1,5 @@
 module.exports = {
-  content: ['../src/main/resources/templates/**/*.html'],
+  content: ['../src/main/resources/templates/**/*.html', '../src/main/resources/static/js/time-picker.js'],
   theme: { extend: {
     colors: {
       brand: {50:'#f6f4fb',100:'#ece8f7',200:'#dcd4f0',300:'#c3b5e4',400:'#a999d9',500:'#8f7ac9',600:'#7b64b6',700:'#69529e',800:'#574382',900:'#483769',950:'#2d2344'},
