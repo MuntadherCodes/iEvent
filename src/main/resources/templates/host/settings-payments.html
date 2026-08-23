@@ -204,19 +204,6 @@
         </div>
       </div>
 
-      <!-- Email delivery -->
-      <div th:if="${isOwner}" class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
-        <h2 class="flex items-center gap-2 font-display text-lg font-bold text-ink-900"><svg class="h-5 w-5 text-brand-500" aria-hidden="true"><use href="#i-mail"/></svg><span th:text="#{host.pay.emailDelivery}">Email delivery</span></h2>
-        <p class="mt-2 text-sm leading-relaxed text-ink-600"><span th:text="#{host.pay.mailLocal1}">Local dev: emails land in the</span> <span class="font-semibold text-ink-800">Mailpit</span> <span th:text="#{host.pay.mailLocal2}">inbox (the port you set as</span> <code dir="ltr" class="rounded bg-ink-50 px-1.5 py-0.5 font-mono text-xs text-ink-700">MAILPIT_UI_PORT</code><span th:text="#{host.pay.mailLocal3}">, default</span> <span class="font-mono tabular-nums">8025</span><span th:text="#{host.pay.mailLocal4}">). Production:</span> <span class="font-semibold text-ink-800">Mailjet</span> <span th:text="#{host.pay.mailLocal5}">via env keys.</span></p>
-        <div th:if="${testMailSent != null}" class="mt-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
-          <span><span th:text="#{host.pay.testSent1}">Test email sent to</span> <span class="font-semibold" th:text="${testMailSent}">you@example.com</span><span th:text="#{host.pay.testSent2}"> — check your inbox/Mailpit.</span></span>
-        </div>
-        <form th:action="@{/host/test-mail}" method="post" class="mt-4">
-          <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg><span th:text="#{host.pay.sendTest}">Send me a test email</span></button>
-        </form>
-      </div>
-
     </div>
   </main>
 

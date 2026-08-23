@@ -106,8 +106,6 @@
   "mail.teamInvite.accept": "قبول الدعوة",
   "mail.teamInvite.body": "دُعيت للانضمام إلى فريق {0} على iEvent بصفة {1}. إذا لم يكن لديك حساب بعد، سيُطلب منك إنشاء واحد أولاً — الأمر لا يستغرق سوى دقيقة.",
   "mail.teamInvite.subject": "دعوة للانضمام إلى فريق {0}",
-  "mail.test.body": "هذه رسالة تجريبية من نظام iEvent لديك. إذا استطعت قراءتها فالبريد الصادر يعمل. (بيئة التطوير المحلية: تصل الرسالة إلى صندوق Mailpit.)",
-  "mail.test.subject": "رسالة تجريبية من iEvent",
   "notif.newOrder.title": "طلب جديد بحاجة إلى تأكيد — {0}",
   "notif.orderApproved.body": "أكّد المنظّم الطلب {0}؛ تذاكرك جاهزة.",
   "notif.orderApproved.title": "تم تأكيد الطلب — {0}",

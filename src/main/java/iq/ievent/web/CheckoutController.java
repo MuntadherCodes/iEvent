@@ -145,7 +145,11 @@ public class CheckoutController {
             int q = 0;
             try { q = raw == null ? 0 : Math.max(0, Math.min(10, Integer.parseInt(raw))); }
             catch (NumberFormatException ignored) {}
-            quantities.put(tt.id(), q);
+            // Never offer more than what's actually left — a deep link, a
+            // stale tab, or another buyer selling out the last few tickets
+            // between page loads must not show a pickable quantity beyond
+            // the real stock.
+            quantities.put(tt.id(), Math.min(q, Math.max(0, tt.remaining())));
         }
         // First visit (no explicit qty-* params, e.g. straight from the event page):
         // preselect one ticket of the first purchasable type so the buyer starts at

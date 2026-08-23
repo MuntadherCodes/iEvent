@@ -217,6 +217,7 @@
   "public.event.endedRailSub": "This event has already taken place.",
   "public.event.eventCancelled": "Event cancelled",
   "public.event.eventsHosted": "events hosted",
+  "public.event.fewLeft": "Only {0} left",
   "public.event.follow": "Follow",
   "public.event.followers": "followers",
   "public.event.following": "Following",

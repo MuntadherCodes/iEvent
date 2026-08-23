@@ -106,8 +106,6 @@
   "mail.teamInvite.accept": "Accept invite",
   "mail.teamInvite.body": "You've been invited to join {0}'s team on iEvent as {1}. If you don't have an account yet, you'll be asked to create one first — it only takes a minute.",
   "mail.teamInvite.subject": "You're invited to join {0}'s team",
-  "mail.test.body": "This is a test email from your iEvent installation. If you can read this, outgoing email works. (Local dev: it lands in the Mailpit inbox.)",
-  "mail.test.subject": "iEvent test email",
   "notif.newOrder.title": "New order to confirm — {0}",
   "notif.orderApproved.body": "The organizer confirmed {0}; your tickets are ready.",
   "notif.orderApproved.title": "Order confirmed — {0}",

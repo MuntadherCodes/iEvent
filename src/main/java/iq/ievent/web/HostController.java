@@ -96,7 +96,6 @@ public class HostController {
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private final String baseUrl;
-    private final iq.ievent.service.MailService mailService;
     private final iq.ievent.service.AiContentService aiContentService;
     private final iq.ievent.service.PexelsService pexelsService;
     private final MessageSource messages;
@@ -105,7 +104,6 @@ public class HostController {
                           OrderRepository orders, TicketRepository tickets, TicketTypeRepository ticketTypes,
                           EventRepository events, LikeCountRepository likeCounts,
                           org.springframework.jdbc.core.JdbcTemplate jdbc,
-                          iq.ievent.service.MailService mailService,
                           iq.ievent.service.AiContentService aiContentService,
                           iq.ievent.service.PexelsService pexelsService,
                           MessageSource messages,
@@ -119,7 +117,6 @@ public class HostController {
         this.events = events;
         this.likeCounts = likeCounts;
         this.jdbc = jdbc;
-        this.mailService = mailService;
         this.aiContentService = aiContentService;
         this.pexelsService = pexelsService;
         this.messages = messages;
@@ -1257,19 +1254,6 @@ public class HostController {
         requireOwner(u);
         hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions);
         redirect.addFlashAttribute("saved", true);
-        return "redirect:/host/settings/payments";
-    }
-
-    @PostMapping("/test-mail")
-    public String testMail(@AuthenticationPrincipal UserDetails principal,
-                           RedirectAttributes redirect) {
-        User u = user(principal);
-        Organization org = hostService.organizationOf(u).orElse(null);
-        if (org == null) return "redirect:/host/start";
-        requireOwner(u);
-        mailService.sendCampaign(u.getEmail(), msg("mail.test.subject"), msg("mail.test.body"),
-                org.getName(), baseUrl + "/host", LocaleContextHolder.getLocale());
-        redirect.addFlashAttribute("testMailSent", u.getEmail());
         return "redirect:/host/settings/payments";
     }
 

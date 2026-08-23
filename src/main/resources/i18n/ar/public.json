@@ -217,6 +217,7 @@
   "public.event.endedRailSub": "أقيمت هذه الفعالية بالفعل.",
   "public.event.eventCancelled": "فعالية ملغاة",
   "public.event.eventsHosted": "فعالية منظّمة",
+  "public.event.fewLeft": "بقي {0} فقط",
   "public.event.follow": "متابعة",
   "public.event.followers": "متابعاً",
   "public.event.following": "تتابعه",
