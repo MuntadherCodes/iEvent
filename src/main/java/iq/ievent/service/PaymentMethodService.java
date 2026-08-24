@@ -43,6 +43,31 @@ public class PaymentMethodService {
         return methods.findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(orgId);
     }
 
+    /** Finds the org's cash-on-arrival method (at most one per org), if any. */
+    @Transactional(readOnly = true)
+    public PaymentMethod cashMethod(Long orgId) {
+        return forOrganization(orgId).stream().filter(PaymentMethod::isCash).findFirst().orElse(null);
+    }
+
+    /** Turns cash-on-arrival on/off for the org — creates the (single, fixed)
+     *  cash method row on first enable, otherwise just toggles it like any
+     *  other method. Its label/instructions render from i18n at display time,
+     *  not from the stored row, so what's saved here is just a marker. */
+    @Transactional
+    public void setCashEnabled(Organization org, boolean enable) {
+        PaymentMethod cash = cashMethod(org.getId());
+        if (cash == null) {
+            if (!enable) return;
+            cash = new PaymentMethod();
+            cash.setOrganization(org);
+            cash.setLabel("Cash");
+            cash.setMethodType("CASH");
+            cash.setSortOrder(forOrganization(org.getId()).size());
+        }
+        cash.setEnabled(enable);
+        methods.save(cash);
+    }
+
     /** Adds a method. Returns an error message or null on success. */
     @Transactional
     public String add(Organization org, String label, String accountNumber, String accountName,

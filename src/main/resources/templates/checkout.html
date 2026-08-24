@@ -90,13 +90,24 @@
           <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.checkout.tickets}">Tickets</h2>
           <p class="mt-1 text-sm text-ink-500" th:text="#{public.checkout.ticketsSub}">Pick how many tickets you want — max 10 per type.</p>
           <div class="mt-5 space-y-3">
-            <div th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE'}"
+            <!-- Sold out / ended row — also covers a type that's still marked
+                 ON_SALE but has naturally sold through its full quantity
+                 (e.g. sold out while the buyer was on this page). -->
+            <div th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'SOLD_OUT' || tt.status == 'ENDED' || (tt.status == 'ON_SALE' && tt.remaining <= 0)}"
+                 class="flex items-center justify-between gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 py-3.5 opacity-70">
+              <div>
+                <p class="text-sm font-semibold text-ink-500 line-through" th:text="${tt.name}">Early Bird</p>
+                <p class="text-xs tabular-nums text-ink-400" th:text="${tt.priceLabel}">25,000 IQD</p>
+              </div>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="${tt.status == 'ENDED'} ? #{public.event.salesEnded} : #{public.event.soldOut}">Sold out</span></span>
+            </div>
+            <div th:each="tt : ${event.ticketTypes}" th:if="${tt.status == 'ON_SALE' && tt.remaining > 0}"
                  class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 px-4 py-3.5 transition hover:border-brand-400"
                  data-ticket-row th:attr="data-id=${tt.id},data-price=${tt.priceIqd},data-fee=${!absorbFee and tt.priceIqd > 0 ? @t.bookingFee(tt.priceIqd) : 0},data-name=${tt.name},data-remaining=${tt.remaining}">
               <div>
                 <p class="text-sm font-semibold text-ink-900" th:text="${tt.name}">General Admission</p>
                 <p class="text-xs tabular-nums text-ink-500" th:text="${tt.priceLabel}">35,000 IQD</p>
-                <p th:if="${tt.remaining < 9}" class="mt-0.5 text-xs font-semibold text-amber-600" th:text="#{public.event.fewLeft(${tt.remaining})}">Only 4 left</p>
+                <p th:if="${tt.remaining > 0 && tt.remaining < 9}" class="mt-0.5 text-xs font-semibold text-amber-600" th:text="#{public.event.fewLeft(${tt.remaining})}">Only 4 left</p>
               </div>
               <div class="flex items-center gap-2">
                 <button type="button" class="qty-minus grid h-9 w-9 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.event.removeOneAria(${tt.name})}"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-minus"/></svg></button>
@@ -197,16 +208,23 @@
           </div>
 
           <!-- Direct transfer panel: one selectable card per organizer payment method -->
-          <div th:if="${hasPayment}" id="directPanel" class="mt-5 rounded-xl border border-ink-200 bg-ink-50 p-5" th:classappend="${isFree} ? 'hidden' : ''">
+          <div th:if="${hasPayment}" id="directPanel" class="mt-5 rounded-xl border border-ink-200 bg-ink-50 p-5" th:classappend="${isFree} ? 'hidden' : ''" th:attr="data-require-proof=${requirePaymentProof}">
             <p class="flex items-center gap-2 text-sm font-bold text-ink-900"><svg class="h-4 w-4 text-ink-500" aria-hidden="true"><use href="#i-qr-code"/></svg>[[#{public.checkout.directTransfer}]]</p>
 
             <!-- Method picker -->
             <div th:if="${!paymentMethods.isEmpty()}" class="mt-4 space-y-3">
               <p class="text-sm text-ink-600">[[#{public.checkout.payWithAny1}]] <strong>[[#{public.checkout.payWithAny2}]]</strong> [[#{public.checkout.payWithAny3}]]</p>
-              <label th:each="m, it : ${paymentMethods}" class="block cursor-pointer rounded-xl border border-ink-200 bg-white p-4 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <label th:each="m, it : ${paymentMethods}" class="block cursor-pointer rounded-xl border border-ink-200 bg-white p-4 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50" th:attr="data-cash=${m.cash()}">
                 <div class="flex flex-wrap items-start gap-4">
-                  <input type="radio" name="paymentMethodLabel" th:value="${m.label()}" th:checked="${it.index == 0}" class="mt-1 h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400" th:attr="aria-label=#{public.checkout.payWithAria(${m.label()})}">
-                  <div class="min-w-0 flex-1 space-y-2">
+                  <input type="radio" name="paymentMethodLabel" th:value="${m.label()}" th:checked="${it.index == 0}" class="pm-radio mt-1 h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400" th:attr="aria-label=${m.cash()} ? #{public.checkout.cashTitle} : #{public.checkout.payWithAria(${m.label()})}">
+                  <div th:if="${m.cash()}" class="flex min-w-0 flex-1 items-start gap-3">
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-100 text-ink-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-banknote"/></svg></span>
+                    <div class="min-w-0 space-y-1">
+                      <p class="text-sm font-bold text-ink-900" th:text="#{public.checkout.cashTitle}">Cash on arrival</p>
+                      <p class="text-xs leading-relaxed text-ink-500" th:text="#{public.checkout.cashSub}">Pay in cash when you check in at the door — no receipt or reference needed.</p>
+                    </div>
+                  </div>
+                  <div th:unless="${m.cash()}" class="min-w-0 flex-1 space-y-2">
                     <p class="text-sm font-bold text-ink-900" th:text="${m.label()}">ZainCash</p>
                     <div th:if="${m.accountNumber() != null}" class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2">
                       <p class="min-w-0 text-sm font-bold tabular-nums text-ink-900"><span th:text="${m.accountNumber()}">5061 63•• •••• 4821</span><span th:if="${m.accountName() != null}" class="font-medium text-ink-500" th:text="' — ' + ${m.accountName()}"> — Zain Events Co.</span></p>
@@ -236,31 +254,39 @@
             </div>
             <p th:if="${paymentMethods.isEmpty() && directPay != null && directPay.instructions != null}" class="mt-3 text-sm leading-relaxed text-ink-600" th:text="${directPay.instructions}">Transfer the exact amount and upload your receipt below.</p>
 
-            <!-- Amount callout -->
+            <!-- Amount callout (relevant regardless of method) -->
             <div class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
-              <p class="text-sm font-semibold text-brand-800" th:text="#{public.checkout.amountToTransfer}">Amount to transfer</p>
+              <p class="text-sm font-semibold text-brand-800" th:text="#{public.checkout.amountToTransfer}">Amount due</p>
               <p class="sum-total font-display text-lg font-extrabold tabular-nums text-ink-900" th:text="${totalLabel}">0 IQD</p>
             </div>
 
-            <!-- Transfer reference -->
-            <div class="mt-4">
-              <label for="transferReference" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.transferReference}]] <span class="font-normal text-ink-400" th:text="#{public.checkout.optional}">(optional)</span></label>
-              <input id="transferReference" name="transferReference" type="text" th:placeholder="#{public.checkout.transferRefPh}" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            <!-- Transfer proof — hidden entirely when the buyer picks cash on arrival -->
+            <div id="transferProofBlock">
+              <div class="mt-4">
+                <label for="transferReference" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.transferReference}]] <span class="font-normal text-ink-400" th:text="#{public.checkout.optional}">(optional)</span></label>
+                <input id="transferReference" name="transferReference" type="text" th:placeholder="#{public.checkout.transferRefPh}" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+              </div>
+
+              <!-- Receipt upload dropzone -->
+              <label class="mt-4 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink-200 bg-white px-4 py-5 text-sm font-semibold text-ink-500 transition hover:border-brand-400 hover:text-brand-600">
+                <svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-upload"/></svg>
+                <span id="receiptLabel" th:attr="data-attached-suffix=#{public.checkout.attachedSuffix}" th:text="#{public.checkout.uploadReceipt}">Upload transfer receipt (screenshot or PDF)</span>
+                <input id="receiptInput" type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only">
+              </label>
+              <p id="proofError" class="mt-2 hidden flex items-start gap-1.5 text-sm font-medium text-rose-600">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+                <span th:text="#{public.checkout.proofRequired}">Add a transfer reference or upload your receipt so the organizer can verify your payment.</span>
+              </p>
+
+              <!-- Info note -->
+              <p class="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-800"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${!paymentMethods.isEmpty()} ? #{public.checkout.reviewNoteMulti} : #{public.checkout.reviewNoteSingle}">The organizer reviews your transfer and confirms your tickets — usually within a few hours.</span></p>
             </div>
 
-            <!-- Receipt upload dropzone -->
-            <label class="mt-4 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink-200 bg-white px-4 py-5 text-sm font-semibold text-ink-500 transition hover:border-brand-400 hover:text-brand-600">
-              <svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-upload"/></svg>
-              <span id="receiptLabel" th:attr="data-attached-suffix=#{public.checkout.attachedSuffix}" th:text="#{public.checkout.uploadReceipt}">Upload transfer receipt (screenshot or PDF)</span>
-              <input id="receiptInput" type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="sr-only">
-            </label>
-            <p id="proofError" class="mt-2 hidden flex items-start gap-1.5 text-sm font-medium text-rose-600">
-              <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
-              <span th:text="#{public.checkout.proofRequired}">Add a transfer reference or upload your receipt so the organizer can verify your payment.</span>
+            <!-- Cash note — shown only while cash on arrival is selected -->
+            <p id="cashNote" class="mt-4 hidden flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-800">
+              <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
+              <span th:text="#{public.checkout.cashReviewNote}">Just show up and pay at the door — the organizer confirms your order once you check in.</span>
             </p>
-
-            <!-- Info note -->
-            <p class="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-800"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg><span th:text="${!paymentMethods.isEmpty()} ? #{public.checkout.reviewNoteMulti} : #{public.checkout.reviewNoteSingle}">The organizer reviews your transfer and confirms your tickets — usually within a few hours.</span></p>
           </div>
 
           <!-- No payments enabled -->
@@ -537,11 +563,35 @@
   var receiptDefault = receiptLabel ? receiptLabel.textContent : '';
   var proofError = document.getElementById('proofError');
   var transferRefInput = document.getElementById('transferReference');
+  var transferProofBlock = document.getElementById('transferProofBlock');
+  var cashNote = document.getElementById('cashNote');
+  var requirePaymentProof = directPanel ? directPanel.getAttribute('data-require-proof') === 'true' : false;
+
+  function isCashSelected() {
+    var checked = document.querySelector('.pm-radio:checked');
+    var label = checked ? checked.closest('label') : null;
+    return !!label && label.getAttribute('data-cash') === 'true';
+  }
+  // Cash needs no proof at all; a picked transfer method only needs it if
+  // the organizer requires it for this event.
   function hasPaymentProof() {
+    if (isCashSelected()) return true;
+    if (!requirePaymentProof) return true;
     var hasRef = transferRefInput && transferRefInput.value.trim().length > 0;
     var hasReceipt = receiptInput && receiptInput.files && receiptInput.files.length > 0;
     return hasRef || hasReceipt;
   }
+  function applyMethodVisibility() {
+    var cash = isCashSelected();
+    if (transferProofBlock) transferProofBlock.classList.toggle('hidden', cash);
+    if (cashNote) cashNote.classList.toggle('hidden', !cash);
+    if (cash && proofError) proofError.classList.add('hidden');
+  }
+  document.querySelectorAll('.pm-radio').forEach(function (radio) {
+    radio.addEventListener('change', applyMethodVisibility);
+  });
+  applyMethodVisibility();
+
   if (receiptInput) receiptInput.addEventListener('change', function () {
     if (receiptInput.files && receiptInput.files.length > 0) {
       receiptLabel.textContent = receiptInput.files[0].name + (receiptLabel.getAttribute('data-attached-suffix') || ' attached');
@@ -557,7 +607,8 @@
   });
 
   // At least one of transfer reference / receipt is required for paid
-  // (non-free) orders, so the organizer has something to verify against.
+  // (non-free) orders on a transfer method — unless the organizer made proof
+  // optional for this event, or the buyer picked cash on arrival instead.
   var checkoutForm = document.getElementById('checkoutForm');
   if (checkoutForm) checkoutForm.addEventListener('submit', function (e) {
     var payingDirect = directPanel && !directPanel.classList.contains('hidden');

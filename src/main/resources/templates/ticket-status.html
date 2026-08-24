@@ -37,6 +37,10 @@
       <svg class="h-6 w-6 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
       <p class="font-display text-lg font-extrabold" th:text="#{public.tstatus.void}">Void ticket</p>
     </div>
+    <div th:if="${t.cash}" class="flex items-center gap-2 bg-amber-500 px-6 py-2 text-xs font-semibold text-white">
+      <svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-banknote"/></svg>
+      <span th:text="#{public.tstatus.cashDue}">Cash — pay at the door</span>
+    </div>
 
     <!-- Card body -->
     <div class="rounded-b-2xl border border-t-0 border-ink-100 bg-white p-6 text-center shadow-card sm:p-8">

@@ -68,7 +68,7 @@ public class UserAreaController {
                             String coverTheme, String coverImageUrl,
                             String statusKey, String statusLabel, boolean confirmed,
                             List<String> itemLines, List<TicketRow> tickets,
-                            boolean online, String onlineUrl) {}
+                            boolean online, String onlineUrl, boolean cash) {}
 
     /** One ticket row inside an order card (rendered only for confirmed orders). */
     public record TicketRow(String code, String typeName, String holderName) {}
@@ -85,7 +85,7 @@ public class UserAreaController {
                                 String followersDisplay, long eventsHosted, String initials) {}
 
     public record TicketStatus(String code, String eventTitle, String dateLine, String typeName,
-                               String holderName, String status, String checkedInLine) {}
+                               String holderName, String status, String checkedInLine, boolean cash) {}
 
     private final UserService userService;
     private final TicketRepository tickets;
@@ -179,7 +179,7 @@ public class UserAreaController {
                 Format.coverTheme(e.getCategory()),
                 Format.coverUrl(e),
                 o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows,
-                online, joinUrl);
+                online, joinUrl, o.getPaymentMethod() == Order.PaymentMethod.CASH);
     }
 
     private String statusLabel(Order.Status s) {
@@ -401,7 +401,8 @@ public class UserAreaController {
                 Format.longDateLine(t.getEvent().getStartsAt(), t.getEvent().getEndsAt()),
                 t.getTicketType().getName(), t.getHolderName(), t.getStatus().name(),
                 t.getCheckedInAt() == null ? null
-                        : msg("ticket.checkedInAt", Format.cardDateLine(t.getCheckedInAt()))));
+                        : msg("ticket.checkedInAt", Format.cardDateLine(t.getCheckedInAt())),
+                t.getOrder().getPaymentMethod() == Order.PaymentMethod.CASH));
         model.addAttribute("qrSvg", qr.ticketQrSvg(t.getCode()));
         return "ticket-status";
     }

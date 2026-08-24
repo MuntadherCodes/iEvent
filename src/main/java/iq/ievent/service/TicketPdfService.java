@@ -12,6 +12,7 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import iq.ievent.domain.Event;
+import iq.ievent.domain.Order;
 import iq.ievent.domain.Ticket;
 import org.springframework.stereotype.Service;
 
@@ -85,6 +86,9 @@ public class TicketPdfService {
         details.addElement(labeled("TICKET CODE", t.getCode()));
         details.addElement(labeled("STATUS", t.getStatus() == Ticket.Status.CHECKED_IN
                 ? "Checked in" : "Valid"));
+        if (t.getOrder().getPaymentMethod() == Order.PaymentMethod.CASH) {
+            details.addElement(labeled("PAYMENT", "Cash — pay at the door"));
+        }
         table.addCell(details);
 
         Image qrImage = Image.getInstance(qr.ticketQrPng(t.getCode()));

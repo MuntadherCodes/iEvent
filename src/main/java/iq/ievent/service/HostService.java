@@ -238,6 +238,28 @@ public class HostService {
         events.save(event);
     }
 
+    /** Payment method ids explicitly selected for this event, or empty when
+     *  the event just uses every enabled org method (the default). */
+    @Transactional(readOnly = true)
+    public List<Long> selectedPaymentMethodIds(Long eventId) {
+        return jdbc.queryForList(
+                "SELECT payment_method_id FROM event_payment_methods WHERE event_id = ?",
+                Long.class, eventId);
+    }
+
+    /** Replaces the event's payment-method selection. An empty/null list
+     *  clears it back to the default (every enabled org method, dynamically —
+     *  including ones added later). */
+    @Transactional
+    public void syncEventPaymentMethods(Long eventId, List<Long> methodIds) {
+        jdbc.update("DELETE FROM event_payment_methods WHERE event_id = ?", eventId);
+        if (methodIds == null || methodIds.isEmpty()) return;
+        for (Long id : methodIds) {
+            jdbc.update("INSERT INTO event_payment_methods (event_id, payment_method_id) VALUES (?, ?)",
+                    eventId, id);
+        }
+    }
+
     /** Organization the user can act for: as owner or as team member. */
     @Transactional(readOnly = true)
     public Optional<Organization> organizationOf(User user) {

@@ -25,6 +25,8 @@
   "emails.pending.body2": "for",
   "emails.pending.reviewing1": "The organizer is reviewing your transfer of",
   "emails.pending.reviewing2": ". Your tickets will be issued and emailed as soon as they confirm it — usually within a few hours.",
+  "emails.pending.cash1": "Pay",
+  "emails.pending.cash2": " in cash when you arrive. Your tickets will be issued and emailed as soon as the organizer confirms your payment at the door.",
   "emails.pending.cta": "Track my order",
 
   "emails.rejected.title": "Order could not be confirmed",

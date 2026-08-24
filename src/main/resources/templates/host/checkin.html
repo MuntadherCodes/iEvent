@@ -147,7 +147,7 @@
               <span th:if="${r.avatarUrl() == null}" th:text="${#strings.toUpperCase(#strings.substring(r.holderName(), 0, 1))}">A</span>
             </span>
             <div class="min-w-0 flex-1">
-              <p class="truncate font-semibold text-ink-900" th:text="${r.holderName()}">Ali Hassan</p>
+              <p class="flex items-center gap-1.5 truncate font-semibold text-ink-900"><span th:text="${r.holderName()}">Ali Hassan</span><span th:if="${r.cash()}" class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"><svg class="h-2.5 w-2.5" aria-hidden="true"><use href="#i-banknote"/></svg>[[#{host.checkin.cashBadge}]]</span></p>
               <p class="truncate text-xs text-ink-500"><span th:text="${r.typeName()}">GA</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.orderCode()}">EVT-2026-04127</span> · <span dir="ltr" class="font-mono tabular-nums" th:text="${r.code()}">TKT-8841-A</span></p>
             </div>
             <div th:unless="${r.checkedIn()}" class="door-action shrink-0">

@@ -117,6 +117,7 @@
   "notif.orderRefunded.title": "تم استرداد الطلب — {0}",
   "notif.orderRejected.body": "لم يتمكن المنظّم من التحقق من التحويل للطلب {0}.",
   "notif.orderRejected.title": "تعذّر تأكيد الطلب — {0}",
+  "order.method.cash": "الدفع نقدًا عند الوصول",
   "order.method.direct": "تحويل مباشر",
   "order.method.free": "مجاني",
   "page.attended": "{0} حضروا",

@@ -133,8 +133,9 @@
               <td class="hidden px-3 py-3 2xl:table-cell"><p class="max-w-[160px] truncate text-ink-600" th:text="${o.itemsLabel()}">2× General Admission</p></td>
               <td class="whitespace-nowrap px-3 py-3 font-semibold tabular-nums" th:classappend="${o.statusKey() == 'REFUNDED'} ? 'text-ink-500 line-through' : 'text-ink-900'" th:text="${o.totalLabel()}">73,000 IQD</td>
               <td class="hidden px-3 py-3 text-ink-600 xl:table-cell">
-                <span th:if="${o.methodLabel() == 'Direct transfer'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-qr-code"/></svg><span th:text="#{host.orders.directTransfer}">Direct transfer</span></span>
-                <span th:if="${o.methodLabel() != 'Direct transfer'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="${o.methodLabel() == 'Free'} ? #{common.free} : ${o.methodLabel()}">Free</span></span>
+                <span th:if="${o.methodKey() == 'DIRECT_TRANSFER'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-qr-code"/></svg><span th:text="#{host.orders.directTransfer}">Direct transfer</span></span>
+                <span th:if="${o.methodKey() == 'CASH'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-banknote"/></svg><span th:text="${o.methodLabel()}">Cash on arrival</span></span>
+                <span th:if="${o.methodKey() == 'FREE'}" class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="#{common.free}">Free</span></span>
               </td>
               <td class="px-3 py-3">
                 <span th:if="${o.pending()}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span><span th:text="#{host.status.pendingConfirmation}">Pending confirmation</span></span>
@@ -173,7 +174,7 @@
                     <div class="mt-2 space-y-1.5 rounded-xl border border-ink-100 bg-white p-3.5 text-sm">
                       <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.items}">Items</span><span class="text-end font-medium text-ink-800" th:text="${o.itemsLabel()}">2× GA</span></div>
                       <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.colTotal}">Total</span><span class="font-bold tabular-nums text-ink-900" th:text="${o.totalLabel()}">73,000 IQD</span></div>
-                      <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.colPayment}">Payment</span><span class="font-medium text-ink-800" th:text="${o.methodLabel() == 'Direct transfer'} ? #{host.orders.directTransfer} : (${o.methodLabel() == 'Free'} ? #{common.free} : ${o.methodLabel()})">Direct transfer</span></div>
+                      <div class="flex justify-between gap-3"><span class="text-ink-500" th:text="#{host.orders.colPayment}">Payment</span><span class="font-medium text-ink-800" th:text="${o.methodLabel()}">Direct transfer</span></div>
                       <div class="flex justify-between gap-3" th:if="${o.transferReference() != null}"><span class="text-ink-500" th:text="#{host.orders.transferRef}">Transfer ref</span><span dir="ltr" class="font-mono text-xs font-semibold tabular-nums text-ink-800" th:text="${o.transferReference()}">DT-88412-QRX</span></div>
                     </div>
                     <!-- Transfer receipt: inline image preview, PDF button, or missing-receipt warning -->

@@ -11,7 +11,11 @@
       <span th:text="#{emails.pending.body1}">We've registered order</span> <strong dir="ltr" th:text="${order.orderCode}">EVT-2026-00000</strong> <span th:text="#{emails.pending.body2}">for</span>
       <strong th:text="${event.title}">the event</strong> (<span th:text="${dateLine}">date</span>).
     </p>
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;font-size:13px;color:#92400e;">
+    <div th:if="${order.paymentMethod.name() == 'CASH'}" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;font-size:13px;color:#92400e;">
+      <span th:text="#{emails.pending.cash1}">Pay</span> <strong th:text="${totalLabel}">total</strong><span th:text="#{emails.pending.cash2}"> in cash when you arrive.
+      Your tickets will be issued and emailed as soon as the organizer confirms your payment at the door.</span>
+    </div>
+    <div th:unless="${order.paymentMethod.name() == 'CASH'}" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;font-size:13px;color:#92400e;">
       <span th:text="#{emails.pending.reviewing1}">The organizer is reviewing your transfer of</span> <strong th:text="${totalLabel}">total</strong><span th:text="#{emails.pending.reviewing2}">.
       Your tickets will be issued and emailed as soon as they confirm it — usually within a few hours.</span>
     </div>

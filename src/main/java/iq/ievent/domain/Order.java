@@ -9,7 +9,7 @@ import java.util.List;
 @Table(name = "orders")
 public class Order {
 
-    public enum PaymentMethod { FREE, DIRECT_TRANSFER }
+    public enum PaymentMethod { FREE, DIRECT_TRANSFER, CASH }
 
     public enum Status { PENDING_CONFIRMATION, CONFIRMED, REJECTED, CANCELLED, REFUNDED }
 

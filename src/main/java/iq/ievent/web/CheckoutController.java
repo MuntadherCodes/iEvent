@@ -51,7 +51,7 @@ public class CheckoutController {
                             boolean pending, String subtotalLabel, String feeLabel, String totalLabel,
                             String discountLabel, String promoCode, List<ItemView> items,
                             String transferReference, String receiptName, String organizerName,
-                            boolean online, String onlineUrl) {}
+                            boolean online, String onlineUrl, boolean cash) {}
 
     public record ItemView(String name, int quantity, String unitLabel, String lineLabel) {}
 
@@ -165,8 +165,9 @@ public class CheckoutController {
         }
         // ABSORB fee mode: organizer swallows the booking fee — buyer pays face
         // value, so the DISPLAYED total must match what OrderService will charge.
-        boolean absorbFee = eventRepo.findBySlug(slug)
-                .map(e -> "ABSORB".equals(e.getFeeMode())).orElse(false);
+        iq.ievent.domain.Event eventEntity = eventRepo.findBySlug(slug).orElse(null);
+        boolean absorbFee = eventEntity != null && "ABSORB".equals(eventEntity.getFeeMode());
+        boolean requirePaymentProof = eventEntity == null || eventEntity.isRequirePaymentProof();
         long subtotal = 0;
         long fee = 0;
         boolean anyPaidTicket = false;
@@ -221,6 +222,7 @@ public class CheckoutController {
         model.addAttribute("paymentMethods", paymentMethods);
         model.addAttribute("directPay", directPay);
         model.addAttribute("hasPayment", !paymentMethods.isEmpty() || directPay != null);
+        model.addAttribute("requirePaymentProof", requirePaymentProof);
         return "checkout";
     }
 
@@ -230,6 +232,7 @@ public class CheckoutController {
                              @RequestParam(name = "buyerName") String buyerName,
                              @RequestParam(name = "buyerEmail") String buyerEmail,
                              @RequestParam(name = "buyerPhone", required = false) String buyerPhone,
+                             @RequestParam(name = "paymentMethodLabel", required = false) String paymentMethodLabel,
                              @RequestParam(name = "transferReference", required = false) String transferReference,
                              @RequestParam(name = "receipt", required = false) MultipartFile receipt,
                              @RequestParam(name = "promo", required = false) String promo,
@@ -273,7 +276,7 @@ public class CheckoutController {
         }
         try {
             Order order = orderService.checkout(user, slug, quantities,
-                    buyerName, buyerEmail, buyerPhone, transferReference, receipt,
+                    buyerName, buyerEmail, buyerPhone, paymentMethodLabel, transferReference, receipt,
                     promo, holderNames, holderEmails, keepUpdated);
             if (wasGuest) autoLogin(user, request, response);
             return "redirect:/orders/" + order.getOrderCode();
@@ -363,7 +366,7 @@ public class CheckoutController {
                 order.getPromoCode(), items,
                 order.getTransferReference(), receiptName,
                 order.getEvent().getOrganization().getName(),
-                online, joinUrl);
+                online, joinUrl, order.getPaymentMethod() == Order.PaymentMethod.CASH);
 
         List<TicketView> ticketViews = tickets.findByOrderIdOrderByIdAsc(order.getId()).stream()
                 .map(t -> new TicketView(t.getCode(), t.getTicketType().getName(), t.getHolderName(),

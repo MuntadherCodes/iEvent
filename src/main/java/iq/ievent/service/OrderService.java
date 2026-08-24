@@ -40,6 +40,7 @@ public class OrderService {
     private final TicketRepository tickets;
     private final TicketTypeRepository ticketTypes;
     private final EventRepository events;
+    private final iq.ievent.repo.PaymentMethodRepository paymentMethods;
     private final JdbcTemplate jdbc;
     private final MailService mail;
     private final PromoService promoService;
@@ -52,6 +53,7 @@ public class OrderService {
                         TicketRepository tickets,
                         TicketTypeRepository ticketTypes,
                         EventRepository events,
+                        iq.ievent.repo.PaymentMethodRepository paymentMethods,
                         JdbcTemplate jdbc,
                         MailService mail,
                         PromoService promoService,
@@ -62,6 +64,7 @@ public class OrderService {
         this.tickets = tickets;
         this.ticketTypes = ticketTypes;
         this.events = events;
+        this.paymentMethods = paymentMethods;
         this.jdbc = jdbc;
         this.mail = mail;
         this.promoService = promoService;
@@ -97,7 +100,7 @@ public class OrderService {
     @Transactional
     public Order checkout(User buyer, String slug, Map<Long, Integer> quantities,
                           String buyerName, String buyerEmail, String buyerPhone,
-                          String transferReference, MultipartFile receipt,
+                          String paymentMethodLabel, String transferReference, MultipartFile receipt,
                           String promoCode, List<String> holderNames, List<String> holderEmails,
                           boolean keepUpdated) {
         Event event = events.findBySlug(slug)
@@ -162,7 +165,14 @@ public class OrderService {
         if (!free && !event.getOrganization().isDirectPaymentsEnabled()) {
             throw new CheckoutException(msg("checkout.noPaymentMethod"));
         }
-        if (!free) {
+        // The buyer's chosen method (by label, matching the checkout radio's
+        // value) decides whether this is a cash-on-arrival order — cash never
+        // needs a transfer reference/receipt, transfer orders do unless the
+        // host turned that requirement off for this event.
+        boolean cash = !free && paymentMethodLabel != null && !paymentMethodLabel.isBlank()
+                && paymentMethods.findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(event.getOrganization().getId())
+                        .stream().anyMatch(m -> m.isCash() && m.getLabel().equals(paymentMethodLabel.trim()));
+        if (!free && !cash && event.isRequirePaymentProof()) {
             boolean hasRef = transferReference != null && !transferReference.isBlank();
             boolean hasReceipt = receipt != null && !receipt.isEmpty();
             if (!hasRef && !hasReceipt) {
@@ -177,7 +187,8 @@ public class OrderService {
         order.setBuyerName(buyerName.trim());
         order.setBuyerEmail(buyerEmail.trim());
         order.setBuyerPhone(buyerPhone == null || buyerPhone.isBlank() ? null : buyerPhone.trim());
-        order.setPaymentMethod(free ? Order.PaymentMethod.FREE : Order.PaymentMethod.DIRECT_TRANSFER);
+        order.setPaymentMethod(free ? Order.PaymentMethod.FREE
+                : cash ? Order.PaymentMethod.CASH : Order.PaymentMethod.DIRECT_TRANSFER);
         order.setStatus(free ? Order.Status.CONFIRMED : Order.Status.PENDING_CONFIRMATION);
         order.setSubtotalIqd(subtotal);
         order.setBookingFeeIqd(fee);
@@ -186,11 +197,12 @@ public class OrderService {
             order.setPromoCode(applied.promo().getCode());
             order.setDiscountIqd(discount);
         }
-        if (!free) {
+        if (!free && !cash) {
             order.setTransferReference(transferReference == null || transferReference.isBlank()
                     ? null : transferReference.trim());
             order.setReceiptPath(storeReceipt(receipt, order.getOrderCode()));
-        } else {
+        }
+        if (free) {
             order.setConfirmedAt(OffsetDateTime.now());
         }
         for (Map.Entry<TicketType, Integer> entry : selection.entrySet()) {

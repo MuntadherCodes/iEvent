@@ -65,8 +65,8 @@ public class HostController {
 
     public record OrderRow(Long id, String orderCode, String buyerName, String buyerEmail,
                            String eventTitle, String itemsLabel, String totalLabel, String methodLabel,
-                           String statusLabel, String statusKey, boolean pending, String createdLine,
-                           boolean hasReceipt, String transferReference) {}
+                           String methodKey, String statusLabel, String statusKey, boolean pending,
+                           String createdLine, boolean hasReceipt, String transferReference) {}
 
     public record TicketTypeRow(Long id, String name, String priceLabel, int quantity, int sold,
                                 String statusLabel, String statusKey, String revenueLabel) {}
@@ -77,7 +77,8 @@ public class HostController {
                                 String createdLine) {}
 
     public record AttendeeRow(Long ticketId, String holderName, String typeName, String orderCode,
-                              String code, boolean checkedIn, String checkedInLine, String avatarUrl) {}
+                              String code, boolean checkedIn, String checkedInLine, String avatarUrl,
+                              boolean cash) {}
 
     public record CheckinResult(boolean ok, String message, String holderName, String typeName) {}
 
@@ -98,6 +99,7 @@ public class HostController {
     private final String baseUrl;
     private final iq.ievent.service.AiContentService aiContentService;
     private final iq.ievent.service.PexelsService pexelsService;
+    private final iq.ievent.service.PaymentMethodService paymentMethodService;
     private final MessageSource messages;
 
     public HostController(UserService userService, HostService hostService, OrderService orderService,
@@ -106,6 +108,7 @@ public class HostController {
                           org.springframework.jdbc.core.JdbcTemplate jdbc,
                           iq.ievent.service.AiContentService aiContentService,
                           iq.ievent.service.PexelsService pexelsService,
+                          iq.ievent.service.PaymentMethodService paymentMethodService,
                           MessageSource messages,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.userService = userService;
@@ -119,6 +122,7 @@ public class HostController {
         this.jdbc = jdbc;
         this.aiContentService = aiContentService;
         this.pexelsService = pexelsService;
+        this.paymentMethodService = paymentMethodService;
         this.messages = messages;
         this.baseUrl = baseUrl;
     }
@@ -349,6 +353,8 @@ public class HostController {
         model.addAttribute("categories", PageController.CATEGORIES);
         model.addAttribute("coverThemes", HostService.COVER_THEMES);
         model.addAttribute("paymentsReady", hostService.paymentsReady(org));
+        model.addAttribute("orgPaymentMethods", paymentMethodService.enabledForOrganization(org.getId()));
+        model.addAttribute("selectedPaymentMethodIds", List.<Long>of());
         return "host/event-form";
     }
 
@@ -372,6 +378,9 @@ public class HostController {
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
+                              @RequestParam(name = "requirePaymentProof", defaultValue = "false") boolean requirePaymentProof,
+                              @RequestParam(name = "paymentMethodsMode", defaultValue = "ALL") String paymentMethodsMode,
+                              @RequestParam(name = "paymentMethodIds", required = false) List<Long> paymentMethodIds,
                               @RequestParam(name = "freeEvent", defaultValue = "false") boolean freeEvent,
                               @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
                               @RequestParam(name = "ttName", required = false) List<String> ttNames,
@@ -434,7 +443,8 @@ public class HostController {
             created.setOnlineUrl(loc.onlineUrl());
             created.setMapsUrl(loc.mapsUrl());
             created.setAnnounceOnly(announceOnly);
-            applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode);
+            applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode,
+                    requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             hostService.applyCoverTheme(created, coverTheme);
             if (coverFocusY != null) hostService.setCoverFocusY(created, coverFocusY);
             String coverError = hostService.storeCover(created, coverImage);
@@ -523,7 +533,10 @@ public class HostController {
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
             ev.setAnnounceOnly(announceOnly);
-            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode);
+            // Autosave partial-saves the wizard draft — it never touches payment
+            // settings, so those are re-applied unchanged rather than reset.
+            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode,
+                    ev.isRequirePaymentProof(), hostService.selectedPaymentMethodIds(ev.getId()));
             hostService.applyCoverTheme(ev, coverTheme);
             return java.util.Map.of("ok", true);
         } catch (Exception e) {
@@ -628,10 +641,13 @@ public class HostController {
                 ev.getOnlineUrl() == null ? "" : ev.getOnlineUrl(),
                 ev.getMapsUrl() == null ? "" : ev.getMapsUrl(),
                 ev.isAnnounceOnly(),
-                ev.getFeeMode() == null ? "PASS" : ev.getFeeMode()));
+                ev.getFeeMode() == null ? "PASS" : ev.getFeeMode(),
+                ev.isRequirePaymentProof()));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
         model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
+        model.addAttribute("orgPaymentMethods", paymentMethodService.enabledForOrganization(org.getId()));
+        model.addAttribute("selectedPaymentMethodIds", hostService.selectedPaymentMethodIds(ev.getId()));
         model.addAttribute("canManage", hostService.accessOf(u).map(a -> a.canManage()).orElse(false));
         model.addAttribute("ticketRows",
                 ticketTypes.findByEventIdOrderBySortOrderAsc(ev.getId()).stream()
@@ -680,7 +696,7 @@ public class HostController {
                                 String description, String summary, String tags, String lineup,
                                 String visibility, String refundPolicy,
                                 String locationType, String onlineUrl, String mapsUrl,
-                                boolean announceOnly, String feeMode) {}
+                                boolean announceOnly, String feeMode, boolean requirePaymentProof) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -706,6 +722,9 @@ public class HostController {
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
+                              @RequestParam(name = "requirePaymentProof", defaultValue = "false") boolean requirePaymentProof,
+                              @RequestParam(name = "paymentMethodsMode", defaultValue = "ALL") String paymentMethodsMode,
+                              @RequestParam(name = "paymentMethodIds", required = false) List<Long> paymentMethodIds,
                               @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
                               @RequestParam(name = "coverImage", required = false)
                                   org.springframework.web.multipart.MultipartFile coverImage,
@@ -736,7 +755,8 @@ public class HostController {
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
             ev.setAnnounceOnly(announceOnly);
-            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode);
+            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode,
+                    requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             hostService.applyCoverTheme(ev, coverTheme);
             if (coverFocusY != null) hostService.setCoverFocusY(ev, coverFocusY);
             if (removeCover) hostService.removeCover(ev);
@@ -827,9 +847,11 @@ public class HostController {
         return new LocationForm(type, "To be announced", null, null, null, null);
     }
 
-    /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy, fee mode). */
+    /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy, fee mode,
+     *  per-event payment-method selection, proof-required toggle). */
     private void applyExtras(Event ev, String summary, String tags, String lineup,
-                             String visibility, String refundPolicy, String feeMode) {
+                             String visibility, String refundPolicy, String feeMode,
+                             boolean requirePaymentProof, List<Long> paymentMethodIds) {
         String s = summary == null || summary.isBlank() ? null : summary.strip();
         ev.setSummary(s != null && s.length() > 160 ? s.substring(0, 160) : s);
         ev.setTags(tags == null || tags.isBlank() ? null : tags.strip());
@@ -840,7 +862,10 @@ public class HostController {
                         ? refundPolicy : "NO_REFUNDS");
         // Booking fee mode, whitelisted: ABSORB (organizer swallows the fee) or PASS (buyer pays it).
         ev.setFeeMode("ABSORB".equals(feeMode) ? "ABSORB" : "PASS");
+        ev.setRequirePaymentProof(requirePaymentProof);
         events.save(ev);
+        // Empty/null clears back to the default (every enabled org method).
+        hostService.syncEventPaymentMethods(ev.getId(), paymentMethodIds);
     }
 
     /** Parallel arrays (one per picked stock photo) into gallery-form records —
@@ -1293,8 +1318,12 @@ public class HostController {
                 .reduce((a, b) -> a + ", " + b).orElse("—");
         return new OrderRow(o.getId(), o.getOrderCode(), o.getBuyerName(), o.getBuyerEmail(),
                 o.getEvent().getTitle(), items, Format.iqd(o.getTotalIqd()),
-                o.getPaymentMethod() == Order.PaymentMethod.FREE
-                        ? msg("order.method.free") : msg("order.method.direct"),
+                switch (o.getPaymentMethod()) {
+                    case FREE -> msg("order.method.free");
+                    case CASH -> msg("order.method.cash");
+                    case DIRECT_TRANSFER -> msg("order.method.direct");
+                },
+                o.getPaymentMethod().name(),
                 statusLabel(o.getStatus().name()),
                 o.getStatus().name(),
                 o.getStatus() == Order.Status.PENDING_CONFIRMATION,
@@ -1309,7 +1338,8 @@ public class HostController {
                 t.getOrder().getOrderCode(), t.getCode(),
                 t.getStatus() == Ticket.Status.CHECKED_IN,
                 t.getCheckedInAt() == null ? null : Format.cardDateLine(t.getCheckedInAt()),
-                email == null ? null : avatars.get(email.trim().toLowerCase()));
+                email == null ? null : avatars.get(email.trim().toLowerCase()),
+                t.getOrder().getPaymentMethod() == Order.PaymentMethod.CASH);
     }
 
     private String statusLabel(String name) {

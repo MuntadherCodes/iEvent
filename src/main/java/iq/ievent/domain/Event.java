@@ -105,6 +105,12 @@ public class Event {
     @Column(name = "fee_mode", nullable = false)
     private String feeMode = "PASS";
 
+    /** Whether a paid direct-transfer order must include a transfer
+     *  reference or receipt before it can be submitted. Cash-on-arrival
+     *  orders never need this regardless. */
+    @Column(name = "require_payment_proof", nullable = false)
+    private boolean requirePaymentProof = true;
+
     @Column(nullable = false)
     private String language = "en";
 
@@ -169,6 +175,8 @@ public class Event {
     public void setMapsUrl(String mapsUrl) { this.mapsUrl = mapsUrl; }
     public String getFeeMode() { return feeMode; }
     public void setFeeMode(String feeMode) { this.feeMode = feeMode; }
+    public boolean isRequirePaymentProof() { return requirePaymentProof; }
+    public void setRequirePaymentProof(boolean requirePaymentProof) { this.requirePaymentProof = requirePaymentProof; }
     public String getRefundPolicy() { return refundPolicy; }
     public void setRefundPolicy(String refundPolicy) { this.refundPolicy = refundPolicy; }
     public String getLanguage() { return language; }

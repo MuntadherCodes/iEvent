@@ -29,6 +29,11 @@ public class PaymentMethod {
     @Column(name = "qr_image_path")
     private String qrImagePath;
 
+    /** TRANSFER (wallet/card/bank, needs account details) or CASH (pay at
+     *  the door — no account details, fixed display copy). */
+    @Column(name = "method_type", nullable = false)
+    private String methodType = "TRANSFER";
+
     @Column(nullable = false)
     private boolean enabled = true;
 
@@ -51,6 +56,9 @@ public class PaymentMethod {
     public void setInstructions(String instructions) { this.instructions = instructions; }
     public String getQrImagePath() { return qrImagePath; }
     public void setQrImagePath(String qrImagePath) { this.qrImagePath = qrImagePath; }
+    public String getMethodType() { return methodType; }
+    public void setMethodType(String methodType) { this.methodType = methodType; }
+    public boolean isCash() { return "CASH".equals(methodType); }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public int getSortOrder() { return sortOrder; }

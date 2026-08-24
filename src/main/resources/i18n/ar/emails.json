@@ -25,6 +25,8 @@
   "emails.pending.body2": "لفعالية",
   "emails.pending.reviewing1": "يراجع المنظّم حاليًا تحويلك بمبلغ",
   "emails.pending.reviewing2": ". ستصدر تذاكرك وترسل إلى بريدك فور تأكيده — عادة خلال ساعات قليلة.",
+  "emails.pending.cash1": "ادفع",
+  "emails.pending.cash2": " نقدًا عند وصولك. ستصدر تذاكرك وترسل إلى بريدك فور تأكيد المنظّم دفعتك عند الباب.",
   "emails.pending.cta": "تتبع طلبي",
 
   "emails.rejected.title": "تعذر تأكيد الطلب",

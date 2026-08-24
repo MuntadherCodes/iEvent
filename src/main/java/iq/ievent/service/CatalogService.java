@@ -38,17 +38,20 @@ public class CatalogService {
     private final LikeCountRepository likeCounts;
     private final iq.ievent.repo.PaymentMethodRepository paymentMethods;
     private final EventImageRepository eventImages;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public CatalogService(EventRepository events,
                           TicketTypeRepository ticketTypes,
                           LikeCountRepository likeCounts,
                           iq.ievent.repo.PaymentMethodRepository paymentMethods,
-                          EventImageRepository eventImages) {
+                          EventImageRepository eventImages,
+                          org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.events = events;
         this.ticketTypes = ticketTypes;
         this.likeCounts = likeCounts;
         this.paymentMethods = paymentMethods;
         this.eventImages = eventImages;
+        this.jdbc = jdbc;
     }
 
     /** Primary cover + every extra image, in display order — 2+ means the
@@ -164,21 +167,32 @@ public class CatalogService {
 
     /** Checkout view of one payment method the buyer can pick. */
     public record PaymentMethodView(Long id, String label, String accountNumber,
-                                    String accountName, String instructions, String qrUrl) {}
+                                    String accountName, String instructions, String qrUrl,
+                                    boolean cash) {}
 
-    /** All enabled direct-payment methods of the event's organizer (empty when
-     *  direct payments are off). */
+    /** All enabled direct-payment methods of the event's organizer, narrowed
+     *  to the event's own selection when it has one (empty selection = every
+     *  enabled org method — the default, dynamic link described on
+     *  {@link iq.ievent.domain.Event#isRequirePaymentProof}'s sibling field).
+     *  Empty overall when direct payments are off org-wide. */
     public List<PaymentMethodView> paymentMethodsFor(String slug) {
         return events.findBySlug(slug)
-                .map(Event::getOrganization)
-                .filter(Organization::isDirectPaymentsEnabled)
-                .map(o -> paymentMethods.findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(o.getId())
-                        .stream()
-                        .map(m -> new PaymentMethodView(
-                                m.getId(), m.getLabel(), m.getAccountNumber(), m.getAccountName(),
-                                m.getInstructions(),
-                                m.getQrImagePath() == null ? null : "/media/payment-qr/" + m.getId()))
-                        .toList())
+                .filter(e -> e.getOrganization().isDirectPaymentsEnabled())
+                .map(e -> {
+                    List<iq.ievent.domain.PaymentMethod> all = paymentMethods
+                            .findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(e.getOrganization().getId());
+                    java.util.Set<Long> selected = new java.util.HashSet<>(jdbc.queryForList(
+                            "SELECT payment_method_id FROM event_payment_methods WHERE event_id = ?",
+                            Long.class, e.getId()));
+                    return all.stream()
+                            .filter(m -> selected.isEmpty() || selected.contains(m.getId()))
+                            .map(m -> new PaymentMethodView(
+                                    m.getId(), m.getLabel(), m.getAccountNumber(), m.getAccountName(),
+                                    m.getInstructions(),
+                                    m.getQrImagePath() == null ? null : "/media/payment-qr/" + m.getId(),
+                                    m.isCash()))
+                            .toList();
+                })
                 .orElse(List.of());
     }
 

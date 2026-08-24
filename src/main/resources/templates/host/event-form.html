@@ -423,6 +423,39 @@
           </div>
           <!-- Free events carry no fee — shown instead of the fee card when the toggle is on -->
           <p id="feeFreeNote" class="hidden rounded-2xl border border-ink-100 bg-white px-5 py-4 text-sm text-ink-500 shadow-card" th:text="#{wizard.fee.freeNote}">Free events never carry a booking fee — attendees pay nothing.</p>
+
+          <!-- Payment methods for this event — hidden alongside the fee card
+               (same rule: only relevant once there's a paid ticket). -->
+          <div id="paymentMethodsCard" class="hidden rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+            <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-900"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-wallet"/></svg><span th:text="#{wizard.pay.title}">Payment methods for this event</span></p>
+            <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.pay.sub}">By default buyers see every payment method enabled on your account. Narrow it down for just this event if you want.</p>
+
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+                <input type="radio" name="paymentMethodsMode" value="ALL" checked class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span class="text-sm font-semibold text-ink-900" th:text="#{wizard.pay.allMode}">Use all my payment methods</span>
+              </label>
+              <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+                <input type="radio" name="paymentMethodsMode" value="CUSTOM" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span class="text-sm font-semibold text-ink-900" th:text="#{wizard.pay.customMode}">Choose specific methods</span>
+              </label>
+            </div>
+
+            <div id="customMethodsList" class="mt-4 hidden space-y-2">
+              <div th:if="${#lists.isEmpty(orgPaymentMethods)}" class="rounded-xl border border-dashed border-ink-200 px-4 py-3 text-sm text-ink-500">
+                <span th:text="#{wizard.pay.noneYet}">No payment methods yet —</span> <a th:href="@{/host/settings/payments}" target="_blank" class="font-semibold text-brand-600 hover:text-brand-700" th:text="#{wizard.pay.addInSettings}">add one in Payment settings</a>.
+              </div>
+              <label th:each="pm : ${orgPaymentMethods}" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-ink-200 px-4 py-2.5 text-sm text-ink-700 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+                <input type="checkbox" name="paymentMethodIds" th:value="${pm.id}" class="h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+                <span th:text="${pm.cash} ? #{host.pay.cashTitle} : ${pm.label}">ZainCash</span>
+              </label>
+            </div>
+
+            <label class="mt-4 flex items-start gap-2.5 text-sm text-ink-700">
+              <input type="checkbox" name="requirePaymentProof" value="true" checked class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span><span class="font-semibold" th:text="#{wizard.pay.requireProof}">Require a transfer reference or receipt</span> <span class="text-ink-500" th:text="#{wizard.pay.requireProofSub}">— buyers must add one before they can submit a transfer order. Cash on arrival never needs this.</span></span>
+            </label>
+          </div>
           </div>
         </section>
 
@@ -1004,6 +1037,7 @@
   var freeToggle = document.getElementById('freeToggle');
   var feeCard = document.getElementById('feeCard');
   var feeFreeNote = document.getElementById('feeFreeNote');
+  var paymentMethodsCard = document.getElementById('paymentMethodsCard');
   freeToggle.addEventListener('change', function () {
     var on = freeToggle.checked;
     document.querySelectorAll('input[name="ttPrice"]').forEach(function (inp) {
@@ -1025,6 +1059,18 @@
     renderRefundVisibility();
   });
 
+  // Payment-methods-for-this-event card: choose all vs a specific subset.
+  (function () {
+    var modeRadios = document.querySelectorAll('input[name="paymentMethodsMode"]');
+    var list = document.getElementById('customMethodsList');
+    function apply() {
+      var custom = document.querySelector('input[name="paymentMethodsMode"]:checked');
+      if (list) list.classList.toggle('hidden', !custom || custom.value !== 'CUSTOM');
+    }
+    modeRadios.forEach(function (r) { r.addEventListener('change', apply); });
+    apply();
+  })();
+
   // Dynamic booking-fee example (R12 #2): reflect the real top ticket price.
   function fmtIqdFee(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
   // Mirrors Format.bookingFeeFor server-side: 750 flat at/under 15,000 IQD,
@@ -1044,6 +1090,7 @@
     // The card only makes sense once there IS a paid ticket (R13 #2):
     var showCard = !freeToggle.checked && top > 0;
     feeCard.classList.toggle('hidden', !showCard);
+    if (paymentMethodsCard) paymentMethodsCard.classList.toggle('hidden', !showCard);
     if (!showCard) return;
     var pass = feeCard.querySelector('.fee-note-pass');
     var abs = feeCard.querySelector('.fee-note-absorb');

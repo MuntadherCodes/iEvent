@@ -76,7 +76,7 @@ public class HostExtrasController {
     public record ARow(Long ticketId, String holderName, String initial, String typeName,
                        String orderCode, String code, String email, String purchasedLine,
                        String status, boolean checkedIn, boolean voided, String checkedInLine,
-                       Long orderId, boolean resendable, String avatarUrl) {}
+                       Long orderId, boolean resendable, String avatarUrl, boolean cash) {}
 
     /** Stats strip + progress ring for the attendees page. Pct is 0–100. */
     public record AStats(long total, long checkedIn, long remaining, long voided,
@@ -423,8 +423,11 @@ public class HostExtrasController {
                         .append(csv(o.getEvent().getTitle())).append(',')
                         .append(csv(itemsLabel(o))).append(',')
                         .append(o.getTotalIqd()).append(',')
-                        .append(csv(o.getPaymentMethod() == Order.PaymentMethod.FREE
-                                ? "Free" : "Direct transfer")).append(',')
+                        .append(csv(switch (o.getPaymentMethod()) {
+                            case FREE -> "Free";
+                            case CASH -> "Cash on arrival";
+                            case DIRECT_TRANSFER -> "Direct transfer";
+                        })).append(',')
                         .append(csv(orderStatusLabel(o.getStatus()))).append(',')
                         .append(csv(o.getTransferReference() == null ? "" : o.getTransferReference())).append(',')
                         .append(csv(Format.cardDateLine(o.getCreatedAt())))
@@ -811,6 +814,18 @@ public class HostExtrasController {
         return "redirect:/host/settings/payments";
     }
 
+    /** Turns cash-on-arrival on/off for the org (a fixed method, not the
+     *  free-form add-method form — no account details to type). */
+    @PostMapping("/settings/payments/cash")
+    public String toggleCashPayment(@AuthenticationPrincipal UserDetails principal,
+                                    @RequestParam(defaultValue = "false") boolean enabled) {
+        TeamService.Access access = access(principal);
+        if (access == null) return "redirect:/host/start";
+        requireOwner(access);
+        paymentMethodService.setCashEnabled(access.org(), enabled);
+        return "redirect:/host/settings/payments";
+    }
+
     @PostMapping("/settings/payments/methods/{id}/toggle")
     public String togglePaymentMethod(@PathVariable Long id,
                                       @AuthenticationPrincipal UserDetails principal) {
@@ -923,7 +938,8 @@ public class HostExtrasController {
                 t.getStatus() == Ticket.Status.VOID,
                 t.getCheckedInAt() == null ? null : Format.cardDateLine(t.getCheckedInAt()),
                 t.getOrder().getId(), confirmed,
-                email == null ? null : avatars.get(email.trim().toLowerCase()));
+                email == null ? null : avatars.get(email.trim().toLowerCase()),
+                t.getOrder().getPaymentMethod() == Order.PaymentMethod.CASH);
     }
 
     private AStats attendeeStats(List<Ticket> all) {
@@ -956,8 +972,12 @@ public class HostExtrasController {
         return new HostController.OrderRow(o.getId(), o.getOrderCode(), o.getBuyerName(),
                 o.getBuyerEmail(), o.getEvent().getTitle(), itemsLabel(o),
                 Format.iqd(o.getTotalIqd()),
-                o.getPaymentMethod() == Order.PaymentMethod.FREE
-                        ? msg("order.method.free") : msg("order.method.direct"),
+                switch (o.getPaymentMethod()) {
+                    case FREE -> msg("order.method.free");
+                    case CASH -> msg("order.method.cash");
+                    case DIRECT_TRANSFER -> msg("order.method.direct");
+                },
+                o.getPaymentMethod().name(),
                 localizedOrderStatus(o.getStatus()),
                 o.getStatus().name(),
                 o.getStatus() == Order.Status.PENDING_CONFIRMATION,

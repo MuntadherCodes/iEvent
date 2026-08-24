@@ -117,6 +117,7 @@
   "notif.orderRefunded.title": "Order refunded — {0}",
   "notif.orderRejected.body": "The organizer could not verify the transfer for {0}.",
   "notif.orderRejected.title": "Order could not be confirmed — {0}",
+  "order.method.cash": "Cash on arrival",
   "order.method.direct": "Direct transfer",
   "order.method.free": "Free",
   "page.attended": "{0} attended",

@@ -155,7 +155,10 @@
                         <span th:if="${r.avatarUrl() == null}" th:text="${r.initial()}">A</span>
                       </span>
                       <div class="min-w-0">
-                        <span class="block max-w-[180px] truncate font-semibold" th:classappend="${r.voided()} ? 'text-ink-500 line-through' : 'text-ink-900'" th:text="${r.holderName()}">Ali Hassan</span>
+                        <span class="flex items-center gap-1.5">
+                          <span class="block max-w-[180px] truncate font-semibold" th:classappend="${r.voided()} ? 'text-ink-500 line-through' : 'text-ink-900'" th:text="${r.holderName()}">Ali Hassan</span>
+                          <span th:if="${r.cash()}" class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"><svg class="h-2.5 w-2.5" aria-hidden="true"><use href="#i-banknote"/></svg>[[#{host.checkin.cashBadge}]]</span>
+                        </span>
                         <p class="max-w-[200px] truncate text-xs text-ink-500" th:text="${r.email()}">ali.hassan@gmail.com</p>
                       </div>
                     </div>
