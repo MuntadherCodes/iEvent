@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{public.meta.privacyDescription}">
+<head th:replace="~{fragments/layout :: head(#{public.title.privacy})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+
+<main id="main" class="flex-1">
+  <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+
+    <div class="text-center">
+      <span class="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{public.privacy.pageTitle}">Privacy Policy</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{public.privacy.pageTitle}">Privacy Policy</h1>
+      <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-ink-500" th:text="#{public.privacy.metaLine}">iEvent is an event discovery and ticketing platform for Iraq, operated by Hillool OÜ (Estonia).</p>
+    </div>
+
+    <!-- Short-version callout -->
+    <div class="mt-8 rounded-2xl border border-brand-100 bg-brand-50/60 p-6">
+      <p class="text-sm leading-relaxed text-ink-700" th:text="#{public.privacy.calloutLead}">The short version: iEvent lets you discover events and book tickets, and lets organizers publish events and sell tickets. We only collect what we need to run the platform.</p>
+      <ul class="mt-4 grid gap-2 sm:grid-cols-3">
+        <li class="flex items-start gap-2 text-sm font-semibold text-ink-800"><svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="#{public.privacy.calloutItem1}">We never store your card details</span></li>
+        <li class="flex items-start gap-2 text-sm font-semibold text-ink-800"><svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="#{public.privacy.calloutItem2}">We never sell your data</span></li>
+        <li class="flex items-start gap-2 text-sm font-semibold text-ink-800"><svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="#{public.privacy.calloutItem3}">We never use your data for ads</span></li>
+      </ul>
+    </div>
+
+    <!-- Contents -->
+    <nav class="mt-8 rounded-2xl border border-ink-100 bg-ink-50/60 p-5" th:attr="aria-label=#{public.privacy.tocTitle}" aria-label="Contents">
+      <h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-ink-400" th:text="#{public.privacy.tocTitle}">Contents</h2>
+      <ol class="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+        <li><a href="#s1" class="text-ink-600 transition hover:text-brand-600">1. <span th:text="#{public.privacy.s1.title}">Who we are</span></a></li>
+        <li><a href="#s2" class="text-ink-600 transition hover:text-brand-600">2. <span th:text="#{public.privacy.s2.title}">Information we collect</span></a></li>
+        <li><a href="#s3" class="text-ink-600 transition hover:text-brand-600">3. <span th:text="#{public.privacy.s3.title}">Payments &amp; tickets</span></a></li>
+        <li><a href="#s4" class="text-ink-600 transition hover:text-brand-600">4. <span th:text="#{public.privacy.s4.title}">How we use your information</span></a></li>
+        <li><a href="#s5" class="text-ink-600 transition hover:text-brand-600">5. <span th:text="#{public.privacy.s5.title}">Legal bases</span></a></li>
+        <li><a href="#s6" class="text-ink-600 transition hover:text-brand-600">6. <span th:text="#{public.privacy.s6.title}">Who we share data with</span></a></li>
+        <li><a href="#s7" class="text-ink-600 transition hover:text-brand-600">7. <span th:text="#{public.privacy.s7.title}">Organizers &amp; attendees</span></a></li>
+        <li><a href="#s8" class="text-ink-600 transition hover:text-brand-600">8. <span th:text="#{public.privacy.s8.title}">International transfers</span></a></li>
+        <li><a href="#s9" class="text-ink-600 transition hover:text-brand-600">9. <span th:text="#{public.privacy.s9.title}">Retention</span></a></li>
+        <li><a href="#s10" class="text-ink-600 transition hover:text-brand-600">10. <span th:text="#{public.privacy.s10.title}">Your rights</span></a></li>
+        <li><a href="#s11" class="text-ink-600 transition hover:text-brand-600">11. <span th:text="#{public.privacy.s11.title}">Security</span></a></li>
+        <li><a href="#s12" class="text-ink-600 transition hover:text-brand-600">12. <span th:text="#{public.privacy.s12.title}">Age</span></a></li>
+        <li><a href="#s13" class="text-ink-600 transition hover:text-brand-600">13. <span th:text="#{public.privacy.s13.title}">Changes</span></a></li>
+        <li><a href="#s14" class="text-ink-600 transition hover:text-brand-600">14. <span th:text="#{public.privacy.s14.title}">Contact</span></a></li>
+      </ol>
+    </nav>
+
+    <div class="mt-4">
+
+      <section id="s1" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">01</span><span th:text="#{public.privacy.s1.title}">Who we are</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s1.p1}">iEvent ("iEvent", "we", "us") is a platform for discovering events and booking tickets in Iraq.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s1.p2}">This policy explains how we handle your personal data.</p>
+      </section>
+
+      <section id="s2" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">02</span><span th:text="#{public.privacy.s2.title}">Information we collect</span></h2>
+        <dl class="mt-3 divide-y divide-ink-100">
+          <div class="grid gap-1 py-3 sm:grid-cols-[160px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s2.rowAccountLabel}">Account</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s2.rowAccountValue}">Name, email, phone (optional), and password.</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[160px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s2.rowTicketsLabel}">Tickets &amp; bookings</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s2.rowTicketsValue}">Tickets you buy, QR codes, order history.</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[160px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s2.rowPaymentLabel}">Payment data</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s2.rowPaymentValue}">Payments are processed by our payment providers.</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[160px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s2.rowOrganizerLabel}">Organizer data</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s2.rowOrganizerValue}">Business details and payout details.</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[160px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s2.rowDeviceLabel}">Device &amp; usage</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s2.rowDeviceValue}">Device type, browser, language, approximate city.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="s3" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">03</span><span th:text="#{public.privacy.s3.title}">Payments &amp; tickets</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s3.p1}">iEvent is a platform connecting attendees with organizers.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s3.p2}">Refunds and cancellations are handled by the organizer.</p>
+      </section>
+
+      <section id="s4" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">04</span><span th:text="#{public.privacy.s4.title}">How we use your information</span></h2>
+        <ul class="mt-3 list-disc space-y-1.5 ps-5 text-sm leading-relaxed text-ink-600">
+          <li th:text="#{public.privacy.s4.li1}">Create and manage your account.</li>
+          <li th:text="#{public.privacy.s4.li2}">Show events, issue tickets and QR codes.</li>
+          <li th:text="#{public.privacy.s4.li3}">Let organizers publish events and receive earnings.</li>
+          <li th:text="#{public.privacy.s4.li4}">Send confirmations and notifications.</li>
+          <li th:text="#{public.privacy.s4.li5}">Provide support and prevent fraud.</li>
+          <li th:text="#{public.privacy.s4.li6}">Improve the Platform.</li>
+          <li th:text="#{public.privacy.s4.li7}">Comply with legal obligations.</li>
+        </ul>
+        <p class="mt-3 text-sm font-semibold leading-relaxed text-ink-800" th:text="#{public.privacy.s4.p1}">We do not use your data for advertising, and we never sell it.</p>
+      </section>
+
+      <section id="s5" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">05</span><span th:text="#{public.privacy.s5.title}">Legal bases (GDPR)</span></h2>
+        <ul class="mt-3 list-disc space-y-1.5 ps-5 text-sm leading-relaxed text-ink-600">
+          <li th:text="#{public.privacy.s5.li1}">Contract</li>
+          <li th:text="#{public.privacy.s5.li2}">Legitimate interests</li>
+          <li th:text="#{public.privacy.s5.li3}">Consent</li>
+          <li th:text="#{public.privacy.s5.li4}">Legal obligation</li>
+        </ul>
+        <p class="mt-3 text-xs leading-relaxed text-ink-400" th:text="#{public.privacy.s5.note}">Local Iraqi rules may also apply.</p>
+      </section>
+
+      <section id="s6" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">06</span><span th:text="#{public.privacy.s6.title}">Who we share your data with</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s6.p1}">We share data only with the service providers needed to run iEvent:</p>
+        <dl class="mt-3 divide-y divide-ink-100">
+          <div class="grid gap-1 py-3 sm:grid-cols-[220px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s6.rowZainLabel}">Payment providers</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s6.rowZainValue}">Payment processing</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[220px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s6.rowHostingLabel}">Hosting</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s6.rowHostingValue}">Website and database hosting</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[220px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s6.rowAnalyticsLabel}">Analytics</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s6.rowAnalyticsValue}">Aggregated usage analytics</dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[220px_1fr] sm:gap-4">
+            <dt class="text-sm font-bold text-ink-900" th:text="#{public.privacy.s6.rowOrganizersLabel}">Organizers</dt>
+            <dd class="text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s6.rowOrganizersValue}">Attendance details needed to fulfil your booking.</dd>
+          </div>
+        </dl>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s6.p2}">This list is not necessarily exhaustive.</p>
+      </section>
+
+      <section id="s7" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">07</span><span th:text="#{public.privacy.s7.title}">Organizers &amp; attendees</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s7.p1}">iEvent is a two-sided platform.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s7.p2}">iEvent does not control how organizers use that data outside the Platform.</p>
+      </section>
+
+      <section id="s8" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">08</span><span th:text="#{public.privacy.s8.title}">International data transfers</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s8.p1}">Your data may be transferred between Iraq, the EU, and our service providers.</p>
+        <p class="mt-3 text-xs leading-relaxed text-ink-400" th:text="#{public.privacy.s8.note}">Subject to review by local legal counsel.</p>
+      </section>
+
+      <section id="s9" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">09</span><span th:text="#{public.privacy.s9.title}">How long we keep your data</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s9.p1}">We keep your data for as long as your account is active.</p>
+      </section>
+
+      <section id="s10" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">10</span><span th:text="#{public.privacy.s10.title}">Your rights</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s10.p1}">You may have the right to access, correct, delete, and export your data.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s10.p2}">EU users may also lodge a complaint with the competent authority.</p>
+      </section>
+
+      <section id="s11" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">11</span><span th:text="#{public.privacy.s11.title}">Security</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s11.p1}">We use technical and organizational safeguards to protect your data.</p>
+      </section>
+
+      <section id="s12" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">12</span><span th:text="#{public.privacy.s12.title}">Age</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s12.p1}">iEvent is intended for people aged 18 or older.</p>
+      </section>
+
+      <section id="s13" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">13</span><span th:text="#{public.privacy.s13.title}">Changes to this policy</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.privacy.s13.p1}">We may update this policy from time to time.</p>
+      </section>
+
+      <section id="s14" class="scroll-mt-24 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">14</span><span th:text="#{public.privacy.s14.title}">Contact us</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600">
+          <span class="block font-bold text-ink-900" th:text="#{public.privacy.s14.p1}">Hillool OÜ</span>
+          <span class="block" th:text="#{public.privacy.s14.p2}">Registry code: 16212483 · Estonia</span>
+          <span class="block" th:text="#{public.privacy.s14.p3}">Pärnu mnt. 139B (3rd floor), 11317 Tallinn, Estonia</span>
+          <a th:href="${'mailto:' + supportEmail}" class="mt-1 inline-block font-semibold text-brand-600 transition hover:text-brand-700" th:text="${supportEmail}">support@hillool.com</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

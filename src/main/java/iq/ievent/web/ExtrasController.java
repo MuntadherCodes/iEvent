@@ -136,6 +136,8 @@ public class ExtrasController {
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
         appendUrl(xml, siteBaseUrl + "/", null, "daily");
         appendUrl(xml, siteBaseUrl + "/browse", null, "hourly");
+        appendUrl(xml, siteBaseUrl + "/privacy", null, "yearly");
+        appendUrl(xml, siteBaseUrl + "/terms", null, "yearly");
 
         jdbc.query("""
                 SELECT e.slug, e.updated_at FROM events e

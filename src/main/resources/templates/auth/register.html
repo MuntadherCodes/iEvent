@@ -71,7 +71,7 @@
         <div>
           <label class="flex items-start gap-2.5 text-sm text-ink-600">
             <input type="checkbox" name="terms" value="true" required class="mt-0.5 h-4 w-4 rounded border-ink-300 accent-[#8f7ac9]">
-            <span>[[#{public.auth.agreePrefix}]] <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.auth.tos}">Terms of Service</a> [[#{public.auth.and}]] <a href="#" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.auth.privacy}">Privacy Policy</a>. <span class="text-rose-500">*</span></span>
+            <span>[[#{public.auth.agreePrefix}]] <a th:href="@{/terms}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.auth.tos}">Terms of Service</a> [[#{public.auth.and}]] <a th:href="@{/privacy}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.auth.privacy}">Privacy Policy</a>. <span class="text-rose-500">*</span></span>
           </label>
           <p th:if="${termsError != null}" class="mt-1.5 text-xs font-semibold text-rose-600" th:text="${termsError}">Please accept the terms to continue.</p>
         </div>

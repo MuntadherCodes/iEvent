@@ -67,6 +67,7 @@ public class PageController {
     private final iq.ievent.repo.OrganizationRepository organizations;
     private final iq.ievent.repo.LikeCountRepository likeCounts;
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final String supportEmail;
 
     public PageController(CatalogService catalog, UserService userService,
                           MessageSource messages,
@@ -75,7 +76,8 @@ public class PageController {
                           iq.ievent.repo.EventRepository events,
                           iq.ievent.repo.OrganizationRepository organizations,
                           iq.ievent.repo.LikeCountRepository likeCounts,
-                          org.springframework.jdbc.core.JdbcTemplate jdbc) {
+                          org.springframework.jdbc.core.JdbcTemplate jdbc,
+                          @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail) {
         this.catalog = catalog;
         this.userService = userService;
         this.messages = messages;
@@ -85,6 +87,19 @@ public class PageController {
         this.organizations = organizations;
         this.likeCounts = likeCounts;
         this.jdbc = jdbc;
+        this.supportEmail = supportEmail;
+    }
+
+    @GetMapping("/privacy")
+    public String privacy(Model model) {
+        model.addAttribute("supportEmail", supportEmail);
+        return "privacy";
+    }
+
+    @GetMapping("/terms")
+    public String terms(Model model) {
+        model.addAttribute("supportEmail", supportEmail);
+        return "terms";
     }
 
     /** Localized user-facing message in the current request locale. */

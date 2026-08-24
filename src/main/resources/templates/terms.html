@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{public.meta.termsDescription}">
+<head th:replace="~{fragments/layout :: head(#{public.title.terms})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+
+<main id="main" class="flex-1">
+  <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+
+    <div class="text-center">
+      <span class="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{public.terms.pageTitle}">Terms of Use</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{public.terms.pageTitle}">Terms of Use</h1>
+      <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-ink-500" th:text="#{public.terms.metaLine}">iEvent is an event discovery and ticketing platform for Iraq, operated by Hillool OÜ (Estonia).</p>
+    </div>
+
+    <!-- Intermediary-platform warning callout -->
+    <div class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <p class="text-sm font-semibold leading-relaxed text-amber-900" th:text="#{public.terms.calloutLead}">Important: iEvent is an intermediary platform.</p>
+      <ul class="mt-3 space-y-1.5 text-sm leading-relaxed text-amber-800">
+        <li class="flex items-start gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{public.terms.calloutItem1}">iEvent connects attendees with organizers.</span></li>
+        <li class="flex items-start gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{public.terms.calloutItem2}">We don't collect ticket payments or hold your funds.</span></li>
+        <li class="flex items-start gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{public.terms.calloutItem3}">The organizer is responsible for their event and refunds.</span></li>
+      </ul>
+    </div>
+
+    <!-- Contents -->
+    <nav class="mt-8 rounded-2xl border border-ink-100 bg-ink-50/60 p-5" th:attr="aria-label=#{public.privacy.tocTitle}" aria-label="Contents">
+      <h2 class="mb-3 text-xs font-bold uppercase tracking-wider text-ink-400" th:text="#{public.privacy.tocTitle}">Contents</h2>
+      <ol class="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+        <li><a href="#s1" class="text-ink-600 transition hover:text-brand-600">1. <span th:text="#{public.terms.s1.title}">Agreement</span></a></li>
+        <li><a href="#s2" class="text-ink-600 transition hover:text-brand-600">2. <span th:text="#{public.terms.s2.title}">Who can use iEvent</span></a></li>
+        <li><a href="#s3" class="text-ink-600 transition hover:text-brand-600">3. <span th:text="#{public.terms.s3.title}">iEvent's role</span></a></li>
+        <li><a href="#s4" class="text-ink-600 transition hover:text-brand-600">4. <span th:text="#{public.terms.s4.title}">Accounts</span></a></li>
+        <li><a href="#s5" class="text-ink-600 transition hover:text-brand-600">5. <span th:text="#{public.terms.s5.title}">Tickets &amp; payments</span></a></li>
+        <li><a href="#s6" class="text-ink-600 transition hover:text-brand-600">6. <span th:text="#{public.terms.s6.title}">Refunds &amp; cancellations</span></a></li>
+        <li><a href="#s7" class="text-ink-600 transition hover:text-brand-600">7. <span th:text="#{public.terms.s7.title}">Organizer terms</span></a></li>
+        <li><a href="#s8" class="text-ink-600 transition hover:text-brand-600">8. <span th:text="#{public.terms.s8.title}">Acceptable use</span></a></li>
+        <li><a href="#s9" class="text-ink-600 transition hover:text-brand-600">9. <span th:text="#{public.terms.s9.title}">Intellectual property</span></a></li>
+        <li><a href="#s10" class="text-ink-600 transition hover:text-brand-600">10. <span th:text="#{public.terms.s10.title}">Third-party services</span></a></li>
+        <li><a href="#s11" class="text-ink-600 transition hover:text-brand-600">11. <span th:text="#{public.terms.s11.title}">Compliance with Iraqi law</span></a></li>
+        <li><a href="#s12" class="text-ink-600 transition hover:text-brand-600">12. <span th:text="#{public.terms.s12.title}">Disclaimers &amp; liability</span></a></li>
+        <li><a href="#s13" class="text-ink-600 transition hover:text-brand-600">13. <span th:text="#{public.terms.s13.title}">Termination</span></a></li>
+        <li><a href="#s14" class="text-ink-600 transition hover:text-brand-600">14. <span th:text="#{public.terms.s14.title}">Governing law</span></a></li>
+        <li><a href="#s15" class="text-ink-600 transition hover:text-brand-600">15. <span th:text="#{public.terms.s15.title}">Changes &amp; contact</span></a></li>
+      </ol>
+    </nav>
+
+    <div class="mt-4">
+
+      <section id="s1" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">01</span><span th:text="#{public.terms.s1.title}">Agreement to these terms</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s1.p1}">These Terms of Use are a legal agreement between you and Hillool OÜ.</p>
+      </section>
+
+      <section id="s2" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">02</span><span th:text="#{public.terms.s2.title}">Who can use iEvent</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s2.p1}">You must be at least 18 years old to use the Platform.</p>
+      </section>
+
+      <section id="s3" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">03</span><span th:text="#{public.terms.s3.title}">iEvent's role</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s3.p1}">iEvent is an intermediary platform.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s3.p2}">iEvent does not own or run events.</p>
+      </section>
+
+      <section id="s4" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">04</span><span th:text="#{public.terms.s4.title}">Accounts</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s4.p1}">Some features require an account.</p>
+      </section>
+
+      <section id="s5" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">05</span><span th:text="#{public.terms.s5.title}">Tickets &amp; payments</span></h2>
+        <ul class="mt-3 list-disc space-y-1.5 ps-5 text-sm leading-relaxed text-ink-600">
+          <li th:text="#{public.terms.s5.li1}">Payments are processed by third-party providers or paid in cash at the door.</li>
+          <li th:text="#{public.terms.s5.li2}">Prices, taxes, and fees set by the organizer may apply.</li>
+          <li th:text="#{public.terms.s5.li3}">A ticket is valid subject to the organizer's terms.</li>
+          <li th:text="#{public.terms.s5.li4}">You're responsible for the accuracy of the details you enter.</li>
+        </ul>
+        <p class="mt-3 text-xs leading-relaxed text-ink-400" th:text="#{public.terms.s5.note}">Subject to review by local legal counsel.</p>
+      </section>
+
+      <section id="s6" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">06</span><span th:text="#{public.terms.s6.title}">Refunds &amp; cancellations</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s6.p1}">Refunds and cancellations are the organizer's responsibility.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s6.p2}">The organizer is under a binding obligation to honor its refund policy.</p>
+      </section>
+
+      <!-- Organizer-terms band -->
+      <section id="s7" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">07</span><span th:text="#{public.terms.s7.title}">Organizer terms</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s7.intro}">These terms apply in addition to the above if you publish events or sell tickets through iEvent:</p>
+        <div class="mt-4 rounded-2xl border border-brand-100 bg-brand-50/50 p-5">
+          <span class="inline-block rounded-full bg-brand-500 px-3 py-1 text-xs font-bold text-white" th:text="#{public.terms.s7.tag}">For organizers</span>
+          <ul class="mt-3 list-disc space-y-1.5 ps-5 text-sm leading-relaxed text-ink-700">
+            <li th:text="#{public.terms.s7.li1}">You are solely responsible for your event.</li>
+            <li th:text="#{public.terms.s7.li2}">You set and honor the prices and refund policy.</li>
+            <li th:text="#{public.terms.s7.li3}">iEvent charges you a service fee on tickets sold.</li>
+            <li th:text="#{public.terms.s7.li4}">You warrant that your event and content are lawful in Iraq.</li>
+            <li th:text="#{public.terms.s7.li5}">You are an independent controller of the attendee data you receive.</li>
+            <li th:text="#{public.terms.s7.li6}">iEvent may remove any event that breaches these Terms.</li>
+            <li th:text="#{public.terms.s7.li7}">You indemnify iEvent against claims arising from your event.</li>
+          </ul>
+        </div>
+        <p class="mt-3 text-xs leading-relaxed text-ink-400" th:text="#{public.terms.s7.note}">Organizing events in Iraq may require local licenses.</p>
+      </section>
+
+      <section id="s8" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">08</span><span th:text="#{public.terms.s8.title}">Acceptable use &amp; content</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s8.p1}">You must use the Platform in compliance with Iraqi law. You are prohibited from:</p>
+        <ul class="mt-3 list-disc space-y-1.5 ps-5 text-sm leading-relaxed text-ink-600">
+          <li th:text="#{public.terms.s8.li1}">Using the Platform for any unlawful purpose.</li>
+          <li th:text="#{public.terms.s8.li2}">Publishing unlawful, deceptive, or infringing content.</li>
+          <li th:text="#{public.terms.s8.li3}">Posting content that incites violence or hatred.</li>
+          <li th:text="#{public.terms.s8.li4}">Selling tickets to fake or unlicensed events.</li>
+          <li th:text="#{public.terms.s8.li5}">Money laundering or financing unlawful activity.</li>
+          <li th:text="#{public.terms.s8.li6}">Attempting to breach or disrupt the Platform.</li>
+          <li th:text="#{public.terms.s8.li7}">Using automated means to scrape or overload the Platform.</li>
+        </ul>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s8.p2}">iEvent may remove content or suspend an account that breaches these Terms.</p>
+      </section>
+
+      <section id="s9" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">09</span><span th:text="#{public.terms.s9.title}">Intellectual property</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s9.p1}">The Platform and the iEvent name and logo are owned by Hillool OÜ.</p>
+      </section>
+
+      <section id="s10" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">10</span><span th:text="#{public.terms.s10.title}">Third-party services</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s10.p1}">The Platform relies on third-party services, including payment providers, hosting, and analytics.</p>
+      </section>
+
+      <section id="s11" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">11</span><span th:text="#{public.terms.s11.title}">Compliance with Iraqi law &amp; cooperation with authorities</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s11.p1}">iEvent operates in the Republic of Iraq and is committed to its laws. By using the Platform, you acknowledge and agree that:</p>
+        <ul class="mt-3 list-disc space-y-1.5 ps-5 text-sm leading-relaxed text-ink-600">
+          <li th:text="#{public.terms.s11.li1}">Your use of the Platform must comply with Iraqi law.</li>
+          <li th:text="#{public.terms.s11.li2}">iEvent may report unlawful activity to the competent Iraqi authorities.</li>
+          <li th:text="#{public.terms.s11.li3}">iEvent may disclose data to the competent authorities where legally required.</li>
+          <li th:text="#{public.terms.s11.li4}">Disputes are subject to Iraqi law.</li>
+          <li th:text="#{public.terms.s11.li5}">Nothing in these Terms relieves you of your legal responsibility.</li>
+        </ul>
+        <p class="mt-3 text-xs leading-relaxed text-ink-400" th:text="#{public.terms.s11.note}">Subject to review by local legal counsel.</p>
+      </section>
+
+      <section id="s12" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">12</span><span th:text="#{public.terms.s12.title}">Disclaimers &amp; limitation of liability</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s12.p1}">The Platform is provided "as is", without warranties.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s12.p2}">Hillool OÜ will not be liable for indirect or consequential damages.</p>
+      </section>
+
+      <section id="s13" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">13</span><span th:text="#{public.terms.s13.title}">Termination</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s13.p1}">You may stop using the Platform and delete your account at any time.</p>
+      </section>
+
+      <section id="s14" class="scroll-mt-24 border-b border-ink-100 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">14</span><span th:text="#{public.terms.s14.title}">Governing law &amp; disputes</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s14.p1}">These Terms are governed by the laws of the Republic of Iraq.</p>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s14.p2}">Estonian/EU law may additionally apply where a matter concerns the operating company.</p>
+      </section>
+
+      <section id="s15" class="scroll-mt-24 py-7">
+        <h2 class="flex items-baseline gap-2.5 font-display text-lg font-extrabold text-ink-900"><span class="font-mono text-xs font-bold text-brand-600">15</span><span th:text="#{public.terms.s15.title}">Changes &amp; contact</span></h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="#{public.terms.s15.p1}">We may update these Terms from time to time.</p>
+        <p class="mt-4 text-sm leading-relaxed text-ink-600">
+          <span class="block font-bold text-ink-900" th:text="#{public.terms.s15.p2}">Hillool OÜ</span>
+          <span class="block" th:text="#{public.terms.s15.p3}">Registry code: 16212483 · Estonia</span>
+          <span class="block" th:text="#{public.terms.s15.p4}">Pärnu mnt. 139B (3rd floor), 11317 Tallinn, Estonia</span>
+          <a th:href="${'mailto:' + supportEmail}" class="mt-1 inline-block font-semibold text-brand-600 transition hover:text-brand-700" th:text="${supportEmail}">support@hillool.com</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

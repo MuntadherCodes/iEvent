@@ -226,7 +226,7 @@
                  th:with="hideRefund=${event.announceOnly() or event.ticketTypes.?[priceIqd > 0].isEmpty()}"
                  th:classappend="${hideRefund} ? '' : 'sm:grid-cols-2'">
           <div th:if="${!hideRefund}">
-            <h2 class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-receipt"/></svg>[[#{public.event.refundPolicy}]]</h2>
+            <h2 id="refund-policy" class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-receipt"/></svg>[[#{public.event.refundPolicy}]]</h2>
             <p class="mt-3 text-sm leading-relaxed text-ink-600" th:text="${refundPolicyText}">Full refund up to 7 days before the event. Booking fees are non-refundable.</p>
           </div>
           <div>
