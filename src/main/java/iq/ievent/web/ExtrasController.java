@@ -2,12 +2,16 @@ package iq.ievent.web;
 
 import iq.ievent.domain.Event;
 import iq.ievent.domain.Ticket;
+import iq.ievent.domain.User;
 import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.OrderRepository;
 import iq.ievent.repo.TicketRepository;
+import iq.ievent.service.MailService;
 import iq.ievent.service.QrService;
 import iq.ievent.service.TicketPdfService;
+import iq.ievent.service.UserService;
 import iq.ievent.service.Format;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,15 +46,26 @@ public class ExtrasController {
     private final JdbcTemplate jdbc;
     private final QrService qr;
     private final TicketPdfService pdf;
+    private final MailService mail;
+    private final UserService userService;
+    private final String supportEmail;
+    private final String siteBaseUrl;
 
     public ExtrasController(EventRepository events, OrderRepository orders, TicketRepository tickets,
-                            JdbcTemplate jdbc, QrService qr, TicketPdfService pdf) {
+                            JdbcTemplate jdbc, QrService qr, TicketPdfService pdf,
+                            MailService mail, UserService userService,
+                            @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail,
+                            @org.springframework.beans.factory.annotation.Value("${app.base-url}") String siteBaseUrl) {
         this.events = events;
         this.orders = orders;
         this.tickets = tickets;
         this.jdbc = jdbc;
         this.qr = qr;
         this.pdf = pdf;
+        this.siteBaseUrl = siteBaseUrl.endsWith("/") ? siteBaseUrl.substring(0, siteBaseUrl.length() - 1) : siteBaseUrl;
+        this.mail = mail;
+        this.userService = userService;
+        this.supportEmail = supportEmail;
     }
 
     /** QR image download for a confirmed ticket (access = knowing the unguessable code). */
@@ -100,19 +116,170 @@ public class ExtrasController {
                 .body(ics.getBytes(StandardCharsets.UTF_8));
     }
 
+    /** Dynamic so the Sitemap: line always points at the right host — a static
+     *  file couldn't tell localhost apart from production. */
+    @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> robotsTxt() {
+        String body = "User-agent: *\nDisallow: /admin\n\nSitemap: " + siteBaseUrl + "/sitemap.xml\n";
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(body);
+    }
+
+    /** One canonical (Arabic-default) URL per public page — event/organizer
+     *  pages already carry hreflang alternates for English via layout.html's
+     *  head fragment, so the sitemap itself doesn't need to list both. Excludes
+     *  admin-hidden events and disabled orgs, same boundary the public site
+     *  itself enforces (see CatalogService/EventRepository). */
+    @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<String> sitemap() {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+        appendUrl(xml, siteBaseUrl + "/", null, "daily");
+        appendUrl(xml, siteBaseUrl + "/browse", null, "hourly");
+
+        jdbc.query("""
+                SELECT e.slug, e.updated_at FROM events e
+                JOIN organizations o ON o.id = e.organization_id
+                WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
+                  AND e.admin_hidden = false AND o.disabled = false
+                ORDER BY e.updated_at DESC
+                """,
+                (rs, i) -> {
+                    String slug = rs.getString("slug");
+                    OffsetDateTime updated = rs.getObject("updated_at", OffsetDateTime.class);
+                    appendUrl(xml, siteBaseUrl + "/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, StandardCharsets.UTF_8),
+                            updated, "weekly");
+                    return null;
+                });
+
+        jdbc.query("SELECT handle FROM organizations WHERE disabled = false ORDER BY id",
+                (rs, i) -> {
+                    String handle = rs.getString("handle");
+                    appendUrl(xml, siteBaseUrl + "/organizers/" + org.springframework.web.util.UriUtils.encodePathSegment(handle, StandardCharsets.UTF_8),
+                            null, "weekly");
+                    return null;
+                });
+
+        xml.append("</urlset>\n");
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML).body(xml.toString());
+    }
+
+    private static void appendUrl(StringBuilder xml, String loc, OffsetDateTime lastmod, String changefreq) {
+        xml.append("  <url>\n    <loc>").append(escapeXml(loc)).append("</loc>\n");
+        if (lastmod != null) {
+            xml.append("    <lastmod>").append(lastmod.atZoneSameInstant(ZoneOffset.UTC).toLocalDate()).append("</lastmod>\n");
+        }
+        xml.append("    <changefreq>").append(changefreq).append("</changefreq>\n  </url>\n");
+    }
+
+    private static String escapeXml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private static final java.util.Set<String> VALID_CATEGORIES = PageController.CATEGORIES.stream()
+            .map(PageController.CategoryOption::value)
+            .collect(java.util.stream.Collectors.toSet());
+
+    /** Comma-separated category codes from the multi-step signup widget, filtered
+     *  to known codes and capped at 3 — never trust client-supplied CSV as-is. */
+    private static String cleanCategories(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String joined = java.util.Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .map(s -> s.toUpperCase(java.util.Locale.ROOT))
+                .filter(VALID_CATEGORIES::contains)
+                .distinct()
+                .limit(3)
+                .collect(java.util.stream.Collectors.joining(","));
+        return joined.isBlank() ? null : joined;
+    }
+
     @PostMapping("/newsletter")
-    public String newsletter(@RequestParam String email,
+    public ResponseEntity<?> newsletter(@RequestParam String email,
                              @RequestParam(required = false) String city,
-                             @RequestHeader(value = "Referer", required = false) String referer) {
+                             @RequestParam(required = false) String categories,
+                             @RequestHeader(value = "Referer", required = false) String referer,
+                             @RequestHeader(value = "X-Requested-With", required = false) String requestedWith) {
         String clean = email == null ? "" : email.trim().toLowerCase();
-        if (!clean.isBlank() && clean.contains("@") && clean.length() <= 255) {
+        boolean valid = !clean.isBlank() && clean.contains("@") && clean.length() <= 255;
+        if (valid) {
+            String cleanCity = city == null || city.isBlank() ? null : city.trim();
+            String cleanCats = cleanCategories(categories);
+            // Re-submitting (e.g. finishing the category/city steps for an email
+            // already on the list from a bare subscribe elsewhere) updates the
+            // profile instead of no-op'ing — the marketing list wants the latest
+            // signal, not just the first one.
             jdbc.update("""
-                    INSERT INTO newsletter_subscribers (email, city) VALUES (?, ?)
-                    ON CONFLICT (lower(email)) DO NOTHING
-                    """, clean, city == null || city.isBlank() ? null : city);
+                    INSERT INTO newsletter_subscribers (email, city, categories) VALUES (?, ?, ?)
+                    ON CONFLICT (lower(email)) DO UPDATE SET
+                        city = COALESCE(EXCLUDED.city, newsletter_subscribers.city),
+                        categories = COALESCE(EXCLUDED.categories, newsletter_subscribers.categories)
+                    """, clean, cleanCity, cleanCats);
+        }
+        if ("XMLHttpRequest".equals(requestedWith)) {
+            return ResponseEntity.ok(java.util.Map.of("ok", valid));
         }
         String back = referer != null && referer.contains("/browse") ? "/browse" : "/";
-        return "redirect:" + back + "?subscribed";
+        return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, back + "?subscribed").build();
+    }
+
+    private static final java.util.Set<String> CONTACT_TOPICS =
+            java.util.Set.of("general", "attendee", "organizer", "billing");
+
+    @GetMapping("/contact")
+    public String contactForm(@AuthenticationPrincipal UserDetails principal, Model model) {
+        User u = principal == null ? null : userService.byEmail(principal.getUsername());
+        model.addAttribute("loggedIn", u != null);
+        model.addAttribute("prefillName", u == null ? "" : u.getFullName());
+        model.addAttribute("prefillEmail", u == null ? "" : u.getEmail());
+        model.addAttribute("prefillTopic", "general");
+        model.addAttribute("prefillMessage", "");
+        model.addAttribute("supportEmail", supportEmail);
+        return "contact";
+    }
+
+    @PostMapping("/contact")
+    public String contactSubmit(@AuthenticationPrincipal UserDetails principal,
+                                @RequestParam String name,
+                                @RequestParam String email,
+                                @RequestParam(required = false) String topic,
+                                @RequestParam String message,
+                                @RequestParam(required = false) String website, // honeypot
+                                Model model) {
+        // Signed-in visitors get their name/email fixed to the account on record —
+        // the fields render disabled client-side, but the server must not trust a
+        // POST body over that; it just re-derives from the session either way.
+        User u = principal == null ? null : userService.byEmail(principal.getUsername());
+        String cleanName = u != null ? u.getFullName() : (name == null ? "" : name.trim());
+        String cleanEmail = u != null ? u.getEmail() : (email == null ? "" : email.trim());
+        String cleanMessage = message == null ? "" : message.trim();
+        String cleanTopic = CONTACT_TOPICS.contains(topic) ? topic : "general";
+
+        model.addAttribute("loggedIn", u != null);
+        model.addAttribute("prefillName", cleanName);
+        model.addAttribute("prefillEmail", cleanEmail);
+        model.addAttribute("prefillTopic", cleanTopic);
+        model.addAttribute("prefillMessage", cleanMessage);
+        model.addAttribute("supportEmail", supportEmail);
+
+        boolean spam = website != null && !website.isBlank();
+        if (spam) {
+            model.addAttribute("sent", true); // silently drop, no tell for bots
+            return "contact";
+        }
+
+        boolean valid = !cleanName.isEmpty() && cleanName.length() <= 120
+                && cleanEmail.contains("@") && cleanEmail.length() <= 255
+                && !cleanMessage.isEmpty() && cleanMessage.length() <= 5000;
+        if (!valid) {
+            model.addAttribute("formError", true);
+            return "contact";
+        }
+
+        boolean sent = mail.sendSupportContact(cleanName, cleanEmail, cleanTopic, cleanMessage,
+                LocaleContextHolder.getLocale());
+        model.addAttribute(sent ? "sent" : "sendFailed", true);
+        return "contact";
     }
 
     private static String buildIcs(Event e) {

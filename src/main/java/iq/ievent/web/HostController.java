@@ -201,6 +201,18 @@ public class HostController {
         return "host/start";
     }
 
+    /** Landing page for a suspended account — HostAccountGateFilter redirects
+     *  every other /host/** request here while the org is disabled. */
+    @GetMapping("/disabled")
+    public String disabled(@AuthenticationPrincipal UserDetails principal, Model model) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null || !org.isDisabled()) return "redirect:/host";
+        model.addAttribute("currentUser", u);
+        model.addAttribute("org", org);
+        return "host/disabled";
+    }
+
     @PostMapping("/start")
     public String createOrg(@AuthenticationPrincipal UserDetails principal,
                             @RequestParam String orgName,

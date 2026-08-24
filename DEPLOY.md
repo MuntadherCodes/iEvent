@@ -17,7 +17,8 @@
    `POSTGRES_PASSWORD` (strong), `DOMAIN`, `APP_BASE_URL=https://<domain>`,
    `MAIL_MODE=mailjet`, `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`,
    `SPRING_MAIL_HOST=in-v3.mailjet.com`, `SPRING_MAIL_PORT=587`,
-   `MAIL_SMTP_AUTH=true`, `MAIL_SMTP_STARTTLS=true`, `SEED_DEMO=false`.
+   `MAIL_SMTP_AUTH=true`, `MAIL_SMTP_STARTTLS=true`, `SEED_DEMO=false`,
+   `SUPER_ADMIN_PASSWORD` (strong — gates the `/admin` super-admin console).
    Optional: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (Sign in with Google —
    remember to add `https://<domain>/login/oauth2/code/google` as an authorized
    redirect URI in the Google Cloud console), `GOOGLE_MAPS_API_KEY`

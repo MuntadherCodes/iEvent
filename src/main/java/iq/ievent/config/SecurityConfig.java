@@ -8,8 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -22,6 +20,8 @@ import java.io.IOException;
 public class SecurityConfig {
 
     private final boolean googleEnabled;
+    private final HostAccountGateFilter hostAccountGateFilter;
+    private final SuperAdminAuthFilter superAdminAuthFilter;
     private final org.springframework.beans.factory.ObjectProvider<
             org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
                     org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest,
@@ -40,10 +40,14 @@ public class SecurityConfig {
             org.springframework.beans.factory.ObjectProvider<
                     org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
                             org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest,
-                            org.springframework.security.oauth2.core.oidc.user.OidcUser>> googleOidcUserService) {
+                            org.springframework.security.oauth2.core.oidc.user.OidcUser>> googleOidcUserService,
+            HostAccountGateFilter hostAccountGateFilter,
+            SuperAdminAuthFilter superAdminAuthFilter) {
         this.googleEnabled = googleClientId != null && !googleClientId.isBlank();
         this.googleUserService = googleUserService;
         this.googleOidcUserService = googleOidcUserService;
+        this.hostAccountGateFilter = hostAccountGateFilter;
+        this.superAdminAuthFilter = superAdminAuthFilter;
     }
 
     /**
@@ -100,11 +104,6 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // The embeddable event page (/e/**) must be frameable on ANY external
         // site (that's the whole point of the sales widget's iframe mode), so
@@ -112,18 +111,30 @@ public class SecurityConfig {
         // /e/**. All other pages stay clickjacking-protected.
         org.springframework.security.web.util.matcher.RequestMatcher notEmbed =
                 request -> !request.getRequestURI().startsWith("/e/");
+        // Belt-and-suspenders alongside the noindex meta tag + robots.txt disallow:
+        // an HTTP header survives even a redirect or a crawler that ignores the
+        // other two, and covers every /admin/** response, not just the rendered pages.
+        org.springframework.security.web.util.matcher.RequestMatcher isAdmin =
+                request -> request.getRequestURI().startsWith("/admin");
         http
             .headers(headers -> headers
                 .frameOptions(frame -> frame.disable())
                 .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
                         notEmbed,
                         new org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter(
-                                org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter.XFrameOptionsMode.DENY))))
+                                org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter.XFrameOptionsMode.DENY)))
+                .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
+                        isAdmin,
+                        new org.springframework.security.web.header.writers.StaticHeadersWriter(
+                                "X-Robots-Tag", "noindex, nofollow, noarchive"))))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
-                        "/auth/**", "/t/**", "/e/**", "/l/**", "/invite/*", "/newsletter", "/media/**", "/css/**", "/img/**", "/js/**",
-                        "/favicon.ico", "/sw.js", "/actuator/health", "/error", "/set-lang", "/.well-known/**")
+                        "/auth/**", "/t/**", "/e/**", "/l/**", "/invite/*", "/newsletter", "/contact", "/media/**", "/css/**", "/img/**", "/js/**",
+                        "/favicon.ico", "/sw.js", "/robots.txt", "/sitemap.xml", "/actuator/health", "/error", "/set-lang", "/.well-known/**",
+                        // /admin/** is gated by SuperAdminAuthFilter (a shared .env password, not a
+                        // user account) rather than Spring Security's own authentication.
+                        "/admin/**")
                 .permitAll()
                 .anyRequest().authenticated())
             .formLogin(form -> form
@@ -140,7 +151,20 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
                 .logoutSuccessUrl("/?signedout"))
-            .addFilterAfter(new CsrfEagerLoadFilter(), BasicAuthenticationFilter.class);
+            // A CSRF failure under /admin (typically a stale token from a session that
+            // expired, or from a page left open across an app restart — sessions are
+            // in-memory) previously surfaced as a raw 403 whitelabel page. Redirecting
+            // to the login form instead just asks for the password again.
+            .exceptionHandling(handling -> handling.accessDeniedHandler((request, response, ex) -> {
+                if (request.getRequestURI().startsWith("/admin")) {
+                    response.sendRedirect(request.getContextPath() + "/admin/login");
+                } else {
+                    new org.springframework.security.web.access.AccessDeniedHandlerImpl().handle(request, response, ex);
+                }
+            }))
+            .addFilterAfter(new CsrfEagerLoadFilter(), BasicAuthenticationFilter.class)
+            .addFilterAfter(hostAccountGateFilter, BasicAuthenticationFilter.class)
+            .addFilterAfter(superAdminAuthFilter, BasicAuthenticationFilter.class);
         if (googleEnabled) {
             http.oauth2Login(oauth -> oauth
                 .loginPage("/auth/login")

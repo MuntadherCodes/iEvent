@@ -20,6 +20,20 @@
      call site needing to pass extra positional args. -->
 <meta name="description" th:content="${pageDescription != null ? pageDescription : #messages.msg('public.meta.defaultDescription')}">
 <meta th:if="${noIndex}" name="robots" content="noindex, nofollow">
+<!-- Search Console ownership proof (HTML-tag method) — hides when GOOGLE_SITE_VERIFICATION is unset. -->
+<meta th:if="${googleSiteVerification != null}" name="google-site-verification" th:content="${googleSiteVerification}">
+<!-- GA4 — hides when GA_MEASUREMENT_ID is unset. Loaded on every page (public
+     and host) so host-side usage shows up in the same property; host pages
+     stay noindex regardless, this is purely analytics, not indexing. -->
+<th:block th:if="${gaId != null}">
+  <script th:src="'https://www.googletagmanager.com/gtag/js?id=' + ${gaId}" async></script>
+  <script th:inline="javascript">
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', /*[[${gaId}]]*/ 'G-XXXXXXX');
+  </script>
+</th:block>
 <th:block th:unless="${noIndex}">
   <link rel="canonical" th:href="${siteBaseUrl + (rtl ? canonicalPath : ('/en' + (canonicalPath == '/' ? '' : canonicalPath)))}">
   <link rel="alternate" hreflang="ar" th:href="${siteBaseUrl + canonicalPath}">
@@ -551,7 +565,7 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
       <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.company}">Company</h3>
       <ul class="space-y-2.5 text-sm">
         <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.about}">About iEvent</a></li>
-        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.contact}">Contact</a></li>
+        <li><a th:href="@{/contact}" class="transition hover:text-brand-300" th:text="#{public.footer.contact}">Contact</a></li>
         <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.careers}">Careers</a></li>
         <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.help}">Help center</a></li>
       </ul>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="_csrf" th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
+<title>Super admin — sign in</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+<style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="grid min-h-screen place-items-center bg-ink-900 px-4">
+  <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-ink-800 p-8 shadow-2xl">
+    <p class="text-center text-xs font-bold uppercase tracking-wider text-brand-400">iEvent</p>
+    <h1 class="mt-1 text-center font-display text-xl font-extrabold text-white">Super admin console</h1>
+    <p th:if="${error != null}" class="mt-5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-300">Incorrect password.</p>
+    <form th:action="@{/admin/login}" method="post" class="mt-6 space-y-4">
+      <input type="hidden" name="next" th:value="${next}">
+      <div>
+        <label for="ad-pass" class="mb-1.5 block text-sm font-semibold text-ink-200">Password</label>
+        <input id="ad-pass" name="password" type="password" autofocus required class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm text-white outline-none placeholder:text-ink-500 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/20">
+      </div>
+      <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white transition hover:bg-brand-600 active:scale-[.98]">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>

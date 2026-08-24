@@ -258,6 +258,7 @@ public class UserAreaController {
                             Model model) {
         User user = principal == null ? null : userService.byEmail(principal.getUsername());
         Organization org = organizations.findByHandle(handle)
+                .filter(o -> !o.isDisabled())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organizer not found"));
         model.addAttribute("currentUser", user);
         model.addAttribute("org", new OrganizerPage(org.getName(), org.getHandle(), org.getBio(),

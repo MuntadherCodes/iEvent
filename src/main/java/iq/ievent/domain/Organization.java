@@ -73,6 +73,14 @@ public class Organization {
     @Column(name = "cover_focus_y", nullable = false)
     private int coverFocusY = 50;
 
+    /** Suspended by the super admin — while true, every event under this org
+     *  is hidden from public discovery and the host console is locked out. */
+    @Column(nullable = false)
+    private boolean disabled = false;
+
+    @Column(name = "disabled_at")
+    private OffsetDateTime disabledAt;
+
     public Long getId() { return id; }
     public Long getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(Long ownerUserId) { this.ownerUserId = ownerUserId; }
@@ -117,4 +125,8 @@ public class Organization {
     public void setChecklistDismissed(boolean checklistDismissed) { this.checklistDismissed = checklistDismissed; }
     public int getCoverFocusY() { return coverFocusY; }
     public void setCoverFocusY(int coverFocusY) { this.coverFocusY = coverFocusY; }
+    public boolean isDisabled() { return disabled; }
+    public void setDisabled(boolean disabled) { this.disabled = disabled; }
+    public OffsetDateTime getDisabledAt() { return disabledAt; }
+    public void setDisabledAt(OffsetDateTime disabledAt) { this.disabledAt = disabledAt; }
 }

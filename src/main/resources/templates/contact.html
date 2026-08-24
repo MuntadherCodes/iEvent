@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="noIndex=${true}">
+<head th:replace="~{fragments/layout :: head(#{public.title.contact})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+
+<main id="main" class="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+
+  <div class="text-center">
+    <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{public.contact.title}">Contact us</h1>
+    <p class="mt-2 text-ink-500" th:text="#{public.contact.sub}">Questions, issues, or feedback — we read every message.</p>
+  </div>
+
+  <div class="mt-8 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+
+    <!-- Sent confirmation -->
+    <div th:if="${sent != null}" class="text-center">
+      <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-green-100 text-green-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-circle-check"/></svg></span>
+      <h2 class="mt-5 font-display text-xl font-extrabold text-ink-900" th:text="#{public.contact.sentTitle}">Message sent</h2>
+      <p class="mt-2 text-sm leading-relaxed text-ink-500" th:text="#{public.contact.sentSub}">Thanks for reaching out — we'll get back to you by email soon.</p>
+      <a th:href="@{/}" class="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.contact.backHome}">Back home</a>
+    </div>
+
+    <!-- Send-failed state: mail delivery genuinely failed server-side, distinct from
+         validation errors below — give the direct email as a fallback instead of
+         a dead-end retry loop. -->
+    <div th:if="${sendFailed != null}" class="text-center">
+      <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-rose-100 text-rose-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-triangle-alert"/></svg></span>
+      <h2 class="mt-5 font-display text-xl font-extrabold text-ink-900" th:text="#{public.contact.failTitle}">Couldn't send</h2>
+      <p class="mt-2 text-sm leading-relaxed text-ink-500">[[#{public.contact.failSub}]] <a th:href="${'mailto:' + supportEmail}" class="font-semibold text-brand-600" th:text="${supportEmail}">support@hillool.com</a></p>
+      <a th:href="@{/contact}" class="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.contact.tryAgain}">Try again</a>
+    </div>
+
+    <!-- Form -->
+    <form th:if="${sent == null and sendFailed == null}" th:action="@{/contact}" method="post" class="space-y-4">
+      <p th:if="${formError != null}" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" th:text="#{public.contact.formError}">Please fill in your name, a valid email, and a message.</p>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="ct-name" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.contact.name}">Name</label>
+          <input id="ct-name" name="name" type="text" required maxlength="120" th:value="${prefillName}" th:disabled="${loggedIn}"
+                 class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500 sm:text-sm">
+          <input th:if="${loggedIn}" type="hidden" name="name" th:value="${prefillName}">
+        </div>
+        <div>
+          <label for="ct-email" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.checkout.email}">Email</label>
+          <input id="ct-email" name="email" type="email" autocomplete="email" required th:value="${prefillEmail}" th:disabled="${loggedIn}"
+                 class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500 sm:text-sm">
+          <input th:if="${loggedIn}" type="hidden" name="email" th:value="${prefillEmail}">
+        </div>
+      </div>
+
+      <div>
+        <label for="ct-topic" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.contact.topic}">Topic</label>
+        <select id="ct-topic" name="topic" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+          <option value="general" th:selected="${prefillTopic == 'general'}" th:text="#{public.contact.topicGeneral}">General question</option>
+          <option value="attendee" th:selected="${prefillTopic == 'attendee'}" th:text="#{public.contact.topicAttendee}">Order / ticket issue</option>
+          <option value="organizer" th:selected="${prefillTopic == 'organizer'}" th:text="#{public.contact.topicOrganizer}">Organizer / event support</option>
+          <option value="billing" th:selected="${prefillTopic == 'billing'}" th:text="#{public.contact.topicBilling}">Billing / payments</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="ct-message" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.contact.message}">Message</label>
+        <textarea id="ct-message" name="message" rows="6" required maxlength="5000" th:text="${prefillMessage}"
+                  class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm"></textarea>
+      </div>
+
+      <!-- Honeypot: hidden from sighted users and screen readers, left blank by
+           humans; a filled value silently drops the submission as spam. -->
+      <div class="hidden" aria-hidden="true">
+        <label for="ct-website">Website</label>
+        <input id="ct-website" name="website" type="text" tabindex="-1" autocomplete="off">
+      </div>
+
+      <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg>[[#{public.contact.send}]]</button>
+    </form>
+  </div>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

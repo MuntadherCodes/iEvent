@@ -133,6 +133,7 @@ Responsive behavior:
        th:classappend="${active == 'settings'} ? 'bg-brand-50 font-semibold text-brand-700' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'"
        th:attr="aria-current=${active == 'settings'} ? 'page' : null"><svg class="h-5 w-5" th:classappend="${active == 'settings'} ? 'text-brand-600' : 'text-ink-400'" aria-hidden="true"><use href="#i-settings"/></svg><span class="hidden lg:inline" th:text="#{host.nav.settingsTeam}">Settings &amp; team</span></a>
     <a th:href="@{/organizers/{h}(h=${org.handle})}" th:title="#{host.nav.publicProfile}" title="Public profile" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 text-ink-600 transition hover:bg-ink-50 hover:text-ink-900 lg:justify-start lg:px-3"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-globe"/></svg><span class="hidden lg:inline" th:text="#{host.nav.publicProfile}">Public profile</span></a>
+    <a th:href="@{/contact}" th:title="#{host.nav.contactSupport}" title="Contact support" class="flex items-center justify-center gap-3 rounded-lg px-0 py-2.5 text-ink-600 transition hover:bg-ink-50 hover:text-ink-900 lg:justify-start lg:px-3"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-message-circle"/></svg><span class="hidden lg:inline" th:text="#{host.nav.contactSupport}">Contact support</span></a>
   </nav>
   <div class="border-t border-ink-100 p-3 lg:p-4">
     <div class="flex items-center justify-center gap-3 lg:justify-start">

@@ -19,6 +19,8 @@ public class GlobalModelAdvice {
     private final String mapsKey;
     private final boolean aiAvailable;
     private final boolean pexelsAvailable;
+    private final String gaId;
+    private final String googleSiteVerification;
     private final UserService userService;
     private final HostService hostService;
     private final String siteBaseUrl;
@@ -27,6 +29,8 @@ public class GlobalModelAdvice {
                              @Value("${app.google.maps-key:}") String mapsKey,
                              @Value("${app.openai.api-key:}") String openaiApiKey,
                              @Value("${app.pexels.api-key:}") String pexelsApiKey,
+                             @Value("${app.google.analytics-id:}") String gaId,
+                             @Value("${app.google.site-verification:}") String googleSiteVerification,
                              @Value("${app.base-url}") String siteBaseUrl,
                              UserService userService,
                              HostService hostService) {
@@ -34,6 +38,8 @@ public class GlobalModelAdvice {
         this.mapsKey = mapsKey == null ? "" : mapsKey;
         this.aiAvailable = openaiApiKey != null && !openaiApiKey.isBlank();
         this.pexelsAvailable = pexelsApiKey != null && !pexelsApiKey.isBlank();
+        this.gaId = gaId == null ? "" : gaId.trim();
+        this.googleSiteVerification = googleSiteVerification == null ? "" : googleSiteVerification.trim();
         this.userService = userService;
         this.hostService = hostService;
         // Trimmed once here so every canonical/hreflang/OG URL built in templates
@@ -48,6 +54,8 @@ public class GlobalModelAdvice {
         model.addAttribute("mapsKey", mapsKey.isBlank() ? null : mapsKey);
         model.addAttribute("aiAvailable", aiAvailable);
         model.addAttribute("pexelsAvailable", pexelsAvailable);
+        model.addAttribute("gaId", gaId.isBlank() ? null : gaId);
+        model.addAttribute("googleSiteVerification", googleSiteVerification.isBlank() ? null : googleSiteVerification);
         model.addAttribute("feeWaived", iq.ievent.service.Format.BOOKING_FEE_WAIVED);
         // Controllers may overwrite this with their own lookup; this default keeps
         // pages that don't (error page, simple views) consistent for OAuth + form users.

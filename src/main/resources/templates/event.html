@@ -45,11 +45,21 @@
     </nav>
 
     <!-- Draft preview banner (#15: only org members ever reach this page for a DRAFT) -->
-    <div th:if="${previewMode}" class="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4" role="status">
+    <div th:if="${previewMode and !adminBlocked}" class="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4" role="status">
       <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true"><use href="#i-eye"/></svg>
       <div>
         <p class="font-display font-extrabold text-amber-800" th:text="#{public.event.draftBanner}">Draft preview — only you can see this page.</p>
         <p class="mt-0.5 text-sm text-amber-700" th:text="#{public.event.draftBannerSub}">Publish to make it public.</p>
+      </div>
+    </div>
+
+    <!-- Admin takedown banner: event or whole org suspended by the super admin.
+         Only reaches org members (public 404s), same gate as the draft banner above. -->
+    <div th:if="${adminBlocked}" class="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4" role="alert">
+      <svg class="mt-0.5 h-5 w-5 shrink-0 text-rose-500" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+      <div>
+        <p class="font-display font-extrabold text-rose-800" th:text="#{public.event.adminHiddenBanner}">This listing was taken down by iEvent</p>
+        <p class="mt-0.5 text-sm text-rose-700">[[#{public.event.adminHiddenBannerSub}]] <a th:href="@{/contact}" class="font-semibold underline">[[#{public.contact.title}]]</a></p>
       </div>
     </div>
 
@@ -285,8 +295,8 @@
         <!-- Sales closed notice (ended / cancelled) -->
         <div th:if="${!purchasable and !event.announceOnly()}" class="sticky top-24 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
           <span class="grid h-12 w-12 place-items-center rounded-2xl bg-ink-100 text-ink-500"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-ticket"/></svg></span>
-          <p class="mt-4 font-display text-lg font-extrabold text-ink-900" th:text="${previewMode} ? #{public.event.draftNotOnSale} : (${eventStatus == 'CANCELLED'} ? #{public.event.eventCancelled} : #{public.event.salesClosed})">Ticket sales closed</p>
-          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="${previewMode} ? #{public.event.previewRailSub} : (${eventStatus == 'CANCELLED'} ? #{public.event.cancelledRailSub} : #{public.event.endedRailSub})">This event has already taken place.</p>
+          <p class="mt-4 font-display text-lg font-extrabold text-ink-900" th:text="${adminBlocked} ? #{public.event.adminHiddenRailTitle} : (${previewMode} ? #{public.event.draftNotOnSale} : (${eventStatus == 'CANCELLED'} ? #{public.event.eventCancelled} : #{public.event.salesClosed}))">Ticket sales closed</p>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="${adminBlocked} ? #{public.event.adminHiddenRailSub} : (${previewMode} ? #{public.event.previewRailSub} : (${eventStatus == 'CANCELLED'} ? #{public.event.cancelledRailSub} : #{public.event.endedRailSub}))">This event has already taken place.</p>
           <a th:if="${!previewMode}" th:href="@{/browse}" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.event.browseMore}">Browse more events</a>
         </div>
         <form th:if="${purchasable}" method="get" th:action="@{/e/{s}/checkout(s=${event.slug})}" class="sticky top-24 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">

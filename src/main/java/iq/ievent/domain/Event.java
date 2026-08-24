@@ -120,6 +120,14 @@ public class Event {
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
 
+    /** Taken down by the super admin — independent of the host's own status/
+     *  visibility fields, so only an admin action can clear it. */
+    @Column(name = "admin_hidden", nullable = false)
+    private boolean adminHidden = false;
+
+    @Column(name = "admin_hidden_at")
+    private OffsetDateTime adminHiddenAt;
+
     public Long getId() { return id; }
     public Organization getOrganization() { return organization; }
     public void setOrganization(Organization organization) { this.organization = organization; }
@@ -183,4 +191,8 @@ public class Event {
     public void setLanguage(String language) { this.language = language; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public boolean isAdminHidden() { return adminHidden; }
+    public void setAdminHidden(boolean adminHidden) { this.adminHidden = adminHidden; }
+    public OffsetDateTime getAdminHiddenAt() { return adminHiddenAt; }
+    public void setAdminHiddenAt(OffsetDateTime adminHiddenAt) { this.adminHiddenAt = adminHiddenAt; }
 }

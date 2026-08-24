@@ -180,34 +180,209 @@
     </div>
   </section>
 
-  <!-- ============ EMAIL CAPTURE ============ -->
+  <!-- ============ EMAIL CAPTURE ============
+       Email stays inline; submitting it opens a modal for the two follow-up
+       questions (categories, then city) so they read as one focused step
+       instead of the page itself re-flowing under the visitor. Only the final
+       city pick ever POSTs — nothing is saved for someone who closes the
+       modal mid-way. -->
   <section class="bg-brand-50 py-12 md:py-16 lg:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <!-- Default state -->
-      <div th:if="${param.subscribed == null}" class="mx-auto max-w-2xl text-center">
+      <div class="mx-auto max-w-2xl text-center">
         <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-mail"/></svg></span>
         <h2 class="mt-5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.neverMiss}">Never miss what's on</h2>
         <p class="mt-3 text-ink-500" th:text="#{public.home.newsletterSub}">Get a weekly digest of the best events in your city — concerts, meetups, festivals and free things to do.</p>
-        <form th:action="@{/newsletter}" method="post" class="mx-auto mt-7 flex max-w-md flex-col gap-3 sm:flex-row">
-          <input type="hidden" name="city" value="">
-          <input type="email" name="email" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{public.home.emailPlaceholder}" placeholder="you@example.com" th:attr="aria-label=#{public.home.emailAria}" aria-label="Email address">
+        <form id="nlForm" th:action="@{/newsletter}" method="post" class="mx-auto mt-7 flex max-w-md flex-col gap-3 sm:flex-row">
+          <input id="nlEmail" type="email" name="email" required class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{public.home.emailPlaceholder}" placeholder="you@example.com" th:attr="aria-label=#{public.home.emailAria}" aria-label="Email address">
           <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.home.subscribe}">Subscribe</button>
         </form>
         <p class="mt-3 text-xs text-ink-400" th:text="#{public.home.noSpam}">No spam. Unsubscribe anytime.</p>
       </div>
-      <!-- Subscribed state -->
-      <div th:if="${param.subscribed != null}" class="mx-auto max-w-2xl text-center">
-        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-green-100 text-green-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-circle-check"/></svg></span>
-        <h2 class="mt-5 font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.onTheList}">You're on the list ✓</h2>
-        <p class="mt-3 text-ink-500" th:text="#{public.home.onTheListSub}">Watch your inbox — the best of what's happening in Iraq lands there every week.</p>
-        <a th:href="@{/browse}" class="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">[[#{public.nav.browse}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+    </div>
+  </section>
+
+  <!-- ============ NEWSLETTER MODAL (categories -> city -> success) ============ -->
+  <div id="nlModalOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-900/50 p-4">
+    <div class="relative w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-cardHover sm:p-8" role="dialog" aria-modal="true" aria-labelledby="nlModalTitle">
+      <button type="button" id="nlModalClose" class="absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700" th:attr="aria-label=#{public.home.nlCloseAria}" aria-label="Close"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></button>
+
+      <!-- Panel: categories (multi-select, max 3) -->
+      <div id="nlPanelCategories">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-sparkles"/></svg></span>
+        <h2 id="nlModalTitle" class="mt-5 font-display text-xl font-extrabold text-ink-900" th:text="#{public.home.nlCategoriesTitle}">What kind of events do you like?</h2>
+        <p class="mt-2 text-sm text-ink-500" th:text="#{public.home.nlCategoriesSub}">Pick up to 3 — we'll tailor your weekly digest.</p>
+        <div id="nlCategoryChips" class="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <button type="button" th:each="c : ${categories}" class="nl-chip rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" th:attr="data-value=${c.value()},aria-pressed='false'" th:text="${c.label()}">Music</button>
+        </div>
+        <button type="button" id="nlCategoriesNext" disabled class="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50" th:text="#{public.home.nlContinue}">Continue</button>
       </div>
+
+      <!-- Panel: city — a main-city click or an Other-dropdown pick both submit immediately -->
+      <div id="nlPanelCity" class="hidden">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-map-pin"/></svg></span>
+        <h2 class="mt-5 font-display text-xl font-extrabold text-ink-900" th:text="#{public.home.nlCityTitle}">Which city?</h2>
+        <p class="mt-2 text-sm text-ink-500" th:text="#{public.home.nlCitySub}">One more thing — where are you based?</p>
+        <div id="nlCityChips" class="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <button type="button" class="nl-city-chip rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" data-value="Baghdad" th:text="${@t.city('Baghdad')}">Baghdad</button>
+          <button type="button" class="nl-city-chip rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" data-value="Basra" th:text="${@t.city('Basra')}">Basra</button>
+          <button type="button" class="nl-city-chip rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" data-value="Erbil" th:text="${@t.city('Erbil')}">Erbil</button>
+          <button type="button" class="nl-city-chip rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" data-value="Najaf" th:text="${@t.city('Najaf')}">Najaf</button>
+          <button type="button" class="nl-city-chip rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" data-value="Mosul" th:text="${@t.city('Mosul')}">Mosul</button>
+          <button type="button" id="nlCityOtherBtn" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400" th:text="#{public.home.nlOtherCity}">Other</button>
+        </div>
+        <div id="nlCityOtherWrap" class="mt-4 hidden">
+          <select id="nlCityOtherSelect" th:attr="aria-label=#{public.home.nlSelectCity}" aria-label="Select your city" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            <option value="" disabled selected th:text="#{public.home.nlSelectCity}">Select your city</option>
+            <option th:each="c : ${@t.cities()}" th:value="${c.en()}" th:text="${rtl} ? ${c.ar()} : ${c.en()}">Baghdad</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Panel: success -->
+      <div id="nlPanelSuccess" class="hidden">
+        <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-green-100 text-green-600"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-circle-check"/></svg></span>
+        <h2 class="mt-5 font-display text-xl font-extrabold text-ink-900" th:text="#{public.home.onTheList}">You're on the list ✓</h2>
+        <p class="mt-2 text-sm text-ink-500" th:text="#{public.home.onTheListSub}">Watch your inbox — the best of what's happening in Iraq lands there every week.</p>
+        <a th:href="@{/browse}" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">[[#{public.nav.browse}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var form = document.getElementById('nlForm');
+    var emailInput = document.getElementById('nlEmail');
+    if (!form) return;
+
+    var overlay = document.getElementById('nlModalOverlay');
+    var panelCategories = document.getElementById('nlPanelCategories');
+    var panelCity = document.getElementById('nlPanelCity');
+    var panelSuccess = document.getElementById('nlPanelSuccess');
+    var closeBtn = document.getElementById('nlModalClose');
+    var nextBtn = document.getElementById('nlCategoriesNext');
+    var otherBtn = document.getElementById('nlCityOtherBtn');
+    var otherWrap = document.getElementById('nlCityOtherWrap');
+    var otherSelect = document.getElementById('nlCityOtherSelect');
+
+    var MAX_CATS = 3;
+    var selectedCats = [];
+    var submitted = false;
+
+    function csrfHeaders() {
+      var token = document.querySelector('meta[name="_csrf"]');
+      var header = document.querySelector('meta[name="_csrf_header"]');
+      var h = { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' };
+      if (token && header) h[header.content] = token.content;
+      return h;
+    }
+
+    function showPanel(panel) {
+      [panelCategories, panelCity, panelSuccess].forEach(function (p) { p.classList.add('hidden'); });
+      panel.classList.remove('hidden');
+    }
+
+    function resetModal() {
+      selectedCats = [];
+      submitted = false;
+      document.querySelectorAll('.nl-chip').forEach(function (c) {
+        c.classList.remove('border-brand-500', 'bg-brand-50', 'text-brand-700');
+        c.classList.add('border-ink-200', 'bg-white', 'text-ink-700');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      nextBtn.disabled = true;
+      otherWrap.classList.add('hidden');
+      otherSelect.value = '';
+      showPanel(panelCategories);
+    }
+
+    function openModal() {
+      resetModal();
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+    }
+
+    function closeModal() {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!emailInput.reportValidity()) return;
+      openModal();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+
+    document.querySelectorAll('.nl-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var val = chip.getAttribute('data-value');
+        var idx = selectedCats.indexOf(val);
+        if (idx >= 0) {
+          selectedCats.splice(idx, 1);
+          chip.classList.remove('border-brand-500', 'bg-brand-50', 'text-brand-700');
+          chip.classList.add('border-ink-200', 'bg-white', 'text-ink-700');
+          chip.setAttribute('aria-pressed', 'false');
+        } else {
+          if (selectedCats.length >= MAX_CATS) return;
+          selectedCats.push(val);
+          chip.classList.remove('border-ink-200', 'bg-white', 'text-ink-700');
+          chip.classList.add('border-brand-500', 'bg-brand-50', 'text-brand-700');
+          chip.setAttribute('aria-pressed', 'true');
+        }
+        nextBtn.disabled = selectedCats.length === 0;
+      });
+    });
+
+    nextBtn.addEventListener('click', function () { showPanel(panelCity); });
+
+    otherBtn.addEventListener('click', function () {
+      otherWrap.classList.remove('hidden');
+      otherSelect.focus();
+    });
+
+    function submitSignup(city) {
+      if (submitted) return;
+      submitted = true;
+      var body = new URLSearchParams();
+      body.set('email', emailInput.value.trim());
+      body.set('categories', selectedCats.join(','));
+      body.set('city', city);
+      fetch(form.getAttribute('action'), { method: 'POST', headers: csrfHeaders(), body: body.toString() })
+        .catch(function () { /* fail open below — never trap the visitor on a network hiccup */ })
+        .then(function () { showPanel(panelSuccess); });
+    }
+
+    document.querySelectorAll('.nl-city-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () { submitSignup(chip.getAttribute('data-value')); });
+    });
+
+    otherSelect.addEventListener('change', function () {
+      if (otherSelect.value) submitSignup(otherSelect.value);
+    });
+  })();
+  </script>
+
+  <!-- ============ TRUST BAND ============ -->
+  <section class="border-t border-ink-100 bg-brand-100 py-8">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
+      <p class="flex items-center gap-3 text-sm font-medium text-ink-700">
+        <svg class="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-shield-check"/></svg>
+        [[#{public.org.trustPrefix}]] <span class="font-display font-extrabold tracking-wide text-ink-900"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span> [[#{public.org.trustSuffix}]]
+      </p>
+      <a th:href="@{/host}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.org.hostYourOwn}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
   </section>
 
 </main>
 
-<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:with="footerFlush=${true}">
+  <footer th:replace="~{fragments/layout :: footer}"></footer>
+</div>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
 </body>

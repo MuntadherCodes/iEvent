@@ -41,19 +41,22 @@ public class MailService {
     private final TicketPdfService ticketPdf;
     private final String from;
     private final String baseUrl;
+    private final String supportEmail;
 
     public MailService(JavaMailSender sender,
                        TemplateEngine templates,
                        MessageSource messages,
                        TicketPdfService ticketPdf,
                        @Value("${app.mail.from}") String from,
-                       @Value("${app.base-url}") String baseUrl) {
+                       @Value("${app.base-url}") String baseUrl,
+                       @Value("${app.mail.support}") String supportEmail) {
         this.sender = sender;
         this.templates = templates;
         this.messages = messages;
         this.ticketPdf = ticketPdf;
         this.from = from;
         this.baseUrl = baseUrl;
+        this.supportEmail = supportEmail;
     }
 
     private static Locale safe(Locale locale) {
@@ -167,6 +170,36 @@ public class MailService {
         sendTeamMail(to, msg("mail.teamAdded.subject", locale, orgName),
                 msg("mail.teamAdded.body", locale, orgName, roleLabel),
                 baseUrl + "/host", msg("mail.teamAdded.goDashboard", locale), locale);
+    }
+
+    /** Support contact form (public site + host dashboard). Synchronous — unlike
+     *  the transactional sends above, the caller needs to know whether it
+     *  actually went out to decide which confirmation to show the submitter. */
+    public boolean sendSupportContact(String name, String fromEmail, String topic, String messageText, Locale locale) {
+        Locale loc = safe(locale);
+        try {
+            Context ctx = new Context(loc);
+            ctx.setVariable("name", name);
+            ctx.setVariable("fromEmail", fromEmail);
+            ctx.setVariable("topic", topic);
+            ctx.setVariable("messageText", messageText);
+            ctx.setVariable("mailLang", isEnglish(loc) ? "en" : "ar");
+            ctx.setVariable("mailDir", isEnglish(loc) ? "ltr" : "rtl");
+            String html = templates.process("email/support-contact", ctx);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(supportEmail);
+            helper.setReplyTo(fromEmail);
+            helper.setSubject("[iEvent support] " + (topic == null || topic.isBlank() ? "General" : topic) + " — " + name);
+            helper.setText(html, true);
+            sender.send(message);
+            log.info("Sent support contact mail from {} ({})", fromEmail, topic);
+            return true;
+        } catch (Exception e) {
+            log.error("Support contact mail failed from {}", fromEmail, e);
+            return false;
+        }
     }
 
     private void sendTeamMail(String to, String subject, String bodyText, String buttonUrl, String buttonLabel, Locale locale) {

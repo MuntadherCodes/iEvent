@@ -127,8 +127,10 @@ public class CatalogService {
         return new PageImpl<>(cards, pageable, page.getTotalElements());
     }
 
-    /** Fire-and-forget page-view counter; separate txn, never breaks the page. */
-    @Transactional
+    /** Fire-and-forget page-view counter; separate txn, never breaks the page.
+     *  REQUIRES_NEW so it stays writable even when the caller (PageController#event,
+     *  gating admin-hidden/org-disabled visibility) is itself a read-only transaction. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void recordView(String slug) {
         try {
             events.findBySlug(slug).ifPresent(e -> events.incrementViewCount(e.getId()));
@@ -145,7 +147,8 @@ public class CatalogService {
 
     public Optional<EventDetail> eventDetail(String slug) {
         return events.findBySlug(slug)
-                .filter(e -> e.getStatus() == Event.Status.LIVE || e.getStatus() == Event.Status.ENDED)
+                .filter(e -> (e.getStatus() == Event.Status.LIVE || e.getStatus() == Event.Status.ENDED)
+                        && !e.isAdminHidden() && !e.getOrganization().isDisabled())
                 .map(this::toDetail);
     }
 
@@ -161,7 +164,7 @@ public class CatalogService {
     }
 
     public List<EventCard> upcomingForOrganization(Long orgId, int limit) {
-        return toCards(events.findByOrganizationIdAndStatusAndStartsAtAfterOrderByStartsAtAsc(
+        return toCards(events.findByOrganizationIdAndStatusAndAdminHiddenFalseAndStartsAtAfterOrderByStartsAtAsc(
                 orgId, Event.Status.LIVE, OffsetDateTime.now(), PageRequest.of(0, limit)));
     }
 

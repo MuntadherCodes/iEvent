@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -181,6 +182,7 @@ public class PageController {
     }
 
     @GetMapping("/e/{slug}")
+    @Transactional(readOnly = true)
     public String event(@PathVariable String slug,
                         @AuthenticationPrincipal UserDetails principal,
                         Model model) {
@@ -190,8 +192,12 @@ public class PageController {
         // #15 draft preview: a DRAFT renders only for signed-in members of the
         // owning organization (owner/manager/staff via TeamService). Everyone
         // else keeps getting the same 404 as before, so drafts stay unguessable.
+        // Same gate covers a super-admin takedown (event or whole org) — the
+        // host still needs to see it to understand what happened, but it must
+        // stay unguessable to the public exactly like a draft.
+        boolean adminBlocked = entity.isAdminHidden() || entity.getOrganization().isDisabled();
         boolean previewMode = false;
-        if (entity.getStatus() == Event.Status.DRAFT) {
+        if (entity.getStatus() == Event.Status.DRAFT || adminBlocked) {
             iq.ievent.domain.User viewer = principal == null ? null : userService.byEmail(principal.getUsername());
             boolean allowed = viewer != null && teamService.accessOf(viewer)
                     .map(a -> a.org().getId().equals(entity.getOrganization().getId()))
@@ -219,6 +225,7 @@ public class PageController {
             }
         }
         model.addAttribute("previewMode", previewMode);
+        model.addAttribute("adminBlocked", adminBlocked);
 
         model.addAttribute("event", detail);
         model.addAttribute("liked", liked);
@@ -229,7 +236,7 @@ public class PageController {
         String statusName = entity.getStatus().name();
         model.addAttribute("eventStatus", statusName);
         model.addAttribute("purchasable",
-                entity.getStatus() == Event.Status.LIVE && !entity.isAnnounceOnly());
+                entity.getStatus() == Event.Status.LIVE && !entity.isAnnounceOnly() && !adminBlocked);
         // Fee now depends on each ticket type's own price (Format.bookingFeeFor / @t.bookingFee
         // in the template) rather than one flat number, so the model only needs to say whether
         // buyers pay a fee at all here (ABSORB events never show a fee on the public page).
@@ -356,6 +363,7 @@ public class PageController {
         List<Event> past = all.stream()
                 .filter(e -> e.getStartsAt().isBefore(now))
                 .filter(e -> e.getStatus() == Event.Status.LIVE || e.getStatus() == Event.Status.ENDED)
+                .filter(e -> !e.isAdminHidden())
                 .limit(12)
                 .toList();
         Map<Long, Long> attended = new HashMap<>();
