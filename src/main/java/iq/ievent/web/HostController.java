@@ -387,6 +387,10 @@ public class HostController {
                               @RequestParam(required = false) String summary,
                               @RequestParam(required = false) String tags,
                               @RequestParam(required = false) String lineup,
+                              @RequestParam(required = false) String titleTranslated,
+                              @RequestParam(required = false) String summaryTranslated,
+                              @RequestParam(required = false) String descriptionTranslated,
+                              @RequestParam(required = false) String lineupTranslated,
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
@@ -458,6 +462,7 @@ public class HostController {
             created.setAnnounceOnly(announceOnly);
             applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode,
                     requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
+            applyTranslations(created, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(created, coverTheme);
             if (coverFocusY != null) hostService.setCoverFocusY(created, coverFocusY);
             CoverUploads uploads = splitCoverUploads(coverImages);
@@ -530,6 +535,10 @@ public class HostController {
                               @RequestParam(required = false) String summary,
                               @RequestParam(required = false) String tags,
                               @RequestParam(required = false) String lineup,
+                              @RequestParam(required = false) String titleTranslated,
+                              @RequestParam(required = false) String summaryTranslated,
+                              @RequestParam(required = false) String descriptionTranslated,
+                              @RequestParam(required = false) String lineupTranslated,
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
@@ -555,6 +564,7 @@ public class HostController {
             // settings, so those are re-applied unchanged rather than reset.
             applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode,
                     ev.isRequirePaymentProof(), hostService.selectedPaymentMethodIds(ev.getId()));
+            applyTranslations(ev, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(ev, coverTheme);
             return java.util.Map.of("ok", true);
         } catch (Exception e) {
@@ -658,6 +668,10 @@ public class HostController {
                 ev.getSummary() == null ? "" : ev.getSummary(),
                 ev.getTags() == null ? "" : ev.getTags(),
                 ev.getLineup() == null ? "" : ev.getLineup(),
+                ev.getTitleTranslated() == null ? "" : ev.getTitleTranslated(),
+                ev.getSummaryTranslated() == null ? "" : ev.getSummaryTranslated(),
+                ev.getDescriptionTranslated() == null ? "" : ev.getDescriptionTranslated(),
+                ev.getLineupTranslated() == null ? "" : ev.getLineupTranslated(),
                 ev.getVisibility() == null ? "PUBLIC" : ev.getVisibility(),
                 ev.getRefundPolicy() == null ? "UP_TO_7_DAYS" : ev.getRefundPolicy(),
                 ev.getLocationType() == null ? "VENUE" : ev.getLocationType(),
@@ -685,6 +699,9 @@ public class HostController {
         model.addAttribute("coverFocusY", ev.getCoverFocusY());
         model.addAttribute("galleryImagesJson", galleryImagesJson(hostService.currentGalleryPicks(ev)));
         model.addAttribute("postponeDate", z.toLocalDate().toString());
+        String targetLang = "ar".equals(ev.getLanguage()) ? "en" : "ar";
+        model.addAttribute("targetLang", targetLang);
+        model.addAttribute("targetLangName", msg("en".equals(targetLang) ? "common.english" : "common.arabic"));
         return "host/event-edit";
     }
 
@@ -717,6 +734,8 @@ public class HostController {
     public record EventEditView(String title, String category, String city, String venueName,
                                 String venueAddress, String date, String startTime, String endTime,
                                 String description, String summary, String tags, String lineup,
+                                String titleTranslated, String summaryTranslated,
+                                String descriptionTranslated, String lineupTranslated,
                                 String visibility, String refundPolicy,
                                 String locationType, String onlineUrl, String mapsUrl,
                                 boolean announceOnly, String feeMode, boolean requirePaymentProof) {}
@@ -742,6 +761,10 @@ public class HostController {
                               @RequestParam(required = false) String summary,
                               @RequestParam(required = false) String tags,
                               @RequestParam(required = false) String lineup,
+                              @RequestParam(required = false) String titleTranslated,
+                              @RequestParam(required = false) String summaryTranslated,
+                              @RequestParam(required = false) String descriptionTranslated,
+                              @RequestParam(required = false) String lineupTranslated,
                               @RequestParam(required = false) String visibility,
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
@@ -781,6 +804,7 @@ public class HostController {
             ev.setAnnounceOnly(announceOnly);
             applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode,
                     requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
+            applyTranslations(ev, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(ev, coverTheme);
             if (coverFocusY != null) hostService.setCoverFocusY(ev, coverFocusY);
             if (removeCover) hostService.removeCover(ev);
@@ -798,6 +822,33 @@ public class HostController {
             redirect.addFlashAttribute("error", msg("flash.event.saveFailed", e.getMessage()));
         }
         return "redirect:/host/events/" + id + "/edit";
+    }
+
+    /** "Generate/Refresh translation" button on the wizard's Publish step and
+     *  the edit page's Translation section. Always overwrites whatever
+     *  translated text is already there — see HostService#regenerateTranslation.
+     *  Works on a draft (wizard) or a live event (edit page) alike. */
+    @PostMapping("/events/{id}/translate")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> translateEvent(
+            @PathVariable Long id, @AuthenticationPrincipal UserDetails principal) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of("error", "no-org"));
+        requireManage(u);
+        Event ev = hostService.eventOf(org.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        HostService.TranslateResult result = hostService.regenerateTranslation(ev);
+        if (result != HostService.TranslateResult.OK) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(java.util.Map.of("error", result.name().toLowerCase(java.util.Locale.ROOT)));
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+                "title", ev.getTitleTranslated() == null ? "" : ev.getTitleTranslated(),
+                "summary", ev.getSummaryTranslated() == null ? "" : ev.getSummaryTranslated(),
+                "description", ev.getDescriptionTranslated() == null ? "" : ev.getDescriptionTranslated(),
+                "lineup", ev.getLineupTranslated() == null ? "" : ev.getLineupTranslated(),
+                "targetLang", "ar".equals(ev.getLanguage()) ? "en" : "ar"));
     }
 
     @PostMapping("/events/{id}/tickets")
@@ -895,6 +946,21 @@ public class HostController {
         events.save(ev);
         // Empty/null clears back to the default (every enabled org method).
         hostService.syncEventPaymentMethods(ev.getId(), paymentMethodIds);
+    }
+
+    /** Persists the host's own edits to the auto-translated copy (see the
+     *  "Translation" section on the wizard's Publish step and the edit page).
+     *  Called from the same create/update/autosave paths as applyExtras so a
+     *  correction the host types never gets lost on the next save — these
+     *  fields round-trip through the form exactly like summary/lineup do. */
+    private void applyTranslations(Event ev, String titleTranslated, String summaryTranslated,
+                                   String descriptionTranslated, String lineupTranslated) {
+        ev.setTitleTranslated(titleTranslated == null || titleTranslated.isBlank() ? null : titleTranslated.trim());
+        ev.setSummaryTranslated(summaryTranslated == null || summaryTranslated.isBlank() ? null : summaryTranslated.trim());
+        ev.setDescriptionTranslated(descriptionTranslated == null || descriptionTranslated.isBlank()
+                ? null : iq.ievent.service.RichText.forStorage(descriptionTranslated));
+        ev.setLineupTranslated(lineupTranslated == null || lineupTranslated.isBlank() ? null : lineupTranslated.strip());
+        events.save(ev);
     }
 
     /** Start time is optional in the form — the DB column still isn't nullable,

@@ -266,6 +266,7 @@
   "public.event.onlineEvent": "Online event",
   "public.event.onlineSub": "This event happens online — the join link is shared with confirmed ticket holders.",
   "public.event.openInMaps": "Open in Google Maps",
+  "public.event.postedBy": "Posted by",
   "public.event.previewRailSub": "This is how the ticket rail will look. Tickets go on sale when you publish the event.",
   "public.event.qtyAria": "{0} quantity",
   "public.event.refundPolicy": "Refund policy",

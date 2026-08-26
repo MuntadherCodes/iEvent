@@ -139,7 +139,7 @@
         <!-- Organizer byline (the full card with avatar/stats/Follow is further down the page —
              this is just a quick "who's behind this" line near the title, not a second copy of it) -->
         <p class="mt-6 flex flex-wrap items-center gap-1.5 text-sm text-ink-500">
-          <span th:text="#{public.event.hostedBy}">Hosted by</span>
+          <span th:text="${event.announceOnly()} ? #{public.event.postedBy} : #{public.event.hostedBy}">Hosted by</span>
           <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="inline-flex items-center gap-1 font-semibold text-ink-900 transition hover:text-brand-600">
             <span th:text="${event.organizer.name}">Zain Events Co.</span>
             <svg th:if="${event.organizer.verified}" class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-badge-check"/></svg>

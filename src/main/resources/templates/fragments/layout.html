@@ -195,7 +195,7 @@
       <div class="ms-auto flex items-center gap-0.5">
       <a th:href="@{/host}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
       <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" class="ms-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
-        <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? 'EN' : 'AR']]<svg class="h-3 w-3" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? #{common.arabic} : #{common.english}]]
       </a>
       <th:block th:if="${currentUser != null}">
         <div class="relative ms-1.5">

@@ -61,6 +61,10 @@ app:
     analytics-id: ${GA_MEASUREMENT_ID:}
     # Search Console ownership proof via the HTML-tag method — hides when unset.
     site-verification: ${GOOGLE_SITE_VERIFICATION:}
+    # Auto-translates event title/summary/description/lineup to the other
+    # language on publish (Cloud Translation API v2, API-key auth). Empty
+    # means events just display in whichever language the host wrote them.
+    translate-api-key: ${GOOGLE_TRANSLATE_API_KEY:}
   openai:
     api-key: ${OPENAI_API_KEY:}
     model: ${OPENAI_MODEL:gpt-4o-mini}

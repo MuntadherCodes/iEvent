@@ -594,6 +594,78 @@
             <p class="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-eye"/></svg><span><span th:text="#{wizard.publish.note1}">This card is a preview of your public event page. Use </span><strong class="font-semibold text-ink-700" th:text="#{wizard.action.publish}">Publish event</strong><span th:text="#{wizard.publish.note2}"> or </span><strong class="font-semibold text-ink-700" th:text="#{wizard.action.saveDraft}">Save draft</strong><span th:text="#{wizard.publish.note3}"> in the bar below.</span></span></p>
           </div>
 
+          <!-- Auto-translation review/edit (see GoogleTranslateService) — hidden
+               entirely when GOOGLE_TRANSLATE_API_KEY isn't configured, same
+               pattern as the AI-write buttons above. Needs a real draft row to
+               translate from — the network-autosave block below has usually
+               already created one by the time the host reaches this step; the
+               button flushes any pending save first just in case. -->
+          <div th:if="${translateAvailable}" id="translationSection" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-ink-50/60 p-6 shadow-card sm:p-8">
+            <div>
+              <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-900"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-globe"/></svg><span th:text="#{wizard.translate.title}">Translation</span></p>
+              <p class="mt-1 max-w-xl text-sm text-ink-500" th:text="#{wizard.translate.subGeneric}">Auto-translated copy visitors see when browsing the site in the other language. Review and edit it if needed.</p>
+            </div>
+            <button type="button" id="openTranslationModalBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">
+              <svg class="h-4 w-4" aria-hidden="true"><use href="#i-globe"/></svg>
+              <span th:text="#{wizard.translate.reviewBtn}">Review translation</span>
+            </button>
+          </div>
+
+          <!-- Translation modal — the fields (titleTranslated etc.) live inside
+               #createForm regardless of the modal being open/closed, so they
+               submit with the rest of the wizard normally either way. -->
+          <div th:if="${translateAvailable}" id="translationModalOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-900/50 p-4">
+            <div class="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 text-start shadow-cardHover sm:p-8" role="dialog" aria-modal="true" aria-labelledby="translationModalTitle">
+              <button type="button" id="translationModalClose" class="absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700" th:attr="aria-label=#{common.close}" aria-label="Close"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></button>
+
+              <h3 id="translationModalTitle" class="inline-flex items-center gap-1.5 pe-10 font-display text-lg font-bold text-ink-900"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-globe"/></svg><span th:text="#{wizard.translate.title}">Translation</span></h3>
+              <p class="mt-1 max-w-md text-sm text-ink-500" th:text="#{wizard.translate.subGeneric}">Auto-translated copy visitors see when browsing the site in the other language. Review and edit it if needed.</p>
+
+              <button type="button" id="translateBtn" class="mt-4 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-globe"/></svg>
+                <span data-translate-btn-label th:text="#{wizard.translate.generate}">Generate translation</span>
+              </button>
+              <p id="translateError" class="mt-2 hidden text-sm text-rose-600" th:text="#{wizard.translate.error}">Couldn't generate the translation — try again.</p>
+
+              <div class="mt-4 space-y-4">
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-title-translated" th:text="#{wizard.edit.eventName}">Event name</label>
+                  <input id="ev-title-translated" name="titleTranslated" type="text" th:placeholder="#{wizard.translate.titlePlaceholder}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-summary-translated" th:text="#{wizard.edit.summary}">Summary</label>
+                  <textarea id="ev-summary-translated" name="summaryTranslated" rows="2" maxlength="160" th:placeholder="#{wizard.translate.summaryPlaceholder}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc-editor-translated" th:text="#{wizard.edit.description}">Description</label>
+                  <div class="rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+                    <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
+                        <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
+                        <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
+                        <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
+                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
+                      </div>
+                    <div id="ev-desc-editor-translated" class="rich-text min-h-[120px] px-4 py-3 text-sm outline-none" contenteditable="true" th:attr="data-placeholder=#{wizard.translate.descPlaceholder}" role="textbox" aria-multiline="true"></div>
+                  </div>
+                  <textarea id="ev-desc-translated" name="descriptionTranslated" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-lineup-translated" th:text="#{wizard.lineup.title}">Lineup / agenda</label>
+                  <textarea id="ev-lineup-translated" name="lineupTranslated" rows="4" th:placeholder="#{wizard.translate.lineupPlaceholder}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+                </div>
+              </div>
+
+              <button type="button" id="translationModalDone" class="mt-6 w-full rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:w-auto" th:text="#{common.close}">Close</button>
+            </div>
+          </div>
+
           <!-- After you publish -->
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <h2 class="font-display text-lg font-bold text-ink-900" th:text="#{wizard.after.title}">After you publish</h2>
@@ -642,7 +714,7 @@
 </div>
 
 <!-- Localized strings for inline JS (review step, validation, counters, autosave) -->
-<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage},data-pexels-position=#{wizard.banner.imagePosition},data-cover-badge=#{wizard.banner.coverBadge},data-max-images=#{wizard.banner.maxImages}"></div>
+<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage},data-pexels-position=#{wizard.banner.imagePosition},data-cover-badge=#{wizard.banner.coverBadge},data-max-images=#{wizard.banner.maxImages},data-translate-refresh=#{wizard.translate.refresh},data-translate-generating=#{wizard.translate.generating}"></div>
 
 <!-- Google Places config: rendered only when a Maps key is configured -->
 <div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
@@ -1306,7 +1378,18 @@
     }
 
     function netSaveNow() {
-      if (restoring || netSaving || !step1Ready()) return;
+      if (restoring || !step1Ready()) return Promise.resolve();
+      if (netSaving) {
+        // A save is already in flight — wait for it, then run one more so
+        // whatever just changed (e.g. the translate button's own flush) is
+        // definitely included, rather than possibly racing the in-flight one.
+        netPending = true;
+        return new Promise(function (resolve) {
+          var check = setInterval(function () {
+            if (!netSaving) { clearInterval(check); resolve(); }
+          }, 100);
+        });
+      }
       netSaving = true;
       var id = draftIdInput.value;
       var req = id
@@ -1318,16 +1401,21 @@
             method: 'POST', headers: (function () { var h = {}; h[csrfHeader] = csrfToken; return h; })(),
             body: formDataWithoutFile()
           });
-      req.then(function (r) { return r.json(); })
+      return req.then(function (r) { return r.json(); })
         .then(function (data) {
           if (data && data.id) draftIdInput.value = data.id;
         })
         .catch(function () { /* offline / transient — the localStorage backup still covers this device */ })
         .finally(function () {
           netSaving = false;
-          if (netPending) { netPending = false; netSaveNow(); }
+          if (netPending) { netPending = false; return netSaveNow(); }
         });
     }
+    // Lets the "Generate translation" button flush pending edits into a real
+    // draft row (creating it if this is the very first save) before asking
+    // the server to translate whatever's currently saved there.
+    window.__flushNetSave = netSaveNow;
+    window.__draftEventIdInput = draftIdInput;
 
     function scheduleNetSave() {
       if (restoring) return;
@@ -1444,11 +1532,13 @@
   })();
 })();
 
-  // ---- Rich text editor (R13 #3): contenteditable + hidden textarea sync ----
-  (function () {
-    var ed = document.getElementById('ev-desc-editor');
-    var ta = document.querySelector('textarea[name="description"]');
-    if (!ed || !ta) return;
+  // ---- Rich text editor (R13 #3): contenteditable + hidden textarea sync.
+  // Reusable so the same toolbar/contenteditable machinery drives both the
+  // origin description editor and the translated-description editor in the
+  // Translation section on the Publish step. ----
+  function initRichEditor(editorId, ta) {
+    var ed = document.getElementById(editorId);
+    if (!ed || !ta) return null;
     // Seed the editor from the (possibly plain-text) stored value
     var v = ta.value || '';
     if (v && v.indexOf('<') === -1) {
@@ -1469,7 +1559,7 @@
     }
     ed.addEventListener('input', sync);
     ed.addEventListener('blur', sync);
-    document.querySelectorAll('[data-rt-for="ev-desc-editor"]').forEach(function (btn) {
+    document.querySelectorAll('[data-rt-for="' + editorId + '"]').forEach(function (btn) {
       btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep selection
       btn.addEventListener('click', function () {
         ed.focus();
@@ -1487,8 +1577,14 @@
         sync();
       });
     });
+    return { setHtml: function (html) { ed.innerHTML = html || ''; sync(); } };
+  }
+
+  (function () {
+    var descEditor = initRichEditor('ev-desc-editor', document.querySelector('textarea[name="description"]'));
     // Autosave restore writes the textarea directly — mirror it back into the editor
-    window.__syncDescEditor = function () { ed.innerHTML = ta.value || ''; };
+    if (descEditor) window.__syncDescEditor = function () { descEditor.setHtml(document.querySelector('textarea[name="description"]').value); };
+    window.__translatedDescEditor = initRichEditor('ev-desc-editor-translated', document.getElementById('ev-desc-translated'));
   })();
 
   // ---- "Write it for me" (AI-generated copy: description, summary, lineup) ----
@@ -1567,6 +1663,67 @@
       var ta = document.getElementById('ev-lineup');
       ta.value = text;
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  })();
+
+  // ---- Auto-translation modal: open/close + "Generate/Refresh" (see GoogleTranslateService) ----
+  (function () {
+    var overlay = document.getElementById('translationModalOverlay');
+    if (!overlay) return; // hidden server-side when GOOGLE_TRANSLATE_API_KEY isn't configured
+    var openBtn = document.getElementById('openTranslationModalBtn');
+    var closeBtn = document.getElementById('translationModalClose');
+    var doneBtn = document.getElementById('translationModalDone');
+
+    function openModal() { overlay.classList.remove('hidden'); overlay.classList.add('flex'); }
+    function closeModal() { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    doneBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+
+    var btn = document.getElementById('translateBtn');
+    var errorEl = document.getElementById('translateError');
+    var labelEl = btn.querySelector('[data-translate-btn-label]');
+    var i18nEl = document.getElementById('wizI18n');
+    function tMsg(name) { return (i18nEl && i18nEl.getAttribute('data-' + name)) || ''; }
+    var refreshLabel = tMsg('translate-refresh');
+    var generatingLabel = tMsg('translate-generating');
+    var csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    btn.addEventListener('click', function () {
+      errorEl.classList.add('hidden');
+      btn.disabled = true;
+      var defaultLabel = labelEl.textContent;
+      labelEl.textContent = generatingLabel;
+      // Flush whatever's currently typed into a real draft row first — the
+      // server translates whatever's actually saved, not the live form state.
+      (window.__flushNetSave ? window.__flushNetSave() : Promise.resolve())
+        .then(function () {
+          var eventId = window.__draftEventIdInput && window.__draftEventIdInput.value;
+          if (!eventId) throw new Error('no_draft');
+          var headers = {};
+          headers[csrfHeader] = csrfToken;
+          return fetch('/host/events/' + eventId + '/translate', { method: 'POST', headers: headers });
+        })
+        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+        .then(function (result) {
+          if (!result.ok) throw new Error('translate_failed');
+          document.getElementById('ev-title-translated').value = result.data.title || '';
+          document.getElementById('ev-summary-translated').value = result.data.summary || '';
+          document.getElementById('ev-lineup-translated').value = result.data.lineup || '';
+          if (window.__translatedDescEditor) window.__translatedDescEditor.setHtml(result.data.description || '');
+          labelEl.textContent = refreshLabel;
+        })
+        .catch(function () {
+          errorEl.classList.remove('hidden');
+          labelEl.textContent = defaultLabel;
+        })
+        .finally(function () { btn.disabled = false; });
     });
   })();
 

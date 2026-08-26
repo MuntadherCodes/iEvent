@@ -228,7 +228,7 @@ public class CatalogService {
         for (Event e : list) {
             out.add(new EventCard(
                     e.getSlug(),
-                    e.getTitle(),
+                    Format.localized(e.getTitle(), e.getTitleTranslated(), e.getLanguage()),
                     Format.categoryLabel(e.getCategory()),
                     e.getCoverTheme(),
                     Format.coverUrl(e),
@@ -273,14 +273,15 @@ public class CatalogService {
                 initialsOf(org.getName()),
                 org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId());
 
-        List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
+        String descriptionText = Format.localized(e.getDescription(), e.getDescriptionTranslated(), e.getLanguage());
+        List<String> paragraphs = Arrays.stream(descriptionText.split("\n\n"))
                 .map(String::trim)
                 .filter(p -> !p.isEmpty())
                 .toList();
 
         String primary = Format.coverUrl(e);
         return new EventDetail(
-                e.getSlug(), e.getTitle(),
+                e.getSlug(), Format.localized(e.getTitle(), e.getTitleTranslated(), e.getLanguage()),
                 Format.categoryLabel(e.getCategory()),
                 e.getCoverTheme(),
                 primary,

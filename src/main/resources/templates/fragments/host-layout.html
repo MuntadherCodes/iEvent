@@ -221,7 +221,7 @@ Responsive behavior:
   <div class="ms-auto flex items-center gap-2">
     <!-- Language switcher — same globe-button style as the public site header -->
     <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" class="inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
-      <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? 'EN' : 'AR']]<svg class="h-3 w-3" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+      <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? #{common.arabic} : #{common.english}]]
     </a>
     <div th:if="${currentUser != null}" class="relative">
       <button id="nbBtn" type="button" class="relative grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:aria-label="#{host.topbar.notifications}" aria-label="Notifications" aria-expanded="false" aria-controls="nbPanel">

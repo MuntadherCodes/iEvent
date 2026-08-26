@@ -19,6 +19,7 @@ public class GlobalModelAdvice {
     private final String mapsKey;
     private final boolean aiAvailable;
     private final boolean pexelsAvailable;
+    private final boolean translateAvailable;
     private final String gaId;
     private final String googleSiteVerification;
     private final UserService userService;
@@ -29,6 +30,7 @@ public class GlobalModelAdvice {
                              @Value("${app.google.maps-key:}") String mapsKey,
                              @Value("${app.openai.api-key:}") String openaiApiKey,
                              @Value("${app.pexels.api-key:}") String pexelsApiKey,
+                             @Value("${app.google.translate-api-key:}") String translateApiKey,
                              @Value("${app.google.analytics-id:}") String gaId,
                              @Value("${app.google.site-verification:}") String googleSiteVerification,
                              @Value("${app.base-url}") String siteBaseUrl,
@@ -38,6 +40,7 @@ public class GlobalModelAdvice {
         this.mapsKey = mapsKey == null ? "" : mapsKey;
         this.aiAvailable = openaiApiKey != null && !openaiApiKey.isBlank();
         this.pexelsAvailable = pexelsApiKey != null && !pexelsApiKey.isBlank();
+        this.translateAvailable = translateApiKey != null && !translateApiKey.isBlank();
         this.gaId = gaId == null ? "" : gaId.trim();
         this.googleSiteVerification = googleSiteVerification == null ? "" : googleSiteVerification.trim();
         this.userService = userService;
@@ -54,6 +57,7 @@ public class GlobalModelAdvice {
         model.addAttribute("mapsKey", mapsKey.isBlank() ? null : mapsKey);
         model.addAttribute("aiAvailable", aiAvailable);
         model.addAttribute("pexelsAvailable", pexelsAvailable);
+        model.addAttribute("translateAvailable", translateAvailable);
         model.addAttribute("gaId", gaId.isBlank() ? null : gaId);
         model.addAttribute("googleSiteVerification", googleSiteVerification.isBlank() ? null : googleSiteVerification);
         model.addAttribute("feeWaived", iq.ievent.service.Format.BOOKING_FEE_WAIVED);

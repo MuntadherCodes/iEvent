@@ -268,12 +268,17 @@ public class PageController {
                 .filter(t -> "ON_SALE".equals(t.status()) && t.remaining() > 0)
                 .map(t -> t.id())
                 .findFirst().orElse(null));
-        model.addAttribute("descriptionHtml",
-                iq.ievent.service.RichText.toDisplayHtml(entity.getDescription()));
+        String descriptionText = Format.localized(
+                entity.getDescription(), entity.getDescriptionTranslated(), entity.getLanguage());
+        model.addAttribute("descriptionHtml", iq.ievent.service.RichText.toDisplayHtml(descriptionText));
+        String summaryText = Format.localized(
+                entity.getSummary(), entity.getSummaryTranslated(), entity.getLanguage());
         model.addAttribute("summary",
-                entity.getSummary() == null || entity.getSummary().isBlank() ? null : entity.getSummary().trim());
+                summaryText == null || summaryText.isBlank() ? null : summaryText.trim());
         model.addAttribute("tags", parseTags(entity.getTags()));
-        model.addAttribute("lineup", parseLineup(entity.getLineup()));
+        String lineupText = Format.localized(
+                entity.getLineup(), entity.getLineupTranslated(), entity.getLanguage());
+        model.addAttribute("lineup", parseLineup(lineupText));
         model.addAttribute("refundPolicyText", refundPolicyText(entity.getRefundPolicy(), messages));
         model.addAttribute("directionsUrl", directionsUrl(entity));
         return "event";
@@ -292,7 +297,8 @@ public class PageController {
                 likeCounts.eventsHostedForOrganization(org.getId()),
                 initialsOf(org.getName()),
                 org.getLogoPath() == null || org.getLogoPath().isBlank() ? null : "/media/org-logo/" + org.getId());
-        List<String> paragraphs = Arrays.stream(e.getDescription().split("\n\n"))
+        String descriptionText = Format.localized(e.getDescription(), e.getDescriptionTranslated(), e.getLanguage());
+        List<String> paragraphs = Arrays.stream(descriptionText.split("\n\n"))
                 .map(String::trim).filter(p -> !p.isEmpty()).toList();
         String primary = Format.coverUrl(e);
         List<GalleryImageView> allImages = new ArrayList<>();
@@ -301,7 +307,7 @@ public class PageController {
                 "SELECT url, focus_y FROM event_images WHERE event_id = ? ORDER BY sort_order",
                 (rs, i) -> new GalleryImageView(rs.getString(1), rs.getInt(2)), e.getId()));
         return new EventDetail(
-                e.getSlug(), e.getTitle(),
+                e.getSlug(), Format.localized(e.getTitle(), e.getTitleTranslated(), e.getLanguage()),
                 Format.categoryLabel(e.getCategory()),
                 e.getCoverTheme(),
                 primary,

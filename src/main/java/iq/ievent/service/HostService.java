@@ -10,6 +10,8 @@ import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.TicketTypeRepository;
 import iq.ievent.repo.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -29,6 +31,8 @@ import java.util.Optional;
 
 @Service
 public class HostService {
+
+    private static final Logger log = LoggerFactory.getLogger(HostService.class);
 
     public record HostStats(long ticketsSold, long revenueIqd, long pendingOrders, long liveEvents) {}
 
@@ -58,6 +62,7 @@ public class HostService {
     private final MailService mail;
     private final NotificationService notifications;
     private final MessageSource messages;
+    private final GoogleTranslateService translator;
     private final String baseUrl;
     private final java.nio.file.Path uploadDir;
 
@@ -75,6 +80,7 @@ public class HostService {
                        MailService mail,
                        NotificationService notifications,
                        MessageSource messages,
+                       GoogleTranslateService translator,
                        @Value("${app.base-url}") String baseUrl,
                        @Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.organizations = organizations;
@@ -87,6 +93,7 @@ public class HostService {
         this.mail = mail;
         this.notifications = notifications;
         this.messages = messages;
+        this.translator = translator;
         this.baseUrl = baseUrl;
         this.uploadDir = java.nio.file.Path.of(uploadDir);
     }
@@ -417,6 +424,11 @@ public class HostService {
         e.setOrganization(org);
         e.setTitle(title.trim());
         e.setSlug(uniqueSlug(title));
+        // Detected from the title's own script, not the host's UI locale —
+        // a host browsing in English can still type an Arabic title (or vice
+        // versa), and the actual text is what auto-translation (see
+        // translateEventContent) needs to get the direction right.
+        e.setLanguage(containsArabic(title) ? "ar" : "en");
         e.setCategory(category);
         e.setCity(city);
         e.setVenueName(venueName);
@@ -582,7 +594,81 @@ public class HostService {
     @Transactional
     public void publish(Event event) {
         event.setStatus(Event.Status.LIVE);
+        // A host who's already generated (or hand-edited) a translation owns
+        // it from then on — publish() only fills it in the first time, so a
+        // routine unpublish/republish can never silently clobber their edit.
+        // A visible "Regenerate" button (see regenerateTranslation) is the
+        // only thing that overwrites an existing translation, and only on
+        // the host's explicit click.
+        if (event.getTitleTranslated() == null) translateEventContent(event);
         events.save(event);
+    }
+
+    public enum TranslateResult { NOT_CONFIGURED, FAILED, OK }
+
+    /** Host-triggered "Generate/Refresh translation" — always overwrites
+     *  whatever translated text is already there, since the host clicked the
+     *  button on purpose. Works on a draft or a live event alike (translation
+     *  isn't gated on publish status here — only publish()'s automatic
+     *  first-fill is). */
+    @Transactional
+    public TranslateResult regenerateTranslation(Event event) {
+        if (!translator.available()) return TranslateResult.NOT_CONFIGURED;
+        boolean ok = translateEventContent(event);
+        events.save(event);
+        return ok ? TranslateResult.OK : TranslateResult.FAILED;
+    }
+
+    /** Auto-translates title/summary/description/lineup to the other language
+     *  (see Event#language, #titleTranslated etc.), always overwriting any
+     *  existing translated text — callers decide when that's appropriate
+     *  (see publish() and regenerateTranslation() above). Silent no-op when
+     *  GOOGLE_TRANSLATE_API_KEY isn't configured, or on any API failure,
+     *  since the event is still perfectly displayable in its original
+     *  language either way (Format.localized falls back to that). Returns
+     *  whether the title — the one field guaranteed non-blank — translated
+     *  successfully, as a simple proxy for "did this mostly work". */
+    private boolean translateEventContent(Event event) {
+        if (!translator.available()) return false;
+        // Self-heals Event#language from the title's own script every time a
+        // translation runs — covers rows created before this flag was ever
+        // set correctly (see V22 for the one-time backfill of those), and
+        // costs nothing when it already matched.
+        String source = containsArabic(event.getTitle()) ? "ar" : "en";
+        event.setLanguage(source);
+        String target = "ar".equals(source) ? "en" : "ar";
+        try {
+            String titleT = translator.translate(event.getTitle(), source, target, false);
+            if (titleT != null) event.setTitleTranslated(titleT);
+
+            event.setSummaryTranslated(event.getSummary() == null || event.getSummary().isBlank() ? null
+                    : translator.translate(event.getSummary(), source, target, false));
+
+            event.setDescriptionTranslated(event.getDescription() == null || event.getDescription().isBlank() ? null
+                    : translator.translate(event.getDescription(), source, target, true));
+
+            if (event.getLineup() == null || event.getLineup().isBlank()) {
+                event.setLineupTranslated(null);
+            } else {
+                List<String> lines = List.of(event.getLineup().split("\n"));
+                List<String> linesT = translator.translateBatch(lines, source, target, false);
+                event.setLineupTranslated(linesT != null && linesT.size() == lines.size()
+                        ? String.join("\n", linesT) : null);
+            }
+            return titleT != null;
+        } catch (Exception e) {
+            log.warn("Event translation failed for event {}", event.getId(), e);
+            return false;
+        }
+    }
+
+    /** Whether {@code s} contains at least one Arabic-script letter (U+0600
+     *  to U+06FF) — a simple, reliable origin-language signal on a platform
+     *  that's strictly bilingual Arabic/English, unlike guessing from the
+     *  host's current UI locale (see createEvent, translateEventContent). */
+    private static boolean containsArabic(String s) {
+        if (s == null) return false;
+        return s.chars().anyMatch(c -> c >= 0x0600 && c <= 0x06FF);
     }
 
     @Transactional

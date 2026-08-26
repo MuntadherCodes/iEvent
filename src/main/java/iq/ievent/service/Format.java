@@ -60,6 +60,18 @@ public final class Format {
         return displayLocale() == Locale.ENGLISH;
     }
 
+    /** Picks event copy matching the viewer's locale: {@code origin} as-written
+     *  when the request locale matches the language the host wrote it in
+     *  ({@code originLang}, "ar"/"en"); otherwise {@code translated} when a
+     *  Google-Translate auto-translation exists, falling back to {@code origin}
+     *  itself when it doesn't (translation never configured, or hasn't run
+     *  yet — the event is still readable, just not in the viewer's language). */
+    public static String localized(String origin, String translated, String originLang) {
+        boolean originIsEnglish = "en".equals(originLang);
+        if (isEnglish() == originIsEnglish) return origin;
+        return (translated == null || translated.isBlank()) ? origin : translated;
+    }
+
     public static String cardDateLine(OffsetDateTime startsAt) {
         Locale loc = displayLocale();
         ZonedDateTime z = startsAt.atZoneSameInstant(BAGHDAD);

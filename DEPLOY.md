@@ -25,8 +25,11 @@
    (venue maps + venue search autocomplete; restrict the key to your domain,
    and confirm the Maps Embed API, Maps JavaScript API, and Places API are
    all enabled for it), `OPENAI_API_KEY` (the "Write it for me" AI content
-   button; hides when unset), and `PEXELS_API_KEY` (the cover-picker's
-   "search photos" tab; hides when unset).
+   button; hides when unset), `PEXELS_API_KEY` (the cover-picker's
+   "search photos" tab; hides when unset), and `GOOGLE_TRANSLATE_API_KEY`
+   (auto-translates title/summary/description/lineup to the other language
+   when a host publishes; events just display in whichever language they
+   were written in when unset).
 4. `docker compose -f docker-compose.staging.yml up -d --build`
 5. Verify: `https://<domain>/actuator/health` → `{"status":"UP"}`; register a
    user; send a test order; check the email arrives via Mailjet.

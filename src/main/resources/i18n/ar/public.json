@@ -266,6 +266,7 @@
   "public.event.onlineEvent": "فعالية عبر الإنترنت",
   "public.event.onlineSub": "تقام هذه الفعالية عبر الإنترنت — يُشارك رابط الانضمام مع حاملي التذاكر المؤكدة.",
   "public.event.openInMaps": "افتح في خرائط Google",
+  "public.event.postedBy": "نشر بواسطة",
   "public.event.previewRailSub": "هكذا ستبدو لوحة التذاكر. يبدأ البيع عند نشر الفعالية.",
   "public.event.qtyAria": "كمية {0}",
   "public.event.refundPolicy": "سياسة الاسترداد",
