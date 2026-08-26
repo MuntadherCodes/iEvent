@@ -41,20 +41,24 @@ import java.util.Map;
 @Controller
 public class PageController {
 
-    /** Category filter options shown on browse; value ↔ Event.Category name. */
+    /** Category filter options shown on browse; value ↔ Event.Category name.
+     *  Order drives every place this list is rendered (browse filter, host
+     *  wizard dropdown, homepage tiles, newsletter picker) — led with what's
+     *  actually most common in the live catalog (education courses and
+     *  community fairs), then the rest by general likelihood in Iraq. */
     public record CategoryOption(String value, String label) {}
 
     public static final List<CategoryOption> CATEGORIES = List.of(
-            new CategoryOption("MUSIC", "Music"),
-            new CategoryOption("TECH", "Tech"),
-            new CategoryOption("BUSINESS", "Business"),
-            new CategoryOption("ARTS", "Arts & Culture"),
-            new CategoryOption("FOOD", "Food & Drink"),
-            new CategoryOption("SPORTS", "Sports"),
-            new CategoryOption("COMMUNITY", "Community"),
             new CategoryOption("EDUCATION", "Education"),
-            new CategoryOption("FILM", "Film & Media"),
-            new CategoryOption("FAMILY", "Family"));
+            new CategoryOption("COMMUNITY", "Community"),
+            new CategoryOption("BUSINESS", "Business"),
+            new CategoryOption("FOOD", "Food & Drink"),
+            new CategoryOption("TECH", "Tech"),
+            new CategoryOption("MUSIC", "Music"),
+            new CategoryOption("SPORTS", "Sports"),
+            new CategoryOption("ARTS", "Arts & Culture"),
+            new CategoryOption("FAMILY", "Family"),
+            new CategoryOption("FILM", "Film & Media"));
 
     private static final List<String> WHEN_VALUES = List.of("today", "tomorrow", "weekend", "week", "month");
 
@@ -304,7 +308,7 @@ public class PageController {
                 e.getCoverFocusY(),
                 allImages,
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
-                Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
+                Format.longDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime()),
                 Format.monthShort(e.getStartsAt()),
                 Format.dayOfMonth(e.getStartsAt()),
                 paragraphs,
@@ -397,7 +401,7 @@ public class PageController {
                     e.getSlug(), e.getTitle(), e.getCoverTheme(),
                     Format.coverUrl(e),
                     e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
-                    Format.cardDateLine(e.getStartsAt()),
+                    Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()),
                     n > 0 ? msg("page.attended", String.format(Locale.ENGLISH, "%,d", n)) : null));
         }
         String website = clean(org.getWebsite());

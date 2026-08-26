@@ -174,7 +174,7 @@ public class UserAreaController {
         String joinUrl = confirmed && online
                 && e.getOnlineUrl() != null && !e.getOnlineUrl().isBlank() ? e.getOnlineUrl() : null;
         return new OrderCard(o.getOrderCode(), e.getTitle(), e.getSlug(),
-                Format.cardDateLine(e.getStartsAt()),
+                Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()),
                 venueLine,
                 Format.coverTheme(e.getCategory()),
                 Format.coverUrl(e),
@@ -399,7 +399,7 @@ public class UserAreaController {
                 principal == null ? null : userService.byEmail(principal.getUsername()));
         model.addAttribute("t", new TicketStatus(
                 t.getCode(), t.getEvent().getTitle(),
-                Format.longDateLine(t.getEvent().getStartsAt(), t.getEvent().getEndsAt()),
+                Format.longDateLine(t.getEvent().getStartsAt(), t.getEvent().getEndsAt(), t.getEvent().isHasStartTime()),
                 t.getTicketType().getName(), t.getHolderName(), t.getStatus().name(),
                 t.getCheckedInAt() == null ? null
                         : msg("ticket.checkedInAt", Format.cardDateLine(t.getCheckedInAt())),

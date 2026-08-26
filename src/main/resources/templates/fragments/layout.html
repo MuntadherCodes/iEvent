@@ -476,11 +476,15 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
   </div>
   <!-- Sibling of (not nested in) the stretched link above, with a higher z-index, so it
        wins the click over the card's own link instead of being swallowed by it or by it
-       being invalidly nested inside the link (the original bug). Toggles via fetch — see
-       the shared click handler below — and starts unfilled; the page-load fetch of
-       /me/liked-events fills in already-liked cards a moment later. -->
-  <button th:if="${currentUser != null}" type="button" data-like-btn th:attr="data-slug=${card.slug},aria-label=#{public.card.saveAria}" aria-label="Save event" aria-pressed="false" class="absolute end-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
-  <a th:if="${currentUser == null}" th:href="@{/auth/login}" th:attr="aria-label=#{public.card.saveAria}" aria-label="Save event" class="absolute end-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></a>
+       being invalidly nested inside the link (the original bug). Save toggles via fetch
+       — see the shared click handler below — and starts unfilled; the page-load fetch of
+       /me/liked-events fills in already-liked cards a moment later. Share works for
+       signed-out visitors too, so it isn't gated behind currentUser like save is. -->
+  <div class="absolute end-3 top-3 z-20 flex items-center gap-2">
+    <button th:if="${currentUser != null}" type="button" data-like-btn th:attr="data-slug=${card.slug},aria-label=#{public.card.saveAria}" aria-label="Save event" aria-pressed="false" class="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
+    <a th:if="${currentUser == null}" th:href="@{/auth/login}" th:attr="aria-label=#{public.card.saveAria}" aria-label="Save event" class="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></a>
+    <button type="button" data-share-btn th:attr="data-url=@{/e/{s}(s=${card.slug})},data-title=${card.title},aria-label=#{public.event.shareAria}" aria-label="Share event" class="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg></button>
+  </div>
 </div>
 
 <!-- ============ TICKET STUB FRAGMENT ============ -->
@@ -597,6 +601,40 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
   if (menuBtn) menuBtn.addEventListener('click', function () {
     var open = mobileMenu.classList.toggle('hidden') === false;
     menuBtn.setAttribute('aria-expanded', open);
+  });
+
+  // Event-card share button (see the eventCard fragment): native share sheet
+  // with a copy-link fallback, same behavior as the event page's own share
+  // button. Lives in this always-loaded fragment rather than bellScript,
+  // since sharing works for signed-out visitors too — unlike save/like.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-share-btn]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var url = window.location.origin + btn.getAttribute('data-url');
+    var title = btn.getAttribute('data-title') || document.title;
+    function showCopied() {
+      var tip = document.createElement('span');
+      tip.className = 'pointer-events-none absolute end-0 top-11 z-30 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-green-700 shadow-cardHover';
+      tip.setAttribute('role', 'status');
+      tip.textContent = document.documentElement.lang === 'ar' ? 'تم نسخ الرابط' : 'Link copied';
+      var anchor = btn.closest('.relative') || btn.parentElement;
+      anchor.appendChild(tip);
+      setTimeout(function () { tip.remove(); }, 1800);
+    }
+    if (navigator.share) {
+      navigator.share({ title: title, url: url }).catch(function () {});
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(showCopied).catch(function () {});
+    } else {
+      var tmp = document.createElement('input');
+      tmp.value = url;
+      document.body.appendChild(tmp);
+      tmp.select();
+      try { document.execCommand('copy'); showCopied(); } catch (err) {}
+      document.body.removeChild(tmp);
+    }
   });
 </script>
 </body>

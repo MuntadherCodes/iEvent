@@ -244,7 +244,7 @@ public class MailService {
             ctx.setVariable("mailDir", isEnglish(loc) ? "ltr" : "rtl");
             ctx.setVariable("totalLabel", Format.iqd(order.getTotalIqd()));
             ctx.setVariable("dateLine", Format.longDateLine(
-                    order.getEvent().getStartsAt(), order.getEvent().getEndsAt()));
+                    order.getEvent().getStartsAt(), order.getEvent().getEndsAt(), order.getEvent().isHasStartTime()));
             String html = templates.process(template, ctx);
 
             // Tickets are only ever passed for the confirmed email — free

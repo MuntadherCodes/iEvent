@@ -109,8 +109,8 @@
                 <input id="ev-date" name="date" type="date" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start"><span th:text="#{wizard.when.starts}">Starts</span> <span class="text-rose-500">*</span></label>
-                <input id="ev-start" name="startTime" type="time" step="1800" required class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start" th:text="#{wizard.when.starts}">Starts</label>
+                <input id="ev-start" name="startTime" type="time" step="1800" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
               </div>
               <div>
                 <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end" th:text="#{wizard.when.ends}">Ends</label>
@@ -238,22 +238,28 @@
             <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.banner.title}">Make it look great</h2>
             <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.banner.subtitle}">Events with a great cover get up to 2× more views.</p>
 
-            <!-- Pexels stock-photo picker — hidden entirely when PEXELS_API_KEY
-                 isn't configured (see GlobalModelAdvice's "pexelsAvailable"). -->
-            <div th:if="${pexelsAvailable}" id="gallery-picker" class="mt-5">
-              <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orSearch}">Search free stock photos</p>
-              <div class="mt-2 flex gap-2">
-                <input type="text" id="pexelsQuery" class="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.banner.searchPlaceholder}" placeholder="e.g. music festival, conference, food">
-                <button type="button" id="pexelsSearchBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-900 disabled:cursor-wait disabled:opacity-60"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg><span th:text="#{wizard.banner.searchBtn}">Search</span></button>
+            <!-- Gallery manager: Pexels search (hidden entirely when PEXELS_API_KEY
+                 isn't configured — see GlobalModelAdvice's "pexelsAvailable") plus the
+                 "Selected images" strip, which always exists — it also holds photos
+                 picked from the upload dropzone below, so every image (uploaded or
+                 stock) is click-to-adjust / removable from the one place. -->
+            <div id="gallery-picker" class="mt-5">
+              <div th:if="${pexelsAvailable}" id="pexelsSearchBox">
+                <p class="text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orSearch}">Search free stock photos</p>
+                <div class="mt-2 flex gap-2">
+                  <input type="text" id="pexelsQuery" class="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.banner.searchPlaceholder}" placeholder="e.g. music festival, conference, food">
+                  <button type="button" id="pexelsSearchBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-900 disabled:cursor-wait disabled:opacity-60"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg><span th:text="#{wizard.banner.searchBtn}">Search</span></button>
+                </div>
+                <div id="pexelsResults" class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4"></div>
               </div>
-              <p id="pexelsMsg" class="mt-2 hidden text-sm text-ink-500"></p>
-              <div id="pexelsResults" class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4"></div>
+              <p id="galleryMsg" class="mt-2 hidden text-sm text-ink-500"></p>
               <div id="gallerySelectedWrap" class="mt-4 hidden">
-                <p class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{wizard.banner.selected}">Selected images</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-ink-400"><span th:text="#{wizard.banner.selected}">Selected images</span> <span id="gallerySelectedCount" class="font-normal normal-case text-ink-400"></span></p>
                 <div id="gallerySelectedList" class="mt-2 flex flex-wrap gap-2"></div>
                 <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.banner.sliderNote}">2 or more images become an auto-slider on your event page.</p>
               </div>
               <div id="galleryHiddenFields"></div>
+              <div id="uploadFocusFields"></div>
             </div>
 
             <!-- Live preview: reflects whichever image currently wins as the
@@ -283,8 +289,8 @@
             <!-- Upload dropzone -->
             <div class="mt-4 rounded-xl border-2 border-dashed border-ink-300 bg-ink-50 p-3.5 text-center transition hover:border-brand-400 hover:bg-brand-50">
               <label class="block text-xs font-semibold text-ink-800" for="cover-image" th:text="#{wizard.banner.upload}">Upload a banner photo</label>
-              <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" class="mx-auto mt-1.5 block w-full max-w-xs text-xs text-ink-600 file:me-2.5 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-brand-600">
-              <p class="mt-1.5 text-[11px] text-ink-400" th:text="#{wizard.banner.uploadHelp}">JPG/PNG/WEBP up to 3 MB — replaces the gradient</p>
+              <input id="cover-image" type="file" name="coverImage" accept="image/jpeg,image/png,image/webp" multiple class="mx-auto mt-1.5 block w-full max-w-xs text-xs text-ink-600 file:me-2.5 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-brand-600">
+              <p class="mt-1.5 text-[11px] text-ink-400" th:text="#{wizard.banner.uploadHelp}">JPG/PNG/WEBP up to 3 MB each — pick more than one to build a slider</p>
             </div>
 
             <p class="mt-5 text-sm font-semibold text-ink-800" th:text="#{wizard.banner.orTheme}">…or pick a color theme</p>
@@ -636,7 +642,7 @@
 </div>
 
 <!-- Localized strings for inline JS (review step, validation, counters, autosave) -->
-<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage},data-pexels-position=#{wizard.banner.imagePosition}"></div>
+<div id="wizI18n" hidden th:attr="data-step-of=#{wizard.step.indicator},data-title-hint=#{wizard.basics.titleHint},data-title-chars=#{wizard.js.titleChars},data-step1-required=#{wizard.js.step1Required},data-venue-required=#{wizard.js.venueRequired},data-ticket-required=#{wizard.js.ticketRequired},data-your-event-title=#{wizard.js.yourEventTitle},data-online-event=#{wizard.js.onlineEvent},data-tba=#{wizard.js.tba},data-no-tickets=#{wizard.js.noTickets},data-fee-pass=#{wizard.js.feePass},data-fee-absorb=#{wizard.js.feeAbsorb},data-fee-free=#{wizard.js.feeFree},data-free=#{common.free},data-iqd=#{common.iqd},data-city=#{wizard.loc.city},data-organizer-city=#{wizard.loc.organizerCity},data-public=#{wizard.vis.public},data-unlisted=#{wizard.vis.unlisted},data-ai-need-title=#{wizard.ai.needTitle},data-ai-generating=#{wizard.ai.generating},data-ai-error=#{wizard.ai.error},data-pexels-searching=#{wizard.banner.searching},data-pexels-search-error=#{wizard.banner.searchError},data-pexels-no-results=#{wizard.banner.noResults},data-pexels-photo-by=#{wizard.banner.photoBy},data-pexels-remove=#{wizard.banner.removeImage},data-pexels-position=#{wizard.banner.imagePosition},data-cover-badge=#{wizard.banner.coverBadge},data-max-images=#{wizard.banner.maxImages}"></div>
 
 <!-- Google Places config: rendered only when a Maps key is configured -->
 <div id="placesCfg" th:if="${mapsKey != null}" th:attr="data-key=${mapsKey},data-lang=${lang}" hidden></div>
@@ -820,9 +826,10 @@
     // coverDataUrl, which only the upload path ever set) is what makes this
     // work for a Pexels-only pick too, and carries over its crop position.
     var rvImg = document.getElementById('rv-coverImg');
-    if (!coverImg.classList.contains('hidden') && coverImg.getAttribute('src')) {
-      rvImg.src = coverImg.src;
-      rvImg.style.objectPosition = coverImg.style.objectPosition || '50% 50%';
+    var liveCoverImg = document.getElementById('coverPreviewImg');
+    if (!liveCoverImg.classList.contains('hidden') && liveCoverImg.getAttribute('src')) {
+      rvImg.src = liveCoverImg.src;
+      rvImg.style.objectPosition = liveCoverImg.style.objectPosition || '50% 50%';
       rvImg.classList.remove('hidden');
     } else {
       rvImg.classList.add('hidden');
@@ -837,12 +844,13 @@
 
   function validateStep(n) {
     if (n === 1) {
-      var required = [document.getElementById('ev-title'), document.getElementById('ev-date'), document.getElementById('ev-start')];
+      var required = [document.getElementById('ev-title'), document.getElementById('ev-date')];
       for (var i = 0; i < required.length; i++) {
         if (!required[i].value.trim()) {
           showError(msg('step1-required'));
-          // ev-start is enhanced by time-picker.js into a hidden canonical
-          // field with a separate visible/focusable proxy — redirect there.
+          // A time-picker.js field (none of these currently are) is enhanced
+          // into a hidden canonical field with a separate visible/focusable
+          // proxy — redirect there instead of focusing the hidden input.
           var displayId = required[i].dataset.displayId;
           if (displayId) {
             document.getElementById(displayId).focus();
@@ -1012,26 +1020,9 @@
     });
   });
 
-  // Cover photo instant preview: FileReader → <img> laid over the gradient.
-  // Focus-slider / ring / show-hide state for this image is unified with the
-  // Pexels picks below (see the gallery-picker IIFE's own change listener),
-  // so this block only ever deals with reading the file into a data URL.
-  var coverDataUrl = null;
-  var coverInput = document.getElementById('cover-image');
-  var coverImg = document.getElementById('coverPreviewImg');
-  var coverFocusWrap = document.getElementById('coverFocusWrap');
-  var coverFocusInput = document.getElementById('coverFocusInput');
-  var coverFocusValueLabel = document.getElementById('coverFocusValueLabel');
-  coverInput.addEventListener('change', function () {
-    var f = coverInput.files && coverInput.files[0];
-    if (!f) { coverDataUrl = null; return; }
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      coverDataUrl = e.target.result;
-      coverImg.src = coverDataUrl;
-    };
-    reader.readAsDataURL(f);
-  });
+  // Cover photo state (data-URL preview, upload/Pexels thumbnail strip, crop
+  // slider) all lives in the unified gallery-picker IIFE further down, so it
+  // can treat an uploaded file and a Pexels pick the same way.
 
   // "My event is free": zero + lock every price input, hide the fee card
   var freeToggle = document.getElementById('freeToggle');
@@ -1305,8 +1296,7 @@
     }
 
     function step1Ready() {
-      return required('title') && required('category') && required('city')
-          && required('date') && required('startTime');
+      return required('title') && required('category') && required('city') && required('date');
     }
 
     function formDataWithoutFile() {
@@ -1583,18 +1573,18 @@
   // ---- Stock-photo picker (Pexels) — search, multi-select, feeds the
   // gallery hidden fields the server turns into event_images rows. ----
   (function () {
-    var picker = document.getElementById('gallery-picker');
-    if (!picker) return; // pexelsAvailable is false — hidden server-side
     var i18nEl = document.getElementById('wizI18n');
     function pMsg(name) { return (i18nEl && i18nEl.getAttribute('data-pexels-' + name)) || ''; }
+    function wizMsg(attr) { return (i18nEl && i18nEl.getAttribute(attr)) || ''; }
+    var MAX_IMAGES = 10;
 
-    var queryInput = document.getElementById('pexelsQuery');
-    var searchBtn = document.getElementById('pexelsSearchBtn');
-    var msgEl = document.getElementById('pexelsMsg');
-    var resultsEl = document.getElementById('pexelsResults');
+    var pexelsBox = document.getElementById('pexelsSearchBox'); // absent when PEXELS_API_KEY isn't configured
+    var msgEl = document.getElementById('galleryMsg');
     var selectedWrap = document.getElementById('gallerySelectedWrap');
     var selectedListEl = document.getElementById('gallerySelectedList');
+    var selectedCountEl = document.getElementById('gallerySelectedCount');
     var hiddenFieldsEl = document.getElementById('galleryHiddenFields');
+    var uploadFocusFieldsEl = document.getElementById('uploadFocusFields');
     var coverInput = document.getElementById('cover-image');
     var coverPreview = document.getElementById('coverPreview');
     var coverImg = document.getElementById('coverPreviewImg');
@@ -1604,53 +1594,60 @@
     var coverFocusYHidden = document.getElementById('coverFocusYHidden');
     var coverRemoveUploadBtn = document.getElementById('coverRemoveUploadBtn');
 
-    var selected = []; // {url, thumbnailUrl, creditName, creditUrl, focusY}, in pick order
-    var uploadFocusY = 50; // the uploaded file's own crop position, tracked separately
+    var selected = []; // Pexels picks: {url, thumbnailUrl, creditName, creditUrl, focusY}, in pick order
+    var stagedFiles = []; // desktop files chosen this session — index 0 is always the primary cover
+    var uploads = []; // per-file metadata, index-aligned with stagedFiles: {focusY, previewUrl}
     // Which image the ONE shared "Cover position" slider currently controls:
-    // null (nothing to adjust yet), 'upload', or an index into selected[].
+    // null (nothing to adjust yet), 'upload:N' (an index into stagedFiles/uploads),
+    // or a number (an index into selected[]).
     var activeTarget = null;
 
+    function totalCount() { return stagedFiles.length + selected.length; }
+    function uploadIndex(target) {
+      if (typeof target !== 'string' || target.indexOf('upload:') !== 0) return -1;
+      return parseInt(target.slice(7), 10);
+    }
+
+    function showMsg(text) {
+      if (!text) { msgEl.classList.add('hidden'); return; }
+      msgEl.textContent = text;
+      msgEl.classList.remove('hidden');
+    }
+
     // Single source of truth for ring / slider / big-preview state, called
-    // after every change to selected[], activeTarget or the upload input —
-    // this replaces two previously-independent mechanisms (a shared slider
-    // hardwired to the upload only, plus separate per-thumbnail sliders)
-    // that could silently disagree about which image was being adjusted.
+    // after every change to selected[], stagedFiles[]/uploads[] or activeTarget
+    // — an uploaded photo and a Pexels pick are otherwise handled identically
+    // from here on, so there's one shared way to adjust or preview either.
     function syncActiveUI() {
       selectedListEl.querySelectorAll('[data-pick-idx]').forEach(function (card) {
-        var on = typeof activeTarget === 'number' && +card.getAttribute('data-pick-idx') === activeTarget;
+        var on = card.getAttribute('data-pick-idx') === String(activeTarget);
         card.classList.toggle('ring-2', on);
         card.classList.toggle('ring-brand-500', on);
       });
 
-      var hasUpload = !!(coverInput.files && coverInput.files.length);
-      coverRemoveUploadBtn.classList.toggle('hidden', !hasUpload);
-      coverRemoveUploadBtn.classList.toggle('flex', hasUpload);
-      // Once you've clicked away to a Pexels pick, this is the only way back
-      // to re-selecting the uploaded photo itself for readjustment.
-      coverPreview.classList.toggle('cursor-pointer', hasUpload);
-      coverPreview.title = hasUpload ? (pMsg('position') || 'Click to adjust position') : '';
-      var hasAnything = hasUpload || selected.length > 0;
+      var hasAnything = totalCount() > 0;
       coverFocusWrap.classList.toggle('hidden', !hasAnything);
-      if (hasAnything) {
-        var v = activeTarget === 'upload' ? uploadFocusY
-          : (typeof activeTarget === 'number' && selected[activeTarget]) ? selected[activeTarget].focusY
-          : 50;
-        coverFocusInput.value = v;
-        coverFocusValueLabel.textContent = v;
-      }
+      coverRemoveUploadBtn.classList.toggle('hidden', stagedFiles.length === 0);
+      coverRemoveUploadBtn.classList.toggle('flex', stagedFiles.length > 0);
+      coverPreview.classList.toggle('cursor-pointer', hasAnything);
+      coverPreview.title = hasAnything ? (pMsg('position') || 'Click to adjust position') : '';
 
-      // The uploaded file always wins the big preview slot when present —
-      // adjusting a Pexels pick's position (ring elsewhere) never steals it,
-      // it only updates that pick's own thumbnail.
-      if (hasUpload) {
-        coverImg.style.objectPosition = '50% ' + uploadFocusY + '%';
-        coverImg.classList.remove('hidden');
-        return;
+      var upIdx = uploadIndex(activeTarget);
+      var focusY = 50, previewUrl = null;
+      if (upIdx >= 0 && uploads[upIdx]) {
+        focusY = uploads[upIdx].focusY;
+        previewUrl = uploads[upIdx].previewUrl;
+      } else if (typeof activeTarget === 'number' && selected[activeTarget]) {
+        focusY = selected[activeTarget].focusY;
+        previewUrl = selected[activeTarget].url;
       }
-      var s = typeof activeTarget === 'number' ? selected[activeTarget] : null;
-      if (s) {
-        coverImg.src = s.url;
-        coverImg.style.objectPosition = '50% ' + s.focusY + '%';
+      if (hasAnything) {
+        coverFocusInput.value = focusY;
+        coverFocusValueLabel.textContent = focusY;
+      }
+      if (previewUrl) {
+        coverImg.src = previewUrl;
+        coverImg.style.objectPosition = '50% ' + focusY + '%';
         coverImg.classList.remove('hidden');
       } else {
         coverImg.classList.add('hidden');
@@ -1661,64 +1658,31 @@
     coverFocusInput.addEventListener('input', function () {
       var v = parseInt(coverFocusInput.value, 10) || 50;
       coverFocusValueLabel.textContent = v;
-      if (activeTarget === 'upload') {
-        uploadFocusY = v;
-        coverFocusYHidden.value = String(v);
-        coverImg.style.objectPosition = '50% ' + v + '%';
+      var upIdx = uploadIndex(activeTarget);
+      if (upIdx >= 0 && uploads[upIdx]) {
+        uploads[upIdx].focusY = v;
+        // Index 0's crop travels through the single coverFocusY field (same
+        // channel a single-file upload always used) — every other staged
+        // file gets its own hidden field, rebuilt in render().
+        if (upIdx === 0) {
+          coverFocusYHidden.value = String(v);
+        } else {
+          var uf = uploadFocusFieldsEl.children[upIdx - 1];
+          if (uf) uf.value = String(v);
+        }
+        var upThumb = selectedListEl.querySelector('[data-pick-idx="upload:' + upIdx + '"] img');
+        if (upThumb) upThumb.style.objectPosition = '50% ' + v + '%';
       } else if (typeof activeTarget === 'number' && selected[activeTarget]) {
         selected[activeTarget].focusY = v;
         var img = selectedListEl.querySelector('[data-pick-idx="' + activeTarget + '"] img');
         if (img) img.style.objectPosition = '50% ' + v + '%';
         var hf = hiddenFieldsEl.children[activeTarget * 4 + 3];
         if (hf) hf.value = String(v);
-        if (!(coverInput.files && coverInput.files.length)) {
-          coverImg.style.objectPosition = '50% ' + v + '%';
-        }
-      }
-    });
-
-    function showMsg(text) {
-      if (!text) { msgEl.classList.add('hidden'); return; }
-      msgEl.textContent = text;
-      msgEl.classList.remove('hidden');
-    }
-
-    function isSelected(url) { return selected.some(function (s) { return s.url === url; }); }
-
-    function syncThumb(btn, url) {
-      var on = isSelected(url);
-      var check = btn.querySelector('.pexels-check');
-      btn.classList.toggle('ring-brand-500', on);
-      check.classList.toggle('hidden', !on);
-      check.classList.toggle('flex', on);
-    }
-
-    function syncAllThumbs() {
-      resultsEl.querySelectorAll('[data-url]').forEach(function (btn) {
-        syncThumb(btn, btn.getAttribute('data-url'));
-      });
-    }
-
-    function toggle(p) {
-      var idx = selected.findIndex(function (s) { return s.url === p.fullUrl; });
-      if (idx >= 0) {
-        selected.splice(idx, 1);
       } else {
-        selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl, focusY: 50 });
-        activeTarget = selected.length - 1; // newly added pick becomes the one being worked on
+        return;
       }
-      renderSelected();
-      syncAllThumbs();
-    }
-
-    function removeSelected(url) {
-      var idx = selected.findIndex(function (s) { return s.url === url; });
-      selected = selected.filter(function (s) { return s.url !== url; });
-      if (activeTarget === idx) activeTarget = null;
-      else if (typeof activeTarget === 'number' && activeTarget > idx) activeTarget -= 1;
-      renderSelected();
-      syncAllThumbs();
-    }
+      coverImg.style.objectPosition = '50% ' + v + '%';
+    });
 
     function hiddenInput(name, value) {
       var el = document.createElement('input');
@@ -1728,42 +1692,73 @@
       return el;
     }
 
-    // Mirrors Format.coverUrl / HostService.replaceGalleryImages: with no
-    // uploaded file, selected[0] becomes the primary cover and everyone else
-    // (including all of them when a file IS uploaded) is a slider extra —
-    // every one of them can end up on the public page. Click a thumbnail to
-    // point the ONE shared "Cover position" slider at it (see syncActiveUI).
-    function renderSelected() {
-      selectedWrap.classList.toggle('hidden', selected.length === 0);
+    function buildThumbCard(opts) {
+      var card = document.createElement('div');
+      card.className = 'w-24 shrink-0 cursor-pointer rounded-xl border border-ink-100 bg-white p-1.5 shadow-card transition';
+      card.setAttribute('data-pick-idx', opts.pickIdx);
+      card.title = pMsg('position') || 'Click to adjust position';
+      card.addEventListener('click', opts.onClick);
+      var wrap = document.createElement('div');
+      wrap.className = 'group relative aspect-[4/3] overflow-hidden rounded-lg';
+      var img = document.createElement('img');
+      img.src = opts.previewUrl;
+      img.alt = '';
+      img.className = 'h-full w-full object-cover';
+      img.style.objectPosition = '50% ' + opts.focusY + '%';
+      wrap.appendChild(img);
+      if (opts.isPrimary) {
+        var badge = document.createElement('span');
+        badge.className = 'absolute start-1 top-1 rounded-full bg-brand-500 px-1.5 py-0.5 text-[9px] font-bold text-white';
+        badge.textContent = wizMsg('data-cover-badge') || 'Cover';
+        wrap.appendChild(badge);
+      }
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100';
+      rm.setAttribute('aria-label', pMsg('remove'));
+      rm.innerHTML = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+      rm.addEventListener('click', function (e) { e.stopPropagation(); opts.onRemove(); });
+      wrap.appendChild(rm);
+      card.appendChild(wrap);
+      return card;
+    }
+
+    // Mirrors HostService.replaceGalleryImages: whichever staged upload sits
+    // at index 0 always wins as the primary cover; with no staged upload,
+    // selected[0] does instead. Every other image — uploaded or Pexels — is a
+    // slider extra. Click any thumbnail to point the shared "Cover position"
+    // slider at it (see syncActiveUI); the × on a thumbnail removes just that
+    // one image, whichever list it came from.
+    function renderGallery() {
+      var total = totalCount();
+      selectedWrap.classList.toggle('hidden', total === 0);
+      selectedCountEl.textContent = total ? '(' + total + '/' + MAX_IMAGES + ')' : '';
       selectedListEl.innerHTML = '';
+
+      stagedFiles.forEach(function (f, idx) {
+        var meta = uploads[idx];
+        selectedListEl.appendChild(buildThumbCard({
+          pickIdx: 'upload:' + idx,
+          previewUrl: meta.previewUrl,
+          focusY: meta.focusY,
+          isPrimary: idx === 0,
+          onClick: function () { activeTarget = 'upload:' + idx; syncActiveUI(); },
+          onRemove: function () { removeUploadAt(idx); }
+        }));
+      });
+
       selected.forEach(function (s, idx) {
         if (typeof s.focusY !== 'number') s.focusY = 50;
-        var card = document.createElement('div');
-        card.className = 'w-24 shrink-0 cursor-pointer rounded-xl border border-ink-100 bg-white p-1.5 shadow-card transition';
-        card.setAttribute('data-pick-idx', String(idx));
-        card.title = pMsg('position') || 'Click to adjust position';
-        card.addEventListener('click', function () {
-          activeTarget = idx;
-          syncActiveUI();
-        });
-        var wrap = document.createElement('div');
-        wrap.className = 'group relative aspect-[4/3] overflow-hidden rounded-lg';
-        var img = document.createElement('img');
-        img.src = s.thumbnailUrl || s.url;
-        img.alt = '';
-        img.className = 'h-full w-full object-cover';
-        img.style.objectPosition = '50% ' + s.focusY + '%';
-        wrap.appendChild(img);
-        var rm = document.createElement('button');
-        rm.type = 'button';
-        rm.className = 'absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100';
-        rm.setAttribute('aria-label', pMsg('remove'));
-        rm.innerHTML = '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-        rm.addEventListener('click', function (e) { e.stopPropagation(); removeSelected(s.url); });
-        wrap.appendChild(rm);
-        card.appendChild(wrap);
-        selectedListEl.appendChild(card);
+        selectedListEl.appendChild(buildThumbCard({
+          pickIdx: String(idx),
+          previewUrl: s.thumbnailUrl || s.url,
+          focusY: s.focusY,
+          isPrimary: stagedFiles.length === 0 && idx === 0,
+          onClick: function () { activeTarget = idx; syncActiveUI(); },
+          onRemove: function () { removeSelected(s.url); }
+        }));
       });
+
       hiddenFieldsEl.innerHTML = '';
       selected.forEach(function (s) {
         hiddenFieldsEl.appendChild(hiddenInput('galleryUrl', s.url));
@@ -1772,93 +1767,185 @@
         hiddenFieldsEl.appendChild(hiddenInput('galleryFocusY', String(s.focusY)));
       });
 
-      if (typeof activeTarget === 'number' && activeTarget >= selected.length) {
-        activeTarget = selected.length ? selected.length - 1 : ((coverInput.files && coverInput.files.length) ? 'upload' : null);
+      uploadFocusFieldsEl.innerHTML = '';
+      for (var i = 1; i < uploads.length; i++) {
+        uploadFocusFieldsEl.appendChild(hiddenInput('coverImageFocusY', String(uploads[i].focusY)));
       }
-      if (activeTarget === null && selected.length && !(coverInput.files && coverInput.files.length)) {
-        activeTarget = 0;
+      // uploads[0]'s crop always travels through the single coverFocusY field
+      // — keep it synced here too, not just from the slider's own input event,
+      // since index 0 can change identity (e.g. removing the old index 0
+      // promotes index 1 into its slot, carrying its own already-set focusY).
+      if (uploads[0]) coverFocusYHidden.value = String(uploads[0].focusY);
+
+      var upIdx = uploadIndex(activeTarget);
+      if (upIdx >= 0 && upIdx >= stagedFiles.length) activeTarget = null;
+      if (typeof activeTarget === 'number' && activeTarget >= selected.length) activeTarget = null;
+      if (activeTarget === null && total > 0) {
+        activeTarget = stagedFiles.length ? 'upload:0' : 0;
       }
       syncActiveUI();
     }
 
-    function renderResults(photos) {
-      resultsEl.innerHTML = '';
-      photos.forEach(function (p) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'group relative aspect-square overflow-hidden rounded-lg ring-2 ring-transparent transition hover:ring-brand-300';
-        btn.setAttribute('data-url', p.fullUrl);
-        var img = document.createElement('img');
-        img.src = p.thumbnailUrl;
-        img.alt = '';
-        img.loading = 'lazy';
-        img.className = 'h-full w-full object-cover';
-        btn.appendChild(img);
-        var check = document.createElement('span');
-        check.className = 'pexels-check pointer-events-none absolute inset-0 hidden items-center justify-center bg-brand-500/50';
-        check.innerHTML = '<svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
-        btn.appendChild(check);
-        btn.addEventListener('click', function () { toggle(p); });
-        resultsEl.appendChild(btn);
+    function rebuildInputFiles() {
+      var dt = new DataTransfer();
+      stagedFiles.forEach(function (f) { dt.items.add(f); });
+      coverInput.files = dt.files;
+    }
+
+    function removeUploadAt(idx) {
+      if (uploads[idx] && uploads[idx].previewUrl) URL.revokeObjectURL(uploads[idx].previewUrl);
+      stagedFiles.splice(idx, 1);
+      uploads.splice(idx, 1);
+      rebuildInputFiles();
+      var upIdx = uploadIndex(activeTarget);
+      if (upIdx === idx) activeTarget = null;
+      else if (upIdx > idx) activeTarget = 'upload:' + (upIdx - 1);
+      renderGallery();
+    }
+
+    function removeSelected(url) {
+      var idx = selected.findIndex(function (s) { return s.url === url; });
+      if (idx === -1) return;
+      selected.splice(idx, 1);
+      if (typeof activeTarget === 'number') {
+        if (activeTarget === idx) activeTarget = null;
+        else if (activeTarget > idx) activeTarget -= 1;
+      }
+      renderGallery();
+    }
+
+    function clearAllUploads() {
+      uploads.forEach(function (u) { if (u.previewUrl) URL.revokeObjectURL(u.previewUrl); });
+      stagedFiles = [];
+      uploads = [];
+      rebuildInputFiles();
+      if (uploadIndex(activeTarget) >= 0) activeTarget = null;
+      renderGallery();
+    }
+
+    // Picking files never replaces what's already staged — each pick adds to
+    // it (up to MAX_IMAGES total with any Pexels picks), the same way picking
+    // more Pexels photos does, since the OS dialog itself can't remember a
+    // previous multi-file selection across separate invocations.
+    coverInput.addEventListener('change', function () {
+      var picked = Array.prototype.slice.call(coverInput.files);
+      if (!picked.length) return;
+      var room = Math.max(0, MAX_IMAGES - totalCount());
+      var accepted = picked.slice(0, room);
+      accepted.forEach(function (f) {
+        stagedFiles.push(f);
+        uploads.push({ focusY: 50, previewUrl: URL.createObjectURL(f) });
       });
-      syncAllThumbs();
-    }
-
-    function doSearch() {
-      var q = queryInput.value.trim();
-      if (!q) return;
-      searchBtn.disabled = true;
-      showMsg(pMsg('searching'));
-      resultsEl.innerHTML = '';
-      fetch('/host/events/pexels-search?q=' + encodeURIComponent(q))
-        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
-        .then(function (result) {
-          searchBtn.disabled = false;
-          if (!result.ok) { showMsg(pMsg('search-error')); return; }
-          var photos = result.data.photos || [];
-          if (!photos.length) { showMsg(pMsg('no-results')); return; }
-          showMsg('');
-          renderResults(photos);
-        })
-        .catch(function () {
-          searchBtn.disabled = false;
-          showMsg(pMsg('search-error'));
-        });
-    }
-
-    searchBtn.addEventListener('click', doSearch);
-    queryInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+      rebuildInputFiles();
+      showMsg(picked.length > accepted.length ? wizMsg('data-max-images') : '');
+      if (accepted.length) activeTarget = 'upload:0';
+      renderGallery();
     });
+
     coverRemoveUploadBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      coverInput.value = '';
-      coverInput.dispatchEvent(new Event('change'));
+      clearAllUploads();
     });
 
-    // Clicking the big preview re-selects the uploaded photo as the shared
-    // slider's target — the only way back to it once a Pexels pick has been
-    // clicked (its own thumbnail has no separate "reselect upload" control).
+    // Clicking the big preview re-selects the primary uploaded photo as the
+    // shared slider's target — the only way back to it once some other
+    // thumbnail has been clicked (the big box has no thumbnail of its own).
     coverPreview.addEventListener('click', function () {
-      if (!(coverInput.files && coverInput.files.length)) return;
-      activeTarget = 'upload';
+      if (!stagedFiles.length) return;
+      activeTarget = 'upload:0';
       syncActiveUI();
     });
 
-    // A new upload always takes over the shared slider + big preview; a
-    // cleared file hands both back to whichever pick was last active, or
-    // the first pick if none was (see syncActiveUI for the actual rules).
-    coverInput.addEventListener('change', function () {
-      if (coverInput.files && coverInput.files.length) {
-        uploadFocusY = 50;
-        coverFocusYHidden.value = '50';
-        activeTarget = 'upload';
-        syncActiveUI();
-      } else {
-        activeTarget = selected.length ? 0 : null;
-        renderSelected();
+    if (pexelsBox) {
+      var queryInput = document.getElementById('pexelsQuery');
+      var searchBtn = document.getElementById('pexelsSearchBtn');
+      var resultsEl = document.getElementById('pexelsResults');
+
+      function isSelected(url) { return selected.some(function (s) { return s.url === url; }); }
+
+      function syncThumb(btn, url) {
+        var on = isSelected(url);
+        var check = btn.querySelector('.pexels-check');
+        btn.classList.toggle('ring-brand-500', on);
+        check.classList.toggle('hidden', !on);
+        check.classList.toggle('flex', on);
       }
-    });
+
+      function syncAllThumbs() {
+        resultsEl.querySelectorAll('[data-url]').forEach(function (btn) {
+          syncThumb(btn, btn.getAttribute('data-url'));
+        });
+      }
+
+      function toggle(p) {
+        var idx = selected.findIndex(function (s) { return s.url === p.fullUrl; });
+        if (idx >= 0) {
+          selected.splice(idx, 1);
+          if (activeTarget === idx) activeTarget = null;
+          else if (typeof activeTarget === 'number' && activeTarget > idx) activeTarget -= 1;
+          showMsg('');
+        } else {
+          if (totalCount() >= MAX_IMAGES) { showMsg(wizMsg('data-max-images')); syncAllThumbs(); return; }
+          selected.push({ url: p.fullUrl, thumbnailUrl: p.thumbnailUrl, creditName: p.photographerName, creditUrl: p.photographerUrl, focusY: 50 });
+          activeTarget = selected.length - 1; // newly added pick becomes the one being worked on
+          showMsg('');
+        }
+        renderGallery();
+        syncAllThumbs();
+      }
+
+      function renderResults(photos) {
+        resultsEl.innerHTML = '';
+        photos.forEach(function (p) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'group relative aspect-square overflow-hidden rounded-lg ring-2 ring-transparent transition hover:ring-brand-300';
+          btn.setAttribute('data-url', p.fullUrl);
+          var img = document.createElement('img');
+          img.src = p.thumbnailUrl;
+          img.alt = '';
+          img.loading = 'lazy';
+          img.className = 'h-full w-full object-cover';
+          btn.appendChild(img);
+          var check = document.createElement('span');
+          check.className = 'pexels-check pointer-events-none absolute inset-0 hidden items-center justify-center bg-brand-500/50';
+          check.innerHTML = '<svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+          btn.appendChild(check);
+          btn.addEventListener('click', function () { toggle(p); });
+          resultsEl.appendChild(btn);
+        });
+        syncAllThumbs();
+      }
+
+      function doSearch() {
+        var q = queryInput.value.trim();
+        if (!q) return;
+        searchBtn.disabled = true;
+        showMsg(pMsg('searching'));
+        resultsEl.innerHTML = '';
+        fetch('/host/events/pexels-search?q=' + encodeURIComponent(q))
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            searchBtn.disabled = false;
+            if (!result.ok) { showMsg(pMsg('search-error')); return; }
+            var photos = result.data.photos || [];
+            if (!photos.length) { showMsg(pMsg('no-results')); return; }
+            showMsg('');
+            renderResults(photos);
+          })
+          .catch(function () {
+            searchBtn.disabled = false;
+            showMsg(pMsg('search-error'));
+          });
+      }
+
+      searchBtn.addEventListener('click', doSearch);
+      queryInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+      });
+    }
+
+    renderGallery();
   })();
 
 </script>

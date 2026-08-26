@@ -355,7 +355,7 @@ public class CheckoutController {
 
         OrderView view = new OrderView(order.getOrderCode(), order.getEvent().getTitle(),
                 order.getEvent().getSlug(),
-                Format.longDateLine(order.getEvent().getStartsAt(), order.getEvent().getEndsAt()),
+                Format.longDateLine(order.getEvent().getStartsAt(), order.getEvent().getEndsAt(), order.getEvent().isHasStartTime()),
                 venueLine,
                 order.getBuyerName(), order.getBuyerEmail(),
                 statusLabel,

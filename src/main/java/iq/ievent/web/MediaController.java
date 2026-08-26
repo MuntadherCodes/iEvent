@@ -23,12 +23,15 @@ public class MediaController {
     private final EventRepository events;
     private final OrganizationRepository organizations;
     private final iq.ievent.repo.PaymentMethodRepository paymentMethods;
+    private final Path uploadDir;
 
     public MediaController(EventRepository events, OrganizationRepository organizations,
-                           iq.ievent.repo.PaymentMethodRepository paymentMethods) {
+                           iq.ievent.repo.PaymentMethodRepository paymentMethods,
+                           @org.springframework.beans.factory.annotation.Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.events = events;
         this.organizations = organizations;
         this.paymentMethods = paymentMethods;
+        this.uploadDir = Path.of(uploadDir);
     }
 
     @GetMapping("/media/event-cover/{eventId}")
@@ -36,17 +39,20 @@ public class MediaController {
         String stored = events.findById(eventId)
                 .map(e -> e.getCoverImagePath())
                 .orElse(null);
-        if (stored == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        Path path = Path.of(stored);
-        if (!Files.isReadable(path)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        MediaType type = MediaType.IMAGE_JPEG;
-        String name = path.getFileName().toString().toLowerCase();
-        if (name.endsWith(".png")) type = MediaType.IMAGE_PNG;
-        else if (name.endsWith(".webp")) type = MediaType.parseMediaType("image/webp");
-        return ResponseEntity.ok()
-                .contentType(type)
-                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePublic())
-                .body(new FileSystemResource(path));
+        return serve(stored);
+    }
+
+    /** Extra gallery photos uploaded from the host's desktop, beyond the single
+     *  primary cover above — see HostService.storeGalleryUploads. The slot's
+     *  extension isn't tracked anywhere, so this just tries each accepted one. */
+    @GetMapping("/media/event-cover/{eventId}/extra/{slot}")
+    public ResponseEntity<FileSystemResource> eventCoverExtra(@PathVariable Long eventId, @PathVariable int slot) {
+        Path dir = uploadDir.resolve("covers");
+        for (String ext : java.util.List.of("jpg", "jpeg", "png", "webp")) {
+            Path candidate = dir.resolve("event-" + eventId + "-extra-" + slot + "." + ext);
+            if (Files.isReadable(candidate)) return serveFile(candidate);
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
 
     @GetMapping("/media/org-logo/{orgId}")
@@ -69,7 +75,10 @@ public class MediaController {
 
     private ResponseEntity<FileSystemResource> serve(String stored) {
         if (stored == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        Path path = Path.of(stored);
+        return serveFile(Path.of(stored));
+    }
+
+    private ResponseEntity<FileSystemResource> serveFile(Path path) {
         if (!Files.isReadable(path)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         MediaType type = MediaType.IMAGE_JPEG;
         String name = path.getFileName().toString().toLowerCase();

@@ -234,8 +234,11 @@ public class CatalogService {
                     Format.coverUrl(e),
                     e.getCity(),
                     Format.venueDisplay(e.getVenueName(), e.getLocationType()),
-                    Format.cardDateLine(e.getStartsAt()),
-                    Format.priceLineFromMin(minPrices.get(e.getId())),
+                    Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()),
+                    // Announce-only events sell no tickets at all, so an absent
+                    // min price here means "not applicable", not "free" — unlike
+                    // a real event whose cheapest ticket happens to be 0 IQD.
+                    e.isAnnounceOnly() ? "" : Format.priceLineFromMin(minPrices.get(e.getId())),
                     likes.getOrDefault(e.getId(), 0L)));
         }
         return out;
@@ -284,7 +287,7 @@ public class CatalogService {
                 e.getCoverFocusY(),
                 galleryUrls(e, primary),
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
-                Format.longDateLine(e.getStartsAt(), e.getEndsAt()),
+                Format.longDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime()),
                 Format.monthShort(e.getStartsAt()),
                 Format.dayOfMonth(e.getStartsAt()),
                 paragraphs,

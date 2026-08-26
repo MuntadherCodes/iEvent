@@ -381,7 +381,7 @@ public class HostController {
                               @RequestParam(required = false) String onlineUrl,
                               @RequestParam(required = false) String mapsUrl,
                               @RequestParam String date,
-                              @RequestParam String startTime,
+                              @RequestParam(required = false) String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
                               @RequestParam(required = false) String summary,
@@ -400,7 +400,8 @@ public class HostController {
                               @RequestParam(name = "ttQty", required = false) List<String> ttQtys,
                               @RequestParam(name = "action", defaultValue = "draft") String action,
                               @RequestParam(name = "coverImage", required = false)
-                                  org.springframework.web.multipart.MultipartFile coverImage,
+                                  List<org.springframework.web.multipart.MultipartFile> coverImages,
+                              @RequestParam(name = "coverImageFocusY", required = false) List<String> coverImageFocusYs,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
                               @RequestParam(required = false) Integer coverFocusY,
                               @RequestParam(required = false) Long draftEventId,
@@ -441,14 +442,14 @@ public class HostController {
             Event created;
             if (existingDraft != null) {
                 hostService.updateEvent(existingDraft, title, Event.Category.valueOf(category), city,
-                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
-                        endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
+                        hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
                 hostService.replaceTicketTypes(existingDraft, forms);
                 created = existingDraft;
             } else {
                 created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
-                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
-                        endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
+                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
+                        hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
                         description, forms);
             }
             created.setLocationType(loc.type());
@@ -459,10 +460,15 @@ public class HostController {
                     requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             hostService.applyCoverTheme(created, coverTheme);
             if (coverFocusY != null) hostService.setCoverFocusY(created, coverFocusY);
-            String coverError = hostService.storeCover(created, coverImage);
+            CoverUploads uploads = splitCoverUploads(coverImages);
+            String coverError = hostService.storeCover(created, uploads.primary());
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
-            hostService.replaceGalleryImages(created,
+            List<HostService.GalleryImageForm> picks = new ArrayList<>(
                     buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls, galleryFocusYs));
+            picks.addAll(uploads.extras().isEmpty()
+                    ? hostService.currentLocalGalleryExtras(created)
+                    : hostService.storeGalleryUploads(created, uploads.extras(), coverImageFocusYs));
+            hostService.replaceGalleryImages(created, capGalleryImages(picks));
             if ("publish".equals(action)) {
                 hostService.publish(created);
                 redirect.addFlashAttribute("published", true);
@@ -487,14 +493,14 @@ public class HostController {
                                                         @RequestParam String category,
                                                         @RequestParam String city,
                                                         @RequestParam String date,
-                                                        @RequestParam String startTime) {
+                                                        @RequestParam(required = false) String startTime) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return java.util.Map.of("error", "no-org");
         requireManage(u);
         try {
             Event created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
-                    null, null, LocalDate.parse(date), LocalTime.parse(startTime), null, "", List.of());
+                    null, null, LocalDate.parse(date), parseStartTime(startTime), hasStartTime(startTime), null, "", List.of());
             return java.util.Map.of("id", created.getId());
         } catch (Exception e) {
             return java.util.Map.of("error", e.getMessage() == null ? "failed" : e.getMessage());
@@ -518,7 +524,7 @@ public class HostController {
                               @RequestParam(required = false) String onlineUrl,
                               @RequestParam(required = false) String mapsUrl,
                               @RequestParam String date,
-                              @RequestParam String startTime,
+                              @RequestParam(required = false) String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
                               @RequestParam(required = false) String summary,
@@ -539,8 +545,8 @@ public class HostController {
         if (loc.error() != null) return java.util.Map.of("error", loc.error());
         try {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
-                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
-                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
+                    hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
@@ -640,7 +646,12 @@ public class HostController {
         model.addAttribute("ev", toRow(ev));
         model.addAttribute("evEntity", new EventEditView(ev.getTitle(), ev.getCategory().name(),
                 ev.getCity(), ev.getVenueName(), ev.getVenueAddress(),
-                z.toLocalDate().toString(), z.toLocalTime().toString().substring(0, 5),
+                z.toLocalDate().toString(),
+                // A blank pick on save still needs a real starts_at time under the
+                // hood (see HostController.DEFAULT_START_TIME) — hasStartTime is what
+                // tells this form to show that back as blank instead of the noon
+                // placeholder that was actually stored.
+                ev.isHasStartTime() ? z.toLocalTime().toString().substring(0, 5) : "",
                 ev.getEndsAt() == null ? "" : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD)
                         .toLocalTime().toString().substring(0, 5),
                 ev.getDescription(),
@@ -725,7 +736,7 @@ public class HostController {
                               @RequestParam(required = false) String onlineUrl,
                               @RequestParam(required = false) String mapsUrl,
                               @RequestParam String date,
-                              @RequestParam String startTime,
+                              @RequestParam(required = false) String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
                               @RequestParam(required = false) String summary,
@@ -739,7 +750,8 @@ public class HostController {
                               @RequestParam(name = "paymentMethodIds", required = false) List<Long> paymentMethodIds,
                               @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
                               @RequestParam(name = "coverImage", required = false)
-                                  org.springframework.web.multipart.MultipartFile coverImage,
+                                  List<org.springframework.web.multipart.MultipartFile> coverImages,
+                              @RequestParam(name = "coverImageFocusY", required = false) List<String> coverImageFocusYs,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
                               @RequestParam(required = false) Integer coverFocusY,
                               @RequestParam(name = "removeCover", defaultValue = "false") boolean removeCover,
@@ -761,8 +773,8 @@ public class HostController {
         }
         try {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
-                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), LocalTime.parse(startTime),
-                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
+                    hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
@@ -772,11 +784,16 @@ public class HostController {
             hostService.applyCoverTheme(ev, coverTheme);
             if (coverFocusY != null) hostService.setCoverFocusY(ev, coverFocusY);
             if (removeCover) hostService.removeCover(ev);
-            String coverError = hostService.storeCover(ev, coverImage);
+            CoverUploads uploads = splitCoverUploads(coverImages);
+            String coverError = hostService.storeCover(ev, uploads.primary());
             if (coverError != null) redirect.addFlashAttribute("error", coverError);
             else redirect.addFlashAttribute("saved", true);
-            hostService.replaceGalleryImages(ev,
+            List<HostService.GalleryImageForm> picks = new ArrayList<>(
                     buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls, galleryFocusYs));
+            picks.addAll(uploads.extras().isEmpty()
+                    ? hostService.currentLocalGalleryExtras(ev)
+                    : hostService.storeGalleryUploads(ev, uploads.extras(), coverImageFocusYs));
+            hostService.replaceGalleryImages(ev, capGalleryImages(picks));
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.saveFailed", e.getMessage()));
         }
@@ -880,8 +897,51 @@ public class HostController {
         hostService.syncEventPaymentMethods(ev.getId(), paymentMethodIds);
     }
 
+    /** Start time is optional in the form — the DB column still isn't nullable,
+     *  so a blank pick falls back to a neutral noon default rather than failing
+     *  the submit. Callers pass this through as the event's real starts_at time
+     *  until a host sets a real one; the public pages don't distinguish it from
+     *  an intentional noon start yet. */
+    private static final LocalTime DEFAULT_START_TIME = LocalTime.NOON;
+
+    private static LocalTime parseStartTime(String startTime) {
+        return startTime == null || startTime.isBlank() ? DEFAULT_START_TIME : LocalTime.parse(startTime);
+    }
+
+    /** Whether the host actually picked a time — parseStartTime()'s noon
+     *  fallback alone can't tell a real "12:00 PM" apart from "left blank". */
+    private static boolean hasStartTime(String startTime) {
+        return startTime != null && !startTime.isBlank();
+    }
+
     /** Parallel arrays (one per picked stock photo) into gallery-form records —
      *  same shape as the ttName/ttPrice/ttQty ticket-row arrays above. */
+    /** The file input accepts multiple files: the first non-empty one is the
+     *  primary cover (same slot the old single-file input always filled), the
+     *  rest become extra gallery/slider photos via storeGalleryUploads(). */
+    private record CoverUploads(org.springframework.web.multipart.MultipartFile primary,
+                                List<org.springframework.web.multipart.MultipartFile> extras) {}
+
+    private static CoverUploads splitCoverUploads(List<org.springframework.web.multipart.MultipartFile> files) {
+        if (files == null) return new CoverUploads(null, List.of());
+        org.springframework.web.multipart.MultipartFile primary = null;
+        List<org.springframework.web.multipart.MultipartFile> extras = new ArrayList<>();
+        for (org.springframework.web.multipart.MultipartFile f : files) {
+            if (f == null || f.isEmpty()) continue;
+            if (primary == null) primary = f; else extras.add(f);
+        }
+        return new CoverUploads(primary, extras);
+    }
+
+    /** Server-side backstop for the picker's own 10-image cap — a normal
+     *  browser session never sends more, but nothing stops a raw POST from
+     *  trying to. */
+    private static final int MAX_GALLERY_IMAGES = 10;
+
+    private static List<HostService.GalleryImageForm> capGalleryImages(List<HostService.GalleryImageForm> picks) {
+        return picks.size() > MAX_GALLERY_IMAGES ? picks.subList(0, MAX_GALLERY_IMAGES) : picks;
+    }
+
     private List<HostService.GalleryImageForm> buildGalleryPicks(
             List<String> urls, List<String> creditNames, List<String> creditUrls, List<String> focusYs) {
         if (urls == null) return List.of();
@@ -935,7 +995,7 @@ public class HostController {
     @PostMapping("/events/{id}/postpone")
     public String postpone(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
                            @RequestParam String date,
-                           @RequestParam String startTime,
+                           @RequestParam(required = false) String startTime,
                            @RequestParam(required = false) String endTime,
                            RedirectAttributes redirect) {
         User u = user(principal);
@@ -945,8 +1005,8 @@ public class HostController {
         Event ev = hostService.eventOf(org.getId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         try {
-            hostService.postponeEvent(ev, LocalDate.parse(date), LocalTime.parse(startTime),
-                    endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime));
+            hostService.postponeEvent(ev, LocalDate.parse(date), parseStartTime(startTime),
+                    hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime));
             redirect.addFlashAttribute("actioned", msg("flash.event.postponed"));
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.postponeFailed"));
@@ -1318,7 +1378,7 @@ public class HostController {
         long revenue = tts.stream().mapToLong(t -> t.getSold() * t.getPriceIqd()).sum();
         return new EventRow(e.getId(), e.getSlug(), e.getTitle(), statusLabel(e.getStatus().name()),
                 e.getStatus().name(),
-                Format.cardDateLine(e.getStartsAt()), e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
+                Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()), e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                 sold, cap, sold + " / " + cap, Format.iqd(revenue),
                 Format.coverUrl(e),
                 e.getCoverTheme());

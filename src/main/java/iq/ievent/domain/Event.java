@@ -7,7 +7,11 @@ import java.time.OffsetDateTime;
 @Table(name = "events")
 public class Event {
 
-    public enum Category { MUSIC, TECH, BUSINESS, ARTS, FOOD, SPORTS, COMMUNITY, EDUCATION, FILM, FAMILY }
+    // Declaration order drives any UI that iterates values() directly (e.g. the
+    // profile "interests" picker) — kept in step with PageController.CATEGORIES
+    // so both show categories in the same order. Stored by name (EnumType.STRING
+    // below), so reordering here is safe and needs no migration.
+    public enum Category { EDUCATION, COMMUNITY, BUSINESS, FOOD, TECH, MUSIC, SPORTS, ARTS, FAMILY, FILM }
 
     public enum Status { DRAFT, LIVE, ENDED, CANCELLED }
 
@@ -46,6 +50,15 @@ public class Event {
 
     @Column(name = "ends_at")
     private OffsetDateTime endsAt;
+
+    /** Whether the host actually picked a start time, as opposed to leaving it
+     *  blank (time is optional in the form, but starts_at itself can't be null
+     *  — a blank pick still stores a noon placeholder there). Existing rows all
+     *  had a real time before this flag existed, hence the true default. Drives
+     *  whether the edit form re-shows a time on reload, and can also gate a
+     *  future "Time TBA" treatment on public pages. */
+    @Column(name = "has_start_time", nullable = false)
+    private boolean hasStartTime = true;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -149,6 +162,8 @@ public class Event {
     public void setStartsAt(OffsetDateTime startsAt) { this.startsAt = startsAt; }
     public OffsetDateTime getEndsAt() { return endsAt; }
     public void setEndsAt(OffsetDateTime endsAt) { this.endsAt = endsAt; }
+    public boolean isHasStartTime() { return hasStartTime; }
+    public void setHasStartTime(boolean hasStartTime) { this.hasStartTime = hasStartTime; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public String getCoverTheme() { return coverTheme; }

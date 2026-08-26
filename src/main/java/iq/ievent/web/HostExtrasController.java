@@ -218,7 +218,7 @@ public class HostExtrasController {
         model.addAttribute("canManage", access.canManage());
         model.addAttribute("eventOptions", sortForSelect(hostService.eventsOf(orgId)));
         model.addAttribute("ev", new IdTitle(ev.getId(), ev.getTitle(), ev.getSlug()));
-        model.addAttribute("evDateLine", Format.cardDateLine(ev.getStartsAt()));
+        model.addAttribute("evDateLine", Format.cardDateLine(ev.getStartsAt(), ev.isHasStartTime()));
         java.util.Map<String, String> avatars = userService.avatarsByEmail(filtered.stream()
                 .map(t -> t.getHolderEmail() != null ? t.getHolderEmail() : t.getOrder().getBuyerEmail())
                 .toList());
@@ -615,7 +615,7 @@ public class HostExtrasController {
             var copy = aiContentService.generateCampaign(
                     event == null ? null : event.getTitle(),
                     event == null ? null : event.getCategory().name(),
-                    event == null ? null : Format.longDateLine(event.getStartsAt(), event.getEndsAt(), java.util.Locale.ENGLISH),
+                    event == null ? null : Format.longDateLine(event.getStartsAt(), event.getEndsAt(), event.isHasStartTime(), java.util.Locale.ENGLISH),
                     event == null ? null : event.getVenueName(),
                     !"en".equals(lang));
             return ResponseEntity.ok(java.util.Map.of("subject", copy.subject(), "body", copy.body()));
@@ -1034,7 +1034,7 @@ public class HostExtrasController {
         String encUrl = URLEncoder.encode(url, StandardCharsets.UTF_8);
         String encTitle = URLEncoder.encode(e.getTitle(), StandardCharsets.UTF_8);
         String encBoth = URLEncoder.encode(e.getTitle() + " — " + url, StandardCharsets.UTF_8);
-        return new ShareRow(e.getTitle(), Format.cardDateLine(e.getStartsAt()), url,
+        return new ShareRow(e.getTitle(), Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()), url,
                 "https://wa.me/?text=" + encBoth,
                 "https://t.me/share/url?url=" + encUrl + "&text=" + encTitle,
                 "https://www.facebook.com/sharer/sharer.php?u=" + encUrl,
@@ -1049,7 +1049,7 @@ public class HostExtrasController {
         String venueLine = e.getVenueName() != null && !e.getVenueName().isBlank()
                 ? e.getVenueName() + ", " + e.getCity() : e.getCity();
         return new WidgetRow(e.getId(), e.getTitle(), e.getSlug(),
-                Format.cardDateLine(e.getStartsAt()), venueLine,
+                Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()), venueLine,
                 min > 0 ? Format.iqd(min) : null);
     }
 

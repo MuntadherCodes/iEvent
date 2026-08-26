@@ -21,7 +21,10 @@ spring:
   servlet:
     multipart:
       max-file-size: 6MB
-      max-request-size: 8MB
+      # Hosts can now pick several cover/gallery photos in one submit (each
+      # capped at 3MB app-side) — 8MB only fit one, so this is raised to give
+      # room for a real multi-photo gallery plus the rest of the form fields.
+      max-request-size: 40MB
 
   mail:
     host: ${SPRING_MAIL_HOST:localhost}

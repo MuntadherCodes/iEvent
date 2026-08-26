@@ -183,6 +183,72 @@ public class HostService {
         }
     }
 
+    /** Saves extra photos uploaded straight from the host's desktop (beyond the
+     *  single primary cover, which storeCover() already handles) as gallery
+     *  images, each keeping the crop position the host set for it client-side
+     *  (focusYs is index-aligned with files; a missing/invalid entry falls
+     *  back to a center crop). Only called when the host actually picked new
+     *  files this submit — it fully replaces whatever local-upload slots this
+     *  event had before, so a shrinking set never leaves an orphaned file on
+     *  disk. Bad type or oversize files are silently skipped rather than
+     *  failing the whole submission, since storeCover() already surfaces that
+     *  as a hard error for the primary photo. */
+    @Transactional
+    public List<GalleryImageForm> storeGalleryUploads(Event event, List<MultipartFile> files, List<String> focusYs) {
+        java.nio.file.Path dir = uploadDir.resolve("covers");
+        clearGalleryUploadSlots(event.getId(), dir);
+        List<GalleryImageForm> out = new java.util.ArrayList<>();
+        if (files == null) return out;
+        int slot = 0;
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            if (file == null || file.isEmpty()) continue;
+            slot++;
+            if (file.getSize() > 3 * 1024 * 1024) continue;
+            String original = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
+            String ext = original.contains(".")
+                    ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
+            if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) continue;
+            int focusY = 50;
+            if (focusYs != null && i < focusYs.size()) {
+                try { focusY = Math.max(0, Math.min(100, Integer.parseInt(focusYs.get(i)))); }
+                catch (NumberFormatException ignored) { }
+            }
+            try {
+                java.nio.file.Files.createDirectories(dir);
+                java.nio.file.Path target = dir.resolve("event-" + event.getId() + "-extra-" + slot + "." + ext);
+                java.nio.file.Files.copy(file.getInputStream(), target,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                out.add(new GalleryImageForm(
+                        "/media/event-cover/" + event.getId() + "/extra/" + slot, null, null, focusY));
+            } catch (java.io.IOException ignored) { }
+        }
+        return out;
+    }
+
+    /** Desktop-uploaded gallery extras from a previous save, identified by their
+     *  own served-URL shape rather than a DB column — used to carry them forward
+     *  unchanged on any edit that doesn't touch the upload input, since a file
+     *  input can never be pre-populated with previously-saved files the way the
+     *  Pexels picker's own selections are. */
+    @Transactional(readOnly = true)
+    public List<GalleryImageForm> currentLocalGalleryExtras(Event event) {
+        return eventImages.findByEventIdOrderBySortOrderAsc(event.getId()).stream()
+                .filter(img -> img.getUrl() != null
+                        && img.getUrl().startsWith("/media/event-cover/") && img.getUrl().contains("/extra/"))
+                .map(img -> new GalleryImageForm(img.getUrl(), img.getCreditName(), img.getCreditUrl(), img.getFocusY()))
+                .toList();
+    }
+
+    private static void clearGalleryUploadSlots(Long eventId, java.nio.file.Path dir) {
+        if (!java.nio.file.Files.isDirectory(dir)) return;
+        String prefix = "event-" + eventId + "-extra-";
+        try (var stream = java.nio.file.Files.list(dir)) {
+            stream.filter(p -> p.getFileName().toString().startsWith(prefix))
+                  .forEach(p -> { try { java.nio.file.Files.deleteIfExists(p); } catch (java.io.IOException ignored) { } });
+        } catch (java.io.IOException ignored) { }
+    }
+
     /** Every image on the event's public page, primary first, with attribution —
      *  0 items means the gradient/theme fallback, 1 means a static cover, 2+
      *  means a slider. */
@@ -346,7 +412,7 @@ public class HostService {
     @Transactional
     public Event createEvent(Organization org, String title, Event.Category category, String city,
                              String venueName, String venueAddress, LocalDate date, LocalTime start,
-                             LocalTime end, String description, List<TicketTypeForm> ticketForms) {
+                             boolean hasStartTime, LocalTime end, String description, List<TicketTypeForm> ticketForms) {
         Event e = new Event();
         e.setOrganization(org);
         e.setTitle(title.trim());
@@ -357,6 +423,7 @@ public class HostService {
         e.setVenueAddress(venueAddress);
         OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
         e.setStartsAt(startsAt);
+        e.setHasStartTime(hasStartTime);
         e.setEndsAt(end == null ? null
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
@@ -393,7 +460,7 @@ public class HostService {
     @Transactional
     public void updateEvent(Event e, String title, Event.Category category, String city,
                             String venueName, String venueAddress, LocalDate date, LocalTime start,
-                            LocalTime end, String description) {
+                            boolean hasStartTime, LocalTime end, String description) {
         e.setTitle(title.trim());
         e.setCategory(category);
         e.setCity(city);
@@ -401,6 +468,7 @@ public class HostService {
         e.setVenueAddress(venueAddress);
         OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
         e.setStartsAt(startsAt);
+        e.setHasStartTime(hasStartTime);
         e.setEndsAt(end == null ? null
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
@@ -544,9 +612,10 @@ public class HostService {
 
     /** Moves the event to a new date/time and emails every buyer. */
     @Transactional
-    public void postponeEvent(Event event, LocalDate date, LocalTime start, LocalTime end) {
+    public void postponeEvent(Event event, LocalDate date, LocalTime start, boolean hasStartTime, LocalTime end) {
         OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
         event.setStartsAt(startsAt);
+        event.setHasStartTime(hasStartTime);
         event.setEndsAt(end == null ? null
                 : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
                         .atZone(Format.BAGHDAD).toOffsetDateTime());
@@ -560,7 +629,7 @@ public class HostService {
                 return new String[] {
                         msgFor(locale, "mail.eventPostponed.subject", event.getTitle()),
                         msgFor(locale, "mail.eventPostponed.body", event.getTitle(),
-                                Format.longDateLine(event.getStartsAt(), event.getEndsAt()))};
+                                Format.longDateLine(event.getStartsAt(), event.getEndsAt(), event.isHasStartTime()))};
             } finally {
                 LocaleContextHolder.setLocale(previous);
             }

@@ -68,6 +68,17 @@ public final class Format {
         return isEnglish() ? s.toUpperCase(Locale.ENGLISH) : s;
     }
 
+    /** Event-specific variant: shows just the date, with no time portion at all,
+     *  when the host never actually set a start time (see Event.hasStartTime —
+     *  the timestamp itself still needs a real placeholder value under the hood,
+     *  this is what keeps that placeholder from being shown as if it were real). */
+    public static String cardDateLine(OffsetDateTime startsAt, boolean hasStartTime) {
+        if (hasStartTime) return cardDateLine(startsAt);
+        Locale loc = displayLocale();
+        String s = startsAt.atZoneSameInstant(BAGHDAD).format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", loc));
+        return isEnglish() ? s.toUpperCase(Locale.ENGLISH) : s;
+    }
+
     public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt) {
         return longDateLine(startsAt, endsAt, displayLocale());
     }
@@ -81,6 +92,18 @@ public final class Format {
             base += " – " + endsAt.atZoneSameInstant(BAGHDAD).format(time);
         }
         return base;
+    }
+
+    /** Event-specific variant — see the cardDateLine(startsAt, hasStartTime) note.
+     *  When there's no real start time, the end time (if any) is dropped too:
+     *  showing just an end time with no start would read as broken, not informative. */
+    public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt, boolean hasStartTime) {
+        return longDateLine(startsAt, endsAt, hasStartTime, displayLocale());
+    }
+
+    public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt, boolean hasStartTime, Locale loc) {
+        if (hasStartTime) return longDateLine(startsAt, endsAt, loc);
+        return startsAt.atZoneSameInstant(BAGHDAD).format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", loc));
     }
 
     public static String monthShort(OffsetDateTime startsAt) {
