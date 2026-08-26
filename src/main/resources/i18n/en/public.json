@@ -269,6 +269,8 @@
   "public.event.postedBy": "Posted by",
   "public.event.previewRailSub": "This is how the ticket rail will look. Tickets go on sale when you publish the event.",
   "public.event.qtyAria": "{0} quantity",
+  "public.event.readLess": "Read less",
+  "public.event.readMore": "Read more",
   "public.event.refundPolicy": "Refund policy",
   "public.event.removeOneAria": "Remove one {0} ticket",
   "public.event.salesClosed": "Ticket sales closed",

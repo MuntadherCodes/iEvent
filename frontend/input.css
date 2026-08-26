@@ -15,6 +15,20 @@
 }
 
 @layer components {
+  /* Rich-text toolbar buttons (event description editor, origin + translated
+     — see initRichEditor in event-form.html/event-edit.html). Previously
+     unstyled beyond the .rt-btn hook itself; giving every button a real
+     pressed state here (driven by aria-pressed, which the JS keeps in sync
+     with the cursor's actual formatting) is what makes it visible whether
+     selected text is a Heading vs Bold vs neither — the confusion a host
+     hit when the Bold button didn't seem to "stick". */
+  .rt-btn {
+    @apply grid h-7 w-7 place-items-center rounded-md text-sm font-semibold text-ink-600 transition hover:bg-ink-100;
+  }
+  .rt-btn[aria-pressed="true"] {
+    @apply bg-brand-100 text-brand-700;
+  }
+
   /* Host dashboard sidebar: user-togglable collapse to an icon-only rail on
      desktop (lg+), persisted in localStorage (see the head script in
      fragments/host-layout.html for the read, and the sidebar fragment for

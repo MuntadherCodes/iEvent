@@ -482,17 +482,17 @@
               <p id="aiWriteError" class="mt-2 hidden text-sm text-rose-600"></p>
               <div class="mt-4 rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
                 <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
                   <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
                   <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
                   <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
-                  <button type="button" class="rt-btn" data-rt-for="ev-desc-editor" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
+                  <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
                 </div>
                 <div id="ev-desc-editor" class="rich-text min-h-[160px] px-4 py-3 text-sm outline-none" contenteditable="true" th:attr="data-placeholder=#{wizard.details.descPlaceholder},aria-label=#{wizard.details.descAria}" role="textbox" aria-multiline="true"></div>
               </div>
@@ -640,17 +640,17 @@
                   <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-desc-editor-translated" th:text="#{wizard.edit.description}">Description</label>
                   <div class="rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
                     <div class="flex flex-wrap items-center gap-1 border-b border-ink-100 px-2 py-1.5" role="toolbar" th:attr="aria-label=#{wizard.rt.toolbar}">
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="bold" th:title="#{wizard.rt.bold}"><b>B</b></button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="italic" th:title="#{wizard.rt.italic}"><i>I</i></button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="underline" th:title="#{wizard.rt.underline}"><u>U</u></button>
                         <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="h3" th:title="#{wizard.rt.heading}">H</button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="p" th:title="#{wizard.rt.paragraph}">¶</button>
                         <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="insertUnorderedList" th:title="#{wizard.rt.bullets}">•≡</button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="insertOrderedList" th:title="#{wizard.rt.numbered}">1≡</button>
                         <span class="mx-1 h-5 w-px bg-ink-100" aria-hidden="true"></span>
-                        <button type="button" class="rt-btn" data-rt-for="ev-desc-editor-translated" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
+                        <button type="button" class="rt-btn" aria-pressed="false" data-rt-for="ev-desc-editor-translated" data-cmd="link" th:title="#{wizard.rt.link}" th:attr="data-prompt=#{wizard.rt.linkPrompt}"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-link"/></svg></button>
                       </div>
                     <div id="ev-desc-editor-translated" class="rich-text min-h-[120px] px-4 py-3 text-sm outline-none" contenteditable="true" th:attr="data-placeholder=#{wizard.translate.descPlaceholder}" role="textbox" aria-multiline="true"></div>
                   </div>
@@ -1557,9 +1557,33 @@
       ta.value = (html === '<br>' || html === '<p><br></p>') ? '' : html;
       try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
     }
+    var toolbarBtns = document.querySelectorAll('[data-rt-for="' + editorId + '"]');
+    // Keeps each button's pressed look (see .rt-btn[aria-pressed] in
+    // input.css) matching whatever's actually under the cursor right now —
+    // Bold/Italic/Underline via queryCommandState, H/¶ via the current block
+    // tag (a heading swallows Bold's own state, which is exactly the mix-up
+    // a host hit when toggling Bold never visibly "un-bolded" a heading).
+    function updateToolbarState() {
+      var block = '';
+      try { block = (document.queryCommandValue('formatBlock') || '').toLowerCase(); } catch (e) {}
+      toolbarBtns.forEach(function (btn) {
+        var cmd = btn.getAttribute('data-cmd');
+        var active = false;
+        if (cmd === 'h3') active = block === 'h3' || block === 'h4';
+        else if (cmd === 'p') active = block === 'p' || block === 'div' || block === '';
+        else if (cmd !== 'link') { try { active = document.queryCommandState(cmd); } catch (e) {} }
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
     ed.addEventListener('input', sync);
     ed.addEventListener('blur', sync);
-    document.querySelectorAll('[data-rt-for="' + editorId + '"]').forEach(function (btn) {
+    ed.addEventListener('keyup', updateToolbarState);
+    ed.addEventListener('mouseup', updateToolbarState);
+    ed.addEventListener('focus', updateToolbarState);
+    document.addEventListener('selectionchange', function () {
+      if (document.activeElement === ed) updateToolbarState();
+    });
+    toolbarBtns.forEach(function (btn) {
       btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep selection
       btn.addEventListener('click', function () {
         ed.focus();
@@ -1575,9 +1599,10 @@
           }
         } catch (e) {}
         sync();
+        updateToolbarState();
       });
     });
-    return { setHtml: function (html) { ed.innerHTML = html || ''; sync(); } };
+    return { setHtml: function (html) { ed.innerHTML = html || ''; sync(); updateToolbarState(); } };
   }
 
   (function () {
@@ -1673,6 +1698,17 @@
     var openBtn = document.getElementById('openTranslationModalBtn');
     var closeBtn = document.getElementById('translationModalClose');
     var doneBtn = document.getElementById('translationModalDone');
+
+    // A new event's origin language is always the host's current UI locale
+    // (see HostService#createEvent), so the target — what these fields hold
+    // — is simply the other one. Fields should read/type in that direction,
+    // not inherit the page's own (origin-language) RTL/LTR.
+    var targetDir = document.documentElement.lang === 'en' ? 'rtl' : 'ltr';
+    ['ev-title-translated', 'ev-summary-translated', 'ev-desc-editor-translated', 'ev-lineup-translated']
+      .forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.setAttribute('dir', targetDir);
+      });
 
     function openModal() { overlay.classList.remove('hidden'); overlay.classList.add('flex'); }
     function closeModal() { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }

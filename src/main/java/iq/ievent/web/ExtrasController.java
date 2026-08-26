@@ -124,6 +124,37 @@ public class ExtrasController {
         return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(body);
     }
 
+    /** llms.txt (see llmstxt.org): a short Markdown orientation page for AI
+     *  agents/crawlers — what the site is, and the handful of pages worth
+     *  starting from. Dynamic for the same reason robots.txt is. */
+    @GetMapping(value = "/llms.txt", produces = "text/markdown;charset=UTF-8")
+    public ResponseEntity<String> llmsTxt() {
+        String body = """
+                # iEvent
+
+                > iEvent is an events and ticketing platform for Iraq — discover concerts, \
+                conferences, courses and community events, and buy tickets directly on the site.
+
+                Listings span every major Iraqi city and cover categories from education and \
+                business to music, sports, arts and food. Organizers can also publish free \
+                informational announcements with no ticket sale attached.
+
+                ## Key pages
+
+                - [Browse events](%1$s/browse): searchable, filterable directory of every live event
+                - [Host an event](%1$s/host): create and publish an event, sell tickets or post an announcement
+                - [Privacy policy](%1$s/privacy)
+                - [Terms of use](%1$s/terms)
+
+                ## Notes
+
+                - Content is bilingual (Arabic default, English at %1$s/en/**) — each event page \
+                carries hreflang alternates for both.
+                - [Sitemap](%1$s/sitemap.xml) lists every live event and organizer page.
+                """.formatted(siteBaseUrl);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/markdown;charset=UTF-8")).body(body);
+    }
+
     /** One canonical (Arabic-default) URL per public page — event/organizer
      *  pages already carry hreflang alternates for English via layout.html's
      *  head fragment, so the sitemap itself doesn't need to list both. Excludes

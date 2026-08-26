@@ -150,10 +150,22 @@
         <!-- About -->
         <section class="mt-10">
           <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.about}">About this event</h2>
-          <!-- descriptionHtml is SANITIZED server-side (RichText: save + render) -->
-          <div class="rich-text mt-4 leading-relaxed text-ink-600" th:utext="${descriptionHtml}">
-            <p>Baghdad Nights returns for its third — and biggest — edition.</p>
+          <!-- Collapsed to a fixed height with a fade-out overlay when long —
+               aboutReadMore.js below measures the real content height and
+               only shows the fade + button when it actually overflows, so a
+               short description never gets an empty "Read more" for nothing. -->
+          <div id="aboutClip" class="relative mt-4 max-h-60 overflow-hidden">
+            <!-- descriptionHtml is SANITIZED server-side (RichText: save + render) -->
+            <div id="aboutContent" class="rich-text leading-relaxed text-ink-600" th:utext="${descriptionHtml}">
+              <p>Baghdad Nights returns for its third — and biggest — edition.</p>
+            </div>
+            <div id="aboutFade" class="pointer-events-none absolute inset-x-0 bottom-0 hidden h-20 bg-gradient-to-t from-white to-transparent"></div>
           </div>
+          <button type="button" id="aboutToggleBtn" class="mt-3 hidden inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">
+            <span data-label-more th:text="#{public.event.readMore}">Read more</span>
+            <span data-label-less class="hidden" th:text="#{public.event.readLess}">Read less</span>
+            <svg id="aboutToggleIcon" class="h-4 w-4 transition-transform" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          </button>
         </section>
 
         <!-- Lineup -->
@@ -589,6 +601,36 @@
         })
         .catch(function () { /* offline / transient — state stays as it was */ })
         .finally(function () { btn.disabled = false; });
+    });
+  })();
+
+  // "Read more" — only shown when the description actually overflows the
+  // collapsed height (aboutClip's max-h-60), so a short description never
+  // gets a fade/button for nothing.
+  (function () {
+    var clip = document.getElementById('aboutClip');
+    var content = document.getElementById('aboutContent');
+    var fade = document.getElementById('aboutFade');
+    var btn = document.getElementById('aboutToggleBtn');
+    if (!clip || !content || !btn) return;
+
+    if (content.scrollHeight <= clip.clientHeight + 8) return; // fits already — leave collapsed UI hidden
+
+    fade.classList.remove('hidden');
+    btn.classList.remove('hidden');
+    var labelMore = btn.querySelector('[data-label-more]');
+    var labelLess = btn.querySelector('[data-label-less]');
+    var icon = document.getElementById('aboutToggleIcon');
+    var expanded = false;
+
+    btn.addEventListener('click', function () {
+      expanded = !expanded;
+      clip.classList.toggle('max-h-60', !expanded);
+      fade.classList.toggle('hidden', expanded);
+      labelMore.classList.toggle('hidden', expanded);
+      labelLess.classList.toggle('hidden', !expanded);
+      icon.classList.toggle('rotate-180', expanded);
+      if (!expanded) clip.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   })();
 </script>

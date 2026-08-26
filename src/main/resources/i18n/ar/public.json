@@ -269,6 +269,8 @@
   "public.event.postedBy": "نشر بواسطة",
   "public.event.previewRailSub": "هكذا ستبدو لوحة التذاكر. يبدأ البيع عند نشر الفعالية.",
   "public.event.qtyAria": "كمية {0}",
+  "public.event.readLess": "عرض أقل",
+  "public.event.readMore": "قراءة المزيد",
   "public.event.refundPolicy": "سياسة الاسترداد",
   "public.event.removeOneAria": "إزالة تذكرة {0} واحدة",
   "public.event.salesClosed": "أُغلق بيع التذاكر",

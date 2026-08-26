@@ -134,7 +134,7 @@ public class LocaleFilter extends OncePerRequestFilter {
         return !(path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/img/")
                 || path.startsWith("/media/") || path.startsWith("/api/")
                 || path.startsWith("/actuator/") || path.equals("/favicon.ico")
-                || path.equals("/robots.txt") || path.equals("/sitemap.xml") // crawlers fetch these exact paths, never a locale-prefixed one
+                || path.equals("/robots.txt") || path.equals("/sitemap.xml") || path.equals("/llms.txt") // crawlers fetch these exact paths, never a locale-prefixed one
                 || path.endsWith(".png") || path.endsWith(".pdf") || path.endsWith(".ics")
                 || path.endsWith(".csv") || path.endsWith(".js") || path.endsWith(".webmanifest")
                 || path.endsWith(".ico") || path.endsWith(".svg") || path.equals("/error"));
