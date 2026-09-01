@@ -181,14 +181,15 @@
                 <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
               </div>
             </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-cat"><span th:text="#{wizard.kind.category}">Category</span> <span class="text-rose-500">*</span></label>
-              <div class="relative">
-                <select id="ev-cat" name="category" required class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                  <option th:each="c : ${categories}" th:value="${c.value()}" th:text="${@t.category(c.value())}" th:selected="${evEntity.category() == c.value()}">Music</option>
-                </select>
-                <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            <div class="sm:col-span-2">
+              <span class="mb-1.5 block text-sm font-semibold text-ink-800"><span th:text="#{wizard.kind.category}">Category</span> <span class="text-rose-500">*</span> <span class="font-normal text-ink-400" th:text="#{wizard.kind.categoryMax}">(pick up to 3)</span></span>
+              <div id="catPills" class="flex flex-wrap gap-2" role="group" th:attr="aria-label=#{wizard.kind.category}">
+                <label th:each="c : ${categories}" class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-ink-200 bg-white px-3.5 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                  <input type="checkbox" name="category" th:value="${c.value()}" th:checked="${#lists.contains(selectedCategories, c.value())}" class="cat-pill h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+                  <span th:text="${@t.category(c.value())}">Music</span>
+                </label>
               </div>
+              <p id="catMaxNote" class="mt-1.5 hidden text-xs font-medium text-rose-600" th:attr="data-min-msg=#{wizard.kind.categoryMinNote}" th:text="#{wizard.kind.categoryMaxNote}">You can pick up to 3 categories.</p>
             </div>
           </div>
           <div class="mt-5">
@@ -733,6 +734,38 @@
       radio.addEventListener('change', renderLocFields);
     });
     renderLocFields();
+  })();
+
+  // Categories: checkbox pills, at most 3 and at least 1 (R20 #4)
+  (function () {
+    var note = document.getElementById('catMaxNote');
+    function checkedCats() {
+      return document.querySelectorAll('.cat-pill:checked').length;
+    }
+    document.querySelectorAll('.cat-pill').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (cb.checked && checkedCats() > 3) {
+          cb.checked = false;
+          if (note) note.classList.remove('hidden');
+        } else if (note) {
+          note.classList.add('hidden');
+        }
+      });
+    });
+    // Saving with zero categories would silently fall back to Community
+    // server-side — block the submit and point at the pills instead.
+    var form = document.getElementById('editForm');
+    if (form) form.addEventListener('submit', function (e) {
+      if (checkedCats() === 0) {
+        e.preventDefault();
+        if (note) {
+          note.textContent = note.getAttribute('data-min-msg') || note.textContent;
+          note.classList.remove('hidden');
+        }
+        var first = document.querySelector('.cat-pill');
+        if (first) first.focus();
+      }
+    });
   })();
 
   // Date mode toggle (Exact / Multi-day / Month only / TBA): show only the
@@ -1629,7 +1662,7 @@
   // ---- "Write it for me" (AI-generated copy: description, summary, lineup) ----
   (function () {
     var titleInput = document.getElementById('ev-title');
-    var catSelect = document.getElementById('ev-cat');
+    // first checked category pill's label feeds the AI prompt
     var csrfToken = document.querySelector('meta[name="_csrf"]').content;
     var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
@@ -1649,7 +1682,8 @@
           titleInput.focus();
           return;
         }
-        var category = catSelect && catSelect.selectedOptions.length ? catSelect.selectedOptions[0].textContent.trim() : '';
+        var checkedPill = document.querySelector('.cat-pill:checked');
+        var category = checkedPill ? (checkedPill.parentElement.querySelector('span') || checkedPill).textContent.trim() : '';
         btn.disabled = true;
         labelEl.textContent = wizMsg('ai-generating');
         var body = new URLSearchParams({ title: title, category: category, lang: document.documentElement.lang, kind: kind });

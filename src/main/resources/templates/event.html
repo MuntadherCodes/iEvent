@@ -119,12 +119,24 @@
         <!-- Date + calendar -->
         <div class="flex flex-wrap items-center gap-4">
           <div class="flex items-center gap-3.5">
-            <span class="grid h-14 w-14 shrink-0 flex-col place-items-center rounded-2xl border border-brand-200 bg-brand-50 leading-none">
+            <!-- Date badge: day-of-month normally, month+year for month-only
+                 schedules, and a calendar icon for date-TBA (R20 #1 — no more
+                 orphan dash). -->
+            <span th:if="${event.datePrecision != 'TBA'}" class="grid h-14 w-14 shrink-0 flex-col place-items-center rounded-2xl border border-brand-200 bg-brand-50 leading-none">
               <span class="text-[10px] font-bold uppercase tracking-wider text-brand-600" th:text="${event.monthShort}">Sep</span>
-              <span class="font-display text-xl font-extrabold tabular-nums text-ink-900" th:text="${event.dayOfMonth}">12</span>
+              <span class="font-display text-xl font-extrabold tabular-nums text-ink-900" th:classappend="${event.datePrecision == 'MONTH'} ? 'text-sm' : ''" th:text="${event.dayOfMonth}">12</span>
+            </span>
+            <span th:if="${event.datePrecision == 'TBA'}" class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-dashed border-brand-300 bg-brand-50 text-brand-500">
+              <svg class="h-6 w-6" aria-hidden="true"><use href="#i-calendar"/></svg>
             </span>
             <div>
               <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="${event.dateLine}">Saturday, September 12 · 7:00 PM – 12:00 AM</span></p>
+              <!-- Live countdown to the start (R20 #2) — rendered only for real
+                   future dates; ticks client-side every minute. -->
+              <p th:if="${event.startsAtEpochMs != null}" id="eventCountdown" class="mt-1 hidden items-center gap-1.5 text-sm font-semibold text-brand-700"
+                 th:attr="data-target=${event.startsAtEpochMs},data-days=#{public.event.cd.days},data-hours=#{public.event.cd.hours},data-mins=#{public.event.cd.mins},data-prefix=#{public.event.cd.startsIn}">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg><span id="eventCountdownText"></span>
+              </p>
               <!-- No .ics for month-only / date-TBA schedules — a calendar entry
                    built from their placeholder timestamp would be wrong. -->
               <a th:if="${event.datePrecision != 'TBA' && event.datePrecision != 'MONTH'}" th:href="@{/e/{s}/calendar.ics(s=${event.slug})}" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.event.addToCalendar}]]</a>
@@ -255,7 +267,7 @@
             <div class="mt-3 flex flex-wrap gap-2">
               <a th:each="tag : ${tags}" th:href="@{/browse(q=${tag})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${tag}">#LiveMusic</a>
               <th:block th:if="${tags.isEmpty()}">
-                <a th:href="@{/browse}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${event.categoryLabel}">#LiveMusic</a>
+                <a th:each="cc : ${event.categoryChips}" th:href="@{/browse(category=${cc.value()})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${cc.label()}">#LiveMusic</a>
                 <a th:href="@{/browse(city=${event.city})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${@t.city(event.city)}">#Baghdad</a>
               </th:block>
             </div>
@@ -643,6 +655,39 @@
       icon.classList.toggle('rotate-180', expanded);
       if (!expanded) clip.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+  })();
+
+  // Live countdown to the event start (R20 #2). Server only renders the
+  // element for LIVE events with a real (DAY/RANGE) future date; ticks every
+  // 30s — minute-level precision is plenty at day/hour scale. Western digits
+  // in both languages, matching the site's date lines.
+  (function () {
+    var el = document.getElementById('eventCountdown');
+    if (!el) return;
+    var textEl = document.getElementById('eventCountdownText');
+    var target = parseInt(el.getAttribute('data-target'), 10);
+    if (!target) return;
+    function render() {
+      var diff = target - Date.now();
+      if (diff <= 0) {
+        el.classList.add('hidden');
+        el.classList.remove('inline-flex');
+        return;
+      }
+      var mins = Math.floor(diff / 60000);
+      var days = Math.floor(mins / (60 * 24));
+      var hours = Math.floor((mins % (60 * 24)) / 60);
+      var rem = mins % 60;
+      var parts = [];
+      if (days > 0) parts.push(days + ' ' + el.getAttribute('data-days'));
+      if (days < 30 && (hours > 0 || days > 0)) parts.push(hours + ' ' + el.getAttribute('data-hours'));
+      if (days === 0) parts.push(rem + ' ' + el.getAttribute('data-mins'));
+      textEl.textContent = el.getAttribute('data-prefix') + ' ' + parts.join(' · ');
+      el.classList.remove('hidden');
+      el.classList.add('inline-flex');
+    }
+    render();
+    setInterval(render, 30000);
   })();
 </script>
 </body>

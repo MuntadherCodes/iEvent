@@ -380,7 +380,7 @@ public class HostController {
     @PostMapping("/events/new")
     public String createEvent(@AuthenticationPrincipal UserDetails principal,
                               @RequestParam String title,
-                              @RequestParam String category,
+                              @RequestParam(name = "category", required = false) List<String> categories,
                               @RequestParam String city,
                               @RequestParam(required = false) String venueName,
                               @RequestParam(required = false) String venueAddress,
@@ -453,16 +453,20 @@ public class HostController {
                     : hostService.eventOf(org.getId(), draftEventId)
                             .filter(e -> e.getStatus() == Event.Status.DRAFT).orElse(null);
             HostService.When when = parseWhen(dateMode, date, endDate, month, startTime, endTime);
+            // Up to 3 categories (R20 #4) — the first is the primary one that
+            // drives the card label / theme / related events.
+            List<Event.Category> cats = HostService.cleanCategories(categories);
             Event created;
             if (existingDraft != null) {
-                hostService.updateEvent(existingDraft, title, Event.Category.valueOf(category), city,
+                hostService.updateEvent(existingDraft, title, cats.get(0), city,
                         loc.venueName(), loc.venueAddress(), when, description);
                 hostService.replaceTicketTypes(existingDraft, forms);
                 created = existingDraft;
             } else {
-                created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
+                created = hostService.createEvent(org, title, cats.get(0), city,
                         loc.venueName(), loc.venueAddress(), when, description, forms);
             }
+            hostService.syncEventCategories(created.getId(), cats);
             created.setLocationType(loc.type());
             created.setOnlineUrl(loc.onlineUrl());
             created.setMapsUrl(loc.mapsUrl());
@@ -496,7 +500,7 @@ public class HostController {
     @ResponseBody
     public java.util.Map<String, Object> autosaveStart(@AuthenticationPrincipal UserDetails principal,
                                                         @RequestParam String title,
-                                                        @RequestParam String category,
+                                                        @RequestParam(name = "category", required = false) List<String> categories,
                                                         @RequestParam String city,
                                                         @RequestParam(required = false) String date,
                                                         @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
@@ -508,8 +512,10 @@ public class HostController {
         if (org == null) return java.util.Map.of("error", "no-org");
         requireManage(u);
         try {
-            Event created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
+            List<Event.Category> cats = HostService.cleanCategories(categories);
+            Event created = hostService.createEvent(org, title, cats.get(0), city,
                     null, null, parseWhen(dateMode, date, endDate, month, startTime, null), "", List.of());
+            hostService.syncEventCategories(created.getId(), cats);
             return java.util.Map.of("id", created.getId());
         } catch (Exception e) {
             return java.util.Map.of("error", e.getMessage() == null ? "failed" : e.getMessage());
@@ -525,7 +531,7 @@ public class HostController {
     public java.util.Map<String, Object> autosave(@PathVariable Long id,
                               @AuthenticationPrincipal UserDetails principal,
                               @RequestParam String title,
-                              @RequestParam String category,
+                              @RequestParam(name = "category", required = false) List<String> categories,
                               @RequestParam String city,
                               @RequestParam(required = false) String venueName,
                               @RequestParam(required = false) String venueAddress,
@@ -560,9 +566,11 @@ public class HostController {
         LocationForm loc = locationForm(locationType, venueName, venueAddress, onlineUrl, mapsUrl);
         if (loc.error() != null) return java.util.Map.of("error", loc.error());
         try {
-            hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
+            List<Event.Category> cats = HostService.cleanCategories(categories);
+            hostService.updateEvent(ev, title, cats.get(0), city,
                     loc.venueName(), loc.venueAddress(),
                     parseWhen(dateMode, date, endDate, month, startTime, endTime), description);
+            hostService.syncEventCategories(ev.getId(), cats);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
@@ -709,6 +717,8 @@ public class HostController {
                                 tt.getQuantity(), tt.getSold(), tt.getStatus().name()))
                         .toList());
         model.addAttribute("categories", PageController.CATEGORIES);
+        model.addAttribute("selectedCategories",
+                hostService.categoriesOf(ev).stream().map(Enum::name).toList());
         model.addAttribute("coverThemes", HostService.COVER_THEMES);
         model.addAttribute("currentTheme", ev.getCoverTheme());
         model.addAttribute("coverFocusY", ev.getCoverFocusY());
@@ -770,7 +780,7 @@ public class HostController {
     public String updateEvent(@PathVariable Long id,
                               @AuthenticationPrincipal UserDetails principal,
                               @RequestParam String title,
-                              @RequestParam String category,
+                              @RequestParam(name = "category", required = false) List<String> categories,
                               @RequestParam String city,
                               @RequestParam(required = false) String venueName,
                               @RequestParam(required = false) String venueAddress,
@@ -820,9 +830,11 @@ public class HostController {
             return "redirect:/host/events/" + id + "/edit";
         }
         try {
-            hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
+            List<Event.Category> cats = HostService.cleanCategories(categories);
+            hostService.updateEvent(ev, title, cats.get(0), city,
                     loc.venueName(), loc.venueAddress(),
                     parseWhen(dateMode, date, endDate, month, startTime, endTime), description);
+            hostService.syncEventCategories(ev.getId(), cats);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());

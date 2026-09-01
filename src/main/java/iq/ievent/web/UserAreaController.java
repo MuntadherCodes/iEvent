@@ -99,12 +99,14 @@ public class UserAreaController {
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final MessageSource messages;
+    private final java.nio.file.Path uploadDir;
 
     public UserAreaController(UserService userService, TicketRepository tickets, CatalogService catalog,
                               InteractionService interactions, EventRepository events,
                               OrganizationRepository organizations, LikeCountRepository counts, QrService qr,
                               OrderRepository orders, UserRepository users, JdbcTemplate jdbc,
-                              MessageSource messages) {
+                              MessageSource messages,
+                              @org.springframework.beans.factory.annotation.Value("${app.upload-dir:/app/data/uploads}") String uploadDir) {
         this.userService = userService;
         this.tickets = tickets;
         this.catalog = catalog;
@@ -117,6 +119,7 @@ public class UserAreaController {
         this.users = users;
         this.jdbc = jdbc;
         this.messages = messages;
+        this.uploadDir = java.nio.file.Path.of(uploadDir);
     }
 
     /** Localized user-facing message in the current request locale. */
@@ -331,18 +334,69 @@ public class UserAreaController {
                                 @RequestParam String fullName,
                                 @RequestParam(required = false) String phone,
                                 @RequestParam(required = false) String city,
+                                @RequestParam(name = "avatar", required = false)
+                                    org.springframework.web.multipart.MultipartFile avatar,
+                                @RequestParam(name = "removeAvatar", defaultValue = "false") boolean removeAvatar,
                                 RedirectAttributes redirect) {
         User user = required(principal);
         if (fullName == null || fullName.isBlank()) {
             redirect.addFlashAttribute("error", msg("flash.profile.nameRequired"));
-        } else {
-            userService.updateProfile(user, fullName, phone);
-            String cleanCity = Cities.isValid(city) ? city : null;
-            user.setCity(cleanCity);
-            users.save(user);
-            redirect.addFlashAttribute("saved", true);
+            return "redirect:/me/profile";
         }
+        userService.updateProfile(user, fullName, phone);
+        String cleanCity = Cities.isValid(city) ? city : null;
+        user.setCity(cleanCity);
+        if (removeAvatar) {
+            deleteUploadedAvatarFiles(user.getId());
+            user.setAvatarUrl(null);
+        } else if (avatar != null && !avatar.isEmpty()) {
+            String error = storeAvatar(user, avatar);
+            if (error != null) {
+                users.save(user);
+                redirect.addFlashAttribute("error", error);
+                return "redirect:/me/profile";
+            }
+        }
+        users.save(user);
+        redirect.addFlashAttribute("saved", true);
         return "redirect:/me/profile";
+    }
+
+    /** Stores the uploaded profile photo as uploads/avatars/user-{id}.{ext}
+     *  and points users.avatar_url at /media/user-avatar/{id} (with a version
+     *  query so the 10-minute media cache can't show a stale photo). Returns
+     *  a localized error or null. An uploaded photo takes precedence over a
+     *  Google account photo, and Google sign-in no longer overwrites it (see
+     *  GoogleOAuthConfig#provision). */
+    private String storeAvatar(User user, org.springframework.web.multipart.MultipartFile avatar) {
+        if (avatar.getSize() > 1024 * 1024) return msg("profile.avatar.tooLarge");
+        String original = avatar.getOriginalFilename() == null ? "" : avatar.getOriginalFilename();
+        String ext = original.contains(".")
+                ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
+        if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
+            return msg("profile.avatar.badType");
+        }
+        try {
+            java.nio.file.Path dir = uploadDir.resolve("avatars");
+            java.nio.file.Files.createDirectories(dir);
+            // one photo per user — drop any older upload with a different extension
+            deleteUploadedAvatarFiles(user.getId());
+            java.nio.file.Path target = dir.resolve("user-" + user.getId() + "." + ext);
+            java.nio.file.Files.copy(avatar.getInputStream(), target,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            user.setAvatarUrl("/media/user-avatar/" + user.getId() + "?v=" + System.currentTimeMillis());
+            return null;
+        } catch (java.io.IOException e) {
+            return msg("profile.avatar.storeFailed");
+        }
+    }
+
+    private void deleteUploadedAvatarFiles(Long userId) {
+        java.nio.file.Path dir = uploadDir.resolve("avatars");
+        for (String ext : java.util.List.of("jpg", "jpeg", "png", "webp")) {
+            try { java.nio.file.Files.deleteIfExists(dir.resolve("user-" + userId + "." + ext)); }
+            catch (Exception ignored) { }
+        }
     }
 
     @PostMapping("/me/profile/interests")

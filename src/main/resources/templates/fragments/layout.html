@@ -440,6 +440,7 @@ made the browser's click handling for the heart unreliable and could send
 clicks to the wrong place (the card's own link) instead of the like action. -->
 <div th:fragment="eventCard(card)"
    class="group relative rounded-2xl border border-ink-100 bg-white shadow-card transition hover:-translate-y-0.5 hover:shadow-cardHover"
+   th:classappend="${card.ended} ? 'opacity-75' : ''"
    th:attr="data-event-card=${card.slug}"
    th:with="grad=${card.coverTheme == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
             : (card.coverTheme == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
@@ -465,8 +466,10 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
   <div class="relative aspect-[16/9] overflow-hidden rounded-t-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5" th:classappend="${grad}">
     <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='p-'+${card.slug}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#p-'+${card.slug}+')'"/></svg>
     <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
-    <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
+    <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" class="absolute inset-0 h-full w-full object-cover" th:classappend="${card.ended} ? 'grayscale' : ''">
     <span class="absolute start-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="${card.categoryLabel}">Music</span>
+    <!-- R20 #12: ended events stay listed (record + SEO) but read clearly as over -->
+    <span th:if="${card.ended}" class="absolute bottom-3 start-3 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-bold text-white" th:text="#{public.card.ended}">Ended</span>
   </div>
   <div class="p-4">
     <p class="text-xs font-bold uppercase tracking-wide text-brand-600" th:text="${card.dateLine}">Sat, Sep 12 · 7:00 PM</p>
@@ -636,6 +639,64 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
       document.body.removeChild(tmp);
     }
   });
+</script>
+
+<!-- Search autocomplete (R20 #6): any input marked data-suggest gets a live
+     dropdown of matching PUBLISHED events (title either language) from
+     /api/events/suggest. Included by index.html and browse.html. -->
+<script th:fragment="suggestScript">
+  (function () {
+    var langPrefix = document.documentElement.lang === 'en' ? '/en' : '';
+    document.querySelectorAll('input[data-suggest]').forEach(function (input) {
+      var wrap = input.closest('label') || input.parentElement;
+      if (!wrap) return;
+      wrap.classList.add('relative');
+      var panel = document.createElement('div');
+      panel.className = 'absolute start-0 top-full z-40 mt-2 hidden max-h-80 w-full min-w-[16rem] overflow-y-auto rounded-xl border border-ink-100 bg-white py-1.5 text-start shadow-cardHover';
+      wrap.appendChild(panel);
+      var timer = null;
+      var lastQ = '';
+      function hide() { panel.classList.add('hidden'); panel.innerHTML = ''; }
+      function render(items) {
+        panel.innerHTML = '';
+        if (!items.length) { hide(); return; }
+        items.forEach(function (s) {
+          var a = document.createElement('a');
+          a.href = langPrefix + '/e/' + encodeURIComponent(s.slug);
+          a.className = 'block px-4 py-2.5 transition hover:bg-brand-50';
+          var title = document.createElement('p');
+          title.className = 'truncate text-sm font-semibold text-ink-900';
+          title.textContent = s.title;
+          var sub = document.createElement('p');
+          sub.className = 'mt-0.5 truncate text-xs text-ink-500';
+          sub.textContent = s.dateLine + ' · ' + s.city;
+          a.appendChild(title);
+          a.appendChild(sub);
+          panel.appendChild(a);
+        });
+        panel.classList.remove('hidden');
+      }
+      input.setAttribute('autocomplete', 'off');
+      input.addEventListener('input', function () {
+        var q = input.value.trim();
+        if (timer) clearTimeout(timer);
+        if (q.length < 2) { hide(); return; }
+        timer = setTimeout(function () {
+          lastQ = q;
+          // the /en prefix is stripped by LocaleFilter but sets the ENGLISH
+          // locale, so titles/dates/cities localize to the page's language
+          fetch(langPrefix + '/api/events/suggest?q=' + encodeURIComponent(q))
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (items) { if (input.value.trim() === lastQ) render(items || []); })
+            .catch(function () { hide(); });
+        }, 250);
+      });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+      document.addEventListener('click', function (e) {
+        if (!wrap.contains(e.target)) hide();
+      });
+    });
+  })();
 </script>
 </body>
 </html>

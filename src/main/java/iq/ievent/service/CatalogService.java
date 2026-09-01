@@ -139,6 +139,64 @@ public class CatalogService {
         }
     }
 
+    /** Home-hero "popular" chip: a category that actually has upcoming LIVE
+     *  events right now, with its icon. */
+    public record PopularChip(String value, String label, String icon) {}
+
+    /** The {@code n} categories with the most upcoming LIVE events — the hero
+     *  chips reflect the real catalog instead of a hardcoded guess. Counts
+     *  the PRIMARY category (what the card wears). */
+    public List<PopularChip> popularCategories(int n) {
+        List<PopularChip> out = new ArrayList<>();
+        jdbc.query("""
+                SELECT e.category, count(*) AS c FROM events e
+                JOIN organizations o ON o.id = e.organization_id
+                WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
+                  AND e.admin_hidden = false AND o.disabled = false
+                  AND e.starts_at > now()
+                GROUP BY e.category ORDER BY c DESC, e.category ASC LIMIT ?
+                """,
+                rs -> {
+                    try {
+                        Event.Category c = Event.Category.valueOf(rs.getString(1));
+                        out.add(new PopularChip(c.name(), Format.categoryLabel(c), categoryIcon(c)));
+                    } catch (IllegalArgumentException ignored) { }
+                }, n);
+        return out;
+    }
+
+    /** Whether the hero's "Free this week" chip has anything to show. */
+    public boolean hasFreeEventThisWeek() {
+        Boolean b = jdbc.queryForObject("""
+                SELECT EXISTS (
+                  SELECT 1 FROM events e
+                  JOIN organizations o ON o.id = e.organization_id
+                  WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
+                    AND e.admin_hidden = false AND o.disabled = false
+                    AND e.starts_at BETWEEN now() AND now() + interval '7 days'
+                    AND EXISTS (SELECT 1 FROM ticket_types tt
+                                 WHERE tt.event_id = e.id AND tt.status = 'ON_SALE'
+                                   AND tt.price_iqd = 0))
+                """, Boolean.class);
+        return Boolean.TRUE.equals(b);
+    }
+
+    /** Icon sprite id for a category (same mapping the profile interests use). */
+    public static String categoryIcon(Event.Category c) {
+        return switch (c) {
+            case MUSIC -> "i-music";
+            case TECH -> "i-laptop";
+            case BUSINESS -> "i-briefcase";
+            case ARTS -> "i-palette";
+            case FOOD -> "i-utensils";
+            case SPORTS -> "i-volleyball";
+            case COMMUNITY -> "i-heart-handshake";
+            case EDUCATION -> "i-graduation-cap";
+            case FILM -> "i-clapperboard";
+            case FAMILY -> "i-baby";
+        };
+    }
+
     public List<CityCount> liveCities() {
         return events.countLiveByCity().stream()
                 .map(r -> new CityCount(r.getCity(), r.getN()))
@@ -239,7 +297,8 @@ public class CatalogService {
                     // min price here means "not applicable", not "free" — unlike
                     // a real event whose cheapest ticket happens to be 0 IQD.
                     e.isAnnounceOnly() ? "" : Format.priceLineFromMin(minPrices.get(e.getId())),
-                    likes.getOrDefault(e.getId(), 0L)));
+                    likes.getOrDefault(e.getId(), 0L),
+                    e.getStatus() == Event.Status.ENDED));
         }
         return out;
     }
@@ -302,7 +361,34 @@ public class CatalogService {
                 e.isAnnounceOnly(),
                 e.getMapsUrl(),
                 e.getDatePrecision(),
-                Format.translatedNotice(e.getLanguage(), e.getTitleTranslated()));
+                Format.translatedNotice(e.getLanguage(), e.getTitleTranslated()),
+                categoryChips(e),
+                countdownTarget(e));
+    }
+
+    /** All (≤3) categories of the event, primary first — see V24. */
+    public List<iq.ievent.web.dto.Views.CategoryChip> categoryChips(Event e) {
+        java.util.LinkedHashSet<Event.Category> cats = new java.util.LinkedHashSet<>();
+        cats.add(e.getCategory());
+        jdbc.query("SELECT category FROM event_categories WHERE event_id = ? ORDER BY sort_order",
+                rs -> {
+                    try { cats.add(Event.Category.valueOf(rs.getString(1))); }
+                    catch (IllegalArgumentException ignored) { }
+                }, e.getId());
+        return cats.stream().limit(3)
+                .map(c -> new iq.ievent.web.dto.Views.CategoryChip(c.name(), Format.categoryLabel(c)))
+                .toList();
+    }
+
+    /** Epoch millis of the start for the live countdown — only when the date
+     *  is real (DAY/RANGE), in the future, and the event isn't cancelled;
+     *  null hides the countdown entirely. */
+    public static Long countdownTarget(Event e) {
+        String p = e.getDatePrecision() == null ? "DAY" : e.getDatePrecision();
+        if (!"DAY".equals(p) && !"RANGE".equals(p)) return null;
+        if (e.getStatus() != Event.Status.LIVE) return null;
+        if (!e.getStartsAt().isAfter(OffsetDateTime.now())) return null;
+        return e.getStartsAt().toInstant().toEpochMilli();
     }
 
     private static String initialsOf(String name) {

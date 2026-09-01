@@ -14,28 +14,28 @@
   "emails.confirmed.orderSuffix": "مؤكد.",
   "emails.confirmed.tba": "سيعلن المنظّم عن الموقع لاحقًا",
   "emails.confirmed.online": "فعالية عبر الإنترنت",
-  "emails.confirmed.joinLink": "— رابط الانضمام:",
+  "emails.confirmed.joinLink": "· رابط الانضمام:",
   "emails.confirmed.yourTickets": "تذاكرك",
   "emails.confirmed.totalPaid": "الإجمالي المدفوع:",
   "emails.confirmed.cta": "عرض تذاكري (رموز QR)",
   "emails.confirmed.footer": "© 2026 iEvent · أظهر رمز QR عند البوابة ·",
 
-  "emails.pending.title": "استلمنا طلبك — خطوة أخيرة",
+  "emails.pending.title": "استلمنا طلبك · خطوة أخيرة",
   "emails.pending.body1": "سجّلنا الطلب",
   "emails.pending.body2": "لفعالية",
   "emails.pending.reviewing1": "يراجع المنظّم حاليًا تحويلك بمبلغ",
-  "emails.pending.reviewing2": ". ستصدر تذاكرك وترسل إلى بريدك فور تأكيده — عادة خلال ساعات قليلة.",
+  "emails.pending.reviewing2": ". ستصدر تذاكرك وترسل إلى بريدك فور تأكيده، عادة خلال ساعات قليلة.",
   "emails.pending.cash1": "ادفع",
   "emails.pending.cash2": " نقدًا عند وصولك. ستصدر تذاكرك وترسل إلى بريدك فور تأكيد المنظّم دفعتك عند الباب.",
   "emails.pending.cta": "تتبع طلبي",
 
   "emails.rejected.title": "تعذر تأكيد الطلب",
   "emails.rejected.body1": "للأسف لم يتمكن المنظّم من تأكيد التحويل الخاص بالطلب",
-  "emails.rejected.body2": "إذا كنت قد أرسلت التحويل فعلًا، فيرجى التواصل مع المنظّم مباشرة — أو قدّم طلبًا جديدًا وتحقق جيدًا من مرجع التحويل والإيصال.",
+  "emails.rejected.body2": "إذا كنت قد أرسلت التحويل فعلًا، فيرجى التواصل مع المنظّم مباشرة، أو قدّم طلبًا جديدًا وتحقق جيدًا من مرجع التحويل والإيصال.",
 
   "emails.refunded.title": "تم استرداد قيمة طلبك",
   "emails.refunded.body1": "قام المنظّم باسترداد الطلب",
   "emails.refunded.body2": "لفعالية",
   "emails.refunded.totalWord": "بمجموع",
-  "emails.refunded.body3": "جميع تذاكر هذا الطلب أصبحت لاغية ولا يمكن استخدامها للدخول. يعيد المنظّم المبلغ عبر طريقة الدفع نفسها التي استخدمتها — إذا لم يصلك خلال بضعة أيام عمل، فتواصل مع المنظّم مباشرة."
+  "emails.refunded.body3": "جميع تذاكر هذا الطلب أصبحت لاغية ولا يمكن استخدامها للدخول. يعيد المنظّم المبلغ عبر طريقة الدفع نفسها التي استخدمتها، إذا لم يصلك خلال بضعة أيام عمل، فتواصل مع المنظّم مباشرة."
 }

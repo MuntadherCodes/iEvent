@@ -319,6 +319,54 @@ public class HostService {
         }
     }
 
+    /** Server-side clamp for the wizard/edit category selection: 1..3 valid,
+     *  de-duplicated categories in the order the host picked them; falls back
+     *  to COMMUNITY when nothing valid was submitted. First = primary. */
+    public static List<Event.Category> cleanCategories(List<String> submitted) {
+        java.util.LinkedHashSet<Event.Category> out = new java.util.LinkedHashSet<>();
+        if (submitted != null) {
+            for (String s : submitted) {
+                if (s == null || s.isBlank()) continue;
+                try { out.add(Event.Category.valueOf(s.trim().toUpperCase(Locale.ENGLISH))); }
+                catch (IllegalArgumentException ignored) { }
+                if (out.size() == 3) break;
+            }
+        }
+        if (out.isEmpty()) out.add(Event.Category.COMMUNITY);
+        return List.copyOf(out);
+    }
+
+    /** Replaces the event's full ordered category set (see V24). The caller
+     *  keeps events.category = list.get(0) — that stays the primary. */
+    @Transactional
+    public void syncEventCategories(Long eventId, List<Event.Category> categories) {
+        jdbc.update("DELETE FROM event_categories WHERE event_id = ?", eventId);
+        int order = 0;
+        for (Event.Category c : categories) {
+            jdbc.update("INSERT INTO event_categories (event_id, category, sort_order) VALUES (?, ?, ?)",
+                    eventId, c.name(), order++);
+        }
+    }
+
+    /** The event's ordered categories — primary first. Falls back to the
+     *  events.category column for rows that predate V24 junction rows. */
+    @Transactional(readOnly = true)
+    public List<Event.Category> categoriesOf(Event event) {
+        List<Event.Category> out = new java.util.ArrayList<>();
+        jdbc.query("SELECT category FROM event_categories WHERE event_id = ? ORDER BY sort_order",
+                rs -> {
+                    try { out.add(Event.Category.valueOf(rs.getString(1))); }
+                    catch (IllegalArgumentException ignored) { }
+                }, event.getId());
+        if (out.isEmpty()) out.add(event.getCategory());
+        else if (!out.get(0).equals(event.getCategory())) {
+            // primary column is authoritative for position 0
+            out.remove(event.getCategory());
+            out.add(0, event.getCategory());
+        }
+        return out.size() > 3 ? out.subList(0, 3) : out;
+    }
+
     /** Payment method ids explicitly selected for this event, or empty when
      *  the event just uses every enabled org method (the default). */
     @Transactional(readOnly = true)
@@ -891,6 +939,7 @@ public class HostService {
         copy.setStatus(Event.Status.DRAFT);
         copy.setCoverTheme(source.getCoverTheme());
         copy = events.save(copy);
+        syncEventCategories(copy.getId(), categoriesOf(source));
         for (TicketType tt : ticketTypes.findByEventIdOrderBySortOrderAsc(source.getId())) {
             TicketType c = new TicketType();
             c.setEvent(copy);

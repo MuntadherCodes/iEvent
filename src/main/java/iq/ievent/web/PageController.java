@@ -131,10 +131,9 @@ public class PageController {
         model.addAttribute("trendingEvents", catalog.trending(8));
         model.addAttribute("cities", catalog.liveCities());
         model.addAttribute("categories", localizedCategories());
-        long monthCount = catalog.search(null, null, null, null, "month", "soonest",
-                PageRequest.of(0, 1)).getTotalElements();
-        model.addAttribute("monthCountLine",
-                String.format(Locale.ENGLISH, "%,d", monthCount));
+        // R20: the hero chips reflect the live catalog, not a hardcoded guess
+        model.addAttribute("popularChips", catalog.popularCategories(3));
+        model.addAttribute("hasFreeThisWeek", catalog.hasFreeEventThisWeek());
         return "index";
     }
 
@@ -326,7 +325,9 @@ public class PageController {
                 e.isAnnounceOnly(),
                 e.getMapsUrl(),
                 e.getDatePrecision(),
-                Format.translatedNotice(e.getLanguage(), e.getTitleTranslated()));
+                Format.translatedNotice(e.getLanguage(), e.getTitleTranslated()),
+                catalog.categoryChips(e),
+                CatalogService.countdownTarget(e));
     }
 
     static List<String> parseTags(String raw) {

@@ -18,7 +18,8 @@ public final class Views {
             String venueName,       // may be null
             String dateLine,        // "SAT, SEP 12 · 7:00 PM"
             String priceLine,       // "From 25,000 IQD" or "Free"
-            long likes) {}
+            long likes,
+            boolean ended) {}       // ENDED events stay listed (SEO) but render grayed
 
     public record TicketTypeView(
             long id,
@@ -64,7 +65,12 @@ public final class Views {
             boolean announceOnly,    // no tickets sold — independent of locationType
             String mapsUrl,          // organizer-provided exact-pin link, or null
             String datePrecision,    // DAY | RANGE | MONTH | TBA — TBA/MONTH hide the .ics link
-            String translatedNotice) {} // non-null ⇢ viewer reads the auto-translated copy; small transparency badge
+            String translatedNotice, // non-null ⇢ viewer reads the auto-translated copy; small transparency badge
+            List<CategoryChip> categoryChips, // all (≤3) categories, primary first
+            Long startsAtEpochMs) {} // future DAY/RANGE start for the countdown; null otherwise
+
+    /** One of the event's up-to-3 categories (value = enum name for /browse links). */
+    public record CategoryChip(String value, String label) {}
 
     public record CityCount(String city, long count) {}
 

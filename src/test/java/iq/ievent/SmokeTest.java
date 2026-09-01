@@ -68,6 +68,12 @@ class SmokeTest {
     @Autowired
     private iq.ievent.repo.EventImageRepository eventImages;
 
+    @Autowired
+    private iq.ievent.repo.LikeCountRepository likeCounts;
+
+    @Autowired
+    private iq.ievent.repo.UserRepository usersRepo;
+
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
         // English home lives under /en (the bare root is covered by arabicDefaultAtRoot).
@@ -887,5 +893,162 @@ class SmokeTest {
                 .andExpect(status().is3xxRedirection());
         org.junit.jupiter.api.Assertions.assertEquals("https://images.example/keep.jpg",
                 events.findById(id).orElseThrow().getCoverImageUrl());
+    }
+
+    // ---------- Round 20: multi-category, ended listings, counts, suggest, avatar, home hero ----------
+
+    @Test
+    void multiCategorySearchMatchesAnyOfThreeAndClampsAtThree() throws Exception {
+        // R20 #4: up to 3 categories; browse matches ANY of them; a 4th is dropped.
+        var ev = r18Event("Smoke Multicat Expo", "smoke-multicat-expo");
+        Long id = events.save(ev).getId();
+        mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                        .param("title", ev.getTitle())
+                        .param("category", "MUSIC", "TECH", "FOOD", "SPORTS")
+                        .param("city", "Baghdad")
+                        .param("locationType", "TBA")
+                        .param("date", java.time.LocalDate.now().plusDays(9).toString())
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertEquals(iq.ievent.domain.Event.Category.MUSIC,
+                events.findById(id).orElseThrow().getCategory()); // first pick = primary
+        // matches on a SECONDARY category…
+        mockMvc.perform(get("/en/browse").param("category", "TECH").param("q", "Smoke Multicat"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(ev.getTitle())));
+        // …and the 4th pick was clamped away
+        mockMvc.perform(get("/en/browse").param("category", "SPORTS").param("q", "Smoke Multicat"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString(ev.getTitle()))));
+        // event page lists all three as #chips
+        mockMvc.perform(get("/en/e/" + ev.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("#Tech")))
+                .andExpect(content().string(containsString("#Food")));
+    }
+
+    @Test
+    void endedEventsStayListedButMarked() throws Exception {
+        // R20 #12: ENDED events remain in the public listings (record + SEO),
+        // rendered with the Ended badge; DRAFTs still never appear.
+        var ev = r18Event("Smoke Ended Listing", "smoke-ended-listing");
+        ev.setStatus(iq.ievent.domain.Event.Status.ENDED);
+        events.save(ev);
+        mockMvc.perform(get("/en/browse").param("q", "Smoke Ended Listing"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(ev.getTitle())))
+                .andExpect(content().string(containsString(">Ended<")));
+        var draft = r18Event("Smoke Draft Unlisted", "smoke-draft-unlisted");
+        draft.setStatus(iq.ievent.domain.Event.Status.DRAFT);
+        events.save(draft);
+        mockMvc.perform(get("/en/browse").param("q", "Smoke Draft Unlisted"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString(draft.getTitle()))));
+    }
+
+    @Test
+    void organizerEventCountExcludesUnpublished() throws Exception {
+        // R20 #3: the public "events hosted" figure counts LIVE + ENDED only.
+        var org = organizations.findByHandle("zainevents").orElseThrow();
+        long before = likeCounts.eventsHostedForOrganization(org.getId());
+        var draft = r18Event("Smoke Count Draft", "smoke-count-draft");
+        draft.setStatus(iq.ievent.domain.Event.Status.DRAFT);
+        events.save(draft);
+        org.junit.jupiter.api.Assertions.assertEquals(before,
+                likeCounts.eventsHostedForOrganization(org.getId()),
+                "a draft must not inflate the public event count");
+        var live = r18Event("Smoke Count Live", "smoke-count-live");
+        events.save(live);
+        org.junit.jupiter.api.Assertions.assertEquals(before + 1,
+                likeCounts.eventsHostedForOrganization(org.getId()));
+    }
+
+    @Test
+    void suggestEndpointReturnsOnlyPublishedMatches() throws Exception {
+        // R20 #6: autocomplete returns LIVE events matching the needle; drafts
+        // never leak; too-short queries return nothing.
+        mockMvc.perform(get("/api/events/suggest").param("q", "Baghdad Nights"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("baghdad-nights-music-festival")));
+        var draft = r18Event("Smoke Suggest Draft", "smoke-suggest-draft");
+        draft.setStatus(iq.ievent.domain.Event.Status.DRAFT);
+        events.save(draft);
+        mockMvc.perform(get("/api/events/suggest").param("q", "Smoke Suggest Draft"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("smoke-suggest-draft"))));
+        mockMvc.perform(get("/api/events/suggest").param("q", "B"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("baghdad"))));
+    }
+
+    @Test
+    void avatarUploadServesAndRemoves() throws Exception {
+        // R20 #7: a user can upload a profile photo (served from
+        // /media/user-avatar/{id}) and remove it again.
+        var buyer = users_findByEmail(DEMO_BUYER_EMAIL);
+        var photo = new org.springframework.mock.web.MockMultipartFile(
+                "avatar", "me.png", "image/png", new byte[] {(byte) 0x89, 'P', 'N', 'G', 9, 9});
+        mockMvc.perform(multipart("/me/profile")
+                        .file(photo)
+                        .param("fullName", buyer.getFullName())
+                        .with(csrf())
+                        .with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        buyer = users_findByEmail(DEMO_BUYER_EMAIL);
+        org.junit.jupiter.api.Assertions.assertNotNull(buyer.getAvatarUrl());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                buyer.getAvatarUrl().startsWith("/media/user-avatar/" + buyer.getId()), buyer.getAvatarUrl());
+        mockMvc.perform(get("/media/user-avatar/" + buyer.getId()))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/me/profile")
+                        .param("fullName", buyer.getFullName())
+                        .param("removeAvatar", "true")
+                        .with(csrf())
+                        .with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertNull(users_findByEmail(DEMO_BUYER_EMAIL).getAvatarUrl());
+        mockMvc.perform(get("/media/user-avatar/" + buyer.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    private iq.ievent.domain.User users_findByEmail(String email) {
+        return usersRepo.findByEmailIgnoreCase(email).orElseThrow();
+    }
+
+    @Test
+    void homeHeroShowsViewAllAndDataDrivenChips() throws Exception {
+        // R20 #10/#11: the month-count pill is gone in favor of a View-all link,
+        // and the "Popular" chips come from the live catalog (seeded events
+        // guarantee at least one).
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("View all events")))
+                .andExpect(content().string(not(containsString("events across Iraq this month"))))
+                .andExpect(content().string(containsString("Popular:")));
+    }
+
+    @Test
+    void countdownRendersOnlyForRealFutureDates() throws Exception {
+        // R20 #2: upcoming DAY-precision events carry the countdown element;
+        // TBA events don't (and their badge shows no orphan dash).
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("eventCountdown")));
+        var tba = r18Event("Smoke Cd Tba", "smoke-cd-tba");
+        tba.setDatePrecision(iq.ievent.domain.Event.PRECISION_TBA);
+        tba.setStartsAt(iq.ievent.service.Format.TBA_PLACEHOLDER);
+        events.save(tba);
+        mockMvc.perform(get("/en/e/" + tba.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("eventCountdown"))));
+    }
+
+    @Test
+    void wizardHasNoDisabledLanguageCheckboxes() throws Exception {
+        // R20 #8: the placeholder "Language of event" block is gone.
+        mockMvc.perform(get("/en/host/events/new").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("کوردی (KU)"))));
     }
 }

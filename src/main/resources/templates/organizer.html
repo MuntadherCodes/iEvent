@@ -65,7 +65,8 @@
       <div class="relative flex gap-1 overflow-x-auto border-b border-ink-100" role="tablist" th:attr="aria-label=#{public.org.sectionsAria}" aria-label="Organizer sections">
         <button id="tabBtn-upcoming" role="tab" aria-selected="true" aria-controls="tab-upcoming" class="tab-btn shrink-0 border-b-2 border-brand-500 px-5 py-3 text-sm font-semibold text-brand-600 transition" th:text="#{public.org.upcomingTab(${'' + events.size()})}">Upcoming (4)</button>
         <button id="tabBtn-past" role="tab" aria-selected="false" aria-controls="tab-past" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900" th:text="#{public.org.pastTab}">Past events</button>
-        <button id="tabBtn-about" role="tab" aria-selected="false" aria-controls="tab-about" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900" th:text="#{public.org.aboutTab}">About</button>
+        <!-- R20 #5: no bio and no contact info ⇒ the About tab has nothing to say — hide it -->
+        <button th:if="${org.bio != null || ox.contactEmail() != null || ox.contactPhone() != null || ox.instagram() != null || ox.website() != null}" id="tabBtn-about" role="tab" aria-selected="false" aria-controls="tab-about" class="tab-btn shrink-0 border-b-2 border-transparent px-5 py-3 text-sm font-semibold text-ink-500 transition hover:text-ink-900" th:text="#{public.org.aboutTab}">About</button>
       </div>
 
       <!-- UPCOMING -->
@@ -130,7 +131,7 @@
       </div>
 
       <!-- ABOUT -->
-      <div id="tab-about" role="tabpanel" class="tab-panel hidden pt-8">
+      <div th:if="${org.bio != null || ox.contactEmail() != null || ox.contactPhone() != null || ox.instagram() != null || ox.website() != null}" id="tab-about" role="tabpanel" class="tab-panel hidden pt-8">
         <div class="grid gap-10 lg:grid-cols-[1fr_360px]">
           <div class="space-y-4 leading-relaxed text-ink-600">
             <h2 class="font-display text-xl font-extrabold text-ink-900" th:text="#{public.org.aboutHeading(${org.name})}">About Zain Events Co.</h2>
@@ -172,8 +173,11 @@
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
 <script>
-  // Tabs
-  var tabs = ['upcoming', 'past', 'about'];
+  // Tabs — the About tab is only rendered when there is a bio or contact
+  // info (R20 #5), so build the list from the DOM instead of hardcoding it.
+  var tabs = ['upcoming', 'past', 'about'].filter(function (n) {
+    return document.getElementById('tabBtn-' + n);
+  });
   tabs.forEach(function (name) {
     document.getElementById('tabBtn-' + name).addEventListener('click', function () {
       tabs.forEach(function (n) {
@@ -185,7 +189,7 @@
         btn.classList.toggle('text-brand-600', active);
         btn.classList.toggle('border-transparent', !active);
         btn.classList.toggle('text-ink-500', !active);
-        panel.classList.toggle('hidden', !active);
+        if (panel) panel.classList.toggle('hidden', !active);
       });
     });
   });

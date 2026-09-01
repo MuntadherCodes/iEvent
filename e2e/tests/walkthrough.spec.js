@@ -214,7 +214,8 @@ async function wizardBasics(page, { title, daysAhead, start, venue, city, catego
   await page.locator('#ev-start').fill(start);
   await page.locator('#ev-venue').fill(venue);
   await page.locator('#ev-city').selectOption(city);
-  await page.locator('#ev-cat').selectOption(category);
+  await page.locator('label').filter({ has: page.locator(`input.cat-pill[value="${category}"]`) }).click();
+  await expect(page.locator(`input.cat-pill[value="${category}"]`)).toBeChecked();
   await page.locator('#nextBtn').click();
   await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
 }
@@ -532,7 +533,7 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   await expect(page.locator('input[name="keepUpdated"]')).toBeChecked();
 
   log('free registration note and "Register free" submit label expected');
-  await expect(page.getByText(/Free registration — tickets are issued instantly/)).toBeVisible();
+  await expect(page.getByText(/Free registration, tickets are issued instantly/)).toBeVisible();
   await expect(page.locator('#submitLabel')).toHaveText('Register free');
 
   log('submitting the free order');
@@ -784,7 +785,8 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   // Round 8: step 1 validation requires a venue name while "Venue" is selected.
   await page.locator('#ev-venue').fill('E2E Hall');
   await page.locator('#ev-city').selectOption('Baghdad');
-  await page.locator('#ev-cat').selectOption('MUSIC');
+  await page.locator('label').filter({ has: page.locator('input.cat-pill[value="MUSIC"]') }).click();
+  await expect(page.locator('input.cat-pill[value="MUSIC"]')).toBeChecked();
   await page.locator('#nextBtn').click();
   await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
 
@@ -1655,12 +1657,12 @@ test('al. event lifecycle: duplicate creates a "(copy)" draft, publish, postpone
   const newDate = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   await page.locator('#pp-date').fill(newDate);
   await page.getByRole('button', { name: 'Postpone', exact: true }).click();
-  await expect(page.getByText(/New date saved — every buyer has been emailed/).first()).toBeVisible();
+  await expect(page.getByText(/New date saved, every buyer has been emailed/).first()).toBeVisible();
   await expect(page.locator('#pp-date')).toHaveValue(newDate);
 
   log('cancelling the duplicate (NEVER a seeded flagship)');
   await page.getByRole('button', { name: 'Cancel event' }).click();
-  await expect(page.getByText(/Event cancelled — every buyer has been emailed/).first()).toBeVisible();
+  await expect(page.getByText(/Event cancelled, every buyer has been emailed/).first()).toBeVisible();
   await expect(page.getByText(/This event is cancelled/).first()).toBeVisible();
 
   log('the public page shows the cancelled banner and no ticket rail');
@@ -1782,7 +1784,7 @@ test('an. orders: enriched view, search, CSV, full refund flow voids the ticket 
     .locator('xpath=following-sibling::tr[1]')
     .getByRole('button', { name: /Refund order/ })
     .click();
-  await expect(page.getByText(/refunded — tickets voided/).first()).toBeVisible();
+  await expect(page.getByText(/refunded, tickets voided/).first()).toBeVisible();
 
   log('the order row now carries the Refunded badge');
   await expect(
@@ -1901,7 +1903,7 @@ test('aq. notification center: pending order notifies the buyer, summary API has
   log('/me/notifications lists the "Order received" notification for the pending order');
   await page.goto('/me/notifications');
   await expect(
-    page.locator('main').getByText(/Order received — Baghdad Nights Music Festival/).first()
+    page.locator('main').getByText(/Order received · Baghdad Nights Music Festival/).first()
   ).toBeVisible();
 
   log('GET /api/notifications/summary returns the {unread, items} JSON shape');
@@ -1932,7 +1934,7 @@ test('ar. notification center: host bell badge, NEW_ORDER click-through, no-rece
   await page.goto('/me/notifications');
   const newOrderItem = page
     .locator('main a[href*="/me/notifications/go/"]')
-    .filter({ hasText: 'New order to confirm — Baghdad Nights Music Festival' })
+    .filter({ hasText: 'New order to confirm · Baghdad Nights Music Festival' })
     .first();
   await expect(newOrderItem).toBeVisible();
 
@@ -1963,7 +1965,7 @@ test('as. notification center: buyer sees "Order confirmed", mark-all-read clear
   log('the buyer notification list shows the "Order confirmed" entry');
   await page.goto('/me/notifications');
   await expect(
-    page.locator('main').getByText(/Order confirmed — Baghdad Nights Music Festival/).first()
+    page.locator('main').getByText(/Order confirmed · Baghdad Nights Music Festival/).first()
   ).toBeVisible();
 
   log('"Mark all read" → caught-up line and the API reports 0 unread');
@@ -2083,7 +2085,8 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
   await expect(page.locator('input[name="locationType"][value="ONLINE"]')).toBeChecked();
   await page.locator('#ev-online').fill(ONLINE_URL);
   await page.locator('#ev-city').selectOption('Baghdad');
-  await page.locator('#ev-cat').selectOption('TECH');
+  await page.locator('label').filter({ has: page.locator('input.cat-pill[value="TECH"]') }).click();
+  await expect(page.locator('input.cat-pill[value="TECH"]')).toBeChecked();
   await page.locator('#nextBtn').click();
   await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
   await page.locator('#nextBtn').click(); // banner — skip
@@ -2473,7 +2476,7 @@ test('bd. free toggle (#16) + cover preview (#14): wizard zeroes prices, publish
   await expect(page.locator('#stepIndicator')).toHaveText('Step 4 of 5');
   await page.locator('#nextBtn').click();
   await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
-  await expect(page.locator('#rv-fee')).toHaveText('Free event — no booking fee');
+  await expect(page.locator('#rv-fee')).toHaveText('Free event · no booking fee');
   await expect(page.locator('#rv-tickets')).toContainText('Entry · Free · 30');
   await page.locator('#finalBtns button[value="publish"]').click();
   await expect(page).toHaveURL(/\/host\/events\/\d+/);
@@ -2598,8 +2601,8 @@ test('bg. draft preview (#15): owner sees the amber banner, outsiders get a 404,
   log('OWNER preview: 200 with the amber "Draft preview" banner and the not-on-sale rail');
   const ownerRes = await page.goto(draftHref);
   expect(ownerRes.status(), 'owner must reach the draft preview').toBe(200);
-  await expect(page.getByText(/Draft preview — only you can see this page/).first()).toBeVisible();
-  await expect(page.getByText('Draft — not on sale yet')).toBeVisible();
+  await expect(page.getByText(/Draft preview · only you can see this page/).first()).toBeVisible();
+  await expect(page.getByText('Draft · not on sale yet')).toBeVisible();
   await expect(page.locator('h1')).toContainText('E2E Draft Symposium');
 
   log('the draft never shows up on public browse');
@@ -3247,7 +3250,8 @@ test('bx. flexible dates (R18): wizard date-mode pills toggle fields; a month-on
   await page.locator('#ev-month').fill('2030-03');
   await page.locator('#ev-venue').fill('E2E Expo Hall');
   await page.locator('#ev-city').selectOption('Baghdad');
-  await page.locator('#ev-cat').selectOption('BUSINESS');
+  await page.locator('label').filter({ has: page.locator('input.cat-pill[value="BUSINESS"]') }).click();
+  await expect(page.locator('input.cat-pill[value="BUSINESS"]')).toBeChecked();
   await page.locator('#nextBtn').click();
   await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
   await page.locator('#nextBtn').click();
@@ -3343,4 +3347,52 @@ test('bz. gallery manager (R19): repeated saves never duplicate images, the star
   await page.goto(publicHref);
   // scope to this event's own id — related-event cards may carry their own /media covers
   await expect(page.locator(`img[src*="/media/event-cover/${eventId}/"]`)).toHaveCount(1);
+});
+
+test('ca. multi-category (R20): edit picks up to 3 category pills, a 4th is refused, public page shows all chips', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the E2E Concert Night edit page (created as MUSIC)');
+  await page.goto('/host/events?q=Concert');
+  await page.getByRole('link', { name: /E2E Concert Night/ }).first().click();
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  await page.getByRole('link', { name: /Edit event/ }).click();
+  await expect(page.locator('input.cat-pill[value="MUSIC"]')).toBeChecked();
+
+  log('adding TECH and BUSINESS (3 total) — a 4th pick is refused with the max note');
+  await page.locator('label').filter({ has: page.locator('input.cat-pill[value="TECH"]') }).click();
+  await page.locator('label').filter({ has: page.locator('input.cat-pill[value="BUSINESS"]') }).click();
+  await page.locator('label').filter({ has: page.locator('input.cat-pill[value="FOOD"]') }).click();
+  await expect(page.locator('input.cat-pill[value="FOOD"]')).not.toBeChecked();
+  await expect(page.locator('#catMaxNote')).toBeVisible();
+
+  log('saving keeps the 3 picks; the public page lists all three #chips');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.locator('input.cat-pill[value="MUSIC"]')).toBeChecked();
+  await expect(page.locator('input.cat-pill[value="TECH"]')).toBeChecked();
+  await expect(page.locator('input.cat-pill[value="BUSINESS"]')).toBeChecked();
+  await page.goto(publicHref);
+  await expect(page.getByRole('link', { name: '#Music' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '#Tech' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '#Business' })).toBeVisible();
+});
+
+test('cb. search autocomplete (R20): typing in the home hero suggests published events, click lands on the event page', async ({ page }) => {
+  log('typing "Baghdad Nights" into the hero search');
+  await page.goto('/');
+  const heroInput = page.locator('input[name="q"][data-suggest]').first();
+  await heroInput.click();
+  await heroInput.pressSequentially('Baghdad Nights', { delay: 30 });
+
+  log('the dropdown offers the seeded festival; clicking it opens the event page');
+  const suggestion = page.locator('a', { hasText: 'Baghdad Nights Music Festival' })
+    .filter({ has: page.locator('p') })
+    .first();
+  await expect(suggestion).toBeVisible();
+  await suggestion.click();
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival/);
+  await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
 });

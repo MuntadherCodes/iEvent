@@ -103,6 +103,26 @@ public class ExtrasController {
         return "redirect:/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, StandardCharsets.UTF_8);
     }
 
+    /** Search-box autocomplete (R20 #6): top matching PUBLISHED events for the
+     *  typed needle, localized to the viewer's language. Public + read-only. */
+    @GetMapping("/api/events/suggest")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public java.util.List<java.util.Map<String, String>> suggestEvents(
+            @org.springframework.web.bind.annotation.RequestParam(name = "q", required = false) String q) {
+        String needle = q == null ? "" : q.trim();
+        if (needle.length() < 2 || needle.length() > 80) return java.util.List.of();
+        return events.suggestByTitle(needle, org.springframework.data.domain.PageRequest.of(0, 8)).stream()
+                .map(e -> java.util.Map.of(
+                        "title", iq.ievent.service.Format.localized(
+                                e.getTitle(), e.getTitleTranslated(), e.getLanguage()),
+                        "slug", e.getSlug(),
+                        "dateLine", iq.ievent.service.Format.cardDateLine(
+                                e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()),
+                        "city", iq.ievent.service.Cities.label(e.getCity(),
+                                org.springframework.context.i18n.LocaleContextHolder.getLocale())))
+                .toList();
+    }
+
     @GetMapping("/e/{slug}/calendar.ics")
     public ResponseEntity<byte[]> eventIcs(@PathVariable String slug) {
         Event e = events.findBySlug(slug)
@@ -137,7 +157,7 @@ public class ExtrasController {
         String body = """
                 # iEvent
 
-                > iEvent is an events and ticketing platform for Iraq — discover concerts, \
+                > iEvent is an events and ticketing platform for Iraq: discover concerts, \
                 conferences, courses and community events, and buy tickets directly on the site.
 
                 Listings span every major Iraqi city and cover categories from education and \
@@ -153,7 +173,7 @@ public class ExtrasController {
 
                 ## Notes
 
-                - Content is bilingual (Arabic default, English at %1$s/en/**) — each event page \
+                - Content is bilingual (Arabic default, English at %1$s/en/**); each event page \
                 carries hreflang alternates for both.
                 - [Sitemap](%1$s/sitemap.xml) lists every live event and organizer page.
                 """.formatted(siteBaseUrl);

@@ -106,18 +106,18 @@ public class SeedRunner implements CommandLineRunner {
         enrich("baghdad-nights-music-festival",
                 "One night, three stages, the best of Iraq's live music scene under the open sky.",
                 "music, festival, live, family-friendly, baghdad",
-                "DJ Rafi — 7:00 PM\nHiba Salim & Band — 8:15 PM\nMaqam Reborn Ensemble — 9:30 PM\nIlham (headliner) — 11:00 PM");
+                "DJ Rafi - 7:00 PM\nHiba Salim & Band - 8:15 PM\nMaqam Reborn Ensemble - 9:30 PM\nIlham (headliner) - 11:00 PM");
         enrich("erbil-tech-summit-2026",
                 "Iraq and Kurdistan's largest gathering of startups, engineers and investors.",
                 "tech, startup, conference, networking, erbil",
-                "Opening keynote — 9:30 AM\nFounders panel — 11:00 AM\nInvestor office hours — 2:00 PM\nDemo night — 5:00 PM");
+                "Opening keynote - 9:30 AM\nFounders panel - 11:00 AM\nInvestor office hours - 2:00 PM\nDemo night - 5:00 PM");
         enrich("basra-corniche-food-carnival",
-                "Fifty kitchens along the Shatt al-Arab — free entry, taste tickets on site.",
+                "Fifty kitchens along the Shatt al-Arab, free entry, taste tickets on site.",
                 "food, street-food, family, basra", null);
         enrich("sulaymaniyah-film-nights",
                 "Three award-winning Iraqi and Kurdish features, followed by a director Q&A.",
                 "film, cinema, culture, sulaymaniyah",
-                "Doors — 6:30 PM\nFeature one — 7:00 PM\nFeature two — 8:40 PM\nDirector Q&A — 10:20 PM");
+                "Doors - 6:30 PM\nFeature one - 7:00 PM\nFeature two - 8:40 PM\nDirector Q&A - 10:20 PM");
         enrich("startup-mixer-baghdad",
                 "Monthly meetup for founders, freelancers and the simply curious. First drink on us.",
                 "business, networking, startup, baghdad", null);
@@ -128,9 +128,9 @@ public class SeedRunner implements CommandLineRunner {
                 "Four days, 120 publishers, author signings and children's readings.",
                 "education, books, family, karbala", null);
         enrich("duhok-mountain-marathon",
-                "21K and 10K trail routes above Duhok Dam — medals, chips, water stations.",
+                "21K and 10K trail routes above Duhok Dam, with medals, chips and water stations.",
                 "sports, running, outdoors, duhok",
-                "10K start — 6:30 AM\n21K start — 7:00 AM\nAwards ceremony — 12:30 PM");
+                "10K start - 6:30 AM\n21K start - 7:00 AM\nAwards ceremony - 12:30 PM");
     }
 
     private void enrich(String slug, String summary, String tags, String lineup) {
@@ -258,7 +258,7 @@ public class SeedRunner implements CommandLineRunner {
         org.setOwnerUserId(fahad.getId());
         org.setName("Zain Events Co.");
         org.setHandle(DEMO_HANDLE);
-        org.setBio("Baghdad's leading live-events crew. We produce festivals, concerts and cultural nights across Iraq — from intimate rooftop sessions to full-scale park festivals.");
+        org.setBio("Baghdad's leading live-events crew. We produce festivals, concerts and cultural nights across Iraq, from intimate rooftop sessions to full-scale park festivals.");
         org.setCity("Baghdad");
         org.setVerified(true);
         org.setDirectPaymentsEnabled(true);
@@ -271,7 +271,7 @@ public class SeedRunner implements CommandLineRunner {
         OffsetDateTime base = OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS);
 
         Event e1 = event(org, "Baghdad Nights Music Festival", "baghdad-nights-music-festival",
-                Event.Category.MUSIC, "Baghdad", "Al-Zawraa Park — Main Amphitheatre",
+                Event.Category.MUSIC, "Baghdad", "Al-Zawraa Park, Main Amphitheatre",
                 "Zawraa Park Main Gate, Al-Mansour District, Baghdad",
                 base.plusDays(5).withHour(19), base.plusDays(6).withHour(0),
                 """
@@ -288,14 +288,14 @@ public class SeedRunner implements CommandLineRunner {
         Event e2 = event(org, "Erbil Tech Summit 2026", "erbil-tech-summit-2026",
                 Event.Category.TECH, "Erbil", "Erbil International Fairground", "100m Road, Erbil",
                 base.plusDays(17).withHour(9), base.plusDays(17).withHour(18),
-                "Two stages, 40 speakers and 1,500 builders — Iraq and Kurdistan's largest gathering of startups, engineers and investors.\n\nTalks in Arabic, Kurdish and English with live translation.");
+                "Two stages, 40 speakers and 1,500 builders: Iraq and Kurdistan's largest gathering of startups, engineers and investors.\n\nTalks in Arabic, Kurdish and English with live translation.");
         tt(e2, "Standard Pass", 50_000, 1200, 342, 0, TicketType.Status.ON_SALE);
         tt(e2, "Startup Booth", 250_000, 40, 22, 1, TicketType.Status.ON_SALE);
 
         Event e3 = event(org, "Basra Corniche Food Carnival", "basra-corniche-food-carnival",
                 Event.Category.FOOD, "Basra", "Basra Corniche", "Corniche Street, Basra",
                 base.plusDays(25).withHour(16), base.plusDays(25).withHour(23),
-                "Fifty kitchens along the Shatt al-Arab. Free entry — taste tickets sold on site.");
+                "Fifty kitchens along the Shatt al-Arab. Free entry, taste tickets sold on site.");
         tt(e3, "Entry", 0, 5000, 129, 0, TicketType.Status.ON_SALE);
 
         Event e4 = event(org, "Sulaymaniyah Film Nights", "sulaymaniyah-film-nights",
@@ -381,7 +381,7 @@ public class SeedRunner implements CommandLineRunner {
             Event.Category cat = cats[rnd.nextInt(cats.length)];
             String city = CITIES[rnd.nextInt(CITIES.length)];
             Event e = event(org,
-                    "Scale Event #" + n + " — " + city,
+                    "Scale Event #" + n + " · " + city,
                     "scale-" + n,
                     cat, city, "Venue " + n, "Address " + n,
                     base.plusDays(1 + rnd.nextInt(90)).withHour(10 + rnd.nextInt(10)),

@@ -39,7 +39,12 @@ public class LikeCountRepository {
     }
 
     public long eventsHostedForOrganization(long organizationId) {
-        Long n = jdbc.queryForObject("SELECT count(*) FROM events WHERE organization_id = ?", Long.class, organizationId);
+        // Public-facing count: only events an outside visitor can actually see
+        // — drafts and admin-hidden takedowns don't inflate the profile.
+        Long n = jdbc.queryForObject(
+                "SELECT count(*) FROM events WHERE organization_id = ? "
+                        + "AND status IN ('LIVE','ENDED') AND admin_hidden = false",
+                Long.class, organizationId);
         return n == null ? 0 : n;
     }
 }

@@ -109,7 +109,7 @@
         <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.search}">Search</legend>
         <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
           <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="text" name="q" th:value="${q}" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
+          <input type="text" name="q" th:value="${q}" data-suggest class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
         </div>
       </fieldset>
       <fieldset>
@@ -162,7 +162,7 @@
               <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.search}">Search</legend>
               <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 transition focus-within:border-brand-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-100">
                 <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-                <input type="text" name="q" th:value="${q}" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
+                <input type="text" name="q" th:value="${q}" data-suggest class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
               </div>
             </fieldset>
             <hr class="border-ink-100">
@@ -284,6 +284,7 @@
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
+<script th:replace="~{fragments/layout :: suggestScript}"></script>
 <script>
   // Filters slide-over
   var filterPanel = document.getElementById('filterPanel');

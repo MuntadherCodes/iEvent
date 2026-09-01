@@ -58,6 +58,20 @@ public class MediaController {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
 
+    /** User profile photo uploaded from /me/profile — one file per user,
+     *  extension unknown, so each accepted one is tried (same pattern as the
+     *  gallery extras above). External avatars (Google) never pass through
+     *  here — users.avatar_url points straight at them. */
+    @GetMapping("/media/user-avatar/{userId}")
+    public ResponseEntity<FileSystemResource> userAvatar(@PathVariable Long userId) {
+        Path dir = uploadDir.resolve("avatars");
+        for (String ext : java.util.List.of("jpg", "jpeg", "png", "webp")) {
+            Path candidate = dir.resolve("user-" + userId + "." + ext);
+            if (Files.isReadable(candidate)) return serveFile(candidate);
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+    }
+
     @GetMapping("/media/org-logo/{orgId}")
     public ResponseEntity<FileSystemResource> orgLogo(@PathVariable Long orgId) {
         return serve(organizations.findById(orgId).map(o -> o.getLogoPath()).orElse(null));

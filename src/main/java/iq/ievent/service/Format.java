@@ -234,8 +234,8 @@ public final class Format {
         if (isEnglish() == originIsEnglish) return null;                  // viewing the original
         if (titleTranslated == null || titleTranslated.isBlank()) return null; // fallback shows original
         return isEnglish()
-                ? "Translated automatically from Arabic — switch the site language to see the original."
-                : "تُرجم هذا المحتوى آليًا من الإنجليزية — بدّل لغة الموقع لعرض النص الأصلي.";
+                ? "Translated automatically from Arabic. Switch the site language to see the original."
+                : "تُرجم هذا المحتوى آليًا من الإنجليزية. بدّل لغة الموقع لعرض النص الأصلي.";
     }
 
     public static String monthShort(OffsetDateTime startsAt) {

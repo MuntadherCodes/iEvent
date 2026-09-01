@@ -16,7 +16,7 @@
     <div class="pointer-events-none absolute bottom-0 start-1/3 h-64 w-64 rounded-full bg-brand-100/60 blur-3xl" aria-hidden="true"></div>
     <div class="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20 lg:px-8 lg:py-24">
       <div class="mx-auto max-w-3xl text-center">
-        <span class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-brand-700 shadow-card"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg><span class="tabular-nums" th:text="${monthCountLine}">2,300</span>&nbsp;[[#{public.home.heroBadge}]]</span>
+        <a th:href="@{/browse}" class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-brand-700 shadow-card transition hover:border-brand-400 hover:bg-white"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-sparkles"/></svg>[[#{public.home.viewAllEvents}]]<svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         <h1 class="mt-6 font-display text-4xl font-extrabold tracking-tight text-ink-900 sm:text-5xl lg:text-6xl">[[#{public.home.heroTitle1}]]<span class="text-brand-500">[[#{public.home.heroTitle2}]]</span>[[#{public.home.heroTitle3}]]</h1>
         <p class="mx-auto mt-5 max-w-xl text-base text-ink-500 md:text-lg" th:text="#{public.home.heroSub}">Concerts, tech summits, food carnivals and more — discover what's happening in your city, follow the events you love, and grab tickets in seconds.</p>
 
@@ -25,7 +25,7 @@
           <div class="flex flex-col gap-2 md:flex-row md:items-center">
             <label class="flex flex-1 items-center gap-3 rounded-xl px-4 py-3 transition focus-within:bg-brand-50/60 md:rounded-full">
               <svg class="h-5 w-5 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-search"/></svg>
-              <input name="q" class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400 md:text-base" th:placeholder="#{public.home.searchPlaceholder}" placeholder="Search events, artists, venues…" th:attr="aria-label=#{public.home.searchAria}" aria-label="Search events">
+              <input name="q" data-suggest class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400 md:text-base" th:placeholder="#{public.home.searchPlaceholder}" placeholder="Search events, artists, venues…" th:attr="aria-label=#{public.home.searchAria}" aria-label="Search events">
             </label>
             <div class="hidden h-8 w-px bg-ink-100 md:block" aria-hidden="true"></div>
             <label class="relative flex items-center gap-2.5 rounded-xl px-4 py-3 transition focus-within:bg-brand-50/60 md:rounded-full">
@@ -40,13 +40,11 @@
           </div>
         </form>
 
-        <!-- Popular chips -->
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm">
+        <!-- Popular chips — computed from what is actually LIVE right now (R20 #10) -->
+        <div th:if="${hasFreeThisWeek or !#lists.isEmpty(popularChips)}" class="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm">
           <span class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{public.home.popular}">Popular:</span>
-          <a th:href="@{/browse(category='MUSIC')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-music"/></svg>[[#{public.home.chipLiveMusic}]]</a>
-          <a th:href="@{/browse(price='free',when='week')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.home.chipFreeWeek}]]</a>
-          <a th:href="@{/browse(category='TECH')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-laptop"/></svg>[[#{public.home.chipTech}]]</a>
-          <a th:href="@{/browse(category='FOOD')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-utensils"/></svg>[[#{public.home.chipFood}]]</a>
+          <a th:if="${hasFreeThisWeek}" th:href="@{/browse(price='free',when='week')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.home.chipFreeWeek}]]</a>
+          <a th:each="chip : ${popularChips}" th:href="@{/browse(category=${chip.value()})}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use th:attr="href='#'+${chip.icon()}"/></svg><span th:text="${chip.label()}">Music</span></a>
         </div>
       </div>
     </div>
@@ -385,5 +383,6 @@
 </div>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
+<script th:replace="~{fragments/layout :: suggestScript}"></script>
 </body>
 </html>

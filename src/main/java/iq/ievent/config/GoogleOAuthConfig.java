@@ -51,7 +51,12 @@ public class GoogleOAuthConfig {
         var existing = users.findByEmailIgnoreCase(email);
         if (existing.isPresent()) {
             User u = existing.get();
-            if (pictureUrl != null && !pictureUrl.isBlank() && !pictureUrl.equals(u.getAvatarUrl())) {
+            // A photo the user uploaded themselves (/media/user-avatar/…) beats
+            // the Google account photo — signing in must not clobber it.
+            boolean uploadedAvatar = u.getAvatarUrl() != null
+                    && u.getAvatarUrl().startsWith("/media/user-avatar/");
+            if (!uploadedAvatar && pictureUrl != null && !pictureUrl.isBlank()
+                    && !pictureUrl.equals(u.getAvatarUrl())) {
                 u.setAvatarUrl(pictureUrl);
                 users.save(u);
             }

@@ -54,18 +54,22 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            LEFT JOIN (SELECT event_id, MIN(price_iqd) AS p FROM ticket_types
                        WHERE status = 'ON_SALE' GROUP BY event_id) mp
                   ON mp.event_id = e.id
-           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
+           WHERE e.status IN ('LIVE', 'ENDED') AND e.visibility = 'PUBLIC'
              AND e.admin_hidden = false AND o.disabled = false
              AND (:q IS NULL OR lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
-             AND (:category IS NULL OR e.category = CAST(:category AS text))
+             AND (:category IS NULL OR e.category = CAST(:category AS text)
+                  OR EXISTS (SELECT 1 FROM event_categories ec
+                              WHERE ec.event_id = e.id AND ec.category = CAST(:category AS text)))
              AND (:city IS NULL OR e.city = CAST(:city AS text))
              AND (:freeOnly = FALSE OR COALESCE(mp.p, 0) = 0)
              AND (:paidOnly = FALSE OR COALESCE(mp.p, 0) > 0)
              AND (CAST(:fromTs AS timestamptz) IS NULL OR e.starts_at >= CAST(:fromTs AS timestamptz))
              AND (CAST(:toTs AS timestamptz) IS NULL OR e.starts_at <= CAST(:toTs AS timestamptz))
            ORDER BY
+             (e.status = 'ENDED') ASC,
              CASE WHEN CAST(:sort AS text) = 'popular' THEN COALESCE(l.n, 0) END DESC,
              CASE WHEN CAST(:sort AS text) = 'price' THEN COALESCE(mp.p, 0) END ASC,
+             CASE WHEN e.status = 'ENDED' THEN e.starts_at END DESC,
              e.starts_at ASC
            """,
            countQuery = """
@@ -74,10 +78,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            LEFT JOIN (SELECT event_id, MIN(price_iqd) AS p FROM ticket_types
                        WHERE status = 'ON_SALE' GROUP BY event_id) mp
                   ON mp.event_id = e.id
-           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
+           WHERE e.status IN ('LIVE', 'ENDED') AND e.visibility = 'PUBLIC'
              AND e.admin_hidden = false AND o.disabled = false
              AND (:q IS NULL OR lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
-             AND (:category IS NULL OR e.category = CAST(:category AS text))
+             AND (:category IS NULL OR e.category = CAST(:category AS text)
+                  OR EXISTS (SELECT 1 FROM event_categories ec
+                              WHERE ec.event_id = e.id AND ec.category = CAST(:category AS text)))
              AND (:city IS NULL OR e.city = CAST(:city AS text))
              AND (:freeOnly = FALSE OR COALESCE(mp.p, 0) = 0)
              AND (:paidOnly = FALSE OR COALESCE(mp.p, 0) > 0)
@@ -98,6 +104,20 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @org.springframework.data.jpa.repository.Modifying
     @Query(value = "UPDATE events SET view_count = view_count + 1 WHERE id = :id", nativeQuery = true)
     void incrementViewCount(@Param("id") long id);
+
+    /** Search-box autocomplete: LIVE public events whose title (either
+     *  language) contains the needle, soonest first. */
+    @Query(value = """
+           SELECT e.* FROM events e
+           JOIN organizations o ON o.id = e.organization_id
+           WHERE e.status = 'LIVE' AND e.visibility = 'PUBLIC'
+             AND e.admin_hidden = false AND o.disabled = false
+             AND (lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%'))
+                  OR lower(COALESCE(e.title_translated, '')) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
+           ORDER BY e.starts_at ASC
+           """,
+           nativeQuery = true)
+    List<Event> suggestByTitle(@Param("q") String q, Pageable pageable);
 
     @Query(value = """
            SELECT e.* FROM events e
