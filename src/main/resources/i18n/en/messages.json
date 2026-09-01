@@ -73,6 +73,7 @@
   "flash.promo.nameRequired": "Give the code a name, e.g. EARLY20.",
   "flash.ticket.resent": "Tickets for order {0} were re-emailed to {1}.",
   "host.cover.badType": "Cover must be a JPG, PNG or WEBP image.",
+  "host.cover.someRejected": "Some photos were not added — use JPG, PNG or WEBP up to 3 MB each.",
   "host.cover.storeFailed": "Could not store the cover image — try again.",
   "host.cover.tooLarge": "Cover image is too large (max 3 MB).",
   "host.delta.new": "new",

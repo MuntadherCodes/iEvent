@@ -1138,7 +1138,7 @@ test('w. check-in door list: seeded names, search, one-click check-in bumps the 
   expect(after, 'checked-in counter should increment').toBe(before + 1);
 });
 
-test('x. event covers: theme picker, photo upload served via /media, remove restores gradient', async ({ page, request }) => {
+test('x. event covers: theme picker, photo upload becomes the gallery cover, removing its thumbnail restores the gradient', async ({ page, request }) => {
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
 
   log('opening the E2E event edit page');
@@ -1164,12 +1164,13 @@ test('x. event covers: theme picker, photo upload served via /media, remove rest
   await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
   await expect(page.locator('input[name="coverTheme"][value="tech"]')).toBeChecked();
 
-  log('uploading a cover photo and saving');
+  log('R19: uploading a photo adds ONE thumbnail with the Cover badge; saving stores it');
   await page.locator('#cover-image').setInputFiles(RECEIPT_PNG);
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(1);
+  await expect(page.locator('#gallerySelectedList').getByText('Cover', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
-  await expect(page.getByText('Current cover photo')).toBeVisible();
-  await expect(page.locator('img[src*="/media/event-cover/"]').first()).toBeVisible();
+  await expect(page.locator('#gallerySelectedList img[src*="/media/event-cover/"]')).toHaveCount(1);
 
   log('the public event page should render the uploaded cover from /media/event-cover/');
   await page.goto(publicHref);
@@ -1180,9 +1181,12 @@ test('x. event covers: theme picker, photo upload served via /media, remove rest
   expect(coverRes.status(), 'cover image should be served').toBe(200);
   expect(coverRes.headers()['content-type']).toContain('image/png');
 
-  log('removing the cover restores the gradient (no /media img on the public page)');
+  log('R19: removing the photo via its thumbnail × restores the gradient on the public page');
   await page.goto(`/host/events/${eventId}/edit`);
-  await page.locator('input[name="removeCover"]').check();
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(1);
+  await page.locator('#gallerySelectedList > div').first().hover();
+  await page.locator('#gallerySelectedList button[aria-label]').last().click({ force: true });
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(0);
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
   await page.goto(publicHref);
@@ -3288,4 +3292,55 @@ test('by. my events (R18): Created column is shown and the list re-sorts by date
   await page.locator('#ev-sort').selectOption('updated');
   await expect(page).toHaveURL(/sort=updated/);
   await expect(page.locator('table tbody tr').first()).toBeVisible();
+});
+
+test('bz. gallery manager (R19): repeated saves never duplicate images, the star picks the cover, × removes one image', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('opening the E2E Concert Night edit page (test x left its gallery empty)');
+  await page.goto('/host/events?q=Concert');
+  await page.getByRole('link', { name: /E2E Concert Night/ }).first().click();
+  const eventId = page.url().match(/\/host\/events\/(\d+)/)[1];
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  await page.goto(`/host/events/${eventId}/edit`);
+
+  log('uploading TWO photos → two thumbnails, first wears the Cover badge');
+  await page.locator('#cover-image').setInputFiles([RECEIPT_PNG, RECEIPT_PNG]);
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(2);
+  await expect(page.locator('#gallerySelectedList').getByText('Cover', { exact: true })).toHaveCount(1);
+
+  log('save #1, then save #2 untouched — the old bug doubled the images on every save');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(2);
+
+  log('star on the SECOND thumbnail makes it the cover (moves to position 0)');
+  const secondSrc = await page.locator('#gallerySelectedList > div').nth(1).locator('img').getAttribute('src');
+  await page.locator('#gallerySelectedList > div').nth(1).hover();
+  await page.locator('#gallerySelectedList > div').nth(1).locator('button.gallery-make-cover').click({ force: true });
+  await expect(page.locator('#gallerySelectedList > div').first().locator('img')).toHaveAttribute('src', secondSrc);
+
+  log('after saving, the chosen image is still first — and the public page serves it as the cover');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(2);
+  await expect(page.locator('#gallerySelectedList > div').first().locator('img')).toHaveAttribute('src', secondSrc);
+
+  log('× on the second thumbnail removes just that image; the save sticks at one');
+  await page.locator('#gallerySelectedList > div').nth(1).hover();
+  await page.locator('#gallerySelectedList > div').nth(1).locator('button[aria-label]').last().click({ force: true });
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
+  await expect(page.locator('#gallerySelectedList > div')).toHaveCount(1);
+
+  log('public page shows a single static cover image for THIS event (no slider, no duplicates)');
+  await page.goto(publicHref);
+  // scope to this event's own id — related-event cards may carry their own /media covers
+  await expect(page.locator(`img[src*="/media/event-cover/${eventId}/"]`)).toHaveCount(1);
 });

@@ -14,12 +14,15 @@ public final class Format {
     public static final ZoneId BAGHDAD = ZoneId.of("Asia/Baghdad");
 
     /** The event's primary cover, wherever it's shown as a single thumbnail
-     *  (cards, dashboard, checkout) — an uploaded file always wins; a
-     *  Pexels-picked primary (no file uploaded) is the fallback; null means
-     *  the gradient/theme placeholder. */
+     *  (cards, dashboard, checkout). coverImageUrl is the cover the host
+     *  CHOSE in the gallery picker (see HostService.replaceGalleryImages) —
+     *  when set it wins, even if a legacy uploaded file also exists (the
+     *  host demoted that file to a gallery slot). The bare uploaded file is
+     *  the fallback; null means the gradient/theme placeholder. */
     public static String coverUrl(Event e) {
+        if (e.getCoverImageUrl() != null && !e.getCoverImageUrl().isBlank()) return e.getCoverImageUrl();
         if (e.getCoverImagePath() != null) return "/media/event-cover/" + e.getId();
-        return e.getCoverImageUrl();
+        return null;
     }
 
     public static final long BOOKING_FEE_FLAT_THRESHOLD_IQD = 15_000L;

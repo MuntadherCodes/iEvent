@@ -73,6 +73,7 @@
   "flash.promo.nameRequired": "أدخل اسمًا للرمز، مثل EARLY20.",
   "flash.ticket.resent": "أُعيد إرسال تذاكر الطلب {0} إلى {1}.",
   "host.cover.badType": "يجب أن يكون الغلاف صورة JPG أو PNG أو WEBP.",
+  "host.cover.someRejected": "لم تُضف بعض الصور — استخدم JPG أو PNG أو WEBP بحجم لا يتجاوز 3 م.ب. لكل صورة.",
   "host.cover.storeFailed": "تعذّر حفظ صورة الغلاف — حاول مرة أخرى.",
   "host.cover.tooLarge": "صورة الغلاف كبيرة جدًا (الحد الأقصى 3 م.ب).",
   "host.delta.new": "جديد",

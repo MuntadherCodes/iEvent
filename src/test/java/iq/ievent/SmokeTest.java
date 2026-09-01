@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = {"app.seed.demo=true"})
+@TestPropertySource(properties = {"app.seed.demo=true", "app.upload-dir=${java.io.tmpdir}/ievent-test-uploads"})
 class SmokeTest {
 
     /** Seeded demo host (owner of @zainevents) — loaded by the demo seed. */
@@ -64,6 +64,9 @@ class SmokeTest {
 
     @Autowired
     private iq.ievent.service.EventStatusSweeper statusSweeper;
+
+    @Autowired
+    private iq.ievent.repo.EventImageRepository eventImages;
 
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
@@ -757,5 +760,132 @@ class SmokeTest {
                 .andExpect(content().string(containsString("Exact date")))
                 .andExpect(content().string(containsString("Multiple days")))
                 .andExpect(content().string(containsString("Month only")));
+    }
+
+    // ---------- Round 19: unified gallery — dedupe, cover choice, uploads, no silent wipes ----------
+
+    @Test
+    void gallerySaveDedupesAndIsIdempotent() throws Exception {
+        // The reported bug: every save duplicated the gallery. Duplicate URLs in
+        // one submission collapse to one, and resubmitting the same picks
+        // (exactly what the picker does on an untouched save) changes nothing.
+        var ev = r18Event("Smoke Gallery Dedupe", "smoke-gallery-dedupe");
+        Long id = events.save(ev).getId();
+        for (int round = 0; round < 2; round++) {
+            mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                            .param("title", ev.getTitle())
+                            .param("category", "COMMUNITY")
+                            .param("city", "Baghdad")
+                            .param("locationType", "TBA")
+                            .param("date", java.time.LocalDate.now().plusDays(10).toString())
+                            .param("galleryManaged", "1")
+                            .param("galleryUrl", "https://images.example/a.jpg",
+                                    "https://images.example/b.jpg", "https://images.example/a.jpg")
+                            .param("galleryCreditName", "", "", "")
+                            .param("galleryCreditUrl", "", "", "")
+                            .param("galleryFocusY", "40", "60", "40")
+                            .with(csrf())
+                            .with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().is3xxRedirection());
+            var e = events.findById(id).orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals("https://images.example/a.jpg", e.getCoverImageUrl());
+            org.junit.jupiter.api.Assertions.assertEquals(40, e.getCoverFocusY());
+            var rows = eventImages.findByEventIdOrderBySortOrderAsc(id);
+            org.junit.jupiter.api.Assertions.assertEquals(1, rows.size(),
+                    "duplicates must collapse and saves must be idempotent");
+            org.junit.jupiter.api.Assertions.assertEquals("https://images.example/b.jpg", rows.get(0).getUrl());
+        }
+    }
+
+    @Test
+    void galleryFirstPickBecomesTheCover() throws Exception {
+        // "choose which one is the cover" — the picker submits its order and
+        // position 0 wins; reordering flips the cover accordingly.
+        var ev = r18Event("Smoke Gallery Cover", "smoke-gallery-cover");
+        Long id = events.save(ev).getId();
+        for (String[] order : new String[][] {
+                {"https://images.example/x.jpg", "https://images.example/y.jpg"},
+                {"https://images.example/y.jpg", "https://images.example/x.jpg"}}) {
+            mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                            .param("title", ev.getTitle())
+                            .param("category", "COMMUNITY")
+                            .param("city", "Baghdad")
+                            .param("locationType", "TBA")
+                            .param("date", java.time.LocalDate.now().plusDays(10).toString())
+                            .param("galleryManaged", "1")
+                            .param("galleryUrl", order[0], order[1])
+                            .param("galleryFocusY", "50", "50")
+                            .with(csrf())
+                            .with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().is3xxRedirection());
+            var e = events.findById(id).orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals(order[0], e.getCoverImageUrl());
+            var rows = eventImages.findByEventIdOrderBySortOrderAsc(id);
+            org.junit.jupiter.api.Assertions.assertEquals(1, rows.size());
+            org.junit.jupiter.api.Assertions.assertEquals(order[1], rows.get(0).getUrl());
+        }
+    }
+
+    @Test
+    void galleryUploadPlaceholderStoresServesAndCleansUp() throws Exception {
+        // "upload:0" resolves to the stored file's unique URL; that URL serves;
+        // removing every image on a managed save orphan-cleans the file (404).
+        var ev = r18Event("Smoke Gallery Upload", "smoke-gallery-upload");
+        Long id = events.save(ev).getId();
+        var file = new org.springframework.mock.web.MockMultipartFile(
+                "coverImage", "photo.png", "image/png", new byte[] {(byte) 0x89, 'P', 'N', 'G', 1, 2, 3});
+        mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                        .file(file)
+                        .param("title", ev.getTitle())
+                        .param("category", "COMMUNITY")
+                        .param("city", "Baghdad")
+                        .param("locationType", "TBA")
+                        .param("date", java.time.LocalDate.now().plusDays(10).toString())
+                        .param("galleryManaged", "1")
+                        .param("galleryUrl", "upload:0")
+                        .param("galleryFocusY", "35")
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        var e = events.findById(id).orElseThrow();
+        String url = e.getCoverImageUrl();
+        org.junit.jupiter.api.Assertions.assertNotNull(url, "uploaded file must become the cover");
+        org.junit.jupiter.api.Assertions.assertTrue(
+                url.startsWith("/media/event-cover/" + id + "/extra/"), url);
+        org.junit.jupiter.api.Assertions.assertEquals(35, e.getCoverFocusY());
+        mockMvc.perform(get(url)).andExpect(status().isOk());
+        // managed save with no picks at all → gallery emptied, file cleaned up
+        mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                        .param("title", ev.getTitle())
+                        .param("category", "COMMUNITY")
+                        .param("city", "Baghdad")
+                        .param("locationType", "TBA")
+                        .param("date", java.time.LocalDate.now().plusDays(10).toString())
+                        .param("galleryManaged", "1")
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertNull(events.findById(id).orElseThrow().getCoverImageUrl());
+        mockMvc.perform(get(url)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void saveWithoutPickerFieldsLeavesGalleryAlone() throws Exception {
+        // A POST that carries no picker state (JS failure / old client) must
+        // not be read as "delete everything".
+        var ev = r18Event("Smoke Gallery Silent", "smoke-gallery-silent");
+        ev.setCoverImageUrl("https://images.example/keep.jpg");
+        Long id = events.save(ev).getId();
+        mockMvc.perform(multipart("/host/events/" + id + "/edit")
+                        .param("title", ev.getTitle())
+                        .param("category", "COMMUNITY")
+                        .param("city", "Baghdad")
+                        .param("locationType", "TBA")
+                        .param("date", java.time.LocalDate.now().plusDays(10).toString())
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertEquals("https://images.example/keep.jpg",
+                events.findById(id).orElseThrow().getCoverImageUrl());
     }
 }

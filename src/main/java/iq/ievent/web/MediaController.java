@@ -42,11 +42,14 @@ public class MediaController {
         return serve(stored);
     }
 
-    /** Extra gallery photos uploaded from the host's desktop, beyond the single
-     *  primary cover above — see HostService.storeGalleryUploads. The slot's
-     *  extension isn't tracked anywhere, so this just tries each accepted one. */
+    /** Extra gallery photos uploaded from the host's desktop — see
+     *  HostService.storeGalleryUploads. {@code slot} is either a legacy
+     *  numeric slot or a unique alphanumeric token (R19); strictly validated
+     *  since it's spliced into a filename. The extension isn't tracked
+     *  anywhere, so this just tries each accepted one. */
     @GetMapping("/media/event-cover/{eventId}/extra/{slot}")
-    public ResponseEntity<FileSystemResource> eventCoverExtra(@PathVariable Long eventId, @PathVariable int slot) {
+    public ResponseEntity<FileSystemResource> eventCoverExtra(@PathVariable Long eventId, @PathVariable String slot) {
+        if (!slot.matches("[a-zA-Z0-9]{1,40}")) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         Path dir = uploadDir.resolve("covers");
         for (String ext : java.util.List.of("jpg", "jpeg", "png", "webp")) {
             Path candidate = dir.resolve("event-" + eventId + "-extra-" + slot + "." + ext);

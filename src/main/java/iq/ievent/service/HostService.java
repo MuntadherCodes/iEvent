@@ -108,33 +108,12 @@ public class HostService {
         return messages.getMessage(code, args, locale);
     }
 
-    /** Stores/replaces the event cover image. Returns an error message or null. */
-    @Transactional
-    public String storeCover(Event event, MultipartFile cover) {
-        if (cover == null || cover.isEmpty()) return null;
-        if (cover.getSize() > 3 * 1024 * 1024) return msg("host.cover.tooLarge");
-        String original = cover.getOriginalFilename() == null ? "" : cover.getOriginalFilename();
-        String ext = original.contains(".")
-                ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
-        if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) {
-            return msg("host.cover.badType");
-        }
-        try {
-            java.nio.file.Path dir = uploadDir.resolve("covers");
-            java.nio.file.Files.createDirectories(dir);
-            java.nio.file.Path target = dir.resolve("event-" + event.getId() + "." + ext);
-            java.nio.file.Files.copy(cover.getInputStream(), target,
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            if (event.getCoverImagePath() != null && !event.getCoverImagePath().equals(target.toString())) {
-                try { java.nio.file.Files.deleteIfExists(java.nio.file.Path.of(event.getCoverImagePath())); }
-                catch (Exception ignored) {}
-            }
-            event.setCoverImagePath(target.toString());
-            events.save(event);
-            return null;
-        } catch (java.io.IOException e) {
-            return msg("host.cover.storeFailed");
-        }
+    /** The URL the legacy single-file cover (events.cover_image_path) is served
+     *  from — inside the unified gallery model it's treated as just another
+     *  pick with this URL, so it can be reordered, demoted or removed like
+     *  any Pexels pick or uploaded extra. */
+    public static String fileCoverUrl(Event event) {
+        return "/media/event-cover/" + event.getId();
     }
 
     @Transactional
@@ -149,35 +128,72 @@ public class HostService {
 
     public record GalleryImageForm(String url, String creditName, String creditUrl, int focusY) {}
 
-    /** Applies the wizard's picked stock photos (Pexels). If the event has no
-     *  uploaded file (coverImagePath), the first pick becomes the primary cover
-     *  (coverImageUrl, with its focusY carried onto the event's own
-     *  coverFocusY) and the rest are the extra gallery, each keeping its own
-     *  focusY; if a file WAS uploaded, that file stays primary and every pick
-     *  becomes gallery — either way, 2+ images total is what makes the public
-     *  page a slider. An empty list clears both, matching "the user removed
-     *  all their picks". */
+    /** Replaces the event's whole gallery with {@code picks} — ONE ordered
+     *  list where position 0 IS the cover, exactly as the host arranged it in
+     *  the picker (uploads, Pexels picks and the legacy single-file cover are
+     *  all just entries here; a legacy file cover appears as its
+     *  {@link #fileCoverUrl} URL). Duplicate URLs are collapsed (keeping the
+     *  first occurrence) so a save can never multiply images — this also
+     *  self-heals galleries that the old carry-forward logic had duplicated,
+     *  on their next save.
+     *
+     *  Cover resolution: picks[0] = the file-cover URL keeps the uploaded
+     *  file primary (coverImageUrl cleared); anything else becomes
+     *  coverImageUrl — which now WINS over an existing file (see
+     *  Format.coverUrl), the file simply riding along as a gallery row at
+     *  whatever position the host gave it. When {@code managed} is true (the
+     *  picker rendered and submitted its state) and the file-cover URL is
+     *  absent from picks, the host removed that photo: the file is deleted
+     *  and cover_image_path cleared. managed=false (no picker fields in the
+     *  request at all — JS failure or a legacy client) never deletes the
+     *  file. */
     @Transactional
-    public void replaceGalleryImages(Event event, List<GalleryImageForm> picks) {
+    public void replaceGalleryImages(Event event, List<GalleryImageForm> picks, boolean managed) {
+        boolean anyPick = picks != null && picks.stream()
+                .anyMatch(p -> p.url() != null && !p.url().isBlank());
+        if (!managed && !anyPick) {
+            // The request carried no picker state at all (JS failure, a raw
+            // POST, or an old client) — leave the saved gallery untouched
+            // rather than interpreting silence as "delete everything".
+            return;
+        }
         eventImages.deleteByEventId(event.getId());
-        List<GalleryImageForm> valid = picks == null ? List.of()
-                : picks.stream().filter(p -> p.url() != null && !p.url().isBlank()).toList();
-        int start = 0;
-        if (event.getCoverImagePath() == null && !valid.isEmpty()) {
-            GalleryImageForm primary = valid.get(0);
-            event.setCoverImageUrl(primary.url());
-            event.setCoverImageCreditName(primary.creditName());
-            event.setCoverImageCreditUrl(primary.creditUrl());
-            event.setCoverFocusY(Math.max(0, Math.min(100, primary.focusY())));
-            start = 1;
-        } else {
+        String fileUrl = fileCoverUrl(event);
+        List<GalleryImageForm> valid = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (GalleryImageForm p : picks == null ? List.<GalleryImageForm>of() : picks) {
+            if (p.url() == null || p.url().isBlank()) continue;
+            // stale reference to a file cover that no longer exists
+            if (p.url().equals(fileUrl) && event.getCoverImagePath() == null) continue;
+            if (seen.add(p.url())) valid.add(p);
+        }
+        if (managed && event.getCoverImagePath() != null && !seen.contains(fileUrl)) {
+            try { java.nio.file.Files.deleteIfExists(java.nio.file.Path.of(event.getCoverImagePath())); }
+            catch (Exception ignored) { }
+            event.setCoverImagePath(null);
+        }
+        if (valid.isEmpty()) {
             event.setCoverImageUrl(null);
             event.setCoverImageCreditName(null);
             event.setCoverImageCreditUrl(null);
+            events.save(event);
+            cleanupOrphanExtraFiles(event, seen);
+            return;
         }
+        GalleryImageForm primary = valid.get(0);
+        if (primary.url().equals(fileUrl)) {
+            event.setCoverImageUrl(null);
+            event.setCoverImageCreditName(null);
+            event.setCoverImageCreditUrl(null);
+        } else {
+            event.setCoverImageUrl(primary.url());
+            event.setCoverImageCreditName(primary.creditName());
+            event.setCoverImageCreditUrl(primary.creditUrl());
+        }
+        event.setCoverFocusY(Math.max(0, Math.min(100, primary.focusY())));
         events.save(event);
         int order = 0;
-        for (int i = start; i < valid.size(); i++) {
+        for (int i = 1; i < valid.size(); i++) {
             GalleryImageForm p = valid.get(i);
             EventImage img = new EventImage();
             img.setEvent(event);
@@ -188,72 +204,70 @@ public class HostService {
             img.setFocusY(Math.max(0, Math.min(100, p.focusY())));
             eventImages.save(img);
         }
+        cleanupOrphanExtraFiles(event, seen);
     }
 
-    /** Saves extra photos uploaded straight from the host's desktop (beyond the
-     *  single primary cover, which storeCover() already handles) as gallery
-     *  images, each keeping the crop position the host set for it client-side
-     *  (focusYs is index-aligned with files; a missing/invalid entry falls
-     *  back to a center crop). Only called when the host actually picked new
-     *  files this submit — it fully replaces whatever local-upload slots this
-     *  event had before, so a shrinking set never leaves an orphaned file on
-     *  disk. Bad type or oversize files are silently skipped rather than
-     *  failing the whole submission, since storeCover() already surfaces that
-     *  as a hard error for the primary photo. */
-    @Transactional
-    public List<GalleryImageForm> storeGalleryUploads(Event event, List<MultipartFile> files, List<String> focusYs) {
+    /** Deletes uploaded gallery files (event-{id}-extra-*) no longer referenced
+     *  by any pick — the disk-side half of removing an uploaded photo from the
+     *  gallery. Never touches other events' files or the legacy single cover
+     *  (event-{id}.{ext}). */
+    private void cleanupOrphanExtraFiles(Event event, java.util.Set<String> keptUrls) {
         java.nio.file.Path dir = uploadDir.resolve("covers");
-        clearGalleryUploadSlots(event.getId(), dir);
-        List<GalleryImageForm> out = new java.util.ArrayList<>();
+        if (!java.nio.file.Files.isDirectory(dir)) return;
+        String prefix = "event-" + event.getId() + "-extra-";
+        String urlPrefix = fileCoverUrl(event) + "/extra/";
+        try (var stream = java.nio.file.Files.list(dir)) {
+            stream.filter(p -> p.getFileName().toString().startsWith(prefix))
+                  .forEach(p -> {
+                      String name = p.getFileName().toString();
+                      String token = name.substring(prefix.length());
+                      int dot = token.lastIndexOf('.');
+                      if (dot > 0) token = token.substring(0, dot);
+                      if (!keptUrls.contains(urlPrefix + token)) {
+                          try { java.nio.file.Files.deleteIfExists(p); }
+                          catch (java.io.IOException ignored) { }
+                      }
+                  });
+        } catch (java.io.IOException ignored) { }
+    }
+
+    /** Stores photos uploaded from the host's desktop as gallery files with
+     *  UNIQUE token names (event-{id}-extra-{token}.{ext}) — adding photos
+     *  never renames or wipes previously saved ones, so URLs the picker
+     *  resubmits stay valid; files that are no longer referenced are removed
+     *  by cleanupOrphanExtraFiles() after the gallery is replaced. Returns a
+     *  list INDEX-ALIGNED with {@code files}: the served URL for each stored
+     *  file, or null for an empty/oversize/wrong-type entry — alignment is
+     *  what lets the picker's "upload:{k}" placeholders resolve to the right
+     *  file even when some were rejected. */
+    @Transactional
+    public List<String> storeGalleryUploads(Event event, List<MultipartFile> files) {
+        List<String> out = new java.util.ArrayList<>();
         if (files == null) return out;
-        int slot = 0;
+        java.nio.file.Path dir = uploadDir.resolve("covers");
+        // millis + a random component: two concurrent saves for the same event
+        // in the same millisecond must not mint colliding filenames
+        String base = Long.toString(System.currentTimeMillis(), 36)
+                + Long.toString(java.util.concurrent.ThreadLocalRandom.current().nextLong(1, 36 * 36 * 36), 36);
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
-            if (file == null || file.isEmpty()) continue;
-            slot++;
-            if (file.getSize() > 3 * 1024 * 1024) continue;
+            if (file == null || file.isEmpty() || file.getSize() > 3 * 1024 * 1024) { out.add(null); continue; }
             String original = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
             String ext = original.contains(".")
                     ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
-            if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) continue;
-            int focusY = 50;
-            if (focusYs != null && i < focusYs.size()) {
-                try { focusY = Math.max(0, Math.min(100, Integer.parseInt(focusYs.get(i)))); }
-                catch (NumberFormatException ignored) { }
-            }
+            if (!java.util.Set.of("jpg", "jpeg", "png", "webp").contains(ext)) { out.add(null); continue; }
             try {
                 java.nio.file.Files.createDirectories(dir);
-                java.nio.file.Path target = dir.resolve("event-" + event.getId() + "-extra-" + slot + "." + ext);
+                String token = base + "x" + i;
+                java.nio.file.Path target = dir.resolve("event-" + event.getId() + "-extra-" + token + "." + ext);
                 java.nio.file.Files.copy(file.getInputStream(), target,
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                out.add(new GalleryImageForm(
-                        "/media/event-cover/" + event.getId() + "/extra/" + slot, null, null, focusY));
-            } catch (java.io.IOException ignored) { }
+                out.add(fileCoverUrl(event) + "/extra/" + token);
+            } catch (java.io.IOException e) {
+                out.add(null);
+            }
         }
         return out;
-    }
-
-    /** Desktop-uploaded gallery extras from a previous save, identified by their
-     *  own served-URL shape rather than a DB column — used to carry them forward
-     *  unchanged on any edit that doesn't touch the upload input, since a file
-     *  input can never be pre-populated with previously-saved files the way the
-     *  Pexels picker's own selections are. */
-    @Transactional(readOnly = true)
-    public List<GalleryImageForm> currentLocalGalleryExtras(Event event) {
-        return eventImages.findByEventIdOrderBySortOrderAsc(event.getId()).stream()
-                .filter(img -> img.getUrl() != null
-                        && img.getUrl().startsWith("/media/event-cover/") && img.getUrl().contains("/extra/"))
-                .map(img -> new GalleryImageForm(img.getUrl(), img.getCreditName(), img.getCreditUrl(), img.getFocusY()))
-                .toList();
-    }
-
-    private static void clearGalleryUploadSlots(Long eventId, java.nio.file.Path dir) {
-        if (!java.nio.file.Files.isDirectory(dir)) return;
-        String prefix = "event-" + eventId + "-extra-";
-        try (var stream = java.nio.file.Files.list(dir)) {
-            stream.filter(p -> p.getFileName().toString().startsWith(prefix))
-                  .forEach(p -> { try { java.nio.file.Files.deleteIfExists(p); } catch (java.io.IOException ignored) { } });
-        } catch (java.io.IOException ignored) { }
     }
 
     /** Every image on the event's public page, primary first, with attribution —
@@ -264,30 +278,33 @@ public class HostService {
     @Transactional(readOnly = true)
     public List<GalleryImage> gallery(Event event) {
         List<GalleryImage> out = new java.util.ArrayList<>();
-        if (event.getCoverImagePath() != null) {
-            out.add(new GalleryImage("/media/event-cover/" + event.getId(), null, null));
-        } else if (event.getCoverImageUrl() != null) {
+        // coverImageUrl is the host's CHOSEN primary (see replaceGalleryImages)
+        // — when set it wins even if a legacy uploaded file also exists (that
+        // file then shows up as one of the ordered gallery rows below).
+        if (event.getCoverImageUrl() != null) {
             out.add(new GalleryImage(event.getCoverImageUrl(),
                     event.getCoverImageCreditName(), event.getCoverImageCreditUrl()));
+        } else if (event.getCoverImagePath() != null) {
+            out.add(new GalleryImage(fileCoverUrl(event), null, null));
         }
         eventImages.findByEventIdOrderBySortOrderAsc(event.getId())
                 .forEach(img -> out.add(new GalleryImage(img.getUrl(), img.getCreditName(), img.getCreditUrl())));
         return out;
     }
 
-    /** What the picker widget itself manages, as picks it can re-render and
-     *  resubmit unchanged — used to pre-populate the edit page so a save that
-     *  never touches the picker doesn't wipe the existing gallery. Unlike
-     *  {@link #gallery}, this excludes an uploaded-file primary: that slot is
-     *  managed by the separate upload input / "remove cover" checkbox, not
-     *  the picker, so showing it there too would let removing it via the
-     *  picker silently disagree with what "remove cover" actually does. */
+    /** The picker widget's full state, in display order (position 0 = cover)
+     *  — used to pre-populate the edit page so a save that never touches the
+     *  widget resubmits the event's gallery unchanged, and so the legacy
+     *  uploaded-file cover is manageable (reorder/remove/re-crop) exactly
+     *  like any other image. */
     @Transactional(readOnly = true)
     public List<GalleryImageForm> currentGalleryPicks(Event event) {
         List<GalleryImageForm> out = new java.util.ArrayList<>();
-        if (event.getCoverImagePath() == null && event.getCoverImageUrl() != null) {
+        if (event.getCoverImageUrl() != null) {
             out.add(new GalleryImageForm(event.getCoverImageUrl(),
                     event.getCoverImageCreditName(), event.getCoverImageCreditUrl(), event.getCoverFocusY()));
+        } else if (event.getCoverImagePath() != null) {
+            out.add(new GalleryImageForm(fileCoverUrl(event), null, null, event.getCoverFocusY()));
         }
         eventImages.findByEventIdOrderBySortOrderAsc(event.getId())
                 .forEach(img -> out.add(new GalleryImageForm(img.getUrl(), img.getCreditName(), img.getCreditUrl(), img.getFocusY())));
@@ -300,15 +317,6 @@ public class HostService {
             event.setCoverTheme(theme);
             events.save(event);
         }
-    }
-
-    /** Sets the cover crop focus regardless of which cover source (upload,
-     *  Pexels, or existing photo) is active — storeCover() only saves on a
-     *  new file, so this can't just piggyback on that call. */
-    @Transactional
-    public void setCoverFocusY(Event event, int focusY) {
-        event.setCoverFocusY(Math.max(0, Math.min(100, focusY)));
-        events.save(event);
     }
 
     /** Payment method ids explicitly selected for this event, or empty when

@@ -415,10 +415,9 @@ public class HostController {
                               @RequestParam(name = "action", defaultValue = "draft") String action,
                               @RequestParam(name = "coverImage", required = false)
                                   List<org.springframework.web.multipart.MultipartFile> coverImages,
-                              @RequestParam(name = "coverImageFocusY", required = false) List<String> coverImageFocusYs,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
-                              @RequestParam(required = false) Integer coverFocusY,
                               @RequestParam(required = false) Long draftEventId,
+                              @RequestParam(name = "galleryManaged", defaultValue = "false") boolean galleryManaged,
                               @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
                               @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
                               @RequestParam(name = "galleryCreditUrl", required = false) List<String> galleryCreditUrls,
@@ -472,16 +471,10 @@ public class HostController {
                     requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             applyTranslations(created, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(created, coverTheme);
-            if (coverFocusY != null) hostService.setCoverFocusY(created, coverFocusY);
-            CoverUploads uploads = splitCoverUploads(coverImages);
-            String coverError = hostService.storeCover(created, uploads.primary());
-            if (coverError != null) redirect.addFlashAttribute("error", coverError);
-            List<HostService.GalleryImageForm> picks = new ArrayList<>(
-                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls, galleryFocusYs));
-            picks.addAll(uploads.extras().isEmpty()
-                    ? hostService.currentLocalGalleryExtras(created)
-                    : hostService.storeGalleryUploads(created, uploads.extras(), coverImageFocusYs));
-            hostService.replaceGalleryImages(created, capGalleryImages(picks));
+            ResolvedGallery gallery = resolveGalleryPicks(created, galleryUrls, galleryCreditNames,
+                    galleryCreditUrls, galleryFocusYs, coverImages);
+            hostService.replaceGalleryImages(created, capGalleryImages(gallery.picks()), galleryManaged);
+            if (gallery.anyRejected()) redirect.addFlashAttribute("error", msg("host.cover.someRejected"));
             if ("publish".equals(action)) {
                 hostService.publish(created);
                 redirect.addFlashAttribute("published", true);
@@ -718,8 +711,6 @@ public class HostController {
         model.addAttribute("categories", PageController.CATEGORIES);
         model.addAttribute("coverThemes", HostService.COVER_THEMES);
         model.addAttribute("currentTheme", ev.getCoverTheme());
-        model.addAttribute("hasCoverImage", ev.getCoverImagePath() != null);
-        model.addAttribute("coverImageUrl", Format.coverUrl(ev));
         model.addAttribute("coverFocusY", ev.getCoverFocusY());
         model.addAttribute("galleryImagesJson", galleryImagesJson(hostService.currentGalleryPicks(ev)));
         // TBA stores a far-future placeholder — same blank-out as the console's
@@ -809,10 +800,9 @@ public class HostController {
                               @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
                               @RequestParam(name = "coverImage", required = false)
                                   List<org.springframework.web.multipart.MultipartFile> coverImages,
-                              @RequestParam(name = "coverImageFocusY", required = false) List<String> coverImageFocusYs,
                               @RequestParam(name = "coverTheme", required = false) String coverTheme,
-                              @RequestParam(required = false) Integer coverFocusY,
                               @RequestParam(name = "removeCover", defaultValue = "false") boolean removeCover,
+                              @RequestParam(name = "galleryManaged", defaultValue = "false") boolean galleryManaged,
                               @RequestParam(name = "galleryUrl", required = false) List<String> galleryUrls,
                               @RequestParam(name = "galleryCreditName", required = false) List<String> galleryCreditNames,
                               @RequestParam(name = "galleryCreditUrl", required = false) List<String> galleryCreditUrls,
@@ -841,18 +831,17 @@ public class HostController {
                     requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             applyTranslations(ev, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(ev, coverTheme);
-            if (coverFocusY != null) hostService.setCoverFocusY(ev, coverFocusY);
+            // Legacy no-JS escape hatch: with the checkbox gone from the page,
+            // removal of the uploaded file normally happens by its thumbnail
+            // being absent from the (managed) picks — removeCover still works
+            // for raw/old clients. Running it first makes any stale pick of
+            // that file URL drop out inside replaceGalleryImages.
             if (removeCover) hostService.removeCover(ev);
-            CoverUploads uploads = splitCoverUploads(coverImages);
-            String coverError = hostService.storeCover(ev, uploads.primary());
-            if (coverError != null) redirect.addFlashAttribute("error", coverError);
+            ResolvedGallery gallery = resolveGalleryPicks(ev, galleryUrls, galleryCreditNames,
+                    galleryCreditUrls, galleryFocusYs, coverImages);
+            hostService.replaceGalleryImages(ev, capGalleryImages(gallery.picks()), galleryManaged);
+            if (gallery.anyRejected()) redirect.addFlashAttribute("error", msg("host.cover.someRejected"));
             else redirect.addFlashAttribute("saved", true);
-            List<HostService.GalleryImageForm> picks = new ArrayList<>(
-                    buildGalleryPicks(galleryUrls, galleryCreditNames, galleryCreditUrls, galleryFocusYs));
-            picks.addAll(uploads.extras().isEmpty()
-                    ? hostService.currentLocalGalleryExtras(ev)
-                    : hostService.storeGalleryUploads(ev, uploads.extras(), coverImageFocusYs));
-            hostService.replaceGalleryImages(ev, capGalleryImages(picks));
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.saveFailed", e.getMessage()));
         }
@@ -1068,25 +1057,6 @@ public class HostController {
         };
     }
 
-    /** Parallel arrays (one per picked stock photo) into gallery-form records —
-     *  same shape as the ttName/ttPrice/ttQty ticket-row arrays above. */
-    /** The file input accepts multiple files: the first non-empty one is the
-     *  primary cover (same slot the old single-file input always filled), the
-     *  rest become extra gallery/slider photos via storeGalleryUploads(). */
-    private record CoverUploads(org.springframework.web.multipart.MultipartFile primary,
-                                List<org.springframework.web.multipart.MultipartFile> extras) {}
-
-    private static CoverUploads splitCoverUploads(List<org.springframework.web.multipart.MultipartFile> files) {
-        if (files == null) return new CoverUploads(null, List.of());
-        org.springframework.web.multipart.MultipartFile primary = null;
-        List<org.springframework.web.multipart.MultipartFile> extras = new ArrayList<>();
-        for (org.springframework.web.multipart.MultipartFile f : files) {
-            if (f == null || f.isEmpty()) continue;
-            if (primary == null) primary = f; else extras.add(f);
-        }
-        return new CoverUploads(primary, extras);
-    }
-
     /** Server-side backstop for the picker's own 10-image cap — a normal
      *  browser session never sends more, but nothing stops a raw POST from
      *  trying to. */
@@ -1096,22 +1066,60 @@ public class HostController {
         return picks.size() > MAX_GALLERY_IMAGES ? picks.subList(0, MAX_GALLERY_IMAGES) : picks;
     }
 
-    private List<HostService.GalleryImageForm> buildGalleryPicks(
-            List<String> urls, List<String> creditNames, List<String> creditUrls, List<String> focusYs) {
-        if (urls == null) return List.of();
-        List<HostService.GalleryImageForm> out = new ArrayList<>();
-        for (int i = 0; i < urls.size(); i++) {
-            String url = urls.get(i);
-            if (url == null || url.isBlank()) continue;
-            String name = creditNames != null && i < creditNames.size() ? creditNames.get(i) : null;
-            String link = creditUrls != null && i < creditUrls.size() ? creditUrls.get(i) : null;
-            int focusY = 50;
-            if (focusYs != null && i < focusYs.size()) {
-                try { focusY = Integer.parseInt(focusYs.get(i)); } catch (Exception ignored) {}
+    /** Builds the final ORDERED gallery (position 0 = the cover the host
+     *  chose) from the picker's parallel arrays. Entries are either real URLs
+     *  (Pexels picks, already-saved photos, the legacy file cover) or
+     *  "upload:{k}" placeholders pointing at the k-th file of the coverImage
+     *  input — those are stored first and resolved in place, so uploaded
+     *  files sit exactly where the host ordered them, even interleaved with
+     *  stock picks. A rejected file (too big / wrong type) resolves to
+     *  nothing and is skipped. JS-less fallback: no galleryUrl fields at all
+     *  but files present → the files, in order. */
+    private record ResolvedGallery(List<HostService.GalleryImageForm> picks, boolean anyRejected) {}
+
+    private ResolvedGallery resolveGalleryPicks(
+            Event ev, List<String> urls, List<String> creditNames, List<String> creditUrls,
+            List<String> focusYs, List<org.springframework.web.multipart.MultipartFile> files) {
+        List<String> stored = hostService.storeGalleryUploads(ev, files);
+        boolean anyRejected = false;
+        if (files != null) {
+            for (int i = 0; i < files.size(); i++) {
+                if (files.get(i) != null && !files.get(i).isEmpty()
+                        && (i >= stored.size() || stored.get(i) == null)) {
+                    anyRejected = true;
+                }
             }
-            out.add(new HostService.GalleryImageForm(url, name, link, focusY));
         }
-        return out;
+        List<HostService.GalleryImageForm> out = new ArrayList<>();
+        if (urls != null) {
+            for (int i = 0; i < urls.size(); i++) {
+                String url = urls.get(i);
+                if (url == null || url.isBlank()) continue;
+                if (url.startsWith("upload:")) {
+                    int k;
+                    try { k = Integer.parseInt(url.substring(7)); } catch (NumberFormatException e) { continue; }
+                    url = k >= 0 && k < stored.size() ? stored.get(k) : null;
+                    if (url == null) continue;
+                }
+                String name = creditNames != null && i < creditNames.size() ? blankToNull(creditNames.get(i)) : null;
+                String link = creditUrls != null && i < creditUrls.size() ? blankToNull(creditUrls.get(i)) : null;
+                int focusY = 50;
+                if (focusYs != null && i < focusYs.size()) {
+                    try { focusY = Integer.parseInt(focusYs.get(i)); } catch (Exception ignored) {}
+                }
+                out.add(new HostService.GalleryImageForm(url, name, link, focusY));
+            }
+        }
+        if (out.isEmpty() && (urls == null || urls.isEmpty())) {
+            for (String u : stored) {
+                if (u != null) out.add(new HostService.GalleryImageForm(u, null, null, 50));
+            }
+        }
+        return new ResolvedGallery(out, anyRejected);
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s;
     }
 
     // ---------- lifecycle: duplicate / cancel / postpone ----------
