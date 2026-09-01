@@ -123,7 +123,12 @@ public class AdminController {
                             "SELECT COALESCE(SUM(sold), 0) FROM ticket_types WHERE event_id = ?",
                             Long.class, e.getId());
                     return new EventRow(e.getId(), e.getSlug(), e.getTitle(), e.getStatus().name(),
-                            e.isAdminHidden(), dateLine(e.getStartsAt()), soldCount == null ? 0 : soldCount);
+                            e.isAdminHidden(),
+                            // precision-aware: TBA/month placeholders must not
+                            // show up as literal 2099 / first-of-month dates
+                            iq.ievent.service.Format.cardDateLine(e.getStartsAt(), e.getEndsAt(),
+                                    e.isHasStartTime(), e.getDatePrecision()),
+                            soldCount == null ? 0 : soldCount);
                 })
                 .toList();
 

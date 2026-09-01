@@ -51,7 +51,8 @@ public class CheckoutController {
                             boolean pending, String subtotalLabel, String feeLabel, String totalLabel,
                             String discountLabel, String promoCode, List<ItemView> items,
                             String transferReference, String receiptName, String organizerName,
-                            boolean online, String onlineUrl, boolean cash) {}
+                            boolean online, String onlineUrl, boolean cash,
+                            boolean icsAvailable) {}
 
     public record ItemView(String name, int quantity, String unitLabel, String lineLabel) {}
 
@@ -355,7 +356,7 @@ public class CheckoutController {
 
         OrderView view = new OrderView(order.getOrderCode(), order.getEvent().getTitle(),
                 order.getEvent().getSlug(),
-                Format.longDateLine(order.getEvent().getStartsAt(), order.getEvent().getEndsAt(), order.getEvent().isHasStartTime()),
+                Format.longDateLine(order.getEvent().getStartsAt(), order.getEvent().getEndsAt(), order.getEvent().isHasStartTime(), order.getEvent().getDatePrecision()),
                 venueLine,
                 order.getBuyerName(), order.getBuyerEmail(),
                 statusLabel,
@@ -366,7 +367,10 @@ public class CheckoutController {
                 order.getPromoCode(), items,
                 order.getTransferReference(), receiptName,
                 order.getEvent().getOrganization().getName(),
-                online, joinUrl, order.getPaymentMethod() == Order.PaymentMethod.CASH);
+                online, joinUrl, order.getPaymentMethod() == Order.PaymentMethod.CASH,
+                // no .ics for placeholder schedules — see ExtrasController#eventIcs
+                !"TBA".equals(order.getEvent().getDatePrecision())
+                        && !"MONTH".equals(order.getEvent().getDatePrecision()));
 
         List<TicketView> ticketViews = tickets.findByOrderIdOrderByIdAsc(order.getId()).stream()
                 .map(t -> new TicketView(t.getCode(), t.getTicketType().getName(), t.getHolderName(),

@@ -230,6 +230,7 @@
   "public.meta.organizerDescription": "{0} organizes events in {1}, Iraq — browse upcoming events and book tickets on iEvent.",
   "public.event.addOneAria": "Add one {0} ticket",
   "public.event.addToCalendar": "Add to calendar",
+  "public.event.tbaFollowHint": "Follow the organizer to hear when the date is announced.",
   "public.event.bookingFee": "Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD (capped at 15,000 IQD) above that.",
   "public.event.announceOnlyRail": "Informational announcement",
   "public.event.announceOnlyRailSub": "This event is for information only — no tickets are sold.",

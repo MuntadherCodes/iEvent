@@ -230,6 +230,7 @@
   "public.meta.organizerDescription": "{0} ينظّم فعاليات في {1}، العراق — تصفح الفعاليات القادمة واحجز تذاكرك عبر iEvent.",
   "public.event.addOneAria": "إضافة تذكرة {0} واحدة",
   "public.event.addToCalendar": "أضف إلى التقويم",
+  "public.event.tbaFollowHint": "تابع المنظّم لتصلك الأخبار عند إعلان الموعد.",
   "public.event.bookingFee": "رسم الحجز: 750 د.ع للتذاكر حتى 15,000 د.ع، أو 3% + 2,000 د.ع (بحد أقصى 15,000 د.ع) لما هو أعلى.",
   "public.event.announceOnlyRail": "إعلان معلوماتي",
   "public.event.announceOnlyRailSub": "هذه الفعالية للإعلام فقط — لا تُباع تذاكر لها.",

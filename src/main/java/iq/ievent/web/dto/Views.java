@@ -62,7 +62,9 @@ public final class Views {
             List<TicketTypeView> ticketTypes,
             String locationType,     // VENUE | ONLINE | TBA
             boolean announceOnly,    // no tickets sold — independent of locationType
-            String mapsUrl) {}       // organizer-provided exact-pin link, or null
+            String mapsUrl,          // organizer-provided exact-pin link, or null
+            String datePrecision,    // DAY | RANGE | MONTH | TBA — TBA/MONTH hide the .ics link
+            String translatedNotice) {} // non-null ⇢ viewer reads the auto-translated copy; small transparency badge
 
     public record CityCount(String city, long count) {}
 

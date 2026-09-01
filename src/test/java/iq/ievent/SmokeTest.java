@@ -62,6 +62,9 @@ class SmokeTest {
     @Autowired
     private iq.ievent.repo.TicketRepository tickets;
 
+    @Autowired
+    private iq.ievent.service.EventStatusSweeper statusSweeper;
+
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
         // English home lives under /en (the bare root is covered by arabicDefaultAtRoot).
@@ -90,7 +93,7 @@ class SmokeTest {
 
     @Test
     void seededEventDetailRenders() throws Exception {
-        mockMvc.perform(get("/en/events/baghdad-nights-music-festival"))
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("General Admission")));
     }
@@ -98,7 +101,7 @@ class SmokeTest {
     @Test
     void unknownEventSlugIs404() throws Exception {
         // Status-only — stays bare and exercises the Arabic default path.
-        mockMvc.perform(get("/events/nope"))
+        mockMvc.perform(get("/e/nope"))
                 .andExpect(status().isNotFound());
     }
 
@@ -124,18 +127,18 @@ class SmokeTest {
 
     @Test
     void checkoutPageRendersForAnonymousVisitor() throws Exception {
-        // Round 10 (#11): anonymous checkout renders fully — the submit button is
-        // replaced by the "Sign in to complete your order" continuation, and the
-        // promo card (#promoSection) renders for anonymous buyers too.
-        mockMvc.perform(get("/en/events/baghdad-nights-music-festival/checkout"))
+        // Since guest checkout (R17), anonymous visitors are not pushed to sign
+        // in — the page renders the guest notice, and the promo card renders
+        // for anonymous buyers too.
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Sign in to complete your order")))
+                .andExpect(content().string(containsString("check out as a guest")))
                 .andExpect(content().string(containsString("Promo code")));
     }
 
     @Test
     void calendarIcsDownloads() throws Exception {
-        mockMvc.perform(get("/events/baghdad-nights-music-festival/calendar.ics"))
+        mockMvc.perform(get("/e/baghdad-nights-music-festival/calendar.ics"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/calendar"))
                 .andExpect(content().string(containsString("BEGIN:VEVENT")));
@@ -143,9 +146,11 @@ class SmokeTest {
 
     @Test
     void shortLinkRedirectsToEventPage() throws Exception {
-        mockMvc.perform(get("/e/baghdad-nights-music-festival"))
+        // Since the /e/ canonical-URL migration (R16), the redirect runs the
+        // OTHER way: legacy /events/{slug} links bounce to the canonical /e/.
+        mockMvc.perform(get("/events/baghdad-nights-music-festival"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/events/baghdad-nights-music-festival"));
+                .andExpect(redirectedUrl("/e/baghdad-nights-music-festival"));
     }
 
     @Test
@@ -309,7 +314,7 @@ class SmokeTest {
     void checkoutShowsPaymentMethodPickerForSignedInBuyer() throws Exception {
         // Fresh databases seed exactly one enabled direct-payment method for
         // @zainevents ("ZainCash wallet") — checkout must render it in the picker.
-        mockMvc.perform(get("/en/events/baghdad-nights-music-festival/checkout")
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout")
                         .with(user(DEMO_BUYER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Direct transfer to organizer")))
@@ -332,7 +337,7 @@ class SmokeTest {
         // A first GET with no qty-* params preselects 1× the first ON_SALE type
         // with stock (General Admission — Early Bird is SOLD_OUT), so exactly one
         // holder row is server-rendered.
-        mockMvc.perform(get("/en/events/baghdad-nights-music-festival/checkout")
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout")
                         .with(user(DEMO_BUYER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ticket 1 · General Admission")));
@@ -342,7 +347,7 @@ class SmokeTest {
     void checkoutRespectsExplicitZeroQuantities() throws Exception {
         // Any explicit qty-* param disables the first-visit default entirely —
         // an all-zero deep link renders no holder rows at all.
-        mockMvc.perform(get("/en/events/baghdad-nights-music-festival/checkout")
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout")
                         .param("qty-0", "0")
                         .with(user(DEMO_BUYER_EMAIL)))
                 .andExpect(status().isOk())
@@ -355,7 +360,7 @@ class SmokeTest {
     void loginPageWithNextShowsContinuationHint() throws Exception {
         // #11: a ?next= continuation renders the "take you right back" hint.
         mockMvc.perform(get("/en/auth/login")
-                        .param("next", "/events/baghdad-nights-music-festival/checkout?qty-1=1"))
+                        .param("next", "/e/baghdad-nights-music-festival/checkout?qty-1=1"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("take you right back")));
     }
@@ -379,11 +384,11 @@ class SmokeTest {
 
         // 404s are status-only → bare (Arabic) paths; the owner render asserts the
         // ENGLISH banner copy → /en path.
-        mockMvc.perform(get("/events/" + slug))
+        mockMvc.perform(get("/e/" + slug))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/events/" + slug).with(user(DEMO_BUYER_EMAIL)))
+        mockMvc.perform(get("/e/" + slug).with(user(DEMO_BUYER_EMAIL)))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/en/events/" + slug).with(user(DEMO_HOST_EMAIL)))
+        mockMvc.perform(get("/en/e/" + slug).with(user(DEMO_HOST_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Draft preview")));
     }
@@ -521,7 +526,7 @@ class SmokeTest {
         // Owner render of the draft: allowed markup survives, the payload doesn't.
         // (The page legitimately contains <script> tags of its own, so the negative
         // assertions target the PAYLOAD, not the tag name.)
-        mockMvc.perform(get("/en/events/" + slug).with(user(DEMO_HOST_EMAIL)))
+        mockMvc.perform(get("/en/e/" + slug).with(user(DEMO_HOST_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("<p>ok-rich</p>")))
                 .andExpect(content().string(not(containsString("alert(1)"))))
@@ -548,11 +553,11 @@ class SmokeTest {
         events.save(ev);
 
         // Bare path → Arabic placeholder (exact string from Format.venueDisplay).
-        mockMvc.perform(get("/events/" + slug))
+        mockMvc.perform(get("/e/" + slug))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("يُعلن لاحقًا")));
         // /en → the familiar English placeholder, character-identical to before.
-        mockMvc.perform(get("/en/events/" + slug))
+        mockMvc.perform(get("/en/e/" + slug))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("To be announced")));
     }
@@ -573,5 +578,184 @@ class SmokeTest {
         mockMvc.perform(get("/t/" + code + "/ticket.pdf"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/pdf"));
+    }
+
+    // ---------- Round 18: flexible event dates, translation clarity, my-events sort, status sweep ----------
+
+    /** Repo-created event with the shared demo org — the R18 tests all start here. */
+    private iq.ievent.domain.Event r18Event(String titlePrefix, String slugPrefix) {
+        var org = organizations.findByHandle("zainevents")
+                .orElseThrow(() -> new IllegalStateException("demo seed missing"));
+        var ev = new iq.ievent.domain.Event();
+        ev.setOrganization(org);
+        ev.setTitle(titlePrefix + " " + System.currentTimeMillis());
+        ev.setSlug(slugPrefix + "-" + System.currentTimeMillis());
+        ev.setCategory(iq.ievent.domain.Event.Category.COMMUNITY);
+        ev.setCity("Baghdad");
+        ev.setStartsAt(java.time.OffsetDateTime.now().plusDays(10));
+        ev.setStatus(iq.ievent.domain.Event.Status.LIVE);
+        return ev;
+    }
+
+    @Test
+    void monthOnlyEventCreatedViaWizardAndRendersMonthYear() throws Exception {
+        // R18 #1: dateMode=MONTH stores precision MONTH with the 1st of the
+        // month as placeholder, and the public page shows just "March 2030"
+        // (longDateLine) — never a fabricated exact day.
+        String title = "Smoke Month Fest " + System.currentTimeMillis();
+        mockMvc.perform(multipart("/host/events/new")
+                        .param("title", title)
+                        .param("category", "COMMUNITY")
+                        .param("city", "Baghdad")
+                        .param("locationType", "TBA")
+                        .param("dateMode", "MONTH")
+                        .param("month", "2030-03")
+                        .param("action", "draft")
+                        .with(csrf())
+                        .with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("/host/events/*"));
+        String slug = title.toLowerCase().replace(' ', '-');
+        var ev = events.findBySlug(slug)
+                .orElseThrow(() -> new IllegalStateException("month event not created"));
+        org.junit.jupiter.api.Assertions.assertEquals("MONTH", ev.getDatePrecision());
+        var z = ev.getStartsAt().atZoneSameInstant(iq.ievent.service.Format.BAGHDAD);
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.Month.MARCH, z.getMonth());
+        org.junit.jupiter.api.Assertions.assertEquals(2030, z.getYear());
+        // placeholder sits at the END of the month so every starts_at-vs-now
+        // "upcoming" comparison keeps the event visible for its whole month
+        org.junit.jupiter.api.Assertions.assertEquals(31, z.getDayOfMonth());
+        // Owner render of the draft page: month+year line, no invented day-of-month date.
+        mockMvc.perform(get("/en/e/" + slug).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("March 2030")))
+                .andExpect(content().string(not(containsString("March 1, 2030"))));
+    }
+
+    @Test
+    void tbaEventRendersDateTbaBothLanguagesAndBlocksIcs() throws Exception {
+        // R18 #1: TBA precision renders "Date to be announced" (AR: الموعد يُعلن
+        // لاحقًا), never leaks the 2099 placeholder, and serves no calendar file.
+        var ev = r18Event("Smoke Date TBA", "smoke-date-tba");
+        ev.setDatePrecision(iq.ievent.domain.Event.PRECISION_TBA);
+        ev.setStartsAt(iq.ievent.service.Format.TBA_PLACEHOLDER);
+        ev.setHasStartTime(false);
+        events.save(ev);
+        mockMvc.perform(get("/en/e/" + ev.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Date to be announced")))
+                .andExpect(content().string(not(containsString("2099-12"))))
+                .andExpect(content().string(not(containsString("December 31"))));
+        mockMvc.perform(get("/e/" + ev.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("الموعد يُعلن لاحقًا")));
+        mockMvc.perform(get("/e/" + ev.getSlug() + "/calendar.ics"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void multiDayRangeRendersBothDates() throws Exception {
+        // R18 #1: RANGE precision spells out both days on the event page.
+        var ev = r18Event("Smoke Range Expo", "smoke-range-expo");
+        ev.setDatePrecision(iq.ievent.domain.Event.PRECISION_RANGE);
+        ev.setStartsAt(java.time.LocalDateTime.of(2030, 9, 12, 12, 0)
+                .atZone(iq.ievent.service.Format.BAGHDAD).toOffsetDateTime());
+        ev.setEndsAt(java.time.LocalDateTime.of(2030, 9, 14, 12, 0)
+                .atZone(iq.ievent.service.Format.BAGHDAD).toOffsetDateTime());
+        ev.setHasStartTime(false);
+        events.save(ev);
+        mockMvc.perform(get("/en/e/" + ev.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("September 12")))
+                .andExpect(content().string(containsString("September 14, 2030")));
+    }
+
+    @Test
+    void statusSweeperEndsPastLiveEventsButNeverTba() throws Exception {
+        // R18 #4: a LIVE event whose day has fully passed flips to ENDED on the
+        // next sweep; a TBA event (far-future placeholder) never does.
+        var past = r18Event("Smoke Past Gig", "smoke-past-gig");
+        past.setStartsAt(java.time.OffsetDateTime.now().minusDays(3));
+        Long pastId = events.save(past).getId();
+        var tba = r18Event("Smoke Tba Hold", "smoke-tba-hold");
+        tba.setDatePrecision(iq.ievent.domain.Event.PRECISION_TBA);
+        tba.setStartsAt(iq.ievent.service.Format.TBA_PLACEHOLDER);
+        Long tbaId = events.save(tba).getId();
+
+        statusSweeper.sweep();
+
+        org.junit.jupiter.api.Assertions.assertEquals(iq.ievent.domain.Event.Status.ENDED,
+                events.findById(pastId).orElseThrow().getStatus());
+        org.junit.jupiter.api.Assertions.assertEquals(iq.ievent.domain.Event.Status.LIVE,
+                events.findById(tbaId).orElseThrow().getStatus());
+
+        // The host's Ended filter now actually contains it.
+        mockMvc.perform(get("/en/host/events").param("status", "ended").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(past.getTitle())));
+    }
+
+    @Test
+    void cancelledFilterShowsCancelledEvents() throws Exception {
+        // R18 #4: a CANCELLED event appears under status=cancelled and nowhere
+        // near the live filter.
+        var ev = r18Event("Smoke Cancelled Show", "smoke-cancelled-show");
+        ev.setStatus(iq.ievent.domain.Event.Status.CANCELLED);
+        events.save(ev);
+        mockMvc.perform(get("/en/host/events").param("status", "cancelled").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(ev.getTitle())));
+        mockMvc.perform(get("/en/host/events").param("status", "live").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString(ev.getTitle()))));
+    }
+
+    @Test
+    void myEventsShowsCreatedColumnAndSortOptions() throws Exception {
+        // R18 #3: the events list shows a Created column and a sort control with
+        // event-date / date-created / last-modified options; sort params are 200s.
+        mockMvc.perform(get("/en/host/events").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Created")))
+                .andExpect(content().string(containsString("Sort by")))
+                .andExpect(content().string(containsString("Date created")))
+                .andExpect(content().string(containsString("Last modified")));
+        mockMvc.perform(get("/en/host/events").param("sort", "created").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/en/host/events").param("sort", "updated").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void translatedNoticeOnlyOnTranslatedView() throws Exception {
+        // R18 #2: an English-origin event with a stored auto-translation shows
+        // the transparency notice to ARABIC viewers only — the /en (original)
+        // view never carries it.
+        var ev = r18Event("Smoke Translated Talk", "smoke-translated-talk");
+        ev.setLanguage("en");
+        ev.setTitleTranslated("محاضرة مترجمة للاختبار");
+        events.save(ev);
+        mockMvc.perform(get("/e/" + ev.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("محاضرة مترجمة للاختبار")))
+                .andExpect(content().string(containsString("تُرجم هذا المحتوى آليًا")));
+        mockMvc.perform(get("/en/e/" + ev.getSlug()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("تُرجم هذا المحتوى آليًا"))));
+    }
+
+    @Test
+    void editPageLabelsOriginalAndTranslationLanguages() throws Exception {
+        // R18 #2: the edit page marks which language is the detected ORIGINAL and
+        // which is the translation. (Chips render only when translation is
+        // configured; the date-mode pills below always render.)
+        var ev = r18Event("Smoke Edit Langs", "smoke-edit-langs");
+        ev.setStatus(iq.ievent.domain.Event.Status.DRAFT);
+        Long id = events.save(ev).getId();
+        mockMvc.perform(get("/en/host/events/" + id + "/edit").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Exact date")))
+                .andExpect(content().string(containsString("Multiple days")))
+                .andExpect(content().string(containsString("Month only")));
     }
 }

@@ -314,9 +314,9 @@ public class PageController {
                 e.getCoverFocusY(),
                 allImages,
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
-                Format.longDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime()),
-                Format.monthShort(e.getStartsAt()),
-                Format.dayOfMonth(e.getStartsAt()),
+                Format.longDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()),
+                Format.monthShort(e.getStartsAt(), e.getDatePrecision()),
+                Format.dayOfMonth(e.getStartsAt(), e.getDatePrecision()),
                 paragraphs,
                 Format.priceLabel(0),
                 likes,
@@ -324,7 +324,9 @@ public class PageController {
                 List.of(),
                 e.getLocationType(),
                 e.isAnnounceOnly(),
-                e.getMapsUrl());
+                e.getMapsUrl(),
+                e.getDatePrecision(),
+                Format.translatedNotice(e.getLanguage(), e.getTitleTranslated()));
     }
 
     static List<String> parseTags(String raw) {
@@ -407,7 +409,7 @@ public class PageController {
                     e.getSlug(), e.getTitle(), e.getCoverTheme(),
                     Format.coverUrl(e),
                     e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
-                    Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()),
+                    Format.cardDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()),
                     n > 0 ? msg("page.attended", String.format(Locale.ENGLISH, "%,d", n)) : null));
         }
         String website = clean(org.getWebsite());

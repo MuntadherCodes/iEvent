@@ -107,6 +107,11 @@ public class ExtrasController {
     public ResponseEntity<byte[]> eventIcs(@PathVariable String slug) {
         Event e = events.findBySlug(slug)
                 .filter(ev -> ev.getStatus() == Event.Status.LIVE || ev.getStatus() == Event.Status.ENDED)
+                // Month-only and date-TBA schedules store a placeholder
+                // timestamp (see Event.datePrecision) — a calendar entry made
+                // from that would be misinformation, so no .ics for them (the
+                // templates hide the link too; this covers a typed URL).
+                .filter(ev -> !"TBA".equals(ev.getDatePrecision()) && !"MONTH".equals(ev.getDatePrecision()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         String ics = buildIcs(e);
         return ResponseEntity.ok()

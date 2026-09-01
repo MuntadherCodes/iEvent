@@ -61,7 +61,8 @@ public class HostController {
 
     public record EventRow(Long id, String slug, String title, String statusLabel, String statusKey, String dateLine,
                            String city, String venueName, long sold, long capacity, String salesLabel,
-                           String revenueLabel, String coverImageUrl, String coverTheme) {}
+                           String revenueLabel, String coverImageUrl, String coverTheme,
+                           String createdLine) {}
 
     public record OrderRow(Long id, String orderCode, String buyerName, String buyerEmail,
                            String eventTitle, String itemsLabel, String totalLabel, String methodLabel,
@@ -332,17 +333,23 @@ public class HostController {
     public String events(@AuthenticationPrincipal UserDetails principal,
                          @RequestParam(required = false) String q,
                          @RequestParam(required = false, defaultValue = "all") String status,
+                         @RequestParam(required = false, defaultValue = "date") String sort,
                          Model model) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
         requireManage(u);
         List<Event> all = hostService.eventsOf(org.getId());
+        String sortKey = switch (sort == null ? "date" : sort) {
+            case "created", "updated" -> sort;
+            default -> "date";
+        };
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
         model.addAttribute("eventRows",
-                hostService.eventsOf(org.getId(), q, status).stream().map(this::toRow).toList());
+                hostService.eventsOf(org.getId(), q, status, sortKey).stream().map(this::toRow).toList());
         model.addAttribute("q", q == null ? "" : q);
+        model.addAttribute("sortKey", sortKey);
         model.addAttribute("statusFilter", status == null || status.isBlank() ? "all" : status.toLowerCase());
         model.addAttribute("countAll", (long) all.size());
         model.addAttribute("countLive", all.stream().filter(e -> e.getStatus() == Event.Status.LIVE).count());
@@ -380,7 +387,10 @@ public class HostController {
                               @RequestParam(required = false) String locationType,
                               @RequestParam(required = false) String onlineUrl,
                               @RequestParam(required = false) String mapsUrl,
-                              @RequestParam String date,
+                              @RequestParam(required = false) String date,
+                              @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
+                              @RequestParam(required = false) String endDate,
+                              @RequestParam(required = false) String month,
                               @RequestParam(required = false) String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
@@ -443,18 +453,16 @@ public class HostController {
             Event existingDraft = draftEventId == null ? null
                     : hostService.eventOf(org.getId(), draftEventId)
                             .filter(e -> e.getStatus() == Event.Status.DRAFT).orElse(null);
+            HostService.When when = parseWhen(dateMode, date, endDate, month, startTime, endTime);
             Event created;
             if (existingDraft != null) {
                 hostService.updateEvent(existingDraft, title, Event.Category.valueOf(category), city,
-                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
-                        hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                        loc.venueName(), loc.venueAddress(), when, description);
                 hostService.replaceTicketTypes(existingDraft, forms);
                 created = existingDraft;
             } else {
                 created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
-                        loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
-                        hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime),
-                        description, forms);
+                        loc.venueName(), loc.venueAddress(), when, description, forms);
             }
             created.setLocationType(loc.type());
             created.setOnlineUrl(loc.onlineUrl());
@@ -497,7 +505,10 @@ public class HostController {
                                                         @RequestParam String title,
                                                         @RequestParam String category,
                                                         @RequestParam String city,
-                                                        @RequestParam String date,
+                                                        @RequestParam(required = false) String date,
+                                                        @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
+                                                        @RequestParam(required = false) String endDate,
+                                                        @RequestParam(required = false) String month,
                                                         @RequestParam(required = false) String startTime) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
@@ -505,7 +516,7 @@ public class HostController {
         requireManage(u);
         try {
             Event created = hostService.createEvent(org, title, Event.Category.valueOf(category), city,
-                    null, null, LocalDate.parse(date), parseStartTime(startTime), hasStartTime(startTime), null, "", List.of());
+                    null, null, parseWhen(dateMode, date, endDate, month, startTime, null), "", List.of());
             return java.util.Map.of("id", created.getId());
         } catch (Exception e) {
             return java.util.Map.of("error", e.getMessage() == null ? "failed" : e.getMessage());
@@ -528,7 +539,10 @@ public class HostController {
                               @RequestParam(required = false) String locationType,
                               @RequestParam(required = false) String onlineUrl,
                               @RequestParam(required = false) String mapsUrl,
-                              @RequestParam String date,
+                              @RequestParam(required = false) String date,
+                              @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
+                              @RequestParam(required = false) String endDate,
+                              @RequestParam(required = false) String month,
                               @RequestParam(required = false) String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
@@ -554,8 +568,8 @@ public class HostController {
         if (loc.error() != null) return java.util.Map.of("error", loc.error());
         try {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
-                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
-                    hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                    loc.venueName(), loc.venueAddress(),
+                    parseWhen(dateMode, date, endDate, month, startTime, endTime), description);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
@@ -612,7 +626,10 @@ public class HostController {
                 : msg("console.noViews"));
         model.addAttribute("eventOrders", ordersForEvent(ev.getId()));
         java.time.ZonedDateTime zc = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
-        model.addAttribute("postponeDate", zc.toLocalDate().toString());
+        // TBA stores a far-future placeholder — leave the postpone date blank
+        // so the host has to pick a real one.
+        model.addAttribute("postponeDate",
+                "TBA".equals(dateModeOf(ev)) ? "" : zc.toLocalDate().toString());
         model.addAttribute("postponeStart", zc.toLocalTime().toString().substring(0, 5));
         model.addAttribute("postponeEnd", ev.getEndsAt() == null ? ""
                 : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalTime().toString().substring(0, 5));
@@ -656,7 +673,8 @@ public class HostController {
         model.addAttribute("ev", toRow(ev));
         model.addAttribute("evEntity", new EventEditView(ev.getTitle(), ev.getCategory().name(),
                 ev.getCity(), ev.getVenueName(), ev.getVenueAddress(),
-                z.toLocalDate().toString(),
+                // TBA stores a far-future placeholder — never show it back as a date
+                "TBA".equals(dateModeOf(ev)) ? "" : z.toLocalDate().toString(),
                 // A blank pick on save still needs a real starts_at time under the
                 // hood (see HostController.DEFAULT_START_TIME) — hasStartTime is what
                 // tells this form to show that back as blank instead of the noon
@@ -679,7 +697,13 @@ public class HostController {
                 ev.getMapsUrl() == null ? "" : ev.getMapsUrl(),
                 ev.isAnnounceOnly(),
                 ev.getFeeMode() == null ? "PASS" : ev.getFeeMode(),
-                ev.isRequirePaymentProof()));
+                ev.isRequirePaymentProof(),
+                dateModeOf(ev),
+                // RANGE reopens with its end DATE; other modes leave it blank
+                "RANGE".equals(dateModeOf(ev)) && ev.getEndsAt() != null
+                        ? ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalDate().toString() : "",
+                // input type=month wants "yyyy-MM"
+                "MONTH".equals(dateModeOf(ev)) ? z.toLocalDate().toString().substring(0, 7) : ""));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
         model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
@@ -698,10 +722,17 @@ public class HostController {
         model.addAttribute("coverImageUrl", Format.coverUrl(ev));
         model.addAttribute("coverFocusY", ev.getCoverFocusY());
         model.addAttribute("galleryImagesJson", galleryImagesJson(hostService.currentGalleryPicks(ev)));
-        model.addAttribute("postponeDate", z.toLocalDate().toString());
+        // TBA stores a far-future placeholder — same blank-out as the console's
+        // postpone dialog, so 2099 never pre-fills a date picker.
+        model.addAttribute("postponeDate",
+                "TBA".equals(dateModeOf(ev)) ? "" : z.toLocalDate().toString());
         String targetLang = "ar".equals(ev.getLanguage()) ? "en" : "ar";
         model.addAttribute("targetLang", targetLang);
         model.addAttribute("targetLangName", msg("en".equals(targetLang) ? "common.english" : "common.arabic"));
+        // Which language the host actually wrote the event in (auto-detected
+        // from the title's script) — shown so original vs translation is
+        // never ambiguous in the editing UI.
+        model.addAttribute("originLangName", msg("ar".equals(ev.getLanguage()) ? "common.arabic" : "common.english"));
         return "host/event-edit";
     }
 
@@ -738,7 +769,8 @@ public class HostController {
                                 String descriptionTranslated, String lineupTranslated,
                                 String visibility, String refundPolicy,
                                 String locationType, String onlineUrl, String mapsUrl,
-                                boolean announceOnly, String feeMode, boolean requirePaymentProof) {}
+                                boolean announceOnly, String feeMode, boolean requirePaymentProof,
+                                String dateMode, String endDate, String monthValue) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -754,7 +786,10 @@ public class HostController {
                               @RequestParam(required = false) String locationType,
                               @RequestParam(required = false) String onlineUrl,
                               @RequestParam(required = false) String mapsUrl,
-                              @RequestParam String date,
+                              @RequestParam(required = false) String date,
+                              @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
+                              @RequestParam(required = false) String endDate,
+                              @RequestParam(required = false) String month,
                               @RequestParam(required = false) String startTime,
                               @RequestParam(required = false) String endTime,
                               @RequestParam(required = false) String description,
@@ -796,8 +831,8 @@ public class HostController {
         }
         try {
             hostService.updateEvent(ev, title, Event.Category.valueOf(category), city,
-                    loc.venueName(), loc.venueAddress(), LocalDate.parse(date), parseStartTime(startTime),
-                    hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime), description);
+                    loc.venueName(), loc.venueAddress(),
+                    parseWhen(dateMode, date, endDate, month, startTime, endTime), description);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
@@ -978,6 +1013,59 @@ public class HostController {
      *  fallback alone can't tell a real "12:00 PM" apart from "left blank". */
     private static boolean hasStartTime(String startTime) {
         return startTime != null && !startTime.isBlank();
+    }
+
+    /** Resolves the wizard/edit "When" inputs into a {@link HostService.When}.
+     *  dateMode ∈ EXACT (default — the classic single date) | RANGE (start +
+     *  end date) | MONTH (month/year only, "yyyy-MM" from an input
+     *  type=month) | TBA (no date at all yet). Throws IllegalArgumentException
+     *  with a localized message when the mode's own required field is blank —
+     *  every caller already wraps the save in try/catch and flashes the
+     *  message. */
+    private HostService.When parseWhen(String dateMode, String date, String endDate,
+                                       String month, String startTime, String endTime) {
+        String mode = dateMode == null || dateMode.isBlank() ? "EXACT" : dateMode;
+        LocalTime end = endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime);
+        switch (mode) {
+            case "TBA":
+                return new HostService.When(Event.PRECISION_TBA, null, null, false, null, null);
+            case "MONTH": {
+                if (month == null || month.isBlank()) {
+                    throw new IllegalArgumentException(msg("wizard.when.monthRequired"));
+                }
+                // input type=month submits "yyyy-MM"; tolerate a full date too
+                LocalDate first = month.length() == 7 ? LocalDate.parse(month + "-01")
+                        : LocalDate.parse(month).withDayOfMonth(1);
+                return new HostService.When(Event.PRECISION_MONTH, first, null, false, null, null);
+            }
+            case "RANGE": {
+                if (date == null || date.isBlank()) {
+                    throw new IllegalArgumentException(msg("wizard.when.dateRequired"));
+                }
+                LocalDate d = LocalDate.parse(date);
+                LocalDate ed = endDate == null || endDate.isBlank() ? d : LocalDate.parse(endDate);
+                return new HostService.When(Event.PRECISION_RANGE, d, parseStartTime(startTime),
+                        hasStartTime(startTime), end, ed);
+            }
+            default: {
+                if (date == null || date.isBlank()) {
+                    throw new IllegalArgumentException(msg("wizard.when.dateRequired"));
+                }
+                return new HostService.When(Event.PRECISION_DAY, LocalDate.parse(date),
+                        parseStartTime(startTime), hasStartTime(startTime), end, null);
+            }
+        }
+    }
+
+    /** The dateMode value ("EXACT"/"RANGE"/"MONTH"/"TBA") the edit form should
+     *  reopen with for an existing event. */
+    private static String dateModeOf(Event e) {
+        return switch (e.getDatePrecision() == null ? "DAY" : e.getDatePrecision()) {
+            case "RANGE" -> "RANGE";
+            case "MONTH" -> "MONTH";
+            case "TBA" -> "TBA";
+            default -> "EXACT";
+        };
     }
 
     /** Parallel arrays (one per picked stock photo) into gallery-form records —
@@ -1444,10 +1532,13 @@ public class HostController {
         long revenue = tts.stream().mapToLong(t -> t.getSold() * t.getPriceIqd()).sum();
         return new EventRow(e.getId(), e.getSlug(), e.getTitle(), statusLabel(e.getStatus().name()),
                 e.getStatus().name(),
-                Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()), e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
+                Format.cardDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()),
+                e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()),
                 sold, cap, sold + " / " + cap, Format.iqd(revenue),
                 Format.coverUrl(e),
-                e.getCoverTheme());
+                e.getCoverTheme(),
+                // date only, no time-of-day — the column just answers "when did I make this"
+                e.getCreatedAt() == null ? "" : Format.cardDateLine(e.getCreatedAt(), false));
     }
 
     private OrderRow toRow(Order o) {

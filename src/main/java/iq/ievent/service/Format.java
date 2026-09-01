@@ -118,6 +118,123 @@ public final class Format {
         return startsAt.atZoneSameInstant(BAGHDAD).format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", loc));
     }
 
+    // ---------- flexible date precision (see Event.datePrecision, V23) ----------
+
+    /** starts_at placeholder stored for TBA-dated events: far enough out that
+     *  every existing "upcoming" sort puts TBA events after real dates, and
+     *  deterministic so tests and the edit form can recognize it. Never shown
+     *  to anyone — display code branches on the precision first. */
+    public static final OffsetDateTime TBA_PLACEHOLDER =
+            java.time.LocalDateTime.of(2099, 12, 31, 12, 0).atZone(BAGHDAD).toOffsetDateTime();
+
+    /** "Date TBA" chip/line text. */
+    public static String dateTbaLabel() {
+        return isEnglish() ? "Date to be announced" : "الموعد يُعلن لاحقًا";
+    }
+
+    /** "September 2026" (month-precision events). */
+    public static String monthYearLine(OffsetDateTime startsAt, Locale loc) {
+        return startsAt.atZoneSameInstant(BAGHDAD).format(DateTimeFormatter.ofPattern("MMMM yyyy", loc));
+    }
+
+    /** Compact "Sep 12 – 14, 2026" / "Sep 28 – Oct 2, 2026" range, plus the
+     *  start time when the host set one. */
+    private static String rangeCardLine(OffsetDateTime startsAt, OffsetDateTime endsAt,
+                                        boolean hasStartTime, Locale loc) {
+        ZonedDateTime s = startsAt.atZoneSameInstant(BAGHDAD);
+        ZonedDateTime e = (endsAt == null ? startsAt : endsAt).atZoneSameInstant(BAGHDAD);
+        String out;
+        if (s.getYear() != e.getYear()) {
+            out = s.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc)) + " – "
+                    + e.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc));
+        } else if (s.getMonth() != e.getMonth()) {
+            out = s.format(DateTimeFormatter.ofPattern("MMM d", loc)) + " – "
+                    + e.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc));
+        } else {
+            out = s.format(DateTimeFormatter.ofPattern("MMM d", loc)) + " – "
+                    + e.format(DateTimeFormatter.ofPattern("d, yyyy", loc));
+        }
+        if (hasStartTime) out += " · " + s.format(DateTimeFormatter.ofPattern("h:mm a", loc));
+        return out;
+    }
+
+    /** Precision-aware card line — THE entry point for event dates on cards,
+     *  rows and lists. DAY falls through to the classic single-day line. */
+    public static String cardDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt,
+                                      boolean hasStartTime, String precision) {
+        Locale loc = displayLocale();
+        String s = switch (precision == null ? "DAY" : precision) {
+            case "TBA" -> dateTbaLabel();
+            case "MONTH" -> monthYearLine(startsAt, loc);
+            case "RANGE" -> rangeCardLine(startsAt, endsAt, hasStartTime, loc);
+            default -> { yield null; }
+        };
+        if (s == null) return cardDateLine(startsAt, hasStartTime);
+        return isEnglish() ? s.toUpperCase(Locale.ENGLISH) : s;
+    }
+
+    /** Precision-aware long line — event detail page, checkout, emails.
+     *  RANGE spells out both weekday-dates; end time is dropped for ranges
+     *  (each day differs anyway), start time kept when the host set one. */
+    public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt,
+                                      boolean hasStartTime, String precision) {
+        return longDateLine(startsAt, endsAt, hasStartTime, precision, displayLocale());
+    }
+
+    /** Explicit-locale variant — PDFs must stay English (Helvetica has no Arabic glyphs). */
+    public static String longDateLine(OffsetDateTime startsAt, OffsetDateTime endsAt,
+                                      boolean hasStartTime, String precision, Locale loc) {
+        switch (precision == null ? "DAY" : precision) {
+            case "TBA":
+                return loc == Locale.ENGLISH || "en".equals(loc.getLanguage())
+                        ? "Date to be announced" : "الموعد يُعلن لاحقًا";
+            case "MONTH":
+                return monthYearLine(startsAt, loc);
+            case "RANGE": {
+                ZonedDateTime s = startsAt.atZoneSameInstant(BAGHDAD);
+                ZonedDateTime e = (endsAt == null ? startsAt : endsAt).atZoneSameInstant(BAGHDAD);
+                DateTimeFormatter full = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", loc);
+                DateTimeFormatter noYear = DateTimeFormatter.ofPattern("EEEE, MMMM d", loc);
+                String base = (s.getYear() == e.getYear() ? s.format(noYear) : s.format(full))
+                        + " – " + e.format(full);
+                if (hasStartTime) base += " · " + s.format(DateTimeFormatter.ofPattern("h:mm a", loc));
+                return base;
+            }
+            default:
+                return longDateLine(startsAt, endsAt, hasStartTime, loc);
+        }
+    }
+
+    /** Date-badge top label (small chip on cards/event page). */
+    public static String monthShort(OffsetDateTime startsAt, String precision) {
+        if ("TBA".equals(precision)) return isEnglish() ? "TBA" : "لاحقًا";
+        return monthShort(startsAt);
+    }
+
+    /** Date-badge big label: the day number normally, the year for
+     *  month-precision ("SEP / 2026" reads naturally), a dash for TBA. */
+    public static String dayOfMonth(OffsetDateTime startsAt, String precision) {
+        if ("TBA".equals(precision)) return "—";
+        if ("MONTH".equals(precision)) {
+            return String.valueOf(startsAt.atZoneSameInstant(BAGHDAD).getYear());
+        }
+        return dayOfMonth(startsAt);
+    }
+
+    /** Non-null exactly when the viewer is reading the AUTO-TRANSLATED copy of
+     *  this event (their locale differs from the language the host wrote it
+     *  in, and a machine translation exists to serve them) — the public page
+     *  shows this as a small transparency notice. Null when the viewer sees
+     *  the host's original text, so the notice never renders then. */
+    public static String translatedNotice(String originLang, String titleTranslated) {
+        boolean originIsEnglish = "en".equals(originLang);
+        if (isEnglish() == originIsEnglish) return null;                  // viewing the original
+        if (titleTranslated == null || titleTranslated.isBlank()) return null; // fallback shows original
+        return isEnglish()
+                ? "Translated automatically from Arabic — switch the site language to see the original."
+                : "تُرجم هذا المحتوى آليًا من الإنجليزية — بدّل لغة الموقع لعرض النص الأصلي.";
+    }
+
     public static String monthShort(OffsetDateTime startsAt) {
         Locale loc = displayLocale();
         String s = startsAt.atZoneSameInstant(BAGHDAD)

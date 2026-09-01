@@ -60,6 +60,24 @@ public class Event {
     @Column(name = "has_start_time", nullable = false)
     private boolean hasStartTime = true;
 
+    /** How precise the host's schedule actually is — see {@link DatePrecision}.
+     *  Stored as text (like locationType) so the check constraint in V23 is
+     *  the single source of allowed values. startsAt/endsAt always hold a
+     *  real timestamp regardless (placeholders for MONTH/TBA — see
+     *  Format.TBA_PLACEHOLDER) so sorting and the NOT NULL column keep
+     *  working; display code must branch on this field, never trust the raw
+     *  timestamp alone. */
+    @Column(name = "date_precision", nullable = false)
+    private String datePrecision = "DAY";
+
+    /** DAY = exact date (the default); RANGE = multi-day, endsAt is on a later
+     *  calendar day; MONTH = month + year only, startsAt is the 1st at noon;
+     *  TBA = date not announced yet, startsAt is the 2099 placeholder. */
+    public static final String PRECISION_DAY = "DAY";
+    public static final String PRECISION_RANGE = "RANGE";
+    public static final String PRECISION_MONTH = "MONTH";
+    public static final String PRECISION_TBA = "TBA";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.DRAFT;
@@ -185,6 +203,8 @@ public class Event {
     public void setEndsAt(OffsetDateTime endsAt) { this.endsAt = endsAt; }
     public boolean isHasStartTime() { return hasStartTime; }
     public void setHasStartTime(boolean hasStartTime) { this.hasStartTime = hasStartTime; }
+    public String getDatePrecision() { return datePrecision; }
+    public void setDatePrecision(String datePrecision) { this.datePrecision = datePrecision; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public String getCoverTheme() { return coverTheme; }

@@ -37,9 +37,9 @@ test.beforeEach(async ({ context }) => {
   await context.addCookies([{ name: 'lang', value: 'en', url: BASE_URL }]);
 });
 
-// Public event-card links render as /en/events/... in English (and /events/...
+// Public event-card links render as /en/e/... in English (and /e/...
 // on the Arabic side) — selectors must tolerate both.
-const EVENT_CARD_LINKS = 'main a[href^="/en/events/"], main a[href^="/events/"]';
+const EVENT_CARD_LINKS = 'main a[href^="/en/e/"], main a[href^="/e/"]';
 
 const RUN_ID = process.env.GITHUB_RUN_ID || String(Date.now());
 const E2E_EMAIL = `e2e+${RUN_ID}@test.iq`;
@@ -370,7 +370,7 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
   log('opening Baghdad Nights from the browse grid');
   await page.goto('/browse?q=Baghdad%20Nights');
   await page.locator('a[href*="baghdad-nights-music-festival"]').first().click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival/);
 
   log('h1 should carry the event title');
   await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
@@ -400,8 +400,8 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
       async () =>
         page
           .locator(
-            'main a[href^="/en/events/"]:not([href*="baghdad-nights-music-festival"]), ' +
-              'main a[href^="/events/"]:not([href*="baghdad-nights-music-festival"])'
+            'main a[href^="/en/e/"]:not([href*="baghdad-nights-music-festival"]), ' +
+              'main a[href^="/e/"]:not([href*="baghdad-nights-music-festival"])'
           )
           .count(),
       { message: 'expected related event cards' }
@@ -448,8 +448,8 @@ test('e. auth: register, login shows initials, logout restores Sign in', async (
 });
 
 test('f. unknown event slug returns a branded 404', async ({ page }) => {
-  log('opening /events/does-not-exist');
-  const response = await page.goto('/events/does-not-exist');
+  log('opening /e/does-not-exist');
+  const response = await page.goto('/e/does-not-exist');
   expect(response, 'navigation should produce a response').toBeTruthy();
   expect(response.status(), 'unknown slug should be a 404').toBe(404);
 
@@ -507,13 +507,13 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   ).toBeVisible();
 
   log('opening Startup Mixer Baghdad (free RSVP ticket)');
-  await page.goto('/events/startup-mixer-baghdad');
+  await page.goto('/e/startup-mixer-baghdad');
   await expect(page.locator('h1')).toContainText('Startup Mixer Baghdad');
 
   log('round 9: the RSVP stepper already defaults to 1 — submit the rail form as-is ("Get tickets")');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/startup-mixer-baghdad\/checkout/);
+  await expect(page).toHaveURL(/\/e\/startup-mixer-baghdad\/checkout/);
 
   log('buyer details should be prefilled from the account');
   await expect(page.locator('#buyerName')).toHaveValue(BUYER_NAME);
@@ -581,11 +581,11 @@ test('i. direct-transfer flow: card number, reference, receipt upload, pending o
   log('buyer opens Baghdad Nights — GA already defaults to 1 (round 9), total 36,500 IQD');
   await page.goto('/auth/login');
   await login(page, BUYER_EMAIL, buyerPassword);
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
 
   log('direct-transfer panel is now a method picker (round 8) — seeded "ZainCash wallet" card');
   await expect(page.getByText('Direct transfer to organizer')).toBeVisible();
@@ -725,11 +725,11 @@ test('l. likes and follow: save an event, see it in favorites, follow the organi
   await login(page, BUYER_EMAIL, buyerPassword);
 
   log('saving Baghdad Nights via the rail Save button');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   const saveBtn = page.locator('button[form="likeForm"]');
   await expect(saveBtn).toContainText('Save');
   await saveBtn.click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival/);
   await expect(page.locator('button[form="likeForm"]')).toContainText('Saved');
 
   log('/favorites should show the saved card');
@@ -835,10 +835,10 @@ test('o. promo code EARLY20: apply at checkout, discount carries to order and ti
   await login(page, BUYER_EMAIL, buyerPassword);
 
   log('buyer keeps the default GA ×1 on Baghdad Nights (round 9) and goes to checkout');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
 
   log('applying promo code EARLY20 via the rail Apply mini-form');
   await page.getByLabel('Promo code').fill('EARLY20');
@@ -896,8 +896,8 @@ test('p. newsletter signup from the home band', async ({ page }) => {
 });
 
 test('q. calendar .ics, short link and embeddable widget', async ({ page, request }) => {
-  log('GET /events/baghdad-nights-music-festival/calendar.ics');
-  const ics = await request.get('/events/baghdad-nights-music-festival/calendar.ics');
+  log('GET /e/baghdad-nights-music-festival/calendar.ics');
+  const ics = await request.get('/e/baghdad-nights-music-festival/calendar.ics');
   expect(ics.status(), 'calendar download should be 200').toBe(200);
   expect(ics.headers()['content-type']).toContain('text/calendar');
   const icsBody = await ics.text();
@@ -906,7 +906,7 @@ test('q. calendar .ics, short link and embeddable widget', async ({ page, reques
 
   log('short link /e/{slug} should land on the event page');
   await page.goto('/e/baghdad-nights-music-festival');
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival/);
   await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
 
   log('GET /js/widget.js should serve the embeddable widget');
@@ -1337,7 +1337,7 @@ test('ab. browse parity: sort, price radios, when pills, numbered pagination, fi
 
 test('ac. event page parity: summary, tags, lineup, directions, refund policy, follow form', async ({ page }) => {
   log('opening the enriched Baghdad Nights page anonymously');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
 
   log('short summary under the title (seed enrichment)');
   await expect(page.getByText('One night, three stages').first()).toBeVisible();
@@ -1363,13 +1363,13 @@ test('ac. event page parity: summary, tags, lineup, directions, refund policy, f
 
   log('signed-in user can follow the organizer straight from the event page (POST form)');
   await login(page, E2E_EMAIL, E2E_PASSWORD);
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   const followBtn = page.getByRole('button', { name: 'Follow', exact: true }).first();
   if (await followBtn.isVisible().catch(() => false)) {
     // The follow POST redirects to the organizer profile page.
     await followBtn.click();
     await expect(page).toHaveURL(/\/organizers\/zainevents/);
-    await page.goto('/events/baghdad-nights-music-festival');
+    await page.goto('/e/baghdad-nights-music-festival');
   }
   await expect(page.getByRole('button', { name: 'Following' }).first()).toBeVisible();
 });
@@ -1397,7 +1397,7 @@ test('ad. organizer page: tabs, contact block, initials avatar, past events tab'
   await expect(page.locator('#tab-past')).toBeVisible();
   if (
     (await page
-      .locator('#tab-past a[href^="/en/events/"], #tab-past a[href^="/events/"]')
+      .locator('#tab-past a[href^="/en/e/"], #tab-past a[href^="/e/"]')
       .count()) === 0
   ) {
     await expect(page.getByText('No past events yet')).toBeVisible();
@@ -1712,11 +1712,11 @@ test('an. orders: enriched view, search, CSV, full refund flow voids the ticket 
   log('fresh buyer places a direct-transfer order on Baghdad Nights');
   await registerUser(page, { name: REFUND_NAME, email: REFUND_EMAIL, password: REFUND_PASSWORD });
   await login(page, REFUND_EMAIL, REFUND_PASSWORD);
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   // Round 9: the rail already defaults to GA ×1 — submit as-is.
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
   await page.locator('#transferReference').fill('E2E-REF-REFUND');
   await page.locator('#receiptInput').setInputFiles(RECEIPT_PNG);
   await page.locator('#submitBtn').click();
@@ -1826,7 +1826,7 @@ test('ao. marketing: tabs, tracking link counts clicks, followers campaign hits 
 
   log('following /l/{code} redirects to the event page with ?via=');
   await page.goto(`/l/${linkCode}`);
-  await expect(page).toHaveURL(new RegExp(`/events/baghdad-nights-music-festival\\?via=${linkCode}`));
+  await expect(page).toHaveURL(new RegExp(`/e/baghdad-nights-music-festival\\?via=${linkCode}`));
   await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
 
   log('the click counter increments after a reload of the links tab');
@@ -1882,11 +1882,11 @@ test('aq. notification center: pending order notifies the buyer, summary API has
   await login(page, NOTIF_EMAIL, NOTIF_PASSWORD);
 
   log('placing a direct-transfer order on Baghdad Nights WITHOUT a receipt (host-side warning tested in ar)');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   // Round 9: the rail already defaults to GA ×1 — submit as-is.
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
   await page.locator('#transferReference').fill('E2E-REF-NOTIF');
   await page.locator('#submitBtn').click();
   await expect(page).toHaveURL(/\/orders\//);
@@ -2022,10 +2022,10 @@ test('au. checkout method picker: both methods with copy buttons + amount callou
   await login(page, BUYER_EMAIL, buyerPassword);
 
   log('buyer keeps the default GA ×1 on Baghdad Nights (round 9) and opens checkout');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
 
   log('the direct-transfer panel lists BOTH enabled methods as selectable cards');
   await expect(page.getByText('Direct transfer to organizer')).toBeVisible();
@@ -2129,7 +2129,7 @@ test('aw. locations: venue page embeds the keyless Google map; TBA state renders
   await signOut(page);
 
   log('Baghdad Nights (VENUE) embeds the keyless maps.google.com iframe + maps link');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(1);
   const mapsLink = page.getByRole('link', { name: /Open in Google Maps/ });
   await expect(mapsLink).toBeVisible();
@@ -2191,7 +2191,7 @@ test('az. checkout default: fresh GET preselects 1× first on-sale type; explici
   await login(page, BUYER_EMAIL, buyerPassword);
 
   log('opening the Baghdad Nights checkout DIRECTLY (no qty-* params in the URL)');
-  await page.goto('/events/baghdad-nights-music-festival/checkout');
+  await page.goto('/e/baghdad-nights-music-festival/checkout');
 
   log('round 9: the first ON_SALE type with stock defaults to qty 1 — General Admission (Early Bird is SOLD_OUT and not rendered)');
   const qtyInputs = page.locator('.qty-input');
@@ -2213,12 +2213,12 @@ test('az. checkout default: fresh GET preselects 1× first on-sale type; explici
   await expect(page.locator('.sum-total').first()).toHaveText(/73,000\s*IQD/);
 
   log('a deep link WITH explicit qty-* params is respected exactly (all zero → no default, no holder rows)');
-  await page.goto('/events/baghdad-nights-music-festival/checkout?qty-0=0');
+  await page.goto('/e/baghdad-nights-music-festival/checkout?qty-0=0');
   await expect(page.locator('.qty-input').first()).toHaveValue('0');
   await expect(page.locator('.holder-row')).toHaveCount(0);
 
   log('regression (GlobalModelAdvice): a bogus URL while signed in keeps the signed-in navbar');
-  await page.goto('/events/does-not-exist-e2e-round9');
+  await page.goto('/e/does-not-exist-e2e-round9');
   await expect(page.getByText(/Error 404/i).first()).toBeVisible();
   const header = page.locator('header');
   // "E2E Buyer" -> initials "EB"; no "Sign in" link for an authenticated visitor.
@@ -2299,10 +2299,10 @@ test('bb. login-return (#11): anonymous checkout → sign in → land back with 
   await registerUser(page, { name: LR_NAME, email: LR_EMAIL, password: LR_PASSWORD });
 
   log('ANONYMOUS: event page → Get tickets → the checkout still renders (no login wall)');
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout\?/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout\?/);
 
   log('anonymous buyers get NO submit button — only "Sign in to complete your order" (#signInToOrder)');
   await expect(page.locator('#submitBtn')).toHaveCount(0);
@@ -2325,7 +2325,7 @@ test('bb. login-return (#11): anonymous checkout → sign in → land back with 
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
   log('LANDS BACK on the checkout URL with the qty params intact — selection preserved');
-  await expect(page).toHaveURL(/\/events\/baghdad-nights-music-festival\/checkout\?.*qty-/);
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout\?.*qty-/);
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await expect(page.locator('.sum-total').first()).toHaveText(/36,500\s*IQD/);
   await expect(page.locator('#buyerEmail')).toHaveValue(LR_EMAIL);
@@ -2526,7 +2526,7 @@ test('bf. orders UX (#1): pending details are open on arrival, exactly one Appro
   await signOut(page);
   await registerUser(page, { name: PEND_NAME, email: PEND_EMAIL, password: PEND_PASSWORD });
   await login(page, PEND_EMAIL, PEND_PASSWORD);
-  await page.goto('/events/baghdad-nights-music-festival');
+  await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await page.locator('#transferReference').fill('E2E-REF-OPEN');
@@ -2589,7 +2589,7 @@ test('bg. draft preview (#15): owner sees the amber banner, outsiders get a 404,
   const previewLink = page.getByRole('link', { name: /Preview event/ });
   await expect(previewLink).toBeVisible();
   const draftHref = await previewLink.getAttribute('href');
-  expect(draftHref).toContain('/events/');
+  expect(draftHref).toContain('/e/');
 
   log('OWNER preview: 200 with the amber "Draft preview" banner and the not-on-sale rail');
   const ownerRes = await page.goto(draftHref);
@@ -2743,8 +2743,8 @@ test('bj. language switching: EN switcher → /en LTR English, AR switcher → b
 });
 
 test('bk. /en deep equivalence: the same event page renders English under /en and Arabic bare', async ({ page, browser }) => {
-  log('/en/events/... renders the familiar ENGLISH event page');
-  await page.goto('/en/events/baghdad-nights-music-festival');
+  log('/en/e/... renders the familiar ENGLISH event page');
+  await page.goto('/en/e/baghdad-nights-music-festival');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
   await expect(page.getByText('General Admission').first()).toBeVisible();
@@ -2755,7 +2755,7 @@ test('bk. /en deep equivalence: the same event page renders English under /en an
   const context = await browser.newContext();
   const p = await context.newPage();
   try {
-    await p.goto('/events/baghdad-nights-music-festival');
+    await p.goto('/e/baghdad-nights-music-festival');
     await expect(p).not.toHaveURL(/\/en\//);
     await expect(p.locator('html')).toHaveAttribute('lang', 'ar');
     await expect(p.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -3211,4 +3211,81 @@ test('bw. org logo + checkout cover (R14): logo renders on the event page, botto
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/checkout/);
   await expect(page.locator('img[src*="/media/event-cover/"]').first()).toBeVisible();
+});
+
+// ---------- round 18: flexible event dates, my-events created column + sorting ----------
+
+test('bx. flexible dates (R18): wizard date-mode pills toggle fields; a month-only event publishes and shows just "March 2030"', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('wizard step 1: the four date modes swap the visible fields without a reload');
+  await page.goto('/host/events/new');
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 1 of 5');
+  await expect(page.locator('#whenExactFields')).toBeVisible();
+  await expect(page.locator('#whenEndDateWrap')).toBeHidden();
+
+  await page.locator('label').filter({ has: page.locator('input.date-mode[value="RANGE"]') }).click();
+  await expect(page.locator('input.date-mode[value="RANGE"]')).toBeChecked();
+  await expect(page.locator('#whenEndDateWrap')).toBeVisible();
+
+  await page.locator('label').filter({ has: page.locator('input.date-mode[value="TBA"]') }).click();
+  await expect(page.locator('input.date-mode[value="TBA"]')).toBeChecked();
+  await expect(page.locator('#whenExactFields')).toBeHidden();
+  await expect(page.locator('#whenTbaNote')).toBeVisible();
+
+  await page.locator('label').filter({ has: page.locator('input.date-mode[value="MONTH"]') }).click();
+  await expect(page.locator('input.date-mode[value="MONTH"]')).toBeChecked();
+  await expect(page.locator('#whenMonthFields')).toBeVisible();
+  await expect(page.locator('#whenTbaNote')).toBeHidden();
+
+  log('creating "E2E Month Expo" as month-only (March 2030) and publishing it');
+  await page.locator('#ev-title').fill('E2E Month Expo');
+  await page.locator('#ev-month').fill('2030-03');
+  await page.locator('#ev-venue').fill('E2E Expo Hall');
+  await page.locator('#ev-city').selectOption('Baghdad');
+  await page.locator('#ev-cat').selectOption('BUSINESS');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 2 of 5');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 3 of 5');
+  await page.locator('input[name="ttName"]').first().fill('Entry');
+  await page.locator('input[name="ttPrice"]').first().fill('0');
+  await page.locator('input[name="ttQty"]').first().fill('100');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 4 of 5');
+  await page.locator('#nextBtn').click();
+  await expect(page.locator('#stepIndicator')).toHaveText('Step 5 of 5');
+
+  log('review step shows the picked month, not a fabricated day');
+  await expect(page.locator('#rv-date')).toHaveText('2030-03');
+  await page.locator('#finalBtns button[value="publish"]').click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+/);
+  await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
+
+  log('public page: date line reads "March 2030", and no Add-to-calendar link (a placeholder .ics would be wrong)');
+  const publicHref = await page
+    .getByRole('link', { name: /View public page/ })
+    .getAttribute('href');
+  await page.goto(publicHref);
+  await expect(page.getByText('March 2030').first()).toBeVisible();
+  await expect(page.locator('a[href$="/calendar.ics"]')).toHaveCount(0);
+});
+
+test('by. my events (R18): Created column is shown and the list re-sorts by date created', async ({ page }) => {
+  await login(page, HOST2_EMAIL, HOST2_PASSWORD);
+
+  log('desktop table has a Created column with a real date in it');
+  await page.goto('/host/events');
+  await expect(page.locator('th', { hasText: 'Created' })).toBeVisible();
+
+  log('sort select: switching to "Date created" reloads with sort=created and still lists events');
+  await expect(page.locator('#ev-sort')).toBeVisible();
+  await page.locator('#ev-sort').selectOption('created');
+  await expect(page).toHaveURL(/sort=created/);
+  await expect(page.locator('table tbody tr').first()).toBeVisible();
+
+  log('"Last modified" works the same way');
+  await page.locator('#ev-sort').selectOption('updated');
+  await expect(page).toHaveURL(/sort=updated/);
+  await expect(page.locator('table tbody tr').first()).toBeVisible();
 });

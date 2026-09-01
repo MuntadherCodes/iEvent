@@ -234,7 +234,7 @@ public class CatalogService {
                     Format.coverUrl(e),
                     e.getCity(),
                     Format.venueDisplay(e.getVenueName(), e.getLocationType()),
-                    Format.cardDateLine(e.getStartsAt(), e.isHasStartTime()),
+                    Format.cardDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()),
                     // Announce-only events sell no tickets at all, so an absent
                     // min price here means "not applicable", not "free" — unlike
                     // a real event whose cheapest ticket happens to be 0 IQD.
@@ -288,9 +288,9 @@ public class CatalogService {
                 e.getCoverFocusY(),
                 galleryUrls(e, primary),
                 e.getCity(), Format.venueDisplay(e.getVenueName(), e.getLocationType()), e.getVenueAddress(),
-                Format.longDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime()),
-                Format.monthShort(e.getStartsAt()),
-                Format.dayOfMonth(e.getStartsAt()),
+                Format.longDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()),
+                Format.monthShort(e.getStartsAt(), e.getDatePrecision()),
+                Format.dayOfMonth(e.getStartsAt(), e.getDatePrecision()),
                 paragraphs,
                 // bare digits — the templates add their own "From"/"IQD" around it
                 minPrice == null || minPrice == 0 ? Format.priceLabel(0)
@@ -300,7 +300,9 @@ public class CatalogService {
                 ttViews,
                 e.getLocationType(),
                 e.isAnnounceOnly(),
-                e.getMapsUrl());
+                e.getMapsUrl(),
+                e.getDatePrecision(),
+                Format.translatedNotice(e.getLanguage(), e.getTitleTranslated()));
     }
 
     private static String initialsOf(String name) {

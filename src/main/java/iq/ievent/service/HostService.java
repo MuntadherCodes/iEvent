@@ -393,9 +393,11 @@ public class HostService {
         return events.findByOrganizationIdOrderByStartsAtDesc(orgId);
     }
 
-    /** Console events list with search + status filter ("all"/"live"/"draft"/"ended"/"cancelled"). */
+    /** Console events list with search + status filter ("all"/"live"/"draft"/"ended"/"cancelled")
+     *  and sort ("date" = event date, the default; "created" = newest created
+     *  first; "updated" = most recently modified first). */
     @Transactional(readOnly = true)
-    public List<Event> eventsOf(Long orgId, String q, String status) {
+    public List<Event> eventsOf(Long orgId, String q, String status, String sort) {
         String needle = q == null ? null : q.trim().toLowerCase(Locale.ENGLISH);
         Event.Status wanted = null;
         if (status != null && !status.isBlank() && !"all".equalsIgnoreCase(status)) {
@@ -403,10 +405,16 @@ public class HostService {
             catch (Exception ignored) { }
         }
         final Event.Status ws = wanted;
+        java.util.Comparator<Event> order = switch (sort == null ? "date" : sort) {
+            case "created" -> java.util.Comparator.comparing(Event::getCreatedAt).reversed();
+            case "updated" -> java.util.Comparator.comparing(Event::getUpdatedAt).reversed();
+            default -> java.util.Comparator.comparing(Event::getStartsAt).reversed();
+        };
         return events.findByOrganizationIdOrderByStartsAtDesc(orgId).stream()
                 .filter(e -> ws == null || e.getStatus() == ws)
                 .filter(e -> needle == null || needle.isEmpty()
                         || e.getTitle().toLowerCase(Locale.ENGLISH).contains(needle))
+                .sorted(order)
                 .toList();
     }
 
@@ -416,10 +424,81 @@ public class HostService {
                 .filter(e -> e.getOrganization().getId().equals(orgId));
     }
 
+    /** One resolved "when": how precise the schedule is, plus concrete values.
+     *  precision ∈ DAY|RANGE|MONTH|TBA (see Event.datePrecision). For MONTH,
+     *  {@code date} is the first of the month; for TBA it's ignored entirely;
+     *  {@code endDate} only matters for RANGE. */
+    public record When(String precision, LocalDate date, LocalTime start, boolean hasStartTime,
+                       LocalTime end, LocalDate endDate) {
+
+        /** Classic exact-day When — used by callers that predate flexible dates
+         *  (postpone, autosave-start). */
+        public static When day(LocalDate date, LocalTime start, boolean hasStartTime, LocalTime end) {
+            return new When(Event.PRECISION_DAY, date, start, hasStartTime, end, null);
+        }
+    }
+
+    /** Writes the When onto the event: startsAt always gets a real timestamp
+     *  (placeholders for MONTH/TBA — display branches on datePrecision). */
+    private static void applyWhen(Event e, When w) {
+        switch (w.precision()) {
+            case Event.PRECISION_TBA -> {
+                e.setStartsAt(Format.TBA_PLACEHOLDER);
+                e.setEndsAt(null);
+                e.setHasStartTime(false);
+                e.setDatePrecision(Event.PRECISION_TBA);
+            }
+            case Event.PRECISION_MONTH -> {
+                // Placeholder = LAST day of the month at noon, not the first:
+                // every "upcoming" comparison in the app is starts_at vs now(),
+                // so a first-of-month placeholder would make a month-only event
+                // vanish from trending/related/organizer-upcoming (and move a
+                // buyer's ticket to the Past tab) on day 2 of its own month.
+                // Display never shows the day — only the month + year.
+                e.setStartsAt(LocalDateTime.of(
+                                w.date().withDayOfMonth(w.date().lengthOfMonth()), LocalTime.NOON)
+                        .atZone(Format.BAGHDAD).toOffsetDateTime());
+                e.setEndsAt(null);
+                e.setHasStartTime(false);
+                e.setDatePrecision(Event.PRECISION_MONTH);
+            }
+            case Event.PRECISION_RANGE -> {
+                LocalDate endDate = w.endDate();
+                if (endDate == null || !endDate.isAfter(w.date())) {
+                    // Degenerate range (same day, or end before start): treat it
+                    // as a plain exact-day event so the classic end-time logic
+                    // (end before start rolls to the next morning) applies.
+                    applyWhen(e, new When(Event.PRECISION_DAY, w.date(), w.start(),
+                            w.hasStartTime(), w.end(), null));
+                    return;
+                }
+                LocalTime start = w.start() == null ? LocalTime.NOON : w.start();
+                e.setStartsAt(LocalDateTime.of(w.date(), start).atZone(Format.BAGHDAD).toOffsetDateTime());
+                // No explicit end time ⇒ the event runs to the END of its last
+                // day — the sweeper (and the .ics DTEND) read ends_at directly,
+                // so a fabricated "start time on the last day" would end a
+                // festival the moment its final evening begins.
+                e.setEndsAt(LocalDateTime.of(endDate, w.end() == null ? LocalTime.of(23, 59) : w.end())
+                        .atZone(Format.BAGHDAD).toOffsetDateTime());
+                e.setHasStartTime(w.hasStartTime());
+                e.setDatePrecision(Event.PRECISION_RANGE);
+            }
+            default -> {
+                LocalTime start = w.start() == null ? LocalTime.NOON : w.start();
+                e.setStartsAt(LocalDateTime.of(w.date(), start).atZone(Format.BAGHDAD).toOffsetDateTime());
+                e.setHasStartTime(w.hasStartTime());
+                e.setEndsAt(w.end() == null ? null
+                        : LocalDateTime.of(w.end().isBefore(start) ? w.date().plusDays(1) : w.date(), w.end())
+                                .atZone(Format.BAGHDAD).toOffsetDateTime());
+                e.setDatePrecision(Event.PRECISION_DAY);
+            }
+        }
+    }
+
     @Transactional
     public Event createEvent(Organization org, String title, Event.Category category, String city,
-                             String venueName, String venueAddress, LocalDate date, LocalTime start,
-                             boolean hasStartTime, LocalTime end, String description, List<TicketTypeForm> ticketForms) {
+                             String venueName, String venueAddress, When when,
+                             String description, List<TicketTypeForm> ticketForms) {
         Event e = new Event();
         e.setOrganization(org);
         e.setTitle(title.trim());
@@ -433,12 +512,7 @@ public class HostService {
         e.setCity(city);
         e.setVenueName(venueName);
         e.setVenueAddress(venueAddress);
-        OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
-        e.setStartsAt(startsAt);
-        e.setHasStartTime(hasStartTime);
-        e.setEndsAt(end == null ? null
-                : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
-                        .atZone(Format.BAGHDAD).toOffsetDateTime());
+        applyWhen(e, when);
         e.setDescription(RichText.forStorage(description));
         e.setStatus(Event.Status.DRAFT);
         e.setCoverTheme(Format.coverTheme(category));
@@ -471,19 +545,22 @@ public class HostService {
 
     @Transactional
     public void updateEvent(Event e, String title, Event.Category category, String city,
-                            String venueName, String venueAddress, LocalDate date, LocalTime start,
-                            boolean hasStartTime, LocalTime end, String description) {
+                            String venueName, String venueAddress, When when, String description) {
         e.setTitle(title.trim());
         e.setCategory(category);
         e.setCity(city);
         e.setVenueName(venueName);
         e.setVenueAddress(venueAddress);
-        OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
-        e.setStartsAt(startsAt);
-        e.setHasStartTime(hasStartTime);
-        e.setEndsAt(end == null ? null
-                : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
-                        .atZone(Format.BAGHDAD).toOffsetDateTime());
+        applyWhen(e, when);
+        // Mirror of postponeEvent's revive: once the sweeper auto-ENDs an
+        // event, fixing its date through the ordinary edit form (the only
+        // place a date can become TBA/month-only) must bring it back too —
+        // otherwise the save "succeeds" while the event silently stays off
+        // the public site.
+        if (e.getStatus() == Event.Status.ENDED
+                && e.getStartsAt().isAfter(OffsetDateTime.now())) {
+            e.setStatus(Event.Status.LIVE);
+        }
         e.setDescription(RichText.forStorage(description));
         events.save(e);
         jdbc.update("UPDATE events SET updated_at = now() WHERE id = ?", e.getId());
@@ -696,15 +773,17 @@ public class HostService {
                 msgFor(locale, "mail.eventCancelled.body", event.getTitle())});
     }
 
-    /** Moves the event to a new date/time and emails every buyer. */
+    /** Moves the event to a new date/time and emails every buyer. Picking a
+     *  concrete new date also resolves a previously TBA/month-only schedule to
+     *  an exact day, and revives an auto-ENDED event whose new date is in the
+     *  future (see EventStatusSweeper). */
     @Transactional
     public void postponeEvent(Event event, LocalDate date, LocalTime start, boolean hasStartTime, LocalTime end) {
-        OffsetDateTime startsAt = LocalDateTime.of(date, start).atZone(Format.BAGHDAD).toOffsetDateTime();
-        event.setStartsAt(startsAt);
-        event.setHasStartTime(hasStartTime);
-        event.setEndsAt(end == null ? null
-                : LocalDateTime.of(end.isBefore(start) ? date.plusDays(1) : date, end)
-                        .atZone(Format.BAGHDAD).toOffsetDateTime());
+        applyWhen(event, When.day(date, start, hasStartTime, end));
+        if (event.getStatus() == Event.Status.ENDED
+                && event.getStartsAt().isAfter(OffsetDateTime.now())) {
+            event.setStatus(Event.Status.LIVE);
+        }
         events.save(event);
         notifyBuyers(event, locale -> {
             // Format.* reads LocaleContextHolder — pin it so the recipient's date
@@ -715,7 +794,8 @@ public class HostService {
                 return new String[] {
                         msgFor(locale, "mail.eventPostponed.subject", event.getTitle()),
                         msgFor(locale, "mail.eventPostponed.body", event.getTitle(),
-                                Format.longDateLine(event.getStartsAt(), event.getEndsAt(), event.isHasStartTime()))};
+                                Format.longDateLine(event.getStartsAt(), event.getEndsAt(),
+                                        event.isHasStartTime(), event.getDatePrecision()))};
             } finally {
                 LocaleContextHolder.setLocale(previous);
             }
@@ -779,8 +859,16 @@ public class HostService {
         copy.setCity(source.getCity());
         copy.setVenueName(source.getVenueName());
         copy.setVenueAddress(source.getVenueAddress());
-        copy.setStartsAt(source.getStartsAt().plusDays(7));
-        copy.setEndsAt(source.getEndsAt() == null ? null : source.getEndsAt().plusDays(7));
+        // TBA/MONTH placeholders stay canonical — shifting them a week would
+        // quietly move a month-only copy into the next month (or break the
+        // TBA placeholder); only real dates move one week out.
+        boolean placeholderDate = Event.PRECISION_TBA.equals(source.getDatePrecision())
+                || Event.PRECISION_MONTH.equals(source.getDatePrecision());
+        copy.setStartsAt(placeholderDate ? source.getStartsAt() : source.getStartsAt().plusDays(7));
+        copy.setEndsAt(source.getEndsAt() == null ? null
+                : (placeholderDate ? source.getEndsAt() : source.getEndsAt().plusDays(7)));
+        copy.setHasStartTime(source.isHasStartTime());
+        copy.setDatePrecision(source.getDatePrecision());
         copy.setDescription(source.getDescription());
         copy.setSummary(source.getSummary());
         copy.setTags(source.getTags());

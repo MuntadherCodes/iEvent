@@ -420,6 +420,12 @@ public class SeedRunner implements CommandLineRunner {
         e.setVenueAddress(venueAddress);
         e.setStartsAt(startsAt);
         e.setEndsAt(endsAt);
+        // Same rule as the V23 backfill: an end more than ~a day out means the
+        // seed event is genuinely multi-day (e.g. the book fair), so it renders
+        // as a date range rather than one day with a strange end time.
+        if (endsAt != null && java.time.Duration.between(startsAt, endsAt).toHours() > 20) {
+            e.setDatePrecision(Event.PRECISION_RANGE);
+        }
         e.setDescription(description == null ? "" : description.strip());
         e.setStatus(Event.Status.LIVE);
         e.setCoverTheme(iq.ievent.service.Format.coverTheme(cat));

@@ -64,10 +64,34 @@
             <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-title"><span th:text="#{wizard.edit.eventName}">Event name</span> <span class="text-rose-500">*</span></label>
             <input id="ev-title" type="text" name="title" required th:value="${evEntity.title()}" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-4 font-display text-lg font-bold text-ink-900 outline-none transition placeholder:font-body placeholder:text-base placeholder:font-normal placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:placeholder="#{wizard.basics.placeholder}" placeholder="e.g. Baghdad Nights Music Festival">
           </div>
-          <div class="mt-5 grid gap-4 sm:grid-cols-3">
+          <!-- Date mode segmented toggle (Exact / Multi-day / Month only / TBA) -->
+          <div class="mt-5 grid grid-cols-2 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold sm:grid-cols-4" role="radiogroup" th:attr="aria-label=#{wizard.when.modeAria}" aria-label="Date type">
+            <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+              <input type="radio" name="dateMode" value="EXACT" th:checked="${evEntity.dateMode() == 'EXACT'}" class="date-mode sr-only">
+              <span class="truncate" th:text="#{wizard.when.modeExact}">Exact date</span>
+            </label>
+            <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+              <input type="radio" name="dateMode" value="RANGE" th:checked="${evEntity.dateMode() == 'RANGE'}" class="date-mode sr-only">
+              <span class="truncate" th:text="#{wizard.when.modeRange}">Multiple days</span>
+            </label>
+            <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+              <input type="radio" name="dateMode" value="MONTH" th:checked="${evEntity.dateMode() == 'MONTH'}" class="date-mode sr-only">
+              <span class="truncate" th:text="#{wizard.when.modeMonth}">Month only</span>
+            </label>
+            <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+              <input type="radio" name="dateMode" value="TBA" th:checked="${evEntity.dateMode() == 'TBA'}" class="date-mode sr-only">
+              <span class="truncate" th:text="#{wizard.when.modeTba}">To be announced</span>
+            </label>
+          </div>
+
+          <div id="whenExactFields" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-date"><span th:text="#{wizard.when.date}">Date</span> <span class="text-rose-500">*</span></label>
-              <input id="ev-date" name="date" type="date" required th:value="${evEntity.date()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+              <input id="ev-date" name="date" type="date" th:value="${evEntity.date()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            </div>
+            <div id="whenEndDateWrap" class="hidden">
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-end-date"><span th:text="#{wizard.when.endDate}">Last day</span> <span class="text-rose-500">*</span></label>
+              <input id="ev-end-date" name="endDate" type="date" th:value="${evEntity.endDate()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-start" th:text="#{wizard.when.starts}">Starts</label>
@@ -78,6 +102,14 @@
               <input id="ev-end" name="endTime" type="time" step="1800" th:value="${evEntity.endTime()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
             </div>
           </div>
+
+          <div id="whenMonthFields" class="mt-4 hidden sm:max-w-xs">
+            <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-month"><span th:text="#{wizard.when.month}">Month</span> <span class="text-rose-500">*</span></label>
+            <input id="ev-month" name="month" type="month" th:value="${evEntity.monthValue()}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            <p class="mt-2 text-xs text-ink-500" th:text="#{wizard.when.monthNote}">Buyers see just the month and year — you can set the exact day later by editing the event.</p>
+          </div>
+
+          <p id="whenTbaNote" class="mt-4 hidden rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600" th:text="#{wizard.when.tbaNote}">The page will show “Date to be announced” — set the real date later by editing the event, and ticket buyers will be notified.</p>
           <!-- Where is it? — location type toggle + dependent fields -->
           <div class="mt-5">
             <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.where.title}">Where is it?</span>
@@ -220,6 +252,11 @@
             <div>
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-900"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-globe"/></svg><span th:text="#{wizard.translate.title}">Translation</span></p>
               <p class="mt-1 max-w-xl text-sm text-ink-500" th:text="#{wizard.translate.sub(${targetLangName})}">Auto-translated copy visitors see when browsing in the other language. Review and edit it if needed.</p>
+              <p class="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                <span class="rounded-full bg-white px-2.5 py-1 text-ink-700 ring-1 ring-ink-200" th:text="#{wizard.translate.originalChip(${originLangName})}">Original: Arabic (auto-detected)</span>
+                <svg class="h-3.5 w-3.5 shrink-0 text-ink-400 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <span class="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700 ring-1 ring-brand-100" th:text="#{wizard.translate.translationChip(${targetLangName})}">Translation: English</span>
+              </p>
             </div>
             <button type="button" id="openTranslationModalBtn" class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">
               <svg class="h-4 w-4" aria-hidden="true"><use href="#i-globe"/></svg>
@@ -236,6 +273,11 @@
 
               <h3 id="translationModalTitle" class="inline-flex items-center gap-1.5 pe-10 font-display text-lg font-bold text-ink-900"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-globe"/></svg><span th:text="#{wizard.translate.title}">Translation</span></h3>
               <p class="mt-1 max-w-md text-sm text-ink-500" th:text="#{wizard.translate.sub(${targetLangName})}">Auto-translated copy visitors see when browsing in the other language. Review and edit it if needed.</p>
+              <p class="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                <span class="rounded-full bg-ink-50 px-2.5 py-1 text-ink-700 ring-1 ring-ink-200" th:text="#{wizard.translate.originalChip(${originLangName})}">Original: Arabic (auto-detected)</span>
+                <svg class="h-3.5 w-3.5 shrink-0 text-ink-400 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <span class="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700 ring-1 ring-brand-100" th:text="#{wizard.translate.translationChip(${targetLangName})}">Translation: English</span>
+              </p>
 
               <button type="button" id="translateBtn" class="mt-4 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 disabled:cursor-wait disabled:opacity-60">
                 <svg class="h-4 w-4" aria-hidden="true"><use href="#i-globe"/></svg>
@@ -706,6 +748,33 @@
     renderLocFields();
   })();
 
+  // Date mode toggle (Exact / Multi-day / Month only / TBA): show only the
+  // selected mode's fields and keep native `required` in sync with them.
+  (function () {
+    function renderDateMode() {
+      var checked = document.querySelector('input.date-mode:checked');
+      var mode = checked ? checked.value : 'EXACT';
+      var exact = document.getElementById('whenExactFields');
+      var endWrap = document.getElementById('whenEndDateWrap');
+      var monthWrap = document.getElementById('whenMonthFields');
+      var tbaNote = document.getElementById('whenTbaNote');
+      if (exact) exact.classList.toggle('hidden', mode === 'MONTH' || mode === 'TBA');
+      if (endWrap) endWrap.classList.toggle('hidden', mode !== 'RANGE');
+      if (monthWrap) monthWrap.classList.toggle('hidden', mode !== 'MONTH');
+      if (tbaNote) tbaNote.classList.toggle('hidden', mode !== 'TBA');
+      var dateEl = document.getElementById('ev-date');
+      var endDateEl = document.getElementById('ev-end-date');
+      var monthEl = document.getElementById('ev-month');
+      if (dateEl) dateEl.required = (mode === 'EXACT' || mode === 'RANGE');
+      if (endDateEl) endDateEl.required = (mode === 'RANGE');
+      if (monthEl) monthEl.required = (mode === 'MONTH');
+    }
+    document.querySelectorAll('input.date-mode').forEach(function (radio) {
+      radio.addEventListener('change', renderDateMode);
+    });
+    renderDateMode();
+  })();
+
   // Cover photo state (data-URL preview, upload/Pexels thumbnail strip, crop
   // slider) all lives in the unified gallery-picker IIFE further down, so it
   // can treat an uploaded file and a Pexels pick the same way.
@@ -939,6 +1008,9 @@
           if (r.checked) fire(r, 'change');
         });
         renderLocFields();
+        document.querySelectorAll('#editForm input.date-mode').forEach(function (r) {
+          if (r.checked) fire(r, 'change');
+        });
         var summary = document.getElementById('ev-summary');
         if (summary) fire(summary, 'input');
       } catch (e) {}

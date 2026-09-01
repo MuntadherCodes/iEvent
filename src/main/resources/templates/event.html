@@ -125,13 +125,24 @@
             </span>
             <div>
               <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="${event.dateLine}">Saturday, September 12 · 7:00 PM – 12:00 AM</span></p>
-              <a th:href="@{/e/{s}/calendar.ics(s=${event.slug})}" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.event.addToCalendar}]]</a>
+              <!-- No .ics for month-only / date-TBA schedules — a calendar entry
+                   built from their placeholder timestamp would be wrong. -->
+              <a th:if="${event.datePrecision != 'TBA' && event.datePrecision != 'MONTH'}" th:href="@{/e/{s}/calendar.ics(s=${event.slug})}" class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.event.addToCalendar}]]</a>
+              <p th:if="${event.datePrecision == 'TBA'}" class="mt-1 text-sm text-ink-500" th:text="#{public.event.tbaFollowHint}">Follow the organizer to hear when the date is announced.</p>
             </div>
           </div>
         </div>
 
         <!-- Title -->
         <h1 class="mt-6 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl lg:text-5xl" th:text="${event.title}">Baghdad Nights Music Festival</h1>
+
+        <!-- Machine-translation transparency notice: only renders when this
+             viewer is actually reading the auto-translated copy (see
+             Format.translatedNotice) — never on the host's original. -->
+        <p th:if="${event.translatedNotice != null}" class="mt-3 inline-flex max-w-2xl items-start gap-1.5 rounded-full bg-ink-50 px-3.5 py-1.5 text-xs font-medium text-ink-500">
+          <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-globe"/></svg>
+          <span th:text="${event.translatedNotice}">Translated automatically from Arabic.</span>
+        </p>
 
         <!-- Short summary -->
         <p th:if="${summary != null}" class="mt-4 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg" th:text="${summary}">One unforgettable evening under the open sky of Al-Zawraa Park.</p>

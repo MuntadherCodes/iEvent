@@ -150,7 +150,7 @@
     <a th:if="${confirmed}" th:href="@{/orders/{c}/tickets.pdf(c=${order.orderCode})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-ink-800 active:scale-[.98]">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#i-download"/></svg>[[#{public.confirm.downloadAll}]]
     </a>
-    <a th:href="@{/e/{s}/calendar.ics(s=${order.eventSlug})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
+    <a th:if="${order.icsAvailable()}" th:href="@{/e/{s}/calendar.ics(s=${order.eventSlug})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.confirm.addToCalendarIcs}]]
     </a>
     <a th:href="@{/me/tickets}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
@@ -177,7 +177,7 @@
             <p class="text-ink-500"><a th:href="@{/e/{s}(s=${order.eventSlug})}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.confirm.viewEventPage}">View event page</a></p>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 pt-1">
+        <div th:if="${order.icsAvailable()}" class="flex flex-wrap items-center gap-2 pt-1">
           <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.confirm.addToCalendarLabel}]]</span>
           <a th:href="@{/e/{s}/calendar.ics(s=${order.eventSlug})}" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.confirm.icsFile}">.ics file</a>
         </div>
