@@ -169,6 +169,10 @@ public class ExtrasController {
                 - [Browse events](%1$s/browse): searchable, filterable directory of every live event
                 - [Host an event](%1$s/host): create and publish an event, sell tickets or post an announcement
                 - [About iEvent](%1$s/about): vision, mission and what the platform is building for Iraq
+                - [How it works](%1$s/how-it-works): the attendee and organizer journeys, step by step
+                - [Features](%1$s/features): full tour of event pages, ticketing, check-in, promotion and team tools
+                - [Solutions](%1$s/solutions): how iEvent fits conferences, concerts, workshops, community events, bazaars and sports
+                - [Guides](%1$s/guides): detailed attendee and organizer manuals
                 - [Help center](%1$s/help): how tickets, payments, refunds and hosting work
                 - [Pricing](%1$s/pricing): platform fees (currently waived during the beta)
                 - [Privacy policy](%1$s/privacy)
@@ -196,6 +200,12 @@ public class ExtrasController {
         appendUrl(xml, siteBaseUrl + "/", null, "daily");
         appendUrl(xml, siteBaseUrl + "/browse", null, "hourly");
         appendUrl(xml, siteBaseUrl + "/about", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/how-it-works", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/features", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/solutions", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/guides", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/guides/attendees", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/guides/organizers", null, "monthly");
         appendUrl(xml, siteBaseUrl + "/help", null, "monthly");
         appendUrl(xml, siteBaseUrl + "/pricing", null, "monthly");
         appendUrl(xml, siteBaseUrl + "/privacy", null, "yearly");

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{learn.meta.goDescription}">
+<head th:replace="~{fragments/layout :: head(#{learn.title.go})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+<th:block th:replace="~{fragments/layout :: learnNav('guides')}"></th:block>
+
+<main id="main" class="flex-1">
+
+  <!-- ============ HERO ============ -->
+  <section class="bg-gradient-to-b from-brand-50/70 to-white">
+    <div class="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 md:py-14 lg:px-8">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-megaphone"/></svg><span th:text="#{learn.go.badge}">Organizer guide</span></span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{learn.go.heroTitle}">Everything about hosting on iEvent</h1>
+      <p class="mx-auto mt-3 max-w-xl leading-relaxed text-ink-500" th:text="#{learn.go.heroSub}">Nine chapters.</p>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-3xl px-4 pb-16 sm:px-6 lg:px-8">
+
+    <!-- ============ CONTENTS ============ -->
+    <nav class="rounded-2xl border border-ink-100 bg-ink-50/60 p-6" th:attr="aria-label=#{learn.go.tocTitle}">
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-ink-400" th:text="#{learn.go.tocTitle}">In this guide</p>
+      <ol class="mt-3 grid gap-2 sm:grid-cols-2">
+        <li th:each="i : ${#numbers.sequence(1, 9)}">
+          <a th:href="'#c' + ${i}" class="group flex items-baseline gap-2 text-sm font-medium text-ink-700 transition hover:text-brand-600">
+            <span class="font-display text-xs font-extrabold tabular-nums text-brand-400" th:text="${i}">1</span>
+            <span th:text="#{${'learn.go.c' + i + 'Title'}}">Chapter</span>
+          </a>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- ============ CHAPTERS ============ -->
+    <article th:each="c : ${ { {1,'go-profile',1600,1000}, {2,'go-wizard',1600,1000}, {3,null,0,0}, {4,'go-dates',1600,1000}, {5,'go-photos',1600,1000}, {6,'go-tickets',1600,1000}, {7,'go-promote',1600,1000}, {8,'go-orders',1600,1000}, {9,'go-checkin',800,1600} } }"
+             th:id="'c' + ${c[0]}" class="scroll-mt-24 border-b border-ink-100 py-10 last:border-b-0">
+      <div class="flex items-center gap-3">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink-900 font-display text-lg font-extrabold text-white shadow-pop" th:text="${c[0]}">1</span>
+        <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900 md:text-2xl" th:text="#{${'learn.go.c' + c[0] + 'Title'}}">Chapter</h2>
+      </div>
+      <p class="mt-4 leading-relaxed text-ink-600" th:text="#{${'learn.go.c' + c[0] + 'Body'}}">Body</p>
+      <ol class="mt-5 space-y-3">
+        <li th:each="s : ${#numbers.sequence(1, 4)}" class="flex items-start gap-3 text-sm leading-relaxed text-ink-700">
+          <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-50 text-[11px] font-bold tabular-nums text-brand-700" th:text="${s}">1</span>
+          <span th:text="#{${'learn.go.c' + c[0] + 's' + s}}">Step</span>
+        </li>
+      </ol>
+      <div th:if="${c[1] != null}" class="mt-6" th:classappend="${c[3] > c[2]} ? 'mx-auto w-full max-w-[280px]' : ''">
+        <figure th:replace="~{fragments/layout :: shot(${c[1]}, ${c[2]}, ${c[3]}, #{${'learn.go.c' + c[0] + 'Title'}})}"></figure>
+      </div>
+      <div class="mt-6 flex items-start gap-2.5 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3.5">
+        <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-info"/></svg>
+        <p class="text-sm leading-relaxed text-ink-700" th:text="#{${'learn.go.c' + c[0] + 'Tip'}}">Tip</p>
+      </div>
+    </article>
+
+    <!-- ============ CTA ============ -->
+    <section class="mt-6 rounded-2xl border border-brand-100 bg-brand-50/60 p-7 text-center sm:p-9">
+      <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{learn.go.ctaTitle}">Your audience is already browsing</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm text-ink-600" th:text="#{learn.go.ctaSub}">The wizard is waiting.</p>
+      <a th:href="@{/host}" class="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{learn.go.ctaBtn}">Host an event</span></a>
+      <p class="mt-4"><a th:href="@{/help} + '#organizers'" class="text-sm font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{learn.go.ctaHelp}">More questions? Visit the help center</a></p>
+    </section>
+
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

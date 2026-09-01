@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{learn.meta.solutionsDescription}">
+<head th:replace="~{fragments/layout :: head(#{learn.title.solutions})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+<th:block th:replace="~{fragments/layout :: learnNav('solutions')}"></th:block>
+
+<main id="main" class="flex-1">
+
+  <!-- ============ HERO ============ -->
+  <section class="bg-gradient-to-b from-brand-50/70 to-white">
+    <div class="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 md:py-16 lg:px-8">
+      <span class="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{learn.sol.badge}">Solutions</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{learn.sol.heroTitle}">Whatever you're hosting, this is your toolkit</h1>
+      <p class="mx-auto mt-3 max-w-2xl leading-relaxed text-ink-500" th:text="#{learn.sol.heroSub}">Every kind of event, covered.</p>
+    </div>
+  </section>
+
+  <!-- ============ SOLUTIONS ============ -->
+  <div class="mx-auto max-w-7xl space-y-16 px-4 py-10 sm:px-6 md:space-y-20 md:py-14 lg:px-8">
+    <section th:each="f, it : ${ { {1,'i-briefcase','sol-conference','BUSINESS','conferences'}, {2,'i-music','sol-concert','MUSIC','concerts'}, {3,'i-graduation-cap','sol-workshop','EDUCATION','workshops'}, {4,'i-heart-handshake','sol-community','COMMUNITY','community'}, {5,'i-palette','sol-bazaar','ARTS','bazaars'}, {6,'i-trophy','sol-sports','SPORTS','sports'} } }"
+             th:id="${f[4]}" class="grid scroll-mt-24 items-center gap-8 lg:grid-cols-2 lg:gap-14">
+      <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use th:attr="href='#' + ${f[1]}"/></svg></span>
+        <h2 class="mt-4 font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{${'learn.sol.s' + f[0] + 'Title'}}">Solution</h2>
+        <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.sol.s' + f[0] + 'Intro'}}">Intro</p>
+        <ul class="mt-5 space-y-2.5">
+          <li th:each="p : ${#numbers.sequence(1, 3)}" class="flex items-start gap-2.5 text-sm font-medium text-ink-700">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-circle-check"/></svg>
+            <span th:text="#{${'learn.sol.s' + f[0] + 'p' + p}}">Point</span>
+          </li>
+        </ul>
+        <a th:href="@{/browse} + '?category=' + ${f[3]}" class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">
+          <span th:text="#{${'learn.sol.s' + f[0] + 'Browse'}}">Browse</span>
+          <svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+        </a>
+      </div>
+      <div>
+        <figure th:replace="~{fragments/layout :: shot(${f[2]}, 1600, 1000, #{${'learn.sol.s' + f[0] + 'Title'}})}"></figure>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ CTA ============ -->
+  <section class="mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 md:py-16 lg:px-8">
+    <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl" th:text="#{learn.sol.ctaTitle}">Don't see your event type?</h2>
+    <p class="mx-auto mt-3 max-w-xl text-ink-500" th:text="#{learn.sol.ctaSub}">These are patterns, not boxes.</p>
+    <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a th:href="@{/host}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{learn.sol.ctaBtn}">Host an event</span></a>
+      <a th:href="@{/guides/organizers}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-7 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-graduation-cap"/></svg><span th:text="#{learn.sol.ctaGuide}">Read the organizer guide</span></a>
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

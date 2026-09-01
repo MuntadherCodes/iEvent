@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{learn.meta.featuresDescription}">
+<head th:replace="~{fragments/layout :: head(#{learn.title.features})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+<th:block th:replace="~{fragments/layout :: learnNav('features')}"></th:block>
+
+<main id="main" class="flex-1">
+
+  <!-- ============ HERO ============ -->
+  <section class="bg-gradient-to-b from-brand-50/70 to-white">
+    <div class="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 md:py-16 lg:px-8">
+      <span class="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{learn.feat.badge}">Features</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{learn.feat.heroTitle}">Everything your event needs, in one place</h1>
+      <p class="mx-auto mt-3 max-w-2xl leading-relaxed text-ink-500" th:text="#{learn.feat.heroSub}">iEvent covers the whole life of an event.</p>
+    </div>
+  </section>
+
+  <!-- ============ FEATURE TOUR ============ -->
+  <div class="mx-auto max-w-7xl space-y-16 px-4 py-10 sm:px-6 md:space-y-20 md:py-14 lg:px-8">
+    <section th:each="f, it : ${ { {1,'i-sparkles','feat-event',1600,1000}, {2,'i-search','feat-discovery',1600,1000}, {3,'i-ticket','feat-ticketing',1600,1000}, {4,'i-qr-code','feat-checkin',800,1600}, {5,'i-pencil','feat-wizard',1600,1000}, {6,'i-megaphone','feat-promote',1600,1000}, {7,'i-users','feat-team',1600,1000}, {8,'i-globe','feat-lang',1600,1000} } }"
+             class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+      <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use th:attr="href='#' + ${f[1]}"/></svg></span>
+        <h2 class="mt-4 font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{${'learn.feat.f' + f[0] + 'Title'}}">Feature</h2>
+        <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.feat.f' + f[0] + 'Body'}}">Body</p>
+        <ul class="mt-5 space-y-2.5">
+          <li th:each="b : ${#numbers.sequence(1, 4)}" class="flex items-start gap-2.5 text-sm font-medium text-ink-700">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-circle-check"/></svg>
+            <span th:text="#{${'learn.feat.f' + f[0] + 'b' + b}}">Bullet</span>
+          </li>
+        </ul>
+      </div>
+      <div th:classappend="${f[4] > f[3]} ? 'mx-auto w-full max-w-[300px]' : ''">
+        <figure th:replace="~{fragments/layout :: shot(${f[2]}, ${f[3]}, ${f[4]}, #{${'learn.feat.f' + f[0] + 'Title'}})}"></figure>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ CTA ============ -->
+  <section class="mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 md:py-16 lg:px-8">
+    <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl" th:text="#{learn.feat.ctaTitle}">See it with your own event</h2>
+    <p class="mx-auto mt-3 max-w-xl text-ink-500" th:text="#{learn.feat.ctaSub}">Everything above is free during the beta.</p>
+    <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a th:href="@{/host}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{learn.feat.ctaBtn}">Host an event</span></a>
+      <a th:href="@{/pricing}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-7 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg><span th:text="#{learn.feat.ctaPricing}">See pricing</span></a>
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

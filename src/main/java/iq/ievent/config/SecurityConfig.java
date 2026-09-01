@@ -130,7 +130,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
-                        "/auth/**", "/t/**", "/e/**", "/l/**", "/invite/*", "/newsletter", "/contact", "/about", "/help", "/pricing", "/privacy", "/terms", "/media/**", "/css/**", "/img/**", "/js/**",
+                        "/auth/**", "/t/**", "/e/**", "/l/**", "/invite/*", "/newsletter", "/contact", "/about", "/help", "/pricing", "/how-it-works", "/features", "/solutions", "/guides", "/guides/**", "/privacy", "/terms", "/media/**", "/css/**", "/img/**", "/js/**",
                         "/favicon.ico", "/sw.js", "/robots.txt", "/sitemap.xml", "/llms.txt", "/actuator/health", "/error", "/set-lang", "/.well-known/**", "/api/events/suggest",
                         // /admin/** is gated by SuperAdminAuthFilter (a shared .env password, not a
                         // user account) rather than Spring Security's own authentication.

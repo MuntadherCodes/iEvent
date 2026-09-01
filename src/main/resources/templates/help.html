@@ -6,6 +6,7 @@
 <svg th:replace="~{fragments/layout :: icons}"></svg>
 
 <th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+<th:block th:replace="~{fragments/layout :: learnNav('help')}"></th:block>
 
 <main id="main" class="flex-1">
 
@@ -69,7 +70,10 @@
       <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-brand-600 shadow-card"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-message-circle"/></svg></span>
       <h2 class="mt-4 font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{public.help.stillTitle}">Still need help?</h2>
       <p class="mx-auto mt-2 max-w-md text-sm text-ink-600" th:text="#{public.help.stillSub}">Questions, issues or feedback. We read every message and reply by email.</p>
-      <a th:href="@{/contact}" class="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><span th:text="#{public.help.contactBtn}">Contact us</span></a>
+      <div class="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a th:href="@{/contact}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><span th:text="#{public.help.contactBtn}">Contact us</span></a>
+        <a th:href="@{/guides}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-7 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-graduation-cap"/></svg><span th:text="#{learn.nav.guides}">Guides</span></a>
+      </div>
     </section>
 
   </div>

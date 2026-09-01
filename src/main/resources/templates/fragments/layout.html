@@ -191,6 +191,9 @@
         <a th:href="@{/me/tickets}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
            th:classappend="${active == 'tickets'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
            th:attr="aria-current=${active == 'tickets'} ? 'page' : null" th:text="#{public.nav.myTickets}">My tickets</a>
+        <a th:if="${currentUser == null}" th:href="@{/how-it-works}" class="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-ink-50 hover:text-ink-900"
+           th:classappend="${active == 'how'} ? 'bg-brand-50 text-brand-700' : 'text-ink-600'"
+           th:attr="aria-current=${active == 'how'} ? 'page' : null" th:text="#{learn.nav.how}">How it works</a>
       </div>
       <div class="ms-auto flex items-center gap-0.5">
       <a th:href="@{/host}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
@@ -535,8 +538,54 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
      fragment param — lets a page that ends in its own dark/tinted band (e.g. the
      organizer trust band) sit flush against the footer instead of leaving the
      usual 5rem gap. Absent everywhere else, so it defaults to the normal gap. -->
+<!-- ============ LEARN SUB-NAVIGATION FRAGMENT ============ -->
+<!-- Shared secondary nav across the content/learn pages so readers can always
+     see where they are and where to go next. `active` is one of:
+     how | features | solutions | guides | pricing | help -->
+<div th:fragment="learnNav(active)" class="border-b border-ink-100 bg-ink-50/50">
+  <nav class="no-scrollbar mx-auto flex max-w-7xl items-center gap-1.5 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8" th:attr="aria-label=#{learn.nav.aria}" aria-label="Learn about iEvent">
+    <a th:href="@{/how-it-works}" class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+       th:classappend="${active == 'how'} ? 'bg-brand-500 text-white shadow-pop' : 'text-ink-600 hover:bg-white hover:text-ink-900'"
+       th:attr="aria-current=${active == 'how'} ? 'page' : null" th:text="#{learn.nav.how}">How it works</a>
+    <a th:href="@{/features}" class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+       th:classappend="${active == 'features'} ? 'bg-brand-500 text-white shadow-pop' : 'text-ink-600 hover:bg-white hover:text-ink-900'"
+       th:attr="aria-current=${active == 'features'} ? 'page' : null" th:text="#{learn.nav.features}">Features</a>
+    <a th:href="@{/solutions}" class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+       th:classappend="${active == 'solutions'} ? 'bg-brand-500 text-white shadow-pop' : 'text-ink-600 hover:bg-white hover:text-ink-900'"
+       th:attr="aria-current=${active == 'solutions'} ? 'page' : null" th:text="#{learn.nav.solutions}">Solutions</a>
+    <a th:href="@{/guides}" class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+       th:classappend="${active == 'guides'} ? 'bg-brand-500 text-white shadow-pop' : 'text-ink-600 hover:bg-white hover:text-ink-900'"
+       th:attr="aria-current=${active == 'guides'} ? 'page' : null" th:text="#{learn.nav.guides}">Guides</a>
+    <a th:href="@{/pricing}" class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+       th:classappend="${active == 'pricing'} ? 'bg-brand-500 text-white shadow-pop' : 'text-ink-600 hover:bg-white hover:text-ink-900'"
+       th:attr="aria-current=${active == 'pricing'} ? 'page' : null" th:text="#{learn.nav.pricing}">Pricing</a>
+    <a th:href="@{/help}" class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+       th:classappend="${active == 'help'} ? 'bg-brand-500 text-white shadow-pop' : 'text-ink-600 hover:bg-white hover:text-ink-900'"
+       th:attr="aria-current=${active == 'help'} ? 'page' : null" th:text="#{learn.nav.help}">Help center</a>
+  </nav>
+</div>
+
+<!-- ============ SCREENSHOT SLOT FRAGMENT ============ -->
+<!-- Reserved space for a product screenshot. Drop the real image at
+     src/main/resources/static/img/shots/{name}.png at the labeled size and it
+     appears automatically (the placeholder below simply gets covered); until
+     then a clean labeled placeholder holds the exact aspect ratio so the page
+     never jumps. `alt` is a resolved string (pass #{...} from the caller). -->
+<figure th:fragment="shot(name, w, h, alt)" class="relative w-full overflow-hidden rounded-2xl border border-ink-100 bg-ink-50/70 shadow-card"
+        th:style="'aspect-ratio: ' + ${w} + ' / ' + ${h}" th:attr="data-shot=${name}">
+  <span class="absolute inset-0 grid place-items-center">
+    <span class="flex flex-col items-center gap-2 px-4 text-center">
+      <svg class="h-8 w-8 text-ink-300" aria-hidden="true"><use href="#i-image"/></svg>
+      <span class="text-xs font-semibold text-ink-400" th:text="#{learn.shot.soon}">Screenshot coming soon</span>
+      <span class="rounded-full border border-dashed border-ink-300 px-3 py-1 font-mono text-[11px] text-ink-400" dir="ltr">[[${name}]].png · [[${w}]]×[[${h}]]</span>
+    </span>
+  </span>
+  <img th:src="@{'/img/shots/' + ${name} + '.png'}" th:alt="${alt}" loading="lazy"
+       onerror="this.style.display='none'" class="absolute inset-0 h-full w-full object-cover">
+</figure>
+
 <footer th:fragment="footer" class="bg-ink-900 text-ink-300" th:classappend="${footerFlush != null and footerFlush} ? '' : 'mt-20'">
-  <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-8">
+  <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:px-8">
     <div class="sm:col-span-2 lg:col-span-1">
       <a th:href="@{/}" class="flex items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
         <img th:src="@{/img/brand-mark-white.png}" alt="" class="h-9 w-auto">
@@ -566,6 +615,16 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
         <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
         <li><a th:href="@{/pricing}" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
         <li><a th:href="@{/help} + '#organizers'" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
+      </ul>
+    </nav>
+    <nav th:attr="aria-label=#{learn.footer.learn}" aria-label="Learn">
+      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{learn.footer.learn}">Learn</h3>
+      <ul class="space-y-2.5 text-sm">
+        <li><a th:href="@{/how-it-works}" class="transition hover:text-brand-300" th:text="#{learn.nav.how}">How it works</a></li>
+        <li><a th:href="@{/features}" class="transition hover:text-brand-300" th:text="#{learn.nav.features}">Features</a></li>
+        <li><a th:href="@{/solutions}" class="transition hover:text-brand-300" th:text="#{learn.nav.solutions}">Solutions</a></li>
+        <li><a th:href="@{/guides/attendees}" class="transition hover:text-brand-300" th:text="#{learn.footer.attendeeGuide}">Attendee guide</a></li>
+        <li><a th:href="@{/guides/organizers}" class="transition hover:text-brand-300" th:text="#{learn.footer.organizerGuide}">Organizer guide</a></li>
       </ul>
     </nav>
     <nav th:attr="aria-label=#{public.footer.company}" aria-label="Company">

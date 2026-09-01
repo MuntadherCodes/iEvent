@@ -1111,4 +1111,74 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/about")));
     }
+
+    // ---- R22: learn section (How it works, Features, Solutions, Guides) ----
+
+    @Test
+    void howItWorksRendersBothJourneysInBothLanguages() throws Exception {
+        mockMvc.perform(get("/en/how-it-works"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Going to an event")))
+                .andExpect(content().string(containsString("Track sales and confirm orders")));
+        mockMvc.perform(get("/how-it-works"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("رايح لفعالية")));
+    }
+
+    @Test
+    void featuresAndSolutionsRenderInBothLanguages() throws Exception {
+        mockMvc.perform(get("/en/features"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ticketing built for Iraq")))
+                .andExpect(content().string(containsString("Arabic first, English always")));
+        mockMvc.perform(get("/features"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("تذاكر مبنية للعراق")));
+        mockMvc.perform(get("/en/solutions"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Registration is where conferences get messy")))
+                .andExpect(content().string(containsString("id=\"bazaars\"")));
+        mockMvc.perform(get("/solutions"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("المؤتمرات والقمم")));
+    }
+
+    @Test
+    void guidesRenderWithChaptersAndScreenshotSlots() throws Exception {
+        mockMvc.perform(get("/en/guides"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("The attendee guide")))
+                .andExpect(content().string(containsString("The organizer guide")));
+        mockMvc.perform(get("/en/guides/attendees"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("In this guide")))
+                .andExpect(content().string(containsString("one QR code per person")))
+                // screenshot slot renders its labeled placeholder until the file exists
+                .andExpect(content().string(containsString("ga-tickets.png")));
+        mockMvc.perform(get("/en/guides/organizers"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Set up your organizer profile")))
+                .andExpect(content().string(containsString("go-checkin.png")));
+        mockMvc.perform(get("/guides/organizers"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("دليل المنظمين")));
+    }
+
+    @Test
+    void learnSectionIsWiredIntoNavSitemapAndLlms() throws Exception {
+        // learn sub-nav shows on pricing; footer Learn column links the guides
+        mockMvc.perform(get("/en/pricing"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/how-it-works\"")));
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/guides/organizers\"")));
+        mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/how-it-works")))
+                .andExpect(content().string(containsString("/guides/organizers")));
+        mockMvc.perform(get("/llms.txt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/solutions")));
+    }
 }

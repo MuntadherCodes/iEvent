@@ -109,6 +109,36 @@ public class PageController {
         return "pricing";
     }
 
+    @GetMapping("/how-it-works")
+    public String howItWorks() {
+        return "how-it-works";
+    }
+
+    @GetMapping("/features")
+    public String features() {
+        return "features";
+    }
+
+    @GetMapping("/solutions")
+    public String solutions() {
+        return "solutions";
+    }
+
+    @GetMapping("/guides")
+    public String guides() {
+        return "guides";
+    }
+
+    @GetMapping("/guides/attendees")
+    public String guideAttendees() {
+        return "guides/attendees";
+    }
+
+    @GetMapping("/guides/organizers")
+    public String guideOrganizers() {
+        return "guides/organizers";
+    }
+
     @GetMapping("/privacy")
     public String privacy(Model model) {
         model.addAttribute("supportEmail", supportEmail);

@@ -3429,3 +3429,36 @@ test('cc. public content pages (R21): about, help center and pricing render in b
   await expect(footer.locator('a[href="/help"]')).toBeVisible();
   await expect(footer.locator('a[href="/pricing"]')).toBeVisible();
 });
+
+test('cd. learn section (R22): how it works, features, solutions and guides are navigable and hold screenshot slots', async ({ page }) => {
+  log('how-it-works shows both journeys with numbered steps');
+  await page.goto('/en/how-it-works');
+  await expect(page.getByText('Going to an event')).toBeVisible();
+  await expect(page.getByText('Hosting an event')).toBeVisible();
+
+  log('the learn sub-nav walks to Features');
+  await page.locator('nav[aria-label="Learn about iEvent"] a', { hasText: 'Features' }).click();
+  await expect(page).toHaveURL(/\/en\/features/);
+  await expect(page.getByText('Ticketing built for Iraq')).toBeVisible();
+
+  log('solutions renders all six event types with browse links');
+  await page.goto('/en/solutions');
+  await expect(page.getByText('Registration is where conferences get messy', { exact: false })).toBeVisible();
+  await expect(page.locator('#sports')).toBeVisible();
+
+  log('the guides hub routes to the organizer guide, whose TOC jumps to a chapter');
+  await page.goto('/en/guides');
+  await page.getByText('Read the organizer guide').first().click();
+  await expect(page).toHaveURL(/\/en\/guides\/organizers/);
+  await page.locator('a[href="#c9"]').click();
+  await expect(page.locator('#c9 h2')).toContainText('Event day and after');
+
+  log('an empty screenshot slot shows its labeled placeholder');
+  await expect(page.locator('[data-shot="go-checkin"]')).toBeVisible();
+  await expect(page.getByText('go-checkin.png', { exact: false })).toBeVisible();
+
+  log('the Arabic side renders RTL with the Iraqi voice');
+  await page.goto('/set-lang?to=ar&next=/guides/attendees');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.locator('#c2 h2')).toContainText('تلگي الفعالية الصح');
+});

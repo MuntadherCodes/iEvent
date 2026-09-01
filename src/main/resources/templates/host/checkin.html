@@ -82,11 +82,11 @@
            th:attr="data-msg-unavailable=#{host.checkin.cameraUnavailable},data-msg-noscanner=#{host.checkin.cameraNotHere},data-msg-needs-https=#{host.checkin.cameraNeedsHttps}"></p>
       </section>
 
-      <!-- Manual entry card (dark panel) — hidden for now, no USB/bluetooth
-           scanner device is in use; the inputs stay in the DOM (just visually
-           hidden) since the camera scanner below still fills #code-input and
-           submits #checkin-form under the hood. -->
-      <section class="hidden overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" th:aria-label="#{host.checkin.manualAria}" aria-label="Ticket check-in">
+      <!-- Manual entry card (dark panel): a USB/bluetooth keyboard-wedge
+           scanner types straight into the focused #code-input, and typing a
+           code by hand works too. The camera scanner also fills #code-input
+           and submits #checkin-form under the hood. -->
+      <section class="overflow-hidden rounded-2xl bg-ink-900 shadow-pop ring-1 ring-inset ring-white/10" th:aria-label="#{host.checkin.manualAria}" aria-label="Ticket check-in">
         <div class="relative p-6 sm:p-8">
           <svg class="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="cam-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#cam-dots)"/></svg>
           <div class="relative">
@@ -108,9 +108,8 @@
         </div>
       </section>
 
-      <!-- Tip card — hidden along with the manual entry card above, since it
-           only talks about the scanner-device box. -->
-      <p class="hidden flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
+      <!-- Tip card: explains the scanner-device box above. -->
+      <p class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3.5 text-sm text-ink-600 shadow-card">
         <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-info"/></svg>
         <span><span class="font-semibold text-ink-800" th:text="#{host.checkin.tipLabel}">Tip:</span> <span th:text="#{host.checkin.tipBody}">any USB/bluetooth QR scanner types the code into the box — or use the camera above.</span></span>
       </p>

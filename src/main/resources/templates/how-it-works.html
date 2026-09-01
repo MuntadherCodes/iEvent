@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{learn.meta.howDescription}">
+<head th:replace="~{fragments/layout :: head(#{learn.title.how})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('how')}"></th:block>
+<th:block th:replace="~{fragments/layout :: learnNav('how')}"></th:block>
+
+<main id="main" class="flex-1">
+
+  <!-- ============ HERO ============ -->
+  <section class="bg-gradient-to-b from-brand-50/70 to-white">
+    <div class="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 md:py-16 lg:px-8">
+      <span class="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{learn.hiw.badge}">How it works</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{learn.hiw.heroTitle}">From "what's on tonight?" to "see you at the door"</h1>
+      <p class="mx-auto mt-3 max-w-2xl leading-relaxed text-ink-500" th:text="#{learn.hiw.heroSub}">iEvent has two sides.</p>
+    </div>
+  </section>
+
+  <!-- ============ ATTENDEE JOURNEY ============ -->
+  <section id="attendees" class="mx-auto max-w-7xl scroll-mt-24 px-4 py-10 sm:px-6 md:py-14 lg:px-8">
+    <div class="text-center">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="#{learn.hiw.attBadge}">For attendees</span></span>
+      <h2 class="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl" th:text="#{learn.hiw.attTitle}">Going to an event</h2>
+      <p class="mx-auto mt-2 max-w-xl text-sm text-ink-500" th:text="#{learn.hiw.attSub}">Four steps.</p>
+    </div>
+
+    <div class="mt-10 space-y-14">
+      <div th:each="s, it : ${ { {1,'hiw-browse',1600,1000}, {2,'hiw-event',1600,1000}, {3,'hiw-checkout',1600,1000}, {4,'hiw-ticket',800,1600} } }"
+           class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+        <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 font-display text-lg font-extrabold text-white shadow-pop" th:text="${s[0]}">1</span>
+          <h3 class="mt-4 font-display text-xl font-extrabold text-ink-900" th:text="#{${'learn.hiw.a' + s[0] + 'Title'}}">Step</h3>
+          <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.hiw.a' + s[0] + 'Body'}}">Body</p>
+        </div>
+        <div th:classappend="${s[3] > s[2]} ? 'mx-auto w-full max-w-[300px]' : ''">
+          <figure th:replace="~{fragments/layout :: shot(${s[1]}, ${s[2]}, ${s[3]}, #{${'learn.hiw.a' + s[0] + 'Title'}})}"></figure>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-12 text-center">
+      <a th:href="@{/browse}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-search"/></svg><span th:text="#{learn.hiw.attCtaBtn}">Browse events now</span></a>
+    </div>
+  </section>
+
+  <!-- ============ ORGANIZER JOURNEY ============ -->
+  <section id="organizers" class="scroll-mt-24 bg-ink-50/50">
+    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+      <div class="text-center">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-megaphone"/></svg><span th:text="#{learn.hiw.orgBadge}">For organizers</span></span>
+        <h2 class="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl" th:text="#{learn.hiw.orgTitle}">Hosting an event</h2>
+        <p class="mx-auto mt-2 max-w-xl text-sm text-ink-500" th:text="#{learn.hiw.orgSub}">Five steps.</p>
+      </div>
+
+      <div class="mt-10 space-y-14">
+        <div th:each="s, it : ${ { {1,'hiw-profile',1600,1000}, {2,'hiw-wizard',1600,1000}, {3,'hiw-share',1600,1000}, {4,'hiw-console',1600,1000}, {5,'hiw-checkin',800,1600} } }"
+             class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+        <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-ink-900 font-display text-lg font-extrabold text-white shadow-pop" th:text="${s[0]}">1</span>
+            <h3 class="mt-4 font-display text-xl font-extrabold text-ink-900" th:text="#{${'learn.hiw.o' + s[0] + 'Title'}}">Step</h3>
+            <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.hiw.o' + s[0] + 'Body'}}">Body</p>
+          </div>
+          <div th:classappend="${s[3] > s[2]} ? 'mx-auto w-full max-w-[300px]' : ''">
+            <figure th:replace="~{fragments/layout :: shot(${s[1]}, ${s[2]}, ${s[3]}, #{${'learn.hiw.o' + s[0] + 'Title'}})}"></figure>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 text-center">
+        <a th:href="@{/host}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{learn.hiw.orgCtaBtn}">Start your first event</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ KEEP EXPLORING ============ -->
+  <section class="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-16 lg:px-8">
+    <div class="text-center">
+      <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{learn.hiw.hubTitle}">Want the full picture?</h2>
+      <p class="mx-auto mt-2 max-w-xl text-sm text-ink-500" th:text="#{learn.hiw.hubSub}">This was the short version.</p>
+    </div>
+    <div class="mt-8 grid gap-5 sm:grid-cols-3">
+      <a th:href="@{/features}" class="group rounded-2xl border border-ink-100 bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-cardHover">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-sparkles"/></svg></span>
+        <h3 class="mt-3 font-display font-extrabold text-ink-900 group-hover:text-brand-600" th:text="#{learn.nav.features}">Features</h3>
+        <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="#{learn.hiw.hubFeatures}">Tour every feature.</p>
+      </a>
+      <a th:href="@{/solutions}" class="group rounded-2xl border border-ink-100 bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-cardHover">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-party-popper"/></svg></span>
+        <h3 class="mt-3 font-display font-extrabold text-ink-900 group-hover:text-brand-600" th:text="#{learn.nav.solutions}">Solutions</h3>
+        <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="#{learn.hiw.hubSolutions}">See how iEvent fits.</p>
+      </a>
+      <a th:href="@{/guides}" class="group rounded-2xl border border-ink-100 bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-cardHover">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-graduation-cap"/></svg></span>
+        <h3 class="mt-3 font-display font-extrabold text-ink-900 group-hover:text-brand-600" th:text="#{learn.nav.guides}">Guides</h3>
+        <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="#{learn.hiw.hubGuides}">Step-by-step manuals.</p>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>
