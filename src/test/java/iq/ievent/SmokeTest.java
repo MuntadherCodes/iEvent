@@ -1054,4 +1054,61 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("کوردی (KU)"))));
     }
+
+    // ---- R21: public content pages (About, Help center, Pricing) ----
+
+    @Test
+    void aboutPageRendersVisionInBothLanguages() throws Exception {
+        // English under /en, Arabic on the bare path (Arabic-first routing).
+        mockMvc.perform(get("/en/about"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("before they miss it")))
+                .andExpect(content().string(containsString("Your audience finds you")));
+        mockMvc.perform(get("/about"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("أن يعرف كل عراقي ما يجري في مدينته")))
+                .andExpect(content().string(containsString("جمهورك يلگاك")));
+    }
+
+    @Test
+    void helpCenterRendersAttendeeAndOrganizerFaqs() throws Exception {
+        mockMvc.perform(get("/en/help"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("How do I find events near me?")))
+                .andExpect(content().string(containsString("id=\"organizers\"")));
+        mockMvc.perform(get("/help"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("شلون ألگي الفعاليات القريبة مني؟")));
+    }
+
+    @Test
+    void pricingPageRendersBetaAndFeeTiers() throws Exception {
+        mockMvc.perform(get("/en/pricing"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Free while we build")))
+                .andExpect(content().string(containsString("3% + 2,000 IQD, capped at 15,000 IQD")));
+        mockMvc.perform(get("/pricing"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("مجاني ونحن نبني")));
+    }
+
+    @Test
+    void publicContentPagesAreLinkedAndIndexed() throws Exception {
+        // Footer links to the new pages (links stay un-prefixed; the lang
+        // cookie bounce puts English readers on /en/... on the follow-up GET);
+        // sitemap and llms.txt list them.
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/about\"")))
+                .andExpect(content().string(containsString("href=\"/help\"")))
+                .andExpect(content().string(containsString("href=\"/pricing\"")));
+        mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/about")))
+                .andExpect(content().string(containsString("/help")))
+                .andExpect(content().string(containsString("/pricing")));
+        mockMvc.perform(get("/llms.txt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/about")));
+    }
 }

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org" th:with="pageDescription=#{public.meta.pricingDescription}">
+<head th:replace="~{fragments/layout :: head(#{public.title.pricing})}"></head>
+<body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<th:block th:replace="~{fragments/layout :: header('')}"></th:block>
+
+<main id="main" class="flex-1">
+
+  <!-- ============ HERO ============ -->
+  <section class="bg-gradient-to-b from-brand-50/70 to-white">
+    <div class="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 md:py-16 lg:px-8">
+      <span class="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{public.pricing.badge}">Pricing</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{public.pricing.heroTitle}">Free while we build</h1>
+      <p class="mx-auto mt-3 max-w-xl leading-relaxed text-ink-500" th:text="#{public.pricing.heroSub}">iEvent is in beta, and during the beta everything is free.</p>
+      <span class="mt-6 inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-bold text-green-700" dir="ltr"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-circle-check"/></svg><span dir="auto" th:text="#{public.pricing.betaChip}">Beta: 0 IQD in platform fees</span></span>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-3xl px-4 pb-16 sm:px-6 lg:px-8">
+
+    <!-- ============ INCLUDED ============ -->
+    <section class="pt-4">
+      <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{public.pricing.includedTitle}">Everything included, for every organizer</h2>
+      <ul class="mt-5 grid gap-3 sm:grid-cols-2">
+        <li th:each="i : ${#numbers.sequence(1, 6)}" class="flex items-start gap-2.5 rounded-xl border border-ink-100 bg-white px-4 py-3 text-sm font-medium text-ink-800 shadow-card">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-circle-check"/></svg>
+          <span th:text="#{${'public.pricing.inc' + i}}">Included</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ AFTER THE BETA ============ -->
+    <section class="mt-12">
+      <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{public.pricing.afterTitle}">After the beta: simple, published in advance</h2>
+      <p class="mt-2 text-sm leading-relaxed text-ink-500" th:text="#{public.pricing.afterSub}">This is the exact formula, published now so there are no surprises later:</p>
+      <div class="mt-5 overflow-hidden rounded-2xl border border-ink-100 shadow-card">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-ink-100 bg-ink-50/60 text-xs font-semibold uppercase tracking-wide text-ink-500">
+              <th class="px-5 py-3.5 text-start" th:text="#{public.pricing.rowTicket}">Ticket price</th>
+              <th class="px-5 py-3.5 text-start" th:text="#{public.pricing.rowFee}">Booking fee</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-ink-50">
+              <td class="px-5 py-4 font-medium text-ink-800" th:text="#{public.pricing.tier1Ticket}">Up to 15,000 IQD</td>
+              <td class="px-5 py-4 tabular-nums text-ink-700" th:text="#{public.pricing.tier1Fee}">750 IQD flat</td>
+            </tr>
+            <tr class="border-b border-ink-50">
+              <td class="px-5 py-4 font-medium text-ink-800" th:text="#{public.pricing.tier2Ticket}">Above 15,000 IQD</td>
+              <td class="px-5 py-4 tabular-nums text-ink-700" th:text="#{public.pricing.tier2Fee}">3% + 2,000 IQD, capped at 15,000 IQD</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-4 font-medium text-ink-800" th:text="#{public.pricing.tier3Ticket}">Free tickets</td>
+              <td class="px-5 py-4 font-semibold text-green-700" th:text="#{public.pricing.tier3Fee}">Always free. No fee, ever.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-tag"/></svg></span>
+          <h3 class="mt-3 font-display font-extrabold text-ink-900" th:text="#{public.pricing.whoPaysTitle}">You choose who pays it</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="#{public.pricing.whoPaysBody}">Pass it to the buyer or absorb it yourself.</p>
+        </div>
+        <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-wallet"/></svg></span>
+          <h3 class="mt-3 font-display font-extrabold text-ink-900" th:text="#{public.pricing.moneyTitle}">Your money goes straight to you</h3>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-500" th:text="#{public.pricing.moneyBody}">Ticket money never passes through iEvent.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROMISE ============ -->
+    <section class="mt-10 rounded-2xl border border-brand-100 bg-brand-50/60 p-6 sm:p-7">
+      <div class="flex items-start gap-3">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand-600 shadow-card"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-shield-check"/></svg></span>
+        <div>
+          <h2 class="font-display font-extrabold text-ink-900" th:text="#{public.pricing.promiseTitle}">Our promise</h2>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-700" th:text="#{public.pricing.promiseBody}">Any change to pricing will be announced well in advance.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="mt-12 text-center">
+      <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{public.pricing.ctaTitle}">Start hosting today</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm text-ink-500" th:text="#{public.pricing.ctaSub}">Publish a beautiful event page in minutes.</p>
+      <a th:href="@{/host}" class="mt-6 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-8 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-rocket"/></svg><span th:text="#{public.pricing.ctaBtn}">Become a host</span></a>
+    </section>
+
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script th:replace="~{fragments/layout :: menuScript}"></script>
+</body>
+</html>

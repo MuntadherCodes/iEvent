@@ -94,6 +94,21 @@ public class PageController {
         this.supportEmail = supportEmail;
     }
 
+    @GetMapping("/about")
+    public String about() {
+        return "about";
+    }
+
+    @GetMapping("/help")
+    public String help() {
+        return "help";
+    }
+
+    @GetMapping("/pricing")
+    public String pricing() {
+        return "pricing";
+    }
+
     @GetMapping("/privacy")
     public String privacy(Model model) {
         model.addAttribute("supportEmail", supportEmail);

@@ -168,6 +168,9 @@ public class ExtrasController {
 
                 - [Browse events](%1$s/browse): searchable, filterable directory of every live event
                 - [Host an event](%1$s/host): create and publish an event, sell tickets or post an announcement
+                - [About iEvent](%1$s/about): vision, mission and what the platform is building for Iraq
+                - [Help center](%1$s/help): how tickets, payments, refunds and hosting work
+                - [Pricing](%1$s/pricing): platform fees (currently waived during the beta)
                 - [Privacy policy](%1$s/privacy)
                 - [Terms of use](%1$s/terms)
 
@@ -192,6 +195,9 @@ public class ExtrasController {
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
         appendUrl(xml, siteBaseUrl + "/", null, "daily");
         appendUrl(xml, siteBaseUrl + "/browse", null, "hourly");
+        appendUrl(xml, siteBaseUrl + "/about", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/help", null, "monthly");
+        appendUrl(xml, siteBaseUrl + "/pricing", null, "monthly");
         appendUrl(xml, siteBaseUrl + "/privacy", null, "yearly");
         appendUrl(xml, siteBaseUrl + "/terms", null, "yearly");
 

@@ -3396,3 +3396,36 @@ test('cb. search autocomplete (R20): typing in the home hero suggests published 
   await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival/);
   await expect(page.locator('h1')).toContainText('Baghdad Nights Music Festival');
 });
+
+test('cc. public content pages (R21): about, help center and pricing render in both languages and are footer-linked', async ({ page }) => {
+  log('the English about page carries the vision and the four pillars');
+  await page.goto('/en/about');
+  await expect(page.locator('h1')).toContainText('before they miss it');
+  await expect(page.getByText('Your audience finds you')).toBeVisible();
+  await expect(page.getByText('All of Iraq', { exact: true })).toBeVisible();
+
+  log('the Arabic about page uses the Iraqi voice');
+  // the /en visit above set the en cookie, so switch back to Arabic explicitly
+  await page.goto('/set-lang?to=ar&next=/about');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.getByText('جمهورك يلگاك')).toBeVisible();
+  await page.goto('/set-lang?to=en&next=/help');
+
+  log('the help center accordion opens an attendee answer');
+  await expect(page).toHaveURL(/\/en\/help/);
+  const firstQ = page.locator('details summary', { hasText: 'How do I find events near me?' }).first();
+  await firstQ.click();
+  await expect(page.getByText('matching events appear as suggestions', { exact: false })).toBeVisible();
+
+  log('pricing shows the beta banner and the published fee formula');
+  await page.goto('/en/pricing');
+  await expect(page.getByText('Free while we build')).toBeVisible();
+  await expect(page.getByText('3% + 2,000 IQD, capped at 15,000 IQD')).toBeVisible();
+
+  log('the footer links to all three pages');
+  await page.goto('/en');
+  const footer = page.locator('footer');
+  await expect(footer.locator('a[href="/about"]')).toBeVisible();
+  await expect(footer.locator('a[href="/help"]')).toBeVisible();
+  await expect(footer.locator('a[href="/pricing"]')).toBeVisible();
+});

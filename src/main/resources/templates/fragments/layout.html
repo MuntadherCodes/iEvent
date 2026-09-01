@@ -564,17 +564,16 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
       <ul class="space-y-2.5 text-sm">
         <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.nav.hostEvent}">Host an event</a></li>
         <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
-        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
-        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
+        <li><a th:href="@{/pricing}" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
+        <li><a th:href="@{/help} + '#organizers'" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
       </ul>
     </nav>
     <nav th:attr="aria-label=#{public.footer.company}" aria-label="Company">
       <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.company}">Company</h3>
       <ul class="space-y-2.5 text-sm">
-        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.about}">About iEvent</a></li>
+        <li><a th:href="@{/about}" class="transition hover:text-brand-300" th:text="#{public.footer.about}">About iEvent</a></li>
         <li><a th:href="@{/contact}" class="transition hover:text-brand-300" th:text="#{public.footer.contact}">Contact</a></li>
-        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.careers}">Careers</a></li>
-        <li><a href="#" class="transition hover:text-brand-300" th:text="#{public.footer.help}">Help center</a></li>
+                <li><a th:href="@{/help}" class="transition hover:text-brand-300" th:text="#{public.footer.help}">Help center</a></li>
         <li><a th:href="@{/privacy}" class="transition hover:text-brand-300" th:text="#{public.footer.privacyPolicy}">Privacy Policy</a></li>
         <li><a th:href="@{/terms}" class="transition hover:text-brand-300" th:text="#{public.footer.termsOfUse}">Terms of Use</a></li>
       </ul>

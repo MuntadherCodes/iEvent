@@ -275,7 +275,7 @@ public class SeedRunner implements CommandLineRunner {
                 "Zawraa Park Main Gate, Al-Mansour District, Baghdad",
                 base.plusDays(5).withHour(19), base.plusDays(6).withHour(0),
                 """
-                Baghdad Nights returns for its third — and biggest — edition. One unforgettable evening under the open sky of Al-Zawraa Park, bringing together the best of Iraq's live music scene: from classic maqam reimagined for a new generation to the freshest voices in Arabic indie and hip-hop.
+                Baghdad Nights returns for its third and biggest edition yet. One unforgettable evening under the open sky of Al-Zawraa Park, bringing together the best of Iraq's live music scene: from classic maqam reimagined for a new generation to the freshest voices in Arabic indie and hip-hop.
 
                 Expect three stages, a full street-food village curated by Baghdad's favourite kitchens, an artisan market, and a closing fireworks show over the park lake. Gates open at 5:30 PM for VIP ticket holders and 7:00 PM for general admission.
 
