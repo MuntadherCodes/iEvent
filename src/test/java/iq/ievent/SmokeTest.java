@@ -950,18 +950,21 @@ class SmokeTest {
     @Test
     void organizerEventCountExcludesUnpublished() throws Exception {
         // R20 #3: the public "events hosted" figure counts LIVE + ENDED only.
-        var org = organizations.findByHandle("zainevents").orElseThrow();
-        long before = likeCounts.eventsHostedForOrganization(org.getId());
+        // NOTE: the local must not be named "org" — it would shadow the
+        // org.* package root and break the org.junit FQNs below (the known
+        // offline-javac blind spot; this exact bug shipped once in R20).
+        var zain = organizations.findByHandle("zainevents").orElseThrow();
+        long before = likeCounts.eventsHostedForOrganization(zain.getId());
         var draft = r18Event("Smoke Count Draft", "smoke-count-draft");
         draft.setStatus(iq.ievent.domain.Event.Status.DRAFT);
         events.save(draft);
         org.junit.jupiter.api.Assertions.assertEquals(before,
-                likeCounts.eventsHostedForOrganization(org.getId()),
+                likeCounts.eventsHostedForOrganization(zain.getId()),
                 "a draft must not inflate the public event count");
         var live = r18Event("Smoke Count Live", "smoke-count-live");
         events.save(live);
         org.junit.jupiter.api.Assertions.assertEquals(before + 1,
-                likeCounts.eventsHostedForOrganization(org.getId()));
+                likeCounts.eventsHostedForOrganization(zain.getId()));
     }
 
     @Test
