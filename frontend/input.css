@@ -12,7 +12,26 @@
   html[lang="ar"]:has(#hostSidebar) {
     font-size: 112.5%;
   }
+  /* R25: the public site gets a smaller version of the same bump. Arabic body
+     copy at the Latin-tuned 14px/16px read visibly smaller than comparable
+     Arabic sites, so every rem-based size on public pages grows ~6%. The
+     host rule above stays at 112.5% (it is more specific and declared first,
+     but :has() adds specificity, so it still wins where it applies). */
+  html[lang="ar"] {
+    font-size: 106.25%;
+  }
 }
+
+/* R25: public type scale. Content/marketing pages (<main class="type-public">
+   and the home hero/newsletter sections) read larger than the app: supporting
+   text 14px -> 15px, labels 12px -> 13px, unclassed copy 16px -> 17px, with
+   roomier leading. :where() keeps specificity equal to the utilities, so only
+   source order (after @tailwind utilities) makes these win. Deliberately NOT
+   applied to event-card grids (their responsive text-xs/sm:text-sm pairs would
+   be flattened) or to the host console. */
+.type-public { font-size: 1.0625rem; }
+.type-public :where(.text-sm) { font-size: 0.9375rem; line-height: 1.6; }
+.type-public :where(.text-xs) { font-size: 0.8125rem; line-height: 1.5; }
 
 @layer components {
   /* Rich-text toolbar buttons (event description editor, origin + translated

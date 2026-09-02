@@ -8,7 +8,7 @@
 <th:block th:replace="~{fragments/layout :: header('')}"></th:block>
 <th:block th:replace="~{fragments/layout :: learnNav('help')}"></th:block>
 
-<main id="main" class="flex-1">
+<main id="main" class="type-public flex-1">
 
   <!-- ============ HERO ============ -->
   <section class="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-indigo-700 text-white">
@@ -16,7 +16,7 @@
     <div class="relative mx-auto max-w-3xl px-4 py-14 text-center sm:px-6 md:py-20 lg:px-8">
       <span class="inline-block rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white ring-1 ring-white/25" th:text="#{public.help.badge}">Help center</span>
       <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight md:text-5xl" th:text="#{public.help.title}">How can we help?</h1>
-      <p class="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brand-100 md:text-base" th:text="#{public.help.sub}">Everything you need to know about finding events, buying tickets and hosting on iEvent.</p>
+      <p class="mx-auto mt-4 max-w-xl leading-relaxed text-brand-100" th:text="#{public.help.sub}">Everything you need to know about finding events, buying tickets and hosting on iEvent.</p>
       <div class="mt-7 flex flex-wrap items-center justify-center gap-2">
         <a href="#attendees" class="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-pop transition hover:bg-brand-50"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="#{public.help.attTitle}">For attendees</span></a>
         <a href="#organizers" class="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-pop transition hover:bg-brand-50"><svg class="h-4 w-4 text-sky-600" aria-hidden="true"><use href="#i-megaphone"/></svg><span th:text="#{public.help.orgTitle}">For organizers</span></a>

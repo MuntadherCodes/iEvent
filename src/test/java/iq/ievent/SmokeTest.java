@@ -1205,6 +1205,8 @@ class SmokeTest {
         mockMvc.perform(get("/en/about"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Why people choose iEvent")))
+                // R25: public type scale is scoped to content pages
+                .andExpect(content().string(containsString("class=\"type-public flex-1\"")))
                 .andExpect(content().string(containsString("governorates, all of Iraq")))
                 .andExpect(content().string(containsString("href=\"/browse?city=Najaf\"")));
         mockMvc.perform(get("/en/features"))
