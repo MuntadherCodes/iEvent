@@ -96,7 +96,7 @@
         </div>
         <a th:href="@{/browse(when='weekend')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
         <th:block th:each="card : ${weekendEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
       </div>
     </div>
@@ -145,7 +145,7 @@
         </div>
         <a th:href="@{/browse(sort='popular')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
         <th:block th:each="card : ${trendingEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
       </div>
     </div>

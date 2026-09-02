@@ -442,7 +442,7 @@ sibling instead of nesting a <button> inside an <a> — invalid HTML that
 made the browser's click handling for the heart unreliable and could send
 clicks to the wrong place (the card's own link) instead of the like action. -->
 <div th:fragment="eventCard(card)"
-   class="group relative rounded-2xl border border-ink-100 bg-white shadow-card transition hover:-translate-y-0.5 hover:shadow-cardHover"
+   class="group relative rounded-2xl transition hover:-translate-y-0.5"
    th:classappend="${card.ended} ? 'opacity-75' : ''"
    th:attr="data-event-card=${card.slug}"
    th:with="grad=${card.coverTheme == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
@@ -466,19 +466,19 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
             : (card.coverTheme == 'family'    ? 'i-baby'
             :                                   'i-heart-handshake'))))))))}">
   <a th:href="@{/e/{s}(s=${card.slug})}" class="absolute inset-0 z-10 rounded-2xl" th:aria-label="${card.title}" aria-label="View event"></a>
-  <div class="relative aspect-[16/9] overflow-hidden rounded-t-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5" th:classappend="${grad}">
+  <div class="relative aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 transition group-hover:shadow-cardHover" th:classappend="${grad}">
     <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='p-'+${card.slug}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#p-'+${card.slug}+')'"/></svg>
     <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
     <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" class="absolute inset-0 h-full w-full object-cover" th:classappend="${card.ended} ? 'grayscale' : ''">
-    <span class="absolute start-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink-800" th:text="${card.categoryLabel}">Music</span>
+    <span class="absolute start-2 top-2 max-w-[55%] truncate rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink-800 sm:start-3 sm:top-3 sm:max-w-none sm:px-3 sm:text-xs" th:text="${card.categoryLabel}">Music</span>
     <!-- R20 #12: ended events stay listed (record + SEO) but read clearly as over -->
     <span th:if="${card.ended}" class="absolute bottom-3 start-3 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-bold text-white" th:text="#{public.card.ended}">Ended</span>
   </div>
-  <div class="p-4">
-    <p class="text-xs font-bold uppercase tracking-wide text-brand-600" th:text="${card.dateLine}">Sat, Sep 12 · 7:00 PM</p>
-    <h3 class="mt-1.5 font-display font-bold leading-snug text-ink-900 transition group-hover:text-brand-600" th:text="${card.title}">Baghdad Nights Music Festival</h3>
-    <p class="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${card.venueName != null ? card.venueName + ', ' + @t.city(card.city) : @t.city(card.city)}">Al-Zawraa Park, Baghdad</span></p>
-    <p class="mt-2.5 flex items-center justify-between text-sm font-semibold text-ink-800"><span class="tabular-nums" th:text="${card.priceLine}">From 25,000 IQD</span><span class="inline-flex items-center gap-1 text-xs font-medium tabular-nums text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-heart"/></svg><span data-likes-count th:text="${card.likes}">214</span></span></p>
+  <div class="px-1 pb-1 pt-3 sm:px-1.5">
+    <p class="text-[11px] font-bold uppercase tracking-wide text-brand-600 sm:text-xs" th:text="${card.dateLine}">Sat, Sep 12 · 7:00 PM</p>
+    <h3 class="mt-1 font-display text-sm font-bold leading-snug text-ink-900 transition group-hover:text-brand-600 sm:mt-1.5 sm:text-base" th:text="${card.title}">Baghdad Nights Music Festival</h3>
+    <p class="mt-1 flex items-center gap-1.5 text-xs text-ink-500 sm:mt-1.5 sm:text-sm"><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${card.venueName != null ? card.venueName + ', ' + @t.city(card.city) : @t.city(card.city)}">Al-Zawraa Park, Baghdad</span></p>
+    <p class="mt-2 flex items-center justify-between text-xs font-semibold text-ink-800 sm:mt-2.5 sm:text-sm"><span class="tabular-nums" th:text="${card.priceLine}">From 25,000 IQD</span><span class="inline-flex items-center gap-1 text-xs font-medium tabular-nums text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-heart"/></svg><span data-likes-count th:text="${card.likes}">214</span></span></p>
   </div>
   <!-- Sibling of (not nested in) the stretched link above, with a higher z-index, so it
        wins the click over the card's own link instead of being swallowed by it or by it
@@ -486,10 +486,10 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
        — see the shared click handler below — and starts unfilled; the page-load fetch of
        /me/liked-events fills in already-liked cards a moment later. Share works for
        signed-out visitors too, so it isn't gated behind currentUser like save is. -->
-  <div class="absolute end-3 top-3 z-20 flex items-center gap-2">
-    <button th:if="${currentUser != null}" type="button" data-like-btn th:attr="data-slug=${card.slug},aria-label=#{public.card.saveAria}" aria-label="Save event" aria-pressed="false" class="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
-    <a th:if="${currentUser == null}" th:href="@{/auth/login}" th:attr="aria-label=#{public.card.saveAria}" aria-label="Save event" class="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></a>
-    <button type="button" data-share-btn th:attr="data-url=@{/e/{s}(s=${card.slug})},data-title=${card.title},aria-label=#{public.event.shareAria}" aria-label="Share event" class="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg></button>
+  <div class="absolute end-2 top-2 z-20 flex items-center gap-1.5 sm:end-3 sm:top-3 sm:gap-2">
+    <button th:if="${currentUser != null}" type="button" data-like-btn th:attr="data-slug=${card.slug},aria-label=#{public.card.saveAria}" aria-label="Save event" aria-pressed="false" class="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500 sm:h-9 sm:w-9"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
+    <a th:if="${currentUser == null}" th:href="@{/auth/login}" th:attr="aria-label=#{public.card.saveAria}" aria-label="Save event" class="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500 sm:h-9 sm:w-9"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></a>
+    <button type="button" data-share-btn th:attr="data-url=@{/e/{s}(s=${card.slug})},data-title=${card.title},aria-label=#{public.event.shareAria}" aria-label="Share event" class="hidden h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600 sm:grid"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg></button>
   </div>
 </div>
 

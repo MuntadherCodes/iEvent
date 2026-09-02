@@ -105,22 +105,12 @@
     <form th:action="@{/browse}" method="get" class="space-y-7">
       <input type="hidden" name="category" th:value="${selectedCategory}">
       <input type="hidden" name="sort" th:value="${selectedSort}">
+      <input type="hidden" name="when" th:value="${selectedWhen}">
       <fieldset>
         <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.search}">Search</legend>
         <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3">
           <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
           <input type="text" name="q" th:value="${q}" data-suggest class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.date}">Date</legend>
-        <div class="space-y-2.5 text-sm">
-          <label class="flex cursor-pointer items-center gap-3"><input type="radio" name="when" value="" th:checked="${selectedWhen == ''}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.anyDate}]]</label>
-          <label class="flex cursor-pointer items-center gap-3"><input type="radio" name="when" value="today" th:checked="${selectedWhen == 'today'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.today}]]</label>
-          <label class="flex cursor-pointer items-center gap-3"><input type="radio" name="when" value="tomorrow" th:checked="${selectedWhen == 'tomorrow'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.tomorrow}]]</label>
-          <label class="flex cursor-pointer items-center gap-3"><input type="radio" name="when" value="weekend" th:checked="${selectedWhen == 'weekend'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.thisWeekend}]]</label>
-          <label class="flex cursor-pointer items-center gap-3"><input type="radio" name="when" value="week" th:checked="${selectedWhen == 'week'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.next7Days}]]</label>
-          <label class="flex cursor-pointer items-center gap-3"><input type="radio" name="when" value="month" th:checked="${selectedWhen == 'month'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.thisMonth}]]</label>
         </div>
       </fieldset>
       <fieldset>
@@ -155,26 +145,15 @@
 
         <!-- Desktop sidebar -->
         <aside class="hidden lg:block" th:attr="aria-label=#{public.browse.filters}" aria-label="Filters">
-          <form th:action="@{/browse}" method="get" class="sticky top-36 space-y-7 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
+          <form th:action="@{/browse}" method="get" class="sticky top-36 space-y-7 rounded-2xl bg-ink-50/60 p-6">
             <input type="hidden" name="category" th:value="${selectedCategory}">
             <input type="hidden" name="sort" th:value="${selectedSort}">
+            <input type="hidden" name="when" th:value="${selectedWhen}">
             <fieldset>
               <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.search}">Search</legend>
               <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 transition focus-within:border-brand-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-100">
                 <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
                 <input type="text" name="q" th:value="${q}" data-suggest class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
-              </div>
-            </fieldset>
-            <hr class="border-ink-100">
-            <fieldset>
-              <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.date}">Date</legend>
-              <div class="space-y-2.5 text-sm">
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="when" value="" th:checked="${selectedWhen == ''}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.anyDate}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="when" value="today" th:checked="${selectedWhen == 'today'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.today}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="when" value="tomorrow" th:checked="${selectedWhen == 'tomorrow'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.tomorrow}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="when" value="weekend" th:checked="${selectedWhen == 'weekend'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.thisWeekend}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="when" value="week" th:checked="${selectedWhen == 'week'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.next7Days}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="when" value="month" th:checked="${selectedWhen == 'month'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.thisMonth}]]</label>
               </div>
             </fieldset>
             <hr class="border-ink-100">
@@ -239,7 +218,7 @@
 
           <p class="mb-5 text-sm text-ink-500" th:if="${results.totalElements > 0}">[[#{public.browse.showing}]] <span class="font-bold tabular-nums text-ink-800" th:text="${results.numberOfElements}">9</span> [[#{public.browse.of}]] <span class="font-bold tabular-nums text-ink-800" th:text="${totalCountLine}">1,248</span> [[#{public.home.eventsWord}]]</p>
 
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3" th:if="${results.totalElements > 0}">
+          <div class="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-3" th:if="${results.totalElements > 0}">
             <th:block th:each="card : ${results.content}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
           </div>
 

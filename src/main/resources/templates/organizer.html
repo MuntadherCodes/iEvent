@@ -71,7 +71,7 @@
 
       <!-- UPCOMING -->
       <div id="tab-upcoming" role="tabpanel" class="tab-panel pt-8">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" th:if="${!events.isEmpty()}">
+        <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4" th:if="${!events.isEmpty()}">
           <th:block th:each="card : ${events}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
         </div>
         <!-- Empty state -->
@@ -85,7 +85,7 @@
 
       <!-- PAST -->
       <div id="tab-past" role="tabpanel" class="tab-panel hidden pt-8">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" th:if="${!ox.pastEvents().isEmpty()}">
+        <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3" th:if="${!ox.pastEvents().isEmpty()}">
           <a th:each="p : ${ox.pastEvents()}" th:href="@{/e/{s}(s=${p.slug()})}"
              class="group block rounded-2xl border border-ink-100 bg-white opacity-70 shadow-card transition hover:-translate-y-0.5 hover:opacity-90 hover:shadow-cardHover"
              th:with="pgrad=${p.coverTheme() == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'

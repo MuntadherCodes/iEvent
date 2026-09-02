@@ -1222,4 +1222,22 @@ class SmokeTest {
                 .andExpect(content().string(containsString("checked in at the door")))
                 .andExpect(content().string(not(containsString("Baghdad Nights Music Festival"))));
     }
+
+    // ---- R24: listing layout (2-up mobile grid, borderless cards, deduped browse filters) ----
+
+    @Test
+    void browseGridIsTwoUpOnMobileWithBorderlessCardsAndSingleDateControl() throws Exception {
+        mockMvc.perform(get("/en/browse?when=month&price=free"))
+                .andExpect(status().isOk())
+                // two cards per row on phones
+                .andExpect(content().string(containsString("grid grid-cols-2 gap-3 sm:gap-6")))
+                // cards no longer carry the boxed look
+                .andExpect(content().string(containsString("data-event-card=")))
+                .andExpect(content().string(not(containsString("bg-white shadow-card transition hover:-translate-y-0.5 hover:shadow-cardHover"))))
+                // the date filter lives only in the chip row; the side forms carry it hidden
+                .andExpect(content().string(not(containsString("type=\"radio\" name=\"when\""))))
+                .andExpect(content().string(containsString("type=\"hidden\" name=\"when\" value=\"month\"")))
+                // the price radios remain in the side forms
+                .andExpect(content().string(containsString("type=\"radio\" name=\"price\" value=\"free\"")));
+    }
 }
