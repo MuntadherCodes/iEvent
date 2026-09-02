@@ -3403,6 +3403,9 @@ test('cc. public content pages (R21): about, help center and pricing render in b
   await expect(page.locator('h1')).toContainText('before they miss it');
   await expect(page.getByText('Your audience finds you')).toBeVisible();
   await expect(page.getByText('All of Iraq', { exact: true })).toBeVisible();
+  // R23: lively about page carries the stat strip, city tiles and the "why" promises
+  await expect(page.getByText('Why people choose iEvent')).toBeVisible();
+  await expect(page.locator('a[href="/browse?city=Najaf"]').first()).toBeVisible();
 
   log('the Arabic about page uses the Iraqi voice');
   // the /en visit above set the en cookie, so switch back to Arabic explicitly

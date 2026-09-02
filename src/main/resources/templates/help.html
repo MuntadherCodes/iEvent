@@ -11,14 +11,16 @@
 <main id="main" class="flex-1">
 
   <!-- ============ HERO ============ -->
-  <section class="bg-gradient-to-b from-brand-50/70 to-white">
-    <div class="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 md:py-16 lg:px-8">
-      <span class="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-700" th:text="#{public.help.badge}">Help center</span>
-      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="#{public.help.title}">How can we help?</h1>
-      <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-ink-500" th:text="#{public.help.sub}">Everything you need to know about finding events, buying tickets and hosting on iEvent.</p>
-      <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
-        <a href="#attendees" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="#{public.help.attTitle}">For attendees</span></a>
-        <a href="#organizers" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#i-megaphone"/></svg><span th:text="#{public.help.orgTitle}">For organizers</span></a>
+  <section class="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-indigo-700 text-white">
+    <div th:replace="~{fragments/layout :: heroDecor}"></div>
+    <div class="relative mx-auto max-w-3xl px-4 py-14 text-center sm:px-6 md:py-20 lg:px-8">
+      <span class="inline-block rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white ring-1 ring-white/25" th:text="#{public.help.badge}">Help center</span>
+      <h1 class="mt-4 font-display text-3xl font-extrabold tracking-tight md:text-5xl" th:text="#{public.help.title}">How can we help?</h1>
+      <p class="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brand-100 md:text-base" th:text="#{public.help.sub}">Everything you need to know about finding events, buying tickets and hosting on iEvent.</p>
+      <div class="mt-7 flex flex-wrap items-center justify-center gap-2">
+        <a href="#attendees" class="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-pop transition hover:bg-brand-50"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use href="#i-ticket"/></svg><span th:text="#{public.help.attTitle}">For attendees</span></a>
+        <a href="#organizers" class="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-pop transition hover:bg-brand-50"><svg class="h-4 w-4 text-sky-600" aria-hidden="true"><use href="#i-megaphone"/></svg><span th:text="#{public.help.orgTitle}">For organizers</span></a>
+        <a th:href="@{/guides}" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/25"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-graduation-cap"/></svg><span th:text="#{learn.nav.guides}">Guides</span></a>
       </div>
     </div>
   </section>
@@ -28,14 +30,14 @@
     <!-- ============ ATTENDEES ============ -->
     <section id="attendees" class="scroll-mt-24 pt-8">
       <div class="flex items-center gap-3">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-ticket"/></svg></span>
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-fuchsia-500 text-white shadow-pop"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-ticket"/></svg></span>
         <div>
           <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{public.help.attTitle}">For attendees</h2>
           <p class="text-sm text-ink-500" th:text="#{public.help.attSub}">Finding events, tickets, payments and what happens at the door.</p>
         </div>
       </div>
       <div class="mt-5 space-y-3">
-        <details th:each="i : ${#numbers.sequence(1, 8)}" class="group rounded-2xl border border-ink-100 bg-white shadow-card open:border-brand-200">
+        <details th:each="i : ${#numbers.sequence(1, 8)}" class="group rounded-2xl border border-ink-100 bg-white shadow-card open:border-brand-300 open:bg-gradient-to-br open:from-brand-50/60 open:to-white">
           <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-semibold text-ink-900 [&::-webkit-details-marker]:hidden">
             <span th:text="#{${'public.help.a' + i + 'q'}}">Question</span>
             <svg class="h-4 w-4 shrink-0 text-ink-400 transition group-open:rotate-180" aria-hidden="true"><use href="#i-chevron-down"/></svg>
@@ -48,14 +50,14 @@
     <!-- ============ ORGANIZERS ============ -->
     <section id="organizers" class="scroll-mt-24 pt-12">
       <div class="flex items-center gap-3">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-megaphone"/></svg></span>
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-600 text-white shadow-pop"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-megaphone"/></svg></span>
         <div>
           <h2 class="font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{public.help.orgTitle}">For organizers</h2>
           <p class="text-sm text-ink-500" th:text="#{public.help.orgSub}">Publishing your event, getting paid and running the door.</p>
         </div>
       </div>
       <div class="mt-5 space-y-3">
-        <details th:each="i : ${#numbers.sequence(1, 9)}" class="group rounded-2xl border border-ink-100 bg-white shadow-card open:border-brand-200">
+        <details th:each="i : ${#numbers.sequence(1, 9)}" class="group rounded-2xl border border-ink-100 bg-white shadow-card open:border-brand-300 open:bg-gradient-to-br open:from-brand-50/60 open:to-white">
           <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-semibold text-ink-900 [&::-webkit-details-marker]:hidden">
             <span th:text="#{${'public.help.o' + i + 'q'}}">Question</span>
             <svg class="h-4 w-4 shrink-0 text-ink-400 transition group-open:rotate-180" aria-hidden="true"><use href="#i-chevron-down"/></svg>
@@ -65,18 +67,9 @@
       </div>
     </section>
 
-    <!-- ============ STILL NEED HELP ============ -->
-    <section class="mt-12 rounded-2xl border border-brand-100 bg-brand-50/60 p-7 text-center sm:p-9">
-      <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-brand-600 shadow-card"><svg class="h-6 w-6" aria-hidden="true"><use href="#i-message-circle"/></svg></span>
-      <h2 class="mt-4 font-display text-xl font-extrabold tracking-tight text-ink-900" th:text="#{public.help.stillTitle}">Still need help?</h2>
-      <p class="mx-auto mt-2 max-w-md text-sm text-ink-600" th:text="#{public.help.stillSub}">Questions, issues or feedback. We read every message and reply by email.</p>
-      <div class="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a th:href="@{/contact}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-7 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]"><span th:text="#{public.help.contactBtn}">Contact us</span></a>
-        <a th:href="@{/guides}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-7 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-graduation-cap"/></svg><span th:text="#{learn.nav.guides}">Guides</span></a>
-      </div>
-    </section>
-
   </div>
+
+  <section th:replace="~{fragments/layout :: ctaBand(#{public.help.stillTitle}, #{public.help.stillSub}, @{/contact}, #{public.help.contactBtn}, 'i-message-circle', @{/guides}, #{learn.nav.guides})}"></section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

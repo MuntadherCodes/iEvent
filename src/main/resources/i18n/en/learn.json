@@ -296,5 +296,20 @@
   "learn.go.ctaTitle": "Your audience is already browsing",
   "learn.go.ctaSub": "Everything you just read is free to try during the beta. The wizard is waiting.",
   "learn.go.ctaBtn": "Host an event",
-  "learn.go.ctaHelp": "More questions? Visit the help center"
+  "learn.go.ctaHelp": "More questions? Visit the help center",
+  "learn.stats.cities": "governorates, all of Iraq",
+  "learn.stats.categories": "event categories, from summits to sports",
+  "learn.stats.fees": "IQD in platform fees during the beta",
+  "learn.stats.languages": "languages, Arabic first and English always",
+  "learn.why.title": "Why people choose iEvent",
+  "learn.why.sub": "Four promises we keep on every event, in every city.",
+  "learn.why.w1Title": "Tickets in seconds",
+  "learn.why.w1Body": "Free events confirm instantly. Paid ones arrive the moment the organizer confirms your transfer.",
+  "learn.why.w2Title": "Money goes straight to the organizer",
+  "learn.why.w2Body": "No middleman holding funds and no foreign gateway needed. Pay the way Iraq already pays.",
+  "learn.why.w3Title": "One QR, one scan",
+  "learn.why.w3Body": "Every ticket is unique and validates exactly once at the door, on a phone or a USB scanner.",
+  "learn.why.w4Title": "Real people answer",
+  "learn.why.w4Body": "Questions, issues and feedback get a human reply by email. We read every message.",
+  "learn.cities.eyebrow": "Events in"
 }

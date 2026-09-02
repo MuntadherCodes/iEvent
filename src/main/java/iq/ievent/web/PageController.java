@@ -43,22 +43,23 @@ public class PageController {
 
     /** Category filter options shown on browse; value ↔ Event.Category name.
      *  Order drives every place this list is rendered (browse filter, host
-     *  wizard dropdown, homepage tiles, newsletter picker) — led with what's
-     *  actually most common in the live catalog (education courses and
-     *  community fairs), then the rest by general likelihood in Iraq. */
+     *  wizard dropdown, homepage tiles, newsletter picker) — led with the
+     *  platform's focus (business, learning, community, culture), see R23. */
     public record CategoryOption(String value, String label) {}
 
     public static final List<CategoryOption> CATEGORIES = List.of(
+            // Order = platform focus (R23): business, learning, community and culture
+            // lead; music/film close the list. Drives the home tiles and browse chips.
+            new CategoryOption("BUSINESS", "Business"),
             new CategoryOption("EDUCATION", "Education"),
             new CategoryOption("COMMUNITY", "Community"),
-            new CategoryOption("BUSINESS", "Business"),
-            new CategoryOption("FOOD", "Food & Drink"),
-            new CategoryOption("TECH", "Tech"),
-            new CategoryOption("MUSIC", "Music"),
-            new CategoryOption("SPORTS", "Sports"),
             new CategoryOption("ARTS", "Arts & Culture"),
+            new CategoryOption("TECH", "Tech"),
+            new CategoryOption("FOOD", "Food & Drink"),
+            new CategoryOption("SPORTS", "Sports"),
             new CategoryOption("FAMILY", "Family"),
-            new CategoryOption("FILM", "Film & Media"));
+            new CategoryOption("FILM", "Film & Media"),
+            new CategoryOption("MUSIC", "Music"));
 
     private static final List<String> WHEN_VALUES = List.of("today", "tomorrow", "weekend", "week", "month");
 

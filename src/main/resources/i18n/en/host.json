@@ -517,11 +517,11 @@
   "host.start.handleHint": "Leave blank and we'll create one from your name.",
   "host.start.locationReach": "Location & reach",
   "host.start.mockAmount": "5,450,000 IQD",
-  "host.start.mockDate": "Sat, Sep 12 · 7:00 PM",
-  "host.start.mockPrice": "From 25,000 IQD",
+  "host.start.mockDate": "Thu, Oct 15 · 9:00 AM",
+  "host.start.mockPrice": "From 15,000 IQD",
   "host.start.mockSold": "tickets sold",
-  "host.start.mockTitle": "Baghdad Nights Music Festival",
-  "host.start.mockVenue": "Al-Zawraa Park, Baghdad",
+  "host.start.mockTitle": "Baghdad Tech & Business Summit 2026",
+  "host.start.mockVenue": "Babylon Hotel, Baghdad",
   "host.start.mockWallet": "straight to your wallet",
   "host.start.orgName": "Organizer name",
   "host.start.orgNamePlaceholder": "e.g. Zain Events Co.",
@@ -576,5 +576,10 @@
   "host.topbar.markAllRead": "Mark all read",
   "host.topbar.notifications": "Notifications",
   "host.topbar.signOut": "Sign out",
-  "host.topbar.viewAll": "View all"
+  "host.topbar.viewAll": "View all",
+  "host.start.mock2Title": "Founders Workshop: From Idea to Launch",
+  "host.start.mock2Meta": "Erbil · 24 seats",
+  "host.start.mock3Title": "Basra Design & Crafts Exhibition",
+  "host.start.mock3Meta": "Basra · 3 days",
+  "host.start.mockCheckedIn": "checked in at the door"
 }

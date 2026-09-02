@@ -517,11 +517,11 @@
   "host.start.handleHint": "اتركه فارغًا وسننشئ واحدًا من اسمك.",
   "host.start.locationReach": "الموقع والانتشار",
   "host.start.mockAmount": "5,450,000 د.ع",
-  "host.start.mockDate": "السبت 12 أيلول · 7:00 مساءً",
-  "host.start.mockPrice": "ابتداءً من 25,000 د.ع",
+  "host.start.mockDate": "الخميس 15 تشرين الأول · 9:00 صباحاً",
+  "host.start.mockPrice": "ابتداءً من 15,000 د.ع",
   "host.start.mockSold": "تذكرة مباعة",
-  "host.start.mockTitle": "مهرجان ليالي بغداد الموسيقي",
-  "host.start.mockVenue": "متنزه الزوراء، بغداد",
+  "host.start.mockTitle": "قمة بغداد للتقنية والأعمال 2026",
+  "host.start.mockVenue": "فندق بابل، بغداد",
   "host.start.mockWallet": "مباشرة إلى محفظتك",
   "host.start.orgName": "اسم المنظّم",
   "host.start.orgNamePlaceholder": "مثال: شركة زين للفعاليات",
@@ -576,5 +576,10 @@
   "host.topbar.markAllRead": "تحديد الكل كمقروء",
   "host.topbar.notifications": "الإشعارات",
   "host.topbar.signOut": "تسجيل الخروج",
-  "host.topbar.viewAll": "عرض الكل"
+  "host.topbar.viewAll": "عرض الكل",
+  "host.start.mock2Title": "ورشة روّاد الأعمال: من الفكرة إلى الإطلاق",
+  "host.start.mock2Meta": "أربيل · 24 مقعداً",
+  "host.start.mock3Title": "معرض البصرة للتصميم والحرف",
+  "host.start.mock3Meta": "البصرة · 3 أيام",
+  "host.start.mockCheckedIn": "سجّلوا وصولهم على الباب"
 }

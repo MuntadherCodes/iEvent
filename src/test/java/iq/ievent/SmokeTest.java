@@ -1181,4 +1181,45 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/solutions")));
     }
+
+    // ---- R23: focus copy, city-led footer, lively content pages, onboarding visual ----
+
+    @Test
+    void homeAndFooterLeadWithTheVisionNotMusic() throws Exception {
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Conferences, workshops, exhibitions, festivals and community gatherings")))
+                // footer Discover column is city-led now
+                .andExpect(content().string(containsString("href=\"/browse?city=Baghdad\"")))
+                .andExpect(content().string(containsString("href=\"/browse?city=Erbil\"")))
+                // the old footer "Tech & Business" shortcut is gone (the category
+                // strip on the home page still lists every category, music last)
+                .andExpect(content().string(not(containsString("Tech &amp; Business"))));
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("اعرف ما يجري في مدينتك قبل أن يفوتك")));
+    }
+
+    @Test
+    void contentPagesCarryStatsWhyAndCityTiles() throws Exception {
+        mockMvc.perform(get("/en/about"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Why people choose iEvent")))
+                .andExpect(content().string(containsString("governorates, all of Iraq")))
+                .andExpect(content().string(containsString("href=\"/browse?city=Najaf\"")));
+        mockMvc.perform(get("/en/features"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("event categories, from summits to sports")));
+    }
+
+    @Test
+    void onboardingVisualShowsBreadthNotJustMusic() throws Exception {
+        // the demo buyer has no organization, so /host/start renders the funnel
+        mockMvc.perform(get("/en/host/start").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Business Summit 2026")))
+                .andExpect(content().string(containsString("Founders Workshop")))
+                .andExpect(content().string(containsString("checked in at the door")))
+                .andExpect(content().string(not(containsString("Baghdad Nights Music Festival"))));
+    }
 }

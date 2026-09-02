@@ -565,6 +565,59 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
   </nav>
 </div>
 
+<!-- ============ HERO DECOR FRAGMENT ============ -->
+<!-- Background layer for the dark gradient heroes on content pages: dot grid
+     plus three soft color blobs in the brand family. Drop inside a
+     `relative overflow-hidden` section, before the content wrapper. -->
+<div th:fragment="heroDecor" class="pointer-events-none absolute inset-0" aria-hidden="true">
+  <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="hero-dots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#hero-dots)"/></svg>
+  <div class="absolute -start-24 -top-24 h-80 w-80 rounded-full bg-fuchsia-400/30 blur-3xl"></div>
+  <div class="absolute -end-24 top-1/3 h-96 w-96 rounded-full bg-sky-400/25 blur-3xl"></div>
+  <div class="absolute bottom-0 start-1/3 h-56 w-56 rounded-full bg-amber-300/20 blur-3xl"></div>
+</div>
+
+<!-- ============ STAT STRIP FRAGMENT ============ -->
+<!-- Four real numbers about the platform. Cities count is live from @t.cities(). -->
+<div th:fragment="statStrip" class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <div class="rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-5 text-white shadow-pop">
+    <p class="font-display text-3xl font-extrabold tabular-nums" dir="ltr" th:text="${#lists.size(@t.cities())}">19</p>
+    <p class="mt-1 text-sm font-medium text-brand-100" th:text="#{learn.stats.cities}">governorates, all of Iraq</p>
+  </div>
+  <div class="rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 p-5 text-white shadow-pop">
+    <p class="font-display text-3xl font-extrabold tabular-nums" dir="ltr">10</p>
+    <p class="mt-1 text-sm font-medium text-sky-100" th:text="#{learn.stats.categories}">event categories</p>
+  </div>
+  <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-pop">
+    <p class="font-display text-3xl font-extrabold tabular-nums" dir="ltr">0</p>
+    <p class="mt-1 text-sm font-medium text-emerald-100" th:text="#{learn.stats.fees}">IQD in platform fees during the beta</p>
+  </div>
+  <div class="rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-5 text-white shadow-pop">
+    <p class="font-display text-3xl font-extrabold tabular-nums" dir="ltr">2</p>
+    <p class="mt-1 text-sm font-medium text-amber-50" th:text="#{learn.stats.languages}">languages, Arabic and English</p>
+  </div>
+</div>
+
+<!-- ============ CTA BAND FRAGMENT ============ -->
+<!-- Dark closing call-to-action shared by the content pages. All args are
+     resolved strings; pass null for secondaryHref to hide the second button. -->
+<section th:fragment="ctaBand(title, sub, primaryHref, primaryLabel, primaryIcon, secondaryHref, secondaryLabel)" class="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8">
+  <div class="relative overflow-hidden rounded-3xl bg-ink-900 px-6 py-12 text-center text-white sm:px-10 md:py-16">
+    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div class="absolute -start-20 -top-20 h-72 w-72 rounded-full bg-brand-500/40 blur-3xl"></div>
+      <div class="absolute -bottom-24 -end-16 h-80 w-80 rounded-full bg-fuchsia-500/30 blur-3xl"></div>
+      <div class="absolute start-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-sky-400/20 blur-3xl rtl:translate-x-1/2"></div>
+    </div>
+    <div class="relative">
+      <h2 class="font-display text-2xl font-extrabold tracking-tight md:text-3xl" th:text="${title}">Title</h2>
+      <p class="mx-auto mt-3 max-w-xl text-ink-300" th:text="${sub}">Sub</p>
+      <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a th:href="${primaryHref}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-white px-7 py-3 font-semibold text-ink-900 shadow-pop transition hover:bg-brand-50 active:scale-[.98]"><svg class="h-4 w-4 text-brand-600" aria-hidden="true"><use th:attr="href='#' + ${primaryIcon}"/></svg><span th:text="${primaryLabel}">Go</span></a>
+        <a th:if="${secondaryHref != null}" th:href="${secondaryHref}" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 py-3 font-semibold text-white transition hover:bg-white/15"><span th:text="${secondaryLabel}">More</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ SCREENSHOT SLOT FRAGMENT ============ -->
 <!-- Reserved space for a product screenshot. Drop the real image at
      src/main/resources/static/img/shots/{name}.png at the labeled size and it
@@ -603,8 +656,7 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
       <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.discover}">Discover</h3>
       <ul class="space-y-2.5 text-sm">
         <li><a th:href="@{/browse}" class="transition hover:text-brand-300" th:text="#{public.nav.browse}">Browse events</a></li>
-        <li><a th:href="@{/browse(category='MUSIC')}" class="transition hover:text-brand-300" th:text="#{public.footer.music}">Music</a></li>
-        <li><a th:href="@{/browse(category='TECH')}" class="transition hover:text-brand-300" th:text="#{public.footer.techBusiness}">Tech &amp; Business</a></li>
+        <li th:each="c : ${ {'Baghdad','Erbil','Basra','Mosul'} }"><a th:href="@{/browse(city=${c})}" class="transition hover:text-brand-300" th:text="${@t.city(c)}">Baghdad</a></li>
         <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300" th:text="#{public.footer.freeEvents}">Free events</a></li>
       </ul>
     </nav>
