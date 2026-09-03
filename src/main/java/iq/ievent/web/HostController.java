@@ -391,6 +391,7 @@ public class HostController {
                               @RequestParam(required = false) String venueAddress,
                               @RequestParam(required = false) String locationType,
                               @RequestParam(required = false) String onlineUrl,
+                              @RequestParam(required = false) String onlineInstructions,
                               @RequestParam(required = false) String mapsUrl,
                               @RequestParam(required = false) String date,
                               @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
@@ -475,6 +476,7 @@ public class HostController {
             hostService.syncEventCategories(created.getId(), cats);
             created.setLocationType(loc.type());
             created.setOnlineUrl(loc.onlineUrl());
+            created.setOnlineInstructions("ONLINE".equals(loc.type()) ? onlineInstructions : null);
             created.setMapsUrl(loc.mapsUrl());
             created.setAnnounceOnly(announceOnly);
             applyExtras(created, org, summary, tags, lineup, visibility, refundPolicy, feeMode,
@@ -549,6 +551,7 @@ public class HostController {
                               @RequestParam(required = false) String venueAddress,
                               @RequestParam(required = false) String locationType,
                               @RequestParam(required = false) String onlineUrl,
+                              @RequestParam(required = false) String onlineInstructions,
                               @RequestParam(required = false) String mapsUrl,
                               @RequestParam(required = false) String date,
                               @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
@@ -588,6 +591,7 @@ public class HostController {
             hostService.syncEventCategories(ev.getId(), cats);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
+            ev.setOnlineInstructions("ONLINE".equals(loc.type()) ? onlineInstructions : null);
             ev.setMapsUrl(loc.mapsUrl());
             ev.setAnnounceOnly(announceOnly);
             // Autosave partial-saves the wizard draft — it never touches payment
@@ -642,14 +646,7 @@ public class HostController {
                         String.format(java.util.Locale.ENGLISH, "%.1f", 100.0 * sold / views))
                 : msg("console.noViews"));
         model.addAttribute("eventOrders", ordersForEvent(ev.getId()));
-        java.time.ZonedDateTime zc = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
-        // TBA stores a far-future placeholder — leave the postpone date blank
-        // so the host has to pick a real one.
-        model.addAttribute("postponeDate",
-                "TBA".equals(dateModeOf(ev)) ? "" : zc.toLocalDate().toString());
-        model.addAttribute("postponeStart", zc.toLocalTime().toString().substring(0, 5));
-        model.addAttribute("postponeEnd", ev.getEndsAt() == null ? ""
-                : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalTime().toString().substring(0, 5));
+        addPostponeModel(model, ev);
         model.addAttribute("shareBase", baseUrl);
         return "host/event-console";
     }
@@ -697,8 +694,7 @@ public class HostController {
                 // tells this form to show that back as blank instead of the noon
                 // placeholder that was actually stored.
                 ev.isHasStartTime() ? z.toLocalTime().toString().substring(0, 5) : "",
-                ev.getEndsAt() == null ? "" : ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD)
-                        .toLocalTime().toString().substring(0, 5),
+                endTimeForForm(ev),
                 iq.ievent.service.RichText.repairForEdit(ev.getDescription()),
                 ev.getSummary() == null ? "" : ev.getSummary(),
                 ev.getTags() == null ? "" : ev.getTags(),
@@ -721,7 +717,8 @@ public class HostController {
                         ? ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalDate().toString() : "",
                 // input type=month wants "yyyy-MM"
                 "MONTH".equals(dateModeOf(ev)) ? z.toLocalDate().toString().substring(0, 7) : "",
-                ev.isAutoConfirmOrders()));
+                ev.isAutoConfirmOrders(),
+                ev.getOnlineInstructions() == null ? "" : ev.getOnlineInstructions()));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
         model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
@@ -740,10 +737,7 @@ public class HostController {
         model.addAttribute("currentTheme", ev.getCoverTheme());
         model.addAttribute("coverFocusY", ev.getCoverFocusY());
         model.addAttribute("galleryImagesJson", galleryImagesJson(hostService.currentGalleryPicks(ev)));
-        // TBA stores a far-future placeholder — same blank-out as the console's
-        // postpone dialog, so 2099 never pre-fills a date picker.
-        model.addAttribute("postponeDate",
-                "TBA".equals(dateModeOf(ev)) ? "" : z.toLocalDate().toString());
+        addPostponeModel(model, ev);
         String targetLang = "ar".equals(ev.getLanguage()) ? "en" : "ar";
         model.addAttribute("targetLang", targetLang);
         model.addAttribute("targetLangName", msg("en".equals(targetLang) ? "common.english" : "common.arabic"));
@@ -789,7 +783,8 @@ public class HostController {
                                 String locationType, String onlineUrl, String mapsUrl,
                                 boolean announceOnly, String feeMode, boolean requirePaymentProof,
                                 String dateMode, String endDate, String monthValue,
-                                boolean autoConfirmOrders) {}
+                                boolean autoConfirmOrders,
+                                String onlineInstructions) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -804,6 +799,7 @@ public class HostController {
                               @RequestParam(required = false) String venueAddress,
                               @RequestParam(required = false) String locationType,
                               @RequestParam(required = false) String onlineUrl,
+                              @RequestParam(required = false) String onlineInstructions,
                               @RequestParam(required = false) String mapsUrl,
                               @RequestParam(required = false) String date,
                               @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
@@ -856,6 +852,7 @@ public class HostController {
             hostService.syncEventCategories(ev.getId(), cats);
             ev.setLocationType(loc.type());
             ev.setOnlineUrl(loc.onlineUrl());
+            ev.setOnlineInstructions("ONLINE".equals(loc.type()) ? onlineInstructions : null);
             ev.setMapsUrl(loc.mapsUrl());
             ev.setAnnounceOnly(announceOnly);
             applyExtras(ev, org, summary, tags, lineup, visibility, refundPolicy, feeMode,
@@ -1099,6 +1096,35 @@ public class HostController {
 
     /** The dateMode value ("EXACT"/"RANGE"/"MONTH"/"TBA") the edit form should
      *  reopen with for an existing event. */
+    /** Pre-fills the postpone form with the event's CURRENT schedule in the
+     *  wizard's own shape (mode + date/endDate/month/start/end). */
+    private void addPostponeModel(Model model, Event ev) {
+        String mode = dateModeOf(ev);
+        java.time.ZonedDateTime z = ev.getStartsAt().atZoneSameInstant(Format.BAGHDAD);
+        model.addAttribute("ppMode", mode);
+        model.addAttribute("ppDate", "TBA".equals(mode) || "MONTH".equals(mode) ? "" : z.toLocalDate().toString());
+        model.addAttribute("ppEndDate", "RANGE".equals(mode) && ev.getEndsAt() != null
+                ? ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalDate().toString() : "");
+        model.addAttribute("ppMonth", "MONTH".equals(mode) ? z.toLocalDate().toString().substring(0, 7) : "");
+        model.addAttribute("ppStart", ev.isHasStartTime() ? z.toLocalTime().toString().substring(0, 5) : "");
+        model.addAttribute("ppEnd", endTimeForForm(ev));
+        // legacy names still read by older markup
+        model.addAttribute("postponeDate", model.getAttribute("ppDate"));
+        model.addAttribute("postponeStart", model.getAttribute("ppStart"));
+        model.addAttribute("postponeEnd", model.getAttribute("ppEnd"));
+    }
+
+    /** End time as the form should show it. A multi-day event with no explicit end
+     *  time is stored as 23:59 on its last day (see HostService.applyWhen) and an
+     *  event without a start time has no meaningful end either: both show blank
+     *  instead of an end time the host never typed (R31 #1). */
+    public static String endTimeForForm(Event ev) {
+        if (ev.getEndsAt() == null || !ev.isHasStartTime()) return "";
+        java.time.LocalTime end = ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalTime();
+        if ("RANGE".equals(dateModeOf(ev)) && end.equals(java.time.LocalTime.of(23, 59))) return "";
+        return end.toString().substring(0, 5);
+    }
+
     private static String dateModeOf(Event e) {
         return switch (e.getDatePrecision() == null ? "DAY" : e.getDatePrecision()) {
             case "RANGE" -> "RANGE";
@@ -1207,7 +1233,10 @@ public class HostController {
 
     @PostMapping("/events/{id}/postpone")
     public String postpone(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal,
-                           @RequestParam String date,
+                           @RequestParam(name = "dateMode", defaultValue = "EXACT") String dateMode,
+                           @RequestParam(required = false) String date,
+                           @RequestParam(required = false) String endDate,
+                           @RequestParam(required = false) String month,
                            @RequestParam(required = false) String startTime,
                            @RequestParam(required = false) String endTime,
                            RedirectAttributes redirect) {
@@ -1218,8 +1247,8 @@ public class HostController {
         Event ev = hostService.eventOf(org.getId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         try {
-            hostService.postponeEvent(ev, LocalDate.parse(date), parseStartTime(startTime),
-                    hasStartTime(startTime), endTime == null || endTime.isBlank() ? null : LocalTime.parse(endTime));
+            // same shapes as the wizard: exact / range / month / TBA (R31 #2)
+            hostService.postponeEvent(ev, parseWhen(dateMode, date, endDate, month, startTime, endTime));
             redirect.addFlashAttribute("actioned", msg("flash.event.postponed"));
         } catch (Exception e) {
             redirect.addFlashAttribute("error", msg("flash.event.postponeFailed"));

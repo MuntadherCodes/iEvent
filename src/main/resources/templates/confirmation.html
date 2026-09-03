@@ -47,6 +47,10 @@
         <svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg>[[#{public.confirm.joinOnline}]]
       </a>
       <p class="mt-2 text-xs text-green-800" th:text="#{public.confirm.keepPrivate}">Keep this link private — it's only shared with confirmed ticket holders.</p>
+      <div th:if="${joinInstructions != null}" class="mt-4 rounded-xl border border-green-200 bg-white/70 p-4 text-start">
+        <p class="text-xs font-bold uppercase tracking-wide text-green-800" th:text="#{public.confirm.joinInstructions}">Joining instructions</p>
+        <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-700" th:text="${joinInstructions}">Password: 1234</p>
+      </div>
     </div>
   </div>
 
@@ -150,7 +154,7 @@
     <a th:if="${confirmed}" th:href="@{/orders/{c}/tickets.pdf(c=${order.orderCode})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-ink-800 active:scale-[.98]">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#i-download"/></svg>[[#{public.confirm.downloadAll}]]
     </a>
-    <a th:if="${order.icsAvailable()}" th:href="@{/e/{s}/calendar.ics(s=${order.eventSlug})}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
+    <a th:if="${order.icsAvailable()}" th:href="${gcalUrl != null ? gcalUrl : '/e/' + order.eventSlug + '/calendar.ics'}" th:target="${gcalUrl != null} ? '_blank' : null" rel="noopener" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.confirm.addToCalendarIcs}]]
     </a>
     <a th:href="@{/me/tickets}" class="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-5 py-3 font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
@@ -179,7 +183,9 @@
         </div>
         <div th:if="${order.icsAvailable()}" class="flex flex-wrap items-center gap-2 pt-1">
           <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendar"/></svg>[[#{public.confirm.addToCalendarLabel}]]</span>
-          <a th:href="@{/e/{s}/calendar.ics(s=${order.eventSlug})}" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.confirm.icsFile}">.ics file</a>
+          <a th:if="${gcalUrl != null}" th:href="${gcalUrl}" target="_blank" rel="noopener" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.calendar.google}">Google</a>
+          <a th:if="${outlookUrl != null}" th:href="${outlookUrl}" target="_blank" rel="noopener" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.calendar.outlook}">Outlook</a>
+          <a th:href="@{/e/{s}/calendar.ics(s=${order.eventSlug})}" class="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.calendar.apple}">Apple / .ics</a>
         </div>
       </div>
       <div class="relative h-40 overflow-hidden rounded-2xl border border-ink-100 bg-[#e8ecf1] sm:h-auto">

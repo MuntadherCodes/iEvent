@@ -320,5 +320,9 @@
   "wizard.tickets.removeRow": "Remove this ticket type",
   "wizard.pay.autoConfirm": "Confirm paid orders automatically",
   "wizard.pay.autoConfirmSub": "Tickets are issued the moment the buyer submits, without waiting for your verification. References and receipts are still saved in Orders for you to review. Off by default.",
-  "wizard.fee.waivedNow": "Waived during the beta: buyers pay the ticket price only and nothing is deducted from you."
+  "wizard.fee.waivedNow": "Waived during the beta: buyers pay the ticket price only and nothing is deducted from you.",
+  "wizard.danger.postponeTbaNote": "Buyers are told the date will be announced later; their tickets stay valid and they are emailed again when you set it.",
+  "wizard.loc.onlineInstructions": "Joining instructions (optional)",
+  "wizard.loc.onlineInstructionsPh": "Meeting password, which room to pick, what to have ready...",
+  "wizard.loc.onlineInstructionsNote": "Shown with the join link to confirmed ticket holders only: on their confirmation page, in My tickets and in the ticket email."
 }

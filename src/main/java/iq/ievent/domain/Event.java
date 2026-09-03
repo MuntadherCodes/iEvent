@@ -130,6 +130,10 @@ public class Event {
     @Column(name = "online_url")
     private String onlineUrl;
 
+    /** Optional notes for online events (password, joining steps); confirmed buyers only. */
+    @Column(name = "online_instructions")
+    private String onlineInstructions;
+
     @Column(name = "maps_url")
     private String mapsUrl;
 
@@ -240,6 +244,8 @@ public class Event {
     public void setAnnounceOnly(boolean announceOnly) { this.announceOnly = announceOnly; }
     public String getOnlineUrl() { return onlineUrl; }
     public void setOnlineUrl(String onlineUrl) { this.onlineUrl = Text.clip(onlineUrl, 500); }
+    public String getOnlineInstructions() { return onlineInstructions; }
+    public void setOnlineInstructions(String v) { this.onlineInstructions = v == null || v.isBlank() ? null : Text.clip(v.strip(), 2000); }
     public String getMapsUrl() { return mapsUrl; }
     public void setMapsUrl(String mapsUrl) { this.mapsUrl = Text.clip(mapsUrl, 500); }
     public String getFeeMode() { return feeMode; }

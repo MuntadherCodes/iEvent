@@ -74,6 +74,8 @@ public class PageController {
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final String supportEmail;
 
+    private final String siteBaseUrl;
+
     public PageController(CatalogService catalog, UserService userService,
                           MessageSource messages,
                           iq.ievent.service.InteractionService interactions,
@@ -82,7 +84,9 @@ public class PageController {
                           iq.ievent.repo.OrganizationRepository organizations,
                           iq.ievent.repo.LikeCountRepository likeCounts,
                           org.springframework.jdbc.core.JdbcTemplate jdbc,
-                          @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail) {
+                          @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail,
+                          @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
+        this.siteBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.catalog = catalog;
         this.userService = userService;
         this.messages = messages;
@@ -331,6 +335,12 @@ public class PageController {
                 owner != null ? owner.getRefundPolicy() : entity.getRefundPolicy(), messages));
         model.addAttribute("refundPolicyVisible", owner == null || owner.isRefundPolicyVisible());
         model.addAttribute("directionsUrl", directionsUrl(entity));
+        // R31 #11: Google / Outlook deep links next to the .ics download
+        if (iq.ievent.service.CalendarLinks.available(entity)) {
+            String publicUrl = siteBaseUrl + "/e/" + entity.getSlug();
+            model.addAttribute("gcalUrl", iq.ievent.service.CalendarLinks.google(entity, publicUrl));
+            model.addAttribute("outlookUrl", iq.ievent.service.CalendarLinks.outlook(entity, publicUrl));
+        }
         // Unlisted = reachable by link only: keep it out of search engines too.
         if (entity.getVisibility() != null && !"PUBLIC".equals(entity.getVisibility())) {
             model.addAttribute("noIndex", true);

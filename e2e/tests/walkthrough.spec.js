@@ -514,6 +514,8 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
 
 test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket status', async ({ page, request }, testInfo) => {
   await registerUser(page, { name: BUYER_NAME, email: BUYER_EMAIL, password: BUYER_PASSWORD });
+  log('R31 #4: a welcome email with the attendee guide lands right after sign-up');
+  await assertMail(request, testInfo, { to: BUYER_EMAIL, subjectPart: 'Welcome to iEvent' });
   await login(page, BUYER_EMAIL, buyerPassword);
 
   log('a plain (non-host) user must NOT be redirected to /host after login');
@@ -758,8 +760,11 @@ test('l. likes and follow: save an event, see it in favorites, follow the organi
   await expect(page.getByRole('button', { name: 'Following' })).toBeVisible();
 });
 
-test('m. host onboarding: new user creates an org, publishes an event, it goes public', async ({ page }) => {
+test('m. host onboarding: new user creates an org, publishes an event, it goes public', async ({ page, request }, testInfo) => {
   await signOut(page);
+  log('R31 #5: for a signed-out visitor the header "Host an event" goes to sign-UP with /host as the continuation');
+  await page.goto('/en');
+  await expect(page.locator('header a[href="/auth/register?next=/host"]').first()).toBeVisible();
   await registerUser(page, { name: HOST2_NAME, email: HOST2_EMAIL, password: HOST2_PASSWORD });
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
 
@@ -786,6 +791,8 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   await expect(page).toHaveURL(/\/host/);
   await expect(page.locator('body')).not.toContainText('Something went wrong');
   await expect(page).toHaveURL(/\/host(\/)?$/);
+  log('R31 #4: organizer welcome email with the organizer guide + payment settings');
+  await assertMail(request, testInfo, { to: HOST2_EMAIL, subjectPart: 'is set up on iEvent' });
   await expect(page.getByText('E2E Test Events').first()).toBeVisible();
 
   log('creating "E2E Concert Night" via the 5-step wizard at /host/events/new');
@@ -1676,6 +1683,18 @@ test('al. event lifecycle: duplicate creates a "(copy)" draft, publish, postpone
   await expect(page.getByText(/New date saved, every buyer has been emailed/).first()).toBeVisible();
   await expect(page.locator('#pp-date')).toHaveValue(newDate);
 
+  log('R31 #2: the postpone form offers the wizard date shapes; switch the copy to "Month only"');
+  await expect(page.locator('input.pp-date-mode')).toHaveCount(4);
+  await page.locator('label').filter({ has: page.locator('input.pp-date-mode[value="MONTH"]') }).click();
+  await expect(page.locator('#pp-month')).toBeVisible();
+  await expect(page.locator('#pp-date')).toBeHidden();
+  const monthValue = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 7);
+  await page.locator('#pp-month').fill(monthValue);
+  await page.getByRole('button', { name: 'Postpone', exact: true }).click();
+  await expect(page.getByText(/New date saved, every buyer has been emailed/).first()).toBeVisible();
+  await expect(page.locator('input.pp-date-mode[value="MONTH"]')).toBeChecked();
+  await expect(page.locator('#pp-month')).toHaveValue(monthValue);
+
   log('cancelling the duplicate (NEVER a seeded flagship)');
   await page.getByRole('button', { name: 'Cancel event' }).click();
   await expect(page.getByText(/Event cancelled, every buyer has been emailed/).first()).toBeVisible();
@@ -2100,6 +2119,7 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
     .click();
   await expect(page.locator('input[name="locationType"][value="ONLINE"]')).toBeChecked();
   await page.locator('#ev-online').fill(ONLINE_URL);
+  await page.locator('#ev-online-instructions').fill('Meeting password: E2E-4421');
   await page.locator('#ev-city').selectOption('Baghdad');
   await page.locator('label').filter({ has: page.locator('input.cat-pill[value="TECH"]') }).click();
   await expect(page.locator('input.cat-pill[value="TECH"]')).toBeChecked();
@@ -2126,6 +2146,7 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
   await expect(page.getByText(/This event happens online/).first()).toBeVisible();
   const publicHtml = await page.content();
   expect(publicHtml, 'join URL must not leak into public HTML').not.toContain('meet.example.com');
+  expect(publicHtml, 'joining instructions must not leak into public HTML (R31 #8)').not.toContain('E2E-4421');
 
   log('buyer RSVPs free — the rail already defaults to RSVP ×1 (round 9), instant tickets reveal the "Join online event" link');
   await signOut(page);
@@ -2137,6 +2158,8 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
   await page.locator('#submitBtn').click();
   await expect(page).toHaveURL(/\/orders\//);
   await expect(page.getByRole('heading', { name: /You're going!/ })).toBeVisible();
+  log('R31 #8: the joining instructions sit next to the join link for the confirmed buyer');
+  await expect(page.getByText('Meeting password: E2E-4421')).toBeVisible();
   const joinLink = page.getByRole('link', { name: 'Join online event' });
   await expect(joinLink).toBeVisible();
   expect(await joinLink.getAttribute('href')).toContain('meet.example.com/x');

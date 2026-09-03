@@ -60,7 +60,7 @@
 
   </div>
 
-  <section th:replace="~{fragments/layout :: ctaBand(#{learn.go.ctaTitle}, #{learn.go.ctaSub}, @{/host}, #{learn.go.ctaBtn}, 'i-rocket', @{/help} + '#organizers', #{learn.go.ctaHelp})}"></section>
+  <section th:replace="~{fragments/layout :: ctaBand(#{learn.go.ctaTitle}, #{learn.go.ctaSub}, @{${hostCtaHref}}, #{learn.go.ctaBtn}, 'i-rocket', @{/help} + '#organizers', #{learn.go.ctaHelp})}"></section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

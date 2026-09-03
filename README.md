@@ -1,6 +1,6 @@
 # iEvent
 
-Events discovery, ticketing and host management for Iraq — [ievent.iq](https://ievent.iq).
+Events discovery, ticketing and host management for Iraq — [ievent.events](https://ievent.events).
 Inspired by Humanitix and Eventbrite, built for the Iraqi market (IQD pricing, Arabic/Kurdish-ready).
 
 ## Quickstart

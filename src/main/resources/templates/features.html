@@ -46,7 +46,7 @@
     <div th:replace="~{fragments/layout :: statStrip}"></div>
   </section>
 
-  <section th:replace="~{fragments/layout :: ctaBand(#{learn.feat.ctaTitle}, #{learn.feat.ctaSub}, @{/host}, #{learn.feat.ctaBtn}, 'i-rocket', @{/pricing}, #{learn.feat.ctaPricing})}"></section>
+  <section th:replace="~{fragments/layout :: ctaBand(#{learn.feat.ctaTitle}, #{learn.feat.ctaSub}, @{${hostCtaHref}}, #{learn.feat.ctaBtn}, 'i-rocket', @{/pricing}, #{learn.feat.ctaPricing})}"></section>
 
 </main>
 

@@ -23,8 +23,11 @@ public class NotificationService {
 
     private final NotificationRepository notifications;
 
-    public NotificationService(NotificationRepository notifications) {
+    private final NotificationStream stream;
+
+    public NotificationService(NotificationRepository notifications, NotificationStream stream) {
         this.notifications = notifications;
+        this.stream = stream;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -38,6 +41,16 @@ public class NotificationService {
             n.setBody(body == null ? null : body.substring(0, Math.min(400, body.length())));
             n.setUrl(url == null ? null : url.substring(0, Math.min(300, url.length())));
             notifications.save(n);
+            // wake the bell only once the row is visible to the next request
+            final Long target = userId;
+            if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+                org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override public void afterCommit() { stream.push(target); }
+                        });
+            } else {
+                stream.push(target);
+            }
         } catch (Exception e) {
             log.error("Notification create failed for user {}", userId, e);
         }

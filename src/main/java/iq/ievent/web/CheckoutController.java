@@ -68,6 +68,7 @@ public class CheckoutController {
     private final iq.ievent.repo.EventRepository eventRepo;
     private final iq.ievent.service.TicketPdfService ticketPdf;
     private final PasswordResetService passwordResetService;
+    private final String siteBaseUrl;
     private final MessageSource messages;
 
     public CheckoutController(CatalogService catalog, OrderService orderService,
@@ -76,7 +77,9 @@ public class CheckoutController {
                               PromoService promoService, iq.ievent.repo.EventRepository eventRepo,
                               iq.ievent.service.TicketPdfService ticketPdf,
                               PasswordResetService passwordResetService,
-                              MessageSource messages) {
+                              MessageSource messages,
+                              @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
+        this.siteBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.catalog = catalog;
         this.orderService = orderService;
         this.orders = orders;
@@ -373,6 +376,14 @@ public class CheckoutController {
         String joinUrl = confirmed && online
                 && order.getEvent().getOnlineUrl() != null && !order.getEvent().getOnlineUrl().isBlank()
                 ? order.getEvent().getOnlineUrl() : null;
+        // R31 #8: host-written joining notes travel with the link, confirmed orders only
+        model.addAttribute("joinInstructions", confirmed && online ? order.getEvent().getOnlineInstructions() : null);
+        // R31 #11: calendar deep links (same availability rule as the .ics)
+        if (iq.ievent.service.CalendarLinks.available(order.getEvent())) {
+            String publicUrl = siteBaseUrl + "/e/" + order.getEvent().getSlug();
+            model.addAttribute("gcalUrl", iq.ievent.service.CalendarLinks.google(order.getEvent(), publicUrl));
+            model.addAttribute("outlookUrl", iq.ievent.service.CalendarLinks.outlook(order.getEvent(), publicUrl));
+        }
 
         OrderView view = new OrderView(order.getOrderCode(), order.getEvent().getTitle(),
                 order.getEvent().getSlug(),

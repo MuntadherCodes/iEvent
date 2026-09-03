@@ -23,6 +23,7 @@
                           th:text="${event.onlineUrl}">link</a>
         </span>
       </p>
+      <p th:if="${event.locationType == 'ONLINE' and event.onlineInstructions != null}" style="margin:8px 0 0;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;color:#166534;font-size:13px;line-height:1.6;white-space:pre-line;"><strong th:text="#{emails.confirmed.joinInstructions}">Joining instructions:</strong><br><span th:text="${event.onlineInstructions}">Password</span></p>
     </div>
     <p style="margin:0 0 8px;font-weight:700;font-size:14px;" th:text="#{emails.confirmed.yourTickets}">Your tickets</p>
     <table style="width:100%;border-collapse:collapse;font-size:13px;" th:if="${tickets != null}">
@@ -47,7 +48,7 @@
     </div>
   </div>
   <p style="text-align:center;color:#908fa3;font-size:11px;margin-top:16px;">
-    <span th:text="#{emails.confirmed.footer}">© 2026 iEvent · Show the QR code at the door ·</span> <a th:href="${baseUrl}" style="color:#8f7ac9;">ievent.iq</a>
+    <span th:text="#{emails.confirmed.footer}">© 2026 iEvent · Show the QR code at the door ·</span> <a th:href="${baseUrl}" style="color:#8f7ac9;">ievent.events</a>
   </p>
 </div>
 </body>

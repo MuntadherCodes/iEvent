@@ -68,7 +68,8 @@ public class UserAreaController {
                             String coverTheme, String coverImageUrl,
                             String statusKey, String statusLabel, boolean confirmed,
                             List<String> itemLines, List<TicketRow> tickets,
-                            boolean online, String onlineUrl, boolean cash) {}
+                            boolean online, String onlineUrl, boolean cash,
+                            String joinInstructions) {}
 
     /** One ticket row inside an order card (rendered only for confirmed orders). */
     public record TicketRow(String code, String typeName, String holderName) {}
@@ -182,7 +183,8 @@ public class UserAreaController {
                 Format.coverTheme(e.getCategory()),
                 Format.coverUrl(e),
                 o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows,
-                online, joinUrl, o.getPaymentMethod() == Order.PaymentMethod.CASH);
+                online, joinUrl, o.getPaymentMethod() == Order.PaymentMethod.CASH,
+                confirmed && online ? e.getOnlineInstructions() : null);
     }
 
     private String statusLabel(Order.Status s) {

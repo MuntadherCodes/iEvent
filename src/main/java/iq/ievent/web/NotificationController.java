@@ -28,9 +28,27 @@ public class NotificationController {
     private final NotificationService notifications;
     private final UserService userService;
 
-    public NotificationController(NotificationService notifications, UserService userService) {
+    private final String baseUrl;
+    private final iq.ievent.service.NotificationStream notificationStream;
+
+    public NotificationController(NotificationService notifications, UserService userService,
+                                  iq.ievent.service.NotificationStream notificationStream,
+                                  @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
+        this.baseUrl = baseUrl;
+        this.notificationStream = notificationStream;
         this.notifications = notifications;
         this.userService = userService;
+    }
+
+    /** Live channel for the bell: one Server-Sent-Events stream per open tab (R31 #9). */
+    @GetMapping(value = "/api/notifications/stream",
+            produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter stream(
+            @AuthenticationPrincipal UserDetails principal) {
+        User u = current(principal);
+        if (u == null) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED);
+        return notificationStream.subscribe(u.getId());
     }
 
     /** Polled by the navbar bell every ~30s. */
@@ -55,10 +73,25 @@ public class NotificationController {
 
     /** Click-through: marks the notification read, then redirects to its target. */
     @GetMapping("/me/notifications/go/{id}")
-    public String open(@PathVariable Long id, @AuthenticationPrincipal UserDetails principal) {
+    public org.springframework.http.ResponseEntity<Void> open(@PathVariable Long id,
+                                                              @AuthenticationPrincipal UserDetails principal) {
         User u = current(principal);
-        if (u == null) return "redirect:/auth/login";
-        return "redirect:" + notifications.open(u.getId(), id).orElse("/me/notifications");
+        String target = u == null ? "/auth/login"
+                : notifications.open(u.getId(), id).orElse("/me/notifications");
+        // Only same-site targets: relative paths as stored, or our own absolute
+        // base URL stripped back to a path. Anything else falls back to the list.
+        if (target.startsWith("http://") || target.startsWith("https://")) {
+            String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+            target = target.startsWith(base) ? target.substring(base.length()) : "/me/notifications";
+            if (target.isEmpty()) target = "/";
+        }
+        if (!target.startsWith("/")) target = "/" + target;
+        // Explicit 303 + Location (built and encoded ourselves) rather than a view
+        // name, so nothing between here and the browser can swallow the redirect.
+        java.net.URI location = org.springframework.web.util.UriComponentsBuilder
+                .fromUriString(target).build().encode().toUri();
+        return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.SEE_OTHER)
+                .location(location).build();
     }
 
     @PostMapping("/me/notifications/read-all")

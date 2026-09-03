@@ -217,6 +217,9 @@
                 <input id="ev-online" name="onlineUrl" type="url" dir="ltr" th:placeholder="#{wizard.loc.onlinePlaceholder}" placeholder="https://zoom.us/j/… — Zoom, Google Meet or Teams" class="w-full rounded-xl border border-ink-200 bg-white py-3 pl-10 pr-4 text-start text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
               </div>
               <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-lock"/></svg><span th:text="#{wizard.loc.onlineNote}">Only people with confirmed tickets can see this link. You can also add it later.</span></p>
+              <label class="mb-1.5 mt-4 block text-sm font-semibold text-ink-800" for="ev-online-instructions" th:text="#{wizard.loc.onlineInstructions}">Joining instructions (optional)</label>
+              <textarea id="ev-online-instructions" name="onlineInstructions" rows="3" maxlength="2000" th:placeholder="#{wizard.loc.onlineInstructionsPh}" placeholder="Meeting password, which room to pick, what to have ready..." class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.loc.onlineInstructionsNote}">Shown with the join link to confirmed ticket holders only, on their confirmation page, in My tickets and in the ticket email.</p>
             </div>
 
             <!-- TBA note -->

@@ -72,6 +72,9 @@ public class GlobalModelAdvice {
         iq.ievent.domain.User current =
                 principal == null ? null : userService.byEmail(principal.getUsername());
         model.addAttribute("currentUser", current);
+        // R31 #5: a visitor who clicks "Host an event" is a new organizer, so the
+        // CTA goes to sign-UP (with /host as the continuation) rather than sign-in.
+        model.addAttribute("hostCtaHref", current == null ? "/auth/register?next=/host" : "/host");
         // Nav CTA text (top pill, drawer list item, bottom button) switches
         // "Host an event" → "Host console" once the account is a host — set on
         // creating an org (HostService) or being invited onto one (TeamService),

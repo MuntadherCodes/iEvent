@@ -1,9 +1,9 @@
 # iEvent staging/production stack — real domain + automatic HTTPS via Caddy.
 #
-#   1. Point your DNS A record (e.g. app.ievent.iq) at this server.
+#   1. Point your DNS A record (e.g. app.ievent.events) at this server.
 #   2. Copy .env.example → .env and set:
-#        DOMAIN=app.ievent.iq
-#        APP_BASE_URL=https://app.ievent.iq
+#        DOMAIN=app.ievent.events
+#        APP_BASE_URL=https://app.ievent.events
 #        MAIL_MODE=mailjet  + MAILJET_API_KEY / MAILJET_SECRET_KEY
 #        SPRING_MAIL_HOST=in-v3.mailjet.com  SPRING_MAIL_PORT=587
 #        MAIL_SMTP_AUTH=true  MAIL_SMTP_STARTTLS=true
@@ -46,7 +46,7 @@ services:
       SEED_DEMO: ${SEED_DEMO:-false}
       SEED_SCALE: ${SEED_SCALE:-0}
       MAIL_MODE: ${MAIL_MODE:-mailjet}
-      MAIL_FROM: ${MAIL_FROM:-no-reply@ievent.iq}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@ievent.events}
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-in-v3.mailjet.com}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
       MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}

@@ -426,6 +426,8 @@ public class HostService {
             owner.setRole(User.Role.HOST);
             users.save(owner);
         }
+        // R31 #4: organizer welcome with the guide + payment settings + first event
+        mail.sendHostWelcome(owner.getEmail(), owner.getFullName(), org.getName(), LocaleContextHolder.getLocale());
         return org;
     }
 
@@ -818,7 +820,7 @@ public class HostService {
      *  to U+06FF) — a simple, reliable origin-language signal on a platform
      *  that's strictly bilingual Arabic/English, unlike guessing from the
      *  host's current UI locale (see createEvent, translateEventContent). */
-    private static boolean containsArabic(String s) {
+    static boolean containsArabic(String s) {
         if (s == null) return false;
         return s.chars().anyMatch(c -> c >= 0x0600 && c <= 0x06FF);
     }
@@ -862,7 +864,14 @@ public class HostService {
      *  future (see EventStatusSweeper). */
     @Transactional
     public void postponeEvent(Event event, LocalDate date, LocalTime start, boolean hasStartTime, LocalTime end) {
-        applyWhen(event, When.day(date, start, hasStartTime, end));
+        postponeEvent(event, When.day(date, start, hasStartTime, end));
+    }
+
+    /** R31 #2: postpone accepts the same schedule shapes as the wizard (exact day,
+     *  multi-day range, month only, to be announced). */
+    @Transactional
+    public void postponeEvent(Event event, When when) {
+        applyWhen(event, when);
         if (event.getStatus() == Event.Status.ENDED
                 && event.getStartsAt().isAfter(OffsetDateTime.now())) {
             event.setStatus(Event.Status.LIVE);
@@ -961,6 +970,7 @@ public class HostService {
         copy.setFeeMode(source.getFeeMode());
         copy.setLocationType(source.getLocationType());
         copy.setOnlineUrl(source.getOnlineUrl());
+        copy.setOnlineInstructions(source.getOnlineInstructions());
         copy.setMapsUrl(source.getMapsUrl());
         copy.setAnnounceOnly(source.isAnnounceOnly());
         copy.setStatus(Event.Status.DRAFT);

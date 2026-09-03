@@ -156,7 +156,7 @@ public class SeedRunner implements CommandLineRunner {
         Long scaleOrg = jdbc.query("SELECT id FROM organizations WHERE handle = 'scaletest'",
                 rs -> rs.next() ? rs.getLong(1) : null);
         if (scaleOrg == null) {
-            User owner = user("scale-host@ievent.iq", "Scale Host", "Password123!", User.Role.HOST);
+            User owner = user("scale-host@ievent.events", "Scale Host", "Password123!", User.Role.HOST);
             Organization o = new Organization();
             o.setOwnerUserId(owner.getId());
             o.setName("Scale Test Events");
@@ -363,7 +363,7 @@ public class SeedRunner implements CommandLineRunner {
         // Synthetic volume lives under its OWN organizer so the demo host's
         // dashboard, earnings and attendee selects stay realistic.
         Organization org = organizations.findByHandle("scaletest").orElseGet(() -> {
-            User owner = user("scale-host@ievent.iq", "Scale Host", "Password123!", User.Role.HOST);
+            User owner = user("scale-host@ievent.events", "Scale Host", "Password123!", User.Role.HOST);
             Organization o = new Organization();
             o.setOwnerUserId(owner.getId());
             o.setName("Scale Test Events");

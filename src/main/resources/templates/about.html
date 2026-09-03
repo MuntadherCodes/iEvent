@@ -96,7 +96,7 @@
   </section>
 
   <!-- ============ CTA ============ -->
-  <section th:replace="~{fragments/layout :: ctaBand(#{public.about.ctaTitle}, #{public.about.ctaSub}, @{/browse}, #{public.about.ctaBrowse}, 'i-search', @{/host}, #{public.about.ctaHost})}"></section>
+  <section th:replace="~{fragments/layout :: ctaBand(#{public.about.ctaTitle}, #{public.about.ctaSub}, @{/browse}, #{public.about.ctaBrowse}, 'i-search', @{${hostCtaHref}}, #{public.about.ctaHost})}"></section>
 
 </main>
 

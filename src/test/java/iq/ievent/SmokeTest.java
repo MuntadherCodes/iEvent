@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -1468,5 +1469,136 @@ class SmokeTest {
         mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist("X-Frame-Options"));
+    }
+
+    // ---- R31 ----
+
+    @Test
+    void ticketPdfRendersInArabicWithEmbeddedFont() throws Exception {
+        Long eventId = events.findBySlug("baghdad-nights-music-festival").orElseThrow().getId();
+        var seeded = tickets.searchForEvent(eventId, null);
+        String code = seeded.get(0).getCode();
+        // bare path = Arabic; the PDF must carry the embedded DejaVu font and no Helvetica
+        byte[] ar = mockMvc.perform(get("/t/" + code + "/ticket.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/pdf"))
+                .andReturn().getResponse().getContentAsByteArray();
+        String raw = new String(ar, java.nio.charset.StandardCharsets.ISO_8859_1);
+        org.junit.jupiter.api.Assertions.assertTrue(raw.contains("DejaVuSans"), "embedded DejaVu font");
+        org.junit.jupiter.api.Assertions.assertFalse(raw.contains("/Helvetica"), "no Helvetica fallback");
+        byte[] en = mockMvc.perform(get("/en/t/" + code + "/ticket.pdf"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        org.junit.jupiter.api.Assertions.assertTrue(en.length > 1000 && ar.length > 1000);
+    }
+
+    @Test
+    void hostCtaSendsGuestsToSignUpAndMembersToConsole() throws Exception {
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/auth/register?next=/host\"")));
+        mockMvc.perform(get("/en").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("href=\"/auth/register?next=/host\""))))
+                .andExpect(content().string(containsString("href=\"/host\"")));
+    }
+
+    @Test
+    void notificationGoRedirectsWithExplicitLocation() throws Exception {
+        mockMvc.perform(get("/me/notifications/go/999999").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/me/notifications"));
+        mockMvc.perform(get("/me/notifications/go/1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/auth/login"));
+    }
+
+    @Test
+    void notificationStreamOpensForSignedInUsersOnly() throws Exception {
+        mockMvc.perform(get("/api/notifications/stream"))
+                .andExpect(status().is3xxRedirection()); // anonymous → login
+        var result = mockMvc.perform(get("/api/notifications/stream").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+        org.junit.jupiter.api.Assertions.assertTrue(
+                result.getResponse().getContentType().startsWith("text/event-stream"));
+    }
+
+    @Test
+    void postponeAcceptsWizardDateModes() throws Exception {
+        iq.ievent.domain.Event ev = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        java.time.OffsetDateTime before = ev.getStartsAt();
+        java.time.OffsetDateTime endBefore = ev.getEndsAt();
+        String precisionBefore = ev.getDatePrecision();
+        try {
+            mockMvc.perform(post("/host/events/" + ev.getId() + "/postpone")
+                            .param("dateMode", "MONTH").param("month", "2031-03")
+                            .with(csrf()).with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().is3xxRedirection());
+            iq.ievent.domain.Event after = events.findById(ev.getId()).orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals("MONTH", after.getDatePrecision());
+            // the console pre-fills the postpone form in the same shape
+            mockMvc.perform(get("/en/host/events/" + ev.getId()).with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("value=\"MONTH\" checked=\"checked\" class=\"pp-date-mode sr-only\"")))
+                    .andExpect(content().string(containsString("id=\"pp-month\"")))
+                    .andExpect(content().string(containsString("value=\"2031-03\"")));
+        } finally {
+            String d = before.atZoneSameInstant(iq.ievent.service.Format.BAGHDAD).toLocalDate().toString();
+            String t = before.atZoneSameInstant(iq.ievent.service.Format.BAGHDAD).toLocalTime().toString().substring(0, 5);
+            String endT = endBefore == null ? "" : endBefore.atZoneSameInstant(iq.ievent.service.Format.BAGHDAD).toLocalTime().toString().substring(0, 5);
+            mockMvc.perform(post("/host/events/" + ev.getId() + "/postpone")
+                            .param("dateMode", "RANGE".equals(precisionBefore) ? "RANGE" : "EXACT")
+                            .param("date", d).param("startTime", t).param("endTime", endT)
+                            .with(csrf()).with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().is3xxRedirection());
+        }
+    }
+
+    @Test
+    void multiDayEventWithoutEndTimeEditsBlank() {
+        iq.ievent.domain.Event ev = new iq.ievent.domain.Event();
+        ev.setDatePrecision("RANGE");
+        ev.setHasStartTime(true);
+        ev.setStartsAt(java.time.OffsetDateTime.parse("2031-03-10T10:00:00+03:00"));
+        ev.setEndsAt(java.time.OffsetDateTime.parse("2031-03-12T23:59:00+03:00"));
+        org.junit.jupiter.api.Assertions.assertEquals("", iq.ievent.web.HostController.endTimeForForm(ev));
+        ev.setEndsAt(java.time.OffsetDateTime.parse("2031-03-12T18:30:00+03:00"));
+        org.junit.jupiter.api.Assertions.assertEquals("18:30", iq.ievent.web.HostController.endTimeForForm(ev));
+        ev.setHasStartTime(false);
+        org.junit.jupiter.api.Assertions.assertEquals("", iq.ievent.web.HostController.endTimeForForm(ev));
+    }
+
+    @Test
+    void calendarLinksAppearOnEventPageAndSkipTbaEvents() throws Exception {
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("https://calendar.google.com/calendar/render?action=TEMPLATE")))
+                .andExpect(content().string(containsString("outlook.live.com/calendar")))
+                .andExpect(content().string(containsString("/calendar.ics")));
+        iq.ievent.domain.Event ev = new iq.ievent.domain.Event();
+        ev.setDatePrecision("TBA");
+        org.junit.jupiter.api.Assertions.assertFalse(iq.ievent.service.CalendarLinks.available(ev));
+    }
+
+    @Test
+    void onlineInstructionsRoundTripThroughEditAndShowOnlyWhenConfirmed() throws Exception {
+        iq.ievent.domain.Event ev = new iq.ievent.domain.Event();
+        ev.setOnlineInstructions("  Password: 4421\nUse your full name  ");
+        org.junit.jupiter.api.Assertions.assertEquals("Password: 4421\nUse your full name", ev.getOnlineInstructions());
+        ev.setOnlineInstructions("   ");
+        org.junit.jupiter.api.Assertions.assertNull(ev.getOnlineInstructions());
+        mockMvc.perform(get("/en/host/events/new").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"onlineInstructions\"")));
+    }
+
+    @Test
+    void feeCopyNoLongerSaysPaidByTheBuyer() throws Exception {
+        mockMvc.perform(get("/en/host/start").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("paid by the buyer"))));
+        mockMvc.perform(get("/host/start").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("يدفعها المشتري"))));
     }
 }

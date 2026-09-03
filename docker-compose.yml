@@ -44,7 +44,7 @@ services:
       SEED_SCALE: ${SEED_SCALE:-0}
       CONTENT_SCREENSHOTS: ${CONTENT_SCREENSHOTS:-false}
       MAIL_MODE: ${MAIL_MODE:-mailpit}
-      MAIL_FROM: ${MAIL_FROM:-no-reply@ievent.iq}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@ievent.events}
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-mailpit}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-1025}
       MAILJET_API_KEY: ${MAILJET_API_KEY:-}

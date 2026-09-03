@@ -52,12 +52,14 @@ public class AuthController {
     private final UserService userService;
     private final PasswordResetService passwordReset;
     private final MessageSource messages;
+    private final iq.ievent.service.MailService mail;
 
     public AuthController(UserService userService, PasswordResetService passwordReset,
-                          MessageSource messages) {
+                          MessageSource messages, iq.ievent.service.MailService mail) {
         this.userService = userService;
         this.passwordReset = passwordReset;
         this.messages = messages;
+        this.mail = mail;
     }
 
     /** Localized user-facing message in the current request locale. */
@@ -133,6 +135,8 @@ public class AuthController {
             return "auth/register";
         }
         userService.register(form.getFullName(), form.getEmail(), form.getPhone(), form.getPassword());
+        // R31 #4: welcome + where to start (async, never blocks the redirect)
+        mail.sendWelcome(form.getEmail().trim(), form.getFullName(), LocaleContextHolder.getLocale());
         Object attr = session.getAttribute("LOGIN_NEXT");
         String next = attr instanceof String s ? safeNext(s) : null;
         return "redirect:/auth/login?registered" + (next == null ? ""

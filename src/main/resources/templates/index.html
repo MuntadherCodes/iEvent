@@ -122,7 +122,7 @@
           <span class="inline-block rounded-full bg-brand-500/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-300" th:text="#{public.home.forHostsBadge}">For hosts</span>
           <h2 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-white md:text-4xl">[[#{public.home.hostTitle}]]<span class="text-brand-400">iEvent</span></h2>
           <p class="mt-4 max-w-lg text-ink-300" th:text="#{public.home.hostSub}">From a neighbourhood workshop to a stadium festival — publish your event, sell tickets, and check in guests. All from one dashboard, built for Iraq.</p>
-          <a th:href="@{/host}" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">[[#{public.home.hostCta}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          <a th:href="@{${hostCtaHref}}" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">[[#{public.home.hostCta}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         </div>
         <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
           <div class="rounded-2xl border border-ink-700 bg-ink-800/70 p-5 transition hover:border-brand-500/60">
@@ -383,7 +383,7 @@
         <!-- one inline span so the sentence wraps as text, not as separate flex items -->
         <span class="leading-relaxed">[[#{public.org.trustPrefix}]] <span class="font-display font-extrabold tracking-wide text-ink-900"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span> [[#{public.org.trustSuffix}]]</span>
       </p>
-      <a th:href="@{/host}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.org.hostYourOwn}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      <a th:href="@{${hostCtaHref}}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.org.hostYourOwn}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
   </section>
 

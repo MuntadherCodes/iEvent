@@ -48,7 +48,7 @@
     </section>
   </div>
 
-  <section th:replace="~{fragments/layout :: ctaBand(#{learn.sol.ctaTitle}, #{learn.sol.ctaSub}, @{/host}, #{learn.sol.ctaBtn}, 'i-rocket', @{/guides/organizers}, #{learn.sol.ctaGuide})}"></section>
+  <section th:replace="~{fragments/layout :: ctaBand(#{learn.sol.ctaTitle}, #{learn.sol.ctaSub}, @{${hostCtaHref}}, #{learn.sol.ctaBtn}, 'i-rocket', @{/guides/organizers}, #{learn.sol.ctaGuide})}"></section>
 
 </main>
 

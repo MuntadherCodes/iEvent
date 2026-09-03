@@ -364,9 +364,9 @@ public class ExtrasController {
         StringBuilder sb = new StringBuilder();
         sb.append("BEGIN:VCALENDAR\r\n")
           .append("VERSION:2.0\r\n")
-          .append("PRODID:-//iEvent//ievent.iq//EN\r\n")
+          .append("PRODID:-//iEvent//ievent.events//EN\r\n")
           .append("BEGIN:VEVENT\r\n")
-          .append("UID:").append(e.getSlug()).append("@ievent.iq\r\n")
+          .append("UID:").append(e.getSlug()).append("@ievent.events\r\n")
           .append("DTSTAMP:").append(ICS_STAMP.format(OffsetDateTime.now(ZoneOffset.UTC))).append("\r\n")
           .append("DTSTART:").append(ICS_STAMP.format(start)).append("\r\n")
           .append("DTEND:").append(ICS_STAMP.format(end)).append("\r\n")

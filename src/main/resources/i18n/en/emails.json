@@ -1,14 +1,11 @@
 {
   "emails.common.viewEvent": "View the event",
   "emails.common.footer": "© 2026 iEvent",
-
   "emails.campaign.kicker": "Update from the organizer",
   "emails.campaign.footer": "© 2026 iEvent · You receive event updates for events you have tickets to. Manage preferences from your",
   "emails.campaign.profileWord": "profile",
-
   "emails.teamInvite.kicker": "Team invite",
   "emails.teamInvite.footer": "© 2026 iEvent",
-
   "emails.confirmed.title": "You're going! 🎉",
   "emails.confirmed.orderPrefix": "Your order",
   "emails.confirmed.orderSuffix": "is confirmed.",
@@ -19,7 +16,6 @@
   "emails.confirmed.totalPaid": "Total paid:",
   "emails.confirmed.cta": "View my tickets (QR codes)",
   "emails.confirmed.footer": "© 2026 iEvent · Show the QR code at the door ·",
-
   "emails.pending.title": "Order received · one more step",
   "emails.pending.body1": "We've registered order",
   "emails.pending.body2": "for",
@@ -28,14 +24,14 @@
   "emails.pending.cash1": "Pay",
   "emails.pending.cash2": " in cash when you arrive. Your tickets will be issued and emailed as soon as the organizer confirms your payment at the door.",
   "emails.pending.cta": "Track my order",
-
   "emails.rejected.title": "Order could not be confirmed",
   "emails.rejected.body1": "Unfortunately the organizer could not confirm the transfer for order",
   "emails.rejected.body2": "If you did send the transfer, please contact the organizer directly, or place a new order and double-check the transfer reference and receipt.",
-
   "emails.refunded.title": "Your order was refunded",
   "emails.refunded.body1": "The organizer refunded order",
   "emails.refunded.body2": "for",
   "emails.refunded.totalWord": "total",
-  "emails.refunded.body3": "All tickets on this order are now void and can no longer be used for entry. The refund itself is returned by the organizer through the same payment method you used, if it doesn't arrive within a few business days, contact the organizer directly."
+  "emails.refunded.body3": "All tickets on this order are now void and can no longer be used for entry. The refund itself is returned by the organizer through the same payment method you used, if it doesn't arrive within a few business days, contact the organizer directly.",
+  "emails.welcome.footer": "iEvent, events discovery and ticketing for Iraq. You received this because an account was created with this email.",
+  "emails.confirmed.joinInstructions": "Joining instructions:"
 }

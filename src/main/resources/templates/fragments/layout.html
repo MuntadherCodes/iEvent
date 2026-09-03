@@ -196,7 +196,7 @@
            th:attr="aria-current=${active == 'how'} ? 'page' : null" th:text="#{learn.nav.how}">How it works</a>
       </div>
       <div class="ms-auto flex items-center gap-0.5">
-      <a th:href="@{/host}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
+      <a th:href="@{${hostCtaHref}}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
       <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" class="ms-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
         <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? #{common.arabic} : #{common.english}]]
       </a>
@@ -238,7 +238,7 @@
          menu, invisible until opened. It's the site's main conversion CTA, so it
          gets its own always-visible spot in the topbar on small screens instead —
          the desktop nav above already shows it directly, this mirrors that. -->
-    <a th:href="@{/host}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white shadow-pop transition active:scale-[.98] md:hidden" th:classappend="${currentUser != null} ? 'ms-2' : 'ms-auto'" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
+    <a th:href="@{${hostCtaHref}}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white shadow-pop transition active:scale-[.98] md:hidden" th:classappend="${currentUser != null} ? 'ms-2' : 'ms-auto'" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
     <button id="menuBtn" class="ms-2 grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ink-200 text-ink-700 transition hover:border-brand-400 hover:text-brand-600 md:hidden" th:attr="aria-label=#{public.nav.openMenuAria}" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#i-menu"/></svg>
     </button>
@@ -257,7 +257,7 @@
       <a th:href="@{/me/tickets}" class="flex items-center gap-3 rounded-lg px-3 py-3"
          th:classappend="${active == 'tickets'} ? 'bg-brand-50 font-semibold text-brand-700' : 'hover:bg-ink-50'"><svg class="h-5 w-5" th:classappend="${active == 'tickets'} ? 'text-brand-500' : 'text-ink-400'" aria-hidden="true"><use href="#i-ticket"/></svg>[[#{public.nav.myTickets}]]</a>
       <a th:if="${currentUser != null}" th:href="@{/me/profile}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-user"/></svg>[[#{public.nav.profile}]]</a>
-      <a th:if="${currentUser != null}" th:href="@{/host}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-chart-line"/></svg>[[${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}]]</a>
+      <a th:if="${currentUser != null}" th:href="@{${hostCtaHref}}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-chart-line"/></svg>[[${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}]]</a>
       <a th:if="${currentUser == null}" th:href="@{/auth/login}" class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-user"/></svg>[[#{public.nav.signIn}]]</a>
       <form th:if="${currentUser != null}" th:action="@{/auth/logout}" method="post" class="grid">
         <button type="submit" class="flex items-center gap-3 rounded-lg px-3 py-3 text-start hover:bg-ink-50"><svg class="h-5 w-5 text-ink-400" aria-hidden="true"><use href="#i-log-out"/></svg>[[#{public.nav.signOut}]]</button>
@@ -360,7 +360,20 @@ the dropdown list. DOM nodes are built with textContent only (no innerHTML). -->
       .catch(function () { /* offline / transient — try again next tick */ });
   }
   pollBell();
-  setInterval(pollBell, 30000);
+  // Live push (SSE): the server wakes this tab the moment a notification is
+  // written, so the bell updates without a refresh. The poll stays as a
+  // slower fallback (and covers browsers without EventSource).
+  var live = false;
+  if (window.EventSource) {
+    try {
+      var es = new EventSource((document.documentElement.lang === 'en' ? '/en' : '') + '/api/notifications/stream');
+      es.addEventListener('hello', function () { live = true; });
+      es.addEventListener('notify', function () { pollBell(); });
+      es.onerror = function () { live = false; /* EventSource reconnects by itself */ };
+    } catch (e) { live = false; }
+  }
+  setInterval(function () { if (!live) pollBell(); }, 30000);
+  setInterval(pollBell, 120000);
 
   // Event-card save/heart button: toggles via fetch (no page reload) instead
   // of submitting a paired hidden form. Stays a plain sibling of the card's
@@ -664,8 +677,8 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
     <nav th:attr="aria-label=#{public.footer.hostsAria}" aria-label="Hosts">
       <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.forHosts}">For hosts</h3>
       <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.nav.hostEvent}">Host an event</a></li>
-        <li><a th:href="@{/host}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
+        <li><a th:href="@{${hostCtaHref}}" class="transition hover:text-brand-300" th:text="#{public.nav.hostEvent}">Host an event</a></li>
+        <li><a th:href="@{${hostCtaHref}}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
         <li><a th:href="@{/pricing}" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
         <li><a th:href="@{/help} + '#organizers'" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
       </ul>

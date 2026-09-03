@@ -116,7 +116,7 @@ app:
   upload-dir: ${APP_UPLOAD_DIR:/app/data/uploads}
   mail:
     mode: ${MAIL_MODE:mailpit}
-    from: ${MAIL_FROM:no-reply@ievent.iq}
+    from: ${MAIL_FROM:no-reply@ievent.events}
     support: ${SUPPORT_EMAIL:support@hillool.com}
   seed:
     demo: ${SEED_DEMO:false}

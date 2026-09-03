@@ -280,5 +280,72 @@ Responsive behavior:
 </nav>
 </th:block>
 
+<!-- R31 #2: postpone form in the wizard's own schedule shape (exact / multi-day /
+     month only / to be announced). Model: ppMode, ppDate, ppEndDate, ppMonth,
+     ppStart, ppEnd (see HostController.addPostponeModel). The page still calls
+     iEventTimePicker.init('pp-start') / ('pp-end') itself. -->
+<form th:fragment="postponeForm(evId)" th:action="@{/host/events/{id}/postpone(id=${evId})}" method="post" class="mt-3 space-y-3" data-postpone-form>
+  <div class="grid grid-cols-2 gap-2 rounded-xl bg-ink-50 p-1.5 text-sm font-semibold sm:grid-cols-4" role="radiogroup" th:attr="aria-label=#{wizard.when.modeAria}" aria-label="Date type">
+    <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+      <input type="radio" name="dateMode" value="EXACT" th:checked="${ppMode == 'EXACT'}" class="pp-date-mode sr-only">
+      <span class="truncate" th:text="#{wizard.when.modeExact}">Exact date</span>
+    </label>
+    <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+      <input type="radio" name="dateMode" value="RANGE" th:checked="${ppMode == 'RANGE'}" class="pp-date-mode sr-only">
+      <span class="truncate" th:text="#{wizard.when.modeRange}">Multiple days</span>
+    </label>
+    <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+      <input type="radio" name="dateMode" value="MONTH" th:checked="${ppMode == 'MONTH'}" class="pp-date-mode sr-only">
+      <span class="truncate" th:text="#{wizard.when.modeMonth}">Month only</span>
+    </label>
+    <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-ink-500 transition hover:text-ink-800 has-[:checked]:bg-white has-[:checked]:text-brand-700 has-[:checked]:shadow-card">
+      <input type="radio" name="dateMode" value="TBA" th:checked="${ppMode == 'TBA'}" class="pp-date-mode sr-only">
+      <span class="truncate" th:text="#{wizard.when.modeTba}">To be announced</span>
+    </label>
+  </div>
+  <div id="ppExactFields" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-date" th:text="#{wizard.danger.newDate}">New date</label>
+      <input id="pp-date" name="date" type="date" th:value="${ppDate}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+    </div>
+    <div id="ppEndDateWrap" class="hidden">
+      <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end-date" th:text="#{wizard.when.endDate}">Last day</label>
+      <input id="pp-end-date" name="endDate" type="date" th:value="${ppEndDate}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+    </div>
+    <div>
+      <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-start" th:text="#{wizard.when.starts}">Starts</label>
+      <input id="pp-start" name="startTime" type="time" step="1800" th:value="${ppStart}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+    </div>
+    <div>
+      <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-end" th:text="#{wizard.when.ends}">Ends</label>
+      <input id="pp-end" name="endTime" type="time" step="1800" th:value="${ppEnd}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+    </div>
+  </div>
+  <div id="ppMonthFields" class="hidden sm:max-w-xs">
+    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-400" for="pp-month" th:text="#{wizard.when.month}">Month</label>
+    <input id="pp-month" name="month" type="month" th:value="${ppMonth}" class="min-h-[48px] w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+  </div>
+  <p id="ppTbaNote" class="hidden rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600" th:text="#{wizard.danger.postponeTbaNote}">Buyers are told the date will be announced; their tickets stay valid.</p>
+  <button type="submit" th:attr="data-confirm=#{wizard.danger.postponeConfirm}" class="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 sm:w-auto"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-clock"/></svg><span th:text="#{wizard.danger.postponeBtn}">Postpone</span></button>
+  <script>
+    (function () {
+      var form = document.currentScript.closest('form');
+      function render() {
+        var checked = form.querySelector('input.pp-date-mode:checked');
+        var mode = checked ? checked.value : 'EXACT';
+        form.querySelector('#ppExactFields').classList.toggle('hidden', mode === 'MONTH' || mode === 'TBA');
+        form.querySelector('#ppEndDateWrap').classList.toggle('hidden', mode !== 'RANGE');
+        form.querySelector('#ppMonthFields').classList.toggle('hidden', mode !== 'MONTH');
+        form.querySelector('#ppTbaNote').classList.toggle('hidden', mode !== 'TBA');
+        form.querySelector('#pp-date').required = (mode === 'EXACT' || mode === 'RANGE');
+        form.querySelector('#pp-end-date').required = (mode === 'RANGE');
+        form.querySelector('#pp-month').required = (mode === 'MONTH');
+      }
+      form.querySelectorAll('input.pp-date-mode').forEach(function (r) { r.addEventListener('change', render); });
+      render();
+    })();
+  </script>
+</form>
+
 </body>
 </html>

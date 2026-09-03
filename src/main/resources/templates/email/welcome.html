@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html th:lang="${mailLang} ?: 'ar'" th:dir="${mailDir} ?: 'rtl'" xmlns:th="http://www.thymeleaf.org">
+<body style="margin:0;padding:0;background:#f7f7fa;font-family:Arial,Helvetica,sans-serif;color:#23222f;">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+  <div style="text-align:center;padding:8px 0 16px;">
+    <span th:dir="${(mailLang ?: 'ar') == 'en'} ? 'ltr' : 'rtl'" dir="ltr" style="font-size:22px;font-weight:800;letter-spacing:.02em;"><span style="color:#8f7ac9;">i</span><th:block th:if="${(mailLang ?: 'ar') == 'en'}">Event</th:block><span th:unless="${(mailLang ?: 'ar') == 'en'}" style="font-size:1.15em">ايفنت</span></span>
+  </div>
+  <div style="background:#ffffff;border:1px solid #ececf1;border-radius:14px;padding:28px;">
+    <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#8f7ac9;text-transform:uppercase;" th:text="${kicker}">Welcome</p>
+    <h1 style="margin:0 0 10px;font-size:22px;" th:text="${title}">Welcome to iEvent</h1>
+    <div style="font-size:14px;line-height:1.65;color:#3d3c4f;white-space:pre-line;" th:text="${bodyText}">Body</div>
+
+    <!-- next steps: one row per link -->
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:18px;border-collapse:collapse;">
+      <tr th:each="l : ${links}">
+        <td style="padding:10px 0;border-top:1px solid #ececf1;">
+          <a th:href="${l.url}" style="color:#7b64b6;font-weight:700;font-size:14px;text-decoration:none;" th:text="${l.label}">Link</a>
+          <div style="font-size:12px;color:#6b6a80;margin-top:2px;" th:text="${l.note}">Note</div>
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align:center;margin-top:22px;">
+      <a th:href="${buttonUrl}" style="display:inline-block;background:#8f7ac9;color:#ffffff;font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;text-decoration:none;" th:text="${buttonLabel}">Open iEvent</a>
+    </div>
+  </div>
+  <p style="text-align:center;color:#908fa3;font-size:11px;margin-top:16px;" th:text="#{emails.welcome.footer}">iEvent, events discovery and ticketing for Iraq</p>
+</div>
+</body>
+</html>

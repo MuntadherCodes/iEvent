@@ -104,7 +104,7 @@
 
   </div>
 
-  <section th:replace="~{fragments/layout :: ctaBand(#{public.pricing.ctaTitle}, #{public.pricing.ctaSub}, @{/host}, #{public.pricing.ctaBtn}, 'i-rocket', @{/features}, #{learn.nav.features})}"></section>
+  <section th:replace="~{fragments/layout :: ctaBand(#{public.pricing.ctaTitle}, #{public.pricing.ctaSub}, @{${hostCtaHref}}, #{public.pricing.ctaBtn}, 'i-rocket', @{/features}, #{learn.nav.features})}"></section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

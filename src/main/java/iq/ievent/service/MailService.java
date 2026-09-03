@@ -172,6 +172,78 @@ public class MailService {
                 baseUrl + "/host", msg("mail.teamAdded.goDashboard", locale), locale);
     }
 
+    /** R31 #4: welcome mail right after sign-up, with the attendee guide and the
+     *  "how it works" page so nobody has to guess where to start. */
+    @Async
+    public void sendWelcome(String to, String fullName, Locale locale) {
+        Locale loc = safe(locale);
+        java.util.List<java.util.Map<String, String>> links = java.util.List.of(
+                link(baseUrl + "/browse", msg("mail.welcome.link1", loc), msg("mail.welcome.link1Note", loc)),
+                link(baseUrl + "/guides/attendees", msg("mail.welcome.link2", loc), msg("mail.welcome.link2Note", loc)),
+                link(baseUrl + "/how-it-works", msg("mail.welcome.link3", loc), msg("mail.welcome.link3Note", loc)),
+                link(baseUrl + "/help", msg("mail.welcome.link4", loc), msg("mail.welcome.link4Note", loc)));
+        sendWelcomeMail(to, msg("mail.welcome.subject", loc), msg("mail.welcome.kicker", loc),
+                msg("mail.welcome.title", loc, firstName(fullName)), msg("mail.welcome.body", loc),
+                links, baseUrl + "/browse", msg("mail.welcome.button", loc), loc);
+    }
+
+    /** R31 #4: sent when a user creates their organizer profile: the organizer
+     *  guide plus the three settings every host needs before the first sale. */
+    @Async
+    public void sendHostWelcome(String to, String fullName, String orgName, Locale locale) {
+        Locale loc = safe(locale);
+        java.util.List<java.util.Map<String, String>> links = java.util.List.of(
+                link(baseUrl + "/guides/organizers", msg("mail.hostWelcome.link1", loc), msg("mail.hostWelcome.link1Note", loc)),
+                link(baseUrl + "/host/settings/payments", msg("mail.hostWelcome.link2", loc), msg("mail.hostWelcome.link2Note", loc)),
+                link(baseUrl + "/host/events/new", msg("mail.hostWelcome.link3", loc), msg("mail.hostWelcome.link3Note", loc)),
+                link(baseUrl + "/pricing", msg("mail.hostWelcome.link4", loc), msg("mail.hostWelcome.link4Note", loc)));
+        sendWelcomeMail(to, msg("mail.hostWelcome.subject", loc, orgName), msg("mail.hostWelcome.kicker", loc),
+                msg("mail.hostWelcome.title", loc, firstName(fullName)), msg("mail.hostWelcome.body", loc, orgName),
+                links, baseUrl + "/host", msg("mail.hostWelcome.button", loc), loc);
+    }
+
+    private static java.util.Map<String, String> link(String url, String label, String note) {
+        return java.util.Map.of("url", url, "label", label, "note", note);
+    }
+
+    private static String firstName(String fullName) {
+        if (fullName == null || fullName.isBlank()) return "";
+        String t = fullName.trim();
+        int sp = t.indexOf(' ');
+        return sp > 0 ? t.substring(0, sp) : t;
+    }
+
+    private void sendWelcomeMail(String to, String subject, String kicker, String title, String bodyText,
+                                 java.util.List<java.util.Map<String, String>> links,
+                                 String buttonUrl, String buttonLabel, Locale loc) {
+        Locale previous = LocaleContextHolder.getLocale();
+        LocaleContextHolder.setLocale(loc);
+        try {
+            Context ctx = new Context(loc);
+            ctx.setVariable("kicker", kicker);
+            ctx.setVariable("title", title);
+            ctx.setVariable("bodyText", bodyText);
+            ctx.setVariable("links", links);
+            ctx.setVariable("buttonUrl", buttonUrl);
+            ctx.setVariable("buttonLabel", buttonLabel);
+            ctx.setVariable("mailLang", isEnglish(loc) ? "en" : "ar");
+            ctx.setVariable("mailDir", isEnglish(loc) ? "ltr" : "rtl");
+            String html = templates.process("email/welcome", ctx);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            sender.send(message);
+            log.info("Sent welcome mail to {}", to);
+        } catch (Exception e) {
+            log.error("Welcome mail failed to {}", to, e);
+        } finally {
+            LocaleContextHolder.setLocale(previous);
+        }
+    }
+
     /** Support contact form (public site + host dashboard). Synchronous — unlike
      *  the transactional sends above, the caller needs to know whether it
      *  actually went out to decide which confirmation to show the submitter. */

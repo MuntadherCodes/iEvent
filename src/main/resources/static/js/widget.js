@@ -1,6 +1,6 @@
-/* iEvent embeddable sales widget — https://ievent.iq
+/* iEvent embeddable sales widget — https://ievent.events
  * Usage:
- *   <script src="https://ievent.iq/js/widget.js"
+ *   <script src="https://ievent.events/js/widget.js"
  *           data-event="baghdad-nights-music-festival"
  *           data-type="button|card|checkout"      (default: button)
  *           data-label="Get tickets"              (optional, overrides the language default)
@@ -36,7 +36,7 @@
   var priceSuffix = showPrice && priceFrom ? ' · ' + t.from + ' ' + priceFrom : '';
 
   var origin = (function () {
-    try { return new URL(script.src).origin; } catch (e) { return 'https://ievent.iq'; }
+    try { return new URL(script.src).origin; } catch (e) { return 'https://ievent.events'; }
   })();
   var url = origin + '/e/' + encodeURIComponent(slug);
   var title = slug.replace(/-/g, ' ');

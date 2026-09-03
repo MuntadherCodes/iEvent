@@ -158,7 +158,7 @@
   "public.checkout.uploadReceipt": "ارفع إيصال التحويل (لقطة شاشة أو PDF)",
   "public.checkout.yourDetails": "بياناتك",
   "public.checkout.yourDetailsSub": "يُرسل تأكيد الطلب والتذاكر إلى بيانات التواصل هذه.",
-  "public.confirm.addToCalendarIcs": "أضف إلى التقويم (.ics)",
+  "public.confirm.addToCalendarIcs": "أضف إلى التقويم",
   "public.confirm.addToCalendarLabel": "أضف إلى التقويم:",
   "public.confirm.bookingFee": "رسم الحجز",
   "public.confirm.buyer": "المشتري:",
@@ -229,7 +229,7 @@
   "public.meta.eventDescription": "{0}: {1} في {2}، {3}. احجز تذاكرك الآن عبر iEvent.",
   "public.meta.organizerDescription": "{0} ينظّم فعاليات في {1}، العراق. تصفح الفعاليات القادمة واحجز تذاكرك عبر iEvent.",
   "public.event.addOneAria": "إضافة تذكرة {0} واحدة",
-  "public.event.addToCalendar": "أضف إلى التقويم",
+  "public.event.addToCalendar": "أضف إلى التقويم:",
   "public.event.cd.startsIn": "يبدأ بعد",
   "public.event.cd.days": "يوم",
   "public.event.cd.hours": "ساعة",
@@ -649,5 +649,9 @@
   "public.home.railPrev": "الفعاليات السابقة",
   "public.home.railNext": "الفعاليات التالية",
   "public.auth.orderedSignIn": "تم تسجيل طلبك وأرسلنا التذاكر إلى بريدك. هذا البريد مرتبط بحساب iEvent موجود، سجّل دخولك لتشوف الطلب هنا أيضاً.",
-  "public.error.tooMany": "محاولات كثيرة خلال وقت قصير. انتظر دقيقة ثم حاول مرة أخرى."
+  "public.error.tooMany": "محاولات كثيرة خلال وقت قصير. انتظر دقيقة ثم حاول مرة أخرى.",
+  "public.confirm.joinInstructions": "تعليمات الانضمام",
+  "public.calendar.google": "تقويم Google",
+  "public.calendar.outlook": "Outlook",
+  "public.calendar.apple": "Apple / ملف ‎.ics"
 }

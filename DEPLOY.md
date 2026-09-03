@@ -12,7 +12,7 @@
 ## First deployment (staging or production)
 
 1. Server: any Linux box with Docker + Docker Compose, ports 80/443 open.
-2. DNS: point `A` record for your domain (e.g. `app.ievent.iq`) at the server IP.
+2. DNS: point `A` record for your domain (e.g. `app.ievent.events`) at the server IP.
 3. Clone the repo, then `cp .env.example .env` and set — at minimum:
    `POSTGRES_PASSWORD` (strong), `DOMAIN`, `APP_BASE_URL=https://<domain>`,
    `MAIL_MODE=mailjet`, `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`,

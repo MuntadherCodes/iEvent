@@ -162,7 +162,7 @@
         <!-- one inline span so the sentence wraps as text, not as separate flex items -->
         <span class="leading-relaxed">[[#{public.org.trustPrefix}]] <span class="font-display font-extrabold tracking-wide text-ink-900"><span class="text-brand-500">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span> [[#{public.org.trustSuffix}]]</span>
       </p>
-      <a th:href="@{/host}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.org.hostYourOwn}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      <a th:href="@{${hostCtaHref}}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.org.hostYourOwn}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
     </div>
   </section>
 
