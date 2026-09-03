@@ -58,15 +58,10 @@
     enable: 'Enable', notNow: 'Not now'
   };
 
-  var deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (!dismissedRecently(INSTALL_DISMISS_KEY)) showBanner('android');
-  });
-  if (isIOS && !dismissedRecently(INSTALL_DISMISS_KEY)) {
-    setTimeout(function () { if (!isStandalone() && !document.getElementById('pwaBanner')) showBanner('ios'); }, 2500);
-  }
+  // R26: the "install the app" banner is retired for now (product decision).
+  // We still swallow beforeinstallprompt so Chrome's own mini-infobar doesn't
+  // pop up either; the site stays installable from the browser menu.
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); });
 
   function baseCard(iconSvg, title, body, buttonsHtml) {
     var div = document.createElement('div');
@@ -86,34 +81,7 @@
     return div;
   }
 
-  function showBanner(kind) {
-    if (document.getElementById('pwaBanner')) return;
-    var installIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>';
-    var installBtnHtml = kind === 'android'
-      ? '<button id="pwaInstallBtn" style="background:#8f7ac9;color:#fff;border:0;border-radius:.6rem;padding:.45rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer">' + STR.installBtn + '</button>'
-      : '';
-    var laterBtnHtml = '<button id="pwaLaterBtn" style="background:#fff;color:#6b6a80;border:1px solid #ececf1;border-radius:.6rem;padding:.45rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer">' + STR.later + '</button>';
-    var div = baseCard(installIcon, STR.installTitle, kind === 'ios' ? STR.installBodyIOS : STR.installBodyAndroid, installBtnHtml + laterBtnHtml);
-    document.body.appendChild(div);
-
-    function close() { div.remove(); markDismissed(INSTALL_DISMISS_KEY); maybeOfferNotifications(); }
-    document.getElementById('pwaLaterBtn').addEventListener('click', close);
-    document.getElementById('pwaCloseBtn').addEventListener('click', close);
-    var installBtn = document.getElementById('pwaInstallBtn');
-    if (installBtn) installBtn.addEventListener('click', function () {
-      div.remove();
-      markDismissed(INSTALL_DISMISS_KEY);
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.finally(function () { deferredPrompt = null; maybeOfferNotifications(); });
-      } else {
-        maybeOfferNotifications();
-      }
-    });
-  }
-
-  // Offered after the install banner is handled (or skipped entirely if
-  // install isn't applicable), only for signed-in users — #nbBtn (the
+  // Offered only for signed-in users — #nbBtn (the
   // notification bell) only renders when a session is authenticated.
   function maybeOfferNotifications() {
     if (!('Notification' in window) || !window.isSecureContext) return;
@@ -138,9 +106,6 @@
     });
   }
 
-  // No install banner shown this visit (already dismissed recently, or the
-  // platform never offers one) — still worth offering notifications alone.
-  if (dismissedRecently(INSTALL_DISMISS_KEY)) {
-    setTimeout(maybeOfferNotifications, 1500);
-  }
+  // With the install banner gone, the notifications offer stands on its own.
+  setTimeout(maybeOfferNotifications, 1500);
 })();

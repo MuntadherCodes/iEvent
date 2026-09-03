@@ -58,7 +58,7 @@ exists, its slot shows a labeled placeholder with the same name and size.
 | go-tickets.png | 1600x1000 | Ticket types with prices/capacity |
 | go-promote.png | 1600x1000 | Share links / discount codes |
 | go-orders.png | 1600x1000 | Orders list with receipt confirm |
-| go-checkin.png | 800x1600 | Phone: check-in scanner |
+| go-checkin.png | 800x1600 | Phone: check-in camera scanner with the live counter |
 
 Tips: PNG format, exact sizes above (2x retina welcome at same ratio, e.g.
 3200x2000). Desktop shots are 16:10, phone shots 1:2. Crop out personal data.
