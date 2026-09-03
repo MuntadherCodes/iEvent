@@ -1304,4 +1304,18 @@ class SmokeTest {
                 .andExpect(content().string(containsString("aria-label=\"Sign in or create an account\"")))
                 .andExpect(content().string(containsString("href=\"/auth/login\"")));
     }
+
+    // ---- R29: mobile header (bell in the top bar, no duplicate CTA in the menu) ----
+
+    @Test
+    void headerShowsBellInTopBarAndMenuHasNoDuplicateCta() throws Exception {
+        String html = mockMvc.perform(get("/en").with(user(DEMO_BUYER_EMAIL)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("id=\"nbBtn\""), "bell button present");
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("id=\"nbBadgeMobile\""), "menu notifications row gone");
+        String menu = html.substring(html.indexOf("id=\"mobileMenu\""));
+        menu = menu.substring(0, menu.indexOf("</div>\n  </div>") > 0 ? menu.indexOf("</div>\n  </div>") : menu.length());
+        org.junit.jupiter.api.Assertions.assertFalse(menu.contains("rounded-xl bg-brand-500 px-4 py-3.5"), "no duplicate Host CTA inside the menu");
+    }
 }
