@@ -104,7 +104,7 @@
       </div>
       <!-- One horizontal rail: swipe on touch, arrows on desktop, snap per card.
            Negative margins let the rail bleed to the screen edge on phones. -->
-      <div id="monthRail" class="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-2 sm:mx-0 sm:gap-6 sm:px-0">
+      <div id="monthRail" th:attr="data-autoplay=${#lists.size(monthEvents) > 4} ? 'true' : null" class="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-2 sm:mx-0 sm:gap-6 sm:px-0">
         <div th:each="card : ${monthEvents}" class="w-[46%] shrink-0 snap-start sm:w-72 lg:w-80">
           <a th:replace="~{fragments/layout :: eventCard(${card})}"></a>
         </div>
@@ -405,8 +405,42 @@
       if (!rail) return;
       var sign = btn.hasAttribute('data-rail-next') ? 1 : -1;
       btn.addEventListener('click', function () {
+        pauseAutoplay(rail, 8000);
         rail.scrollBy({ left: sign * dir * rail.clientWidth * 0.9, behavior: 'smooth' });
       });
+    });
+
+    // R30: auto-slide when the rail holds more than four cards (data-autoplay).
+    // One card every 4s, loops back to the start at the end, pauses while the
+    // user hovers / touches / focuses inside it or the tab is hidden, and stays
+    // off entirely for people who asked for reduced motion.
+    var pausedUntil = new WeakMap();
+    function pauseAutoplay(rail, ms) { pausedUntil.set(rail, Date.now() + ms); }
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('[data-autoplay="true"]').forEach(function (rail) {
+      if (reduce) return;
+      var hover = false;
+      ['mouseenter', 'touchstart', 'focusin', 'pointerdown'].forEach(function (ev) {
+        rail.addEventListener(ev, function () { hover = true; }, { passive: true });
+      });
+      ['mouseleave', 'touchend', 'focusout', 'pointerup'].forEach(function (ev) {
+        rail.addEventListener(ev, function () { hover = false; pauseAutoplay(rail, 6000); }, { passive: true });
+      });
+      setInterval(function () {
+        if (hover || document.hidden) return;
+        if ((pausedUntil.get(rail) || 0) > Date.now()) return;
+        var first = rail.firstElementChild;
+        if (!first) return;
+        var gap = parseFloat(getComputedStyle(rail).columnGap || getComputedStyle(rail).gap) || 0;
+        var step = first.getBoundingClientRect().width + gap;
+        var max = rail.scrollWidth - rail.clientWidth;
+        var pos = Math.abs(rail.scrollLeft);
+        if (pos >= max - 2) {
+          rail.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          rail.scrollBy({ left: dir * step, behavior: 'smooth' });
+        }
+      }, 4000);
     });
   })();
 </script>
