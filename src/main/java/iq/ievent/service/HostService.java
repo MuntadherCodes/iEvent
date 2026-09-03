@@ -733,6 +733,16 @@ public class HostService {
                 Format.BOOKING_FEE_WAIVED, orgId);
     }
 
+    /** Why this event cannot go live yet (a message key), or null when it can.
+     *  A listing that sells tickets needs at least one ticket type, otherwise the
+     *  public page shows an empty ticket box and checkout has nothing to pick. */
+    public String publishBlocker(Event event) {
+        if (event.isAnnounceOnly()) return null;
+        Long n = jdbc.queryForObject("SELECT COUNT(*) FROM ticket_types WHERE event_id = ?",
+                Long.class, event.getId());
+        return n == null || n == 0 ? "flash.event.publishNoTickets" : null;
+    }
+
     @Transactional
     public void publish(Event event) {
         event.setStatus(Event.Status.LIVE);
@@ -833,9 +843,17 @@ public class HostService {
     public void cancelEvent(Event event) {
         event.setStatus(Event.Status.CANCELLED);
         events.save(event);
+        // The cancellation email tells buyers their tickets are no longer valid,
+        // so make that true: every ticket is voided (a QR can no longer check in)
+        // and orders still awaiting the host's confirmation are closed. Confirmed
+        // paid orders stay CONFIRMED so the host can still record each refund.
+        jdbc.update("UPDATE tickets SET status = 'VOID' WHERE event_id = ? AND status <> 'VOID'", event.getId());
+        // notify first (the recipient query reads CONFIRMED + PENDING orders), then close pending ones
         notifyBuyers(event, locale -> new String[] {
                 msgFor(locale, "mail.eventCancelled.subject", event.getTitle()),
                 msgFor(locale, "mail.eventCancelled.body", event.getTitle())});
+        jdbc.update("UPDATE orders SET status = 'CANCELLED' WHERE event_id = ? AND status = 'PENDING_CONFIRMATION'",
+                event.getId());
     }
 
     /** Moves the event to a new date/time and emails every buyer. Picking a

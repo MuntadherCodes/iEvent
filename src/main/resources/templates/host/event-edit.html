@@ -55,7 +55,7 @@
       </div>
 
       <!-- Event details form -->
-      <form id="editForm" th:action="@{/host/events/{id}/edit(id=${ev.id()})}" method="post" enctype="multipart/form-data" class="mt-6 space-y-6" th:attr="data-autosave-key='ievent-edit-' + ${ev.id()},data-event-id=${ev.id()}">
+      <form id="editForm" th:action="@{/host/events/{id}/edit(id=${ev.id()})}" method="post" enctype="multipart/form-data" class="mt-6 space-y-6" th:attr="data-autosave-key='ievent-edit-' + ${ev.id()},data-event-id=${isDraft} ? ${ev.id()} : ''">
 
         <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
           <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.edit.title}">Event details</h2>
@@ -354,9 +354,10 @@
                when the ticket section itself is absent — announce-only events have
                no #freeToggle for that script to hook off of. The JS still owns
                toggling it live while editing a real ticket's price. -->
-          <div id="editFeeCard" class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5" th:classappend="${evEntity.announceOnly() or ticketRows.?[priceIqd > 0].isEmpty()} ? 'hidden' : ''">
+          <div id="editFeeCard" th:attr="data-fee-waived=${feeWaived}" class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5" th:classappend="${evEntity.announceOnly() or ticketRows.?[priceIqd > 0].isEmpty()} ? 'hidden' : ''">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
-            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">750 IQD (or 3% + 2,000 IQD, capped at 15,000 IQD) booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
+            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:classappend="${feeWaived} ? 'line-through decoration-brand-300'" th:text="#{wizard.fee.bodyStrong}">750 IQD (or 3% + 2,000 IQD, capped at 15,000 IQD) booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
+            <p th:if="${feeWaived}" class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="#{wizard.fee.waivedNow}">Waived during the beta: buyers pay the ticket price only and nothing is deducted from you.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" th:checked="${evEntity.feeMode() != 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
@@ -827,8 +828,9 @@
     function fmtIqd(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
     // Mirrors Format.bookingFeeFor server-side: 750 flat at/under 15,000 IQD,
     // else 3% + 2,000 IQD, capped at 15,000 IQD.
+    var FEE_WAIVED = !!(feeCard && feeCard.getAttribute('data-fee-waived') === 'true');
     function bookingFeeFor(price) {
-      if (price <= 0) return 0;
+      if (FEE_WAIVED || price <= 0) return 0;
       if (price <= 15000) return 750;
       return Math.min(15000, Math.round(price * 0.03) + 2000);
     }

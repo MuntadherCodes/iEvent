@@ -18,7 +18,11 @@
    `MAIL_MODE=mailjet`, `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`,
    `SPRING_MAIL_HOST=in-v3.mailjet.com`, `SPRING_MAIL_PORT=587`,
    `MAIL_SMTP_AUTH=true`, `MAIL_SMTP_STARTTLS=true`, `SEED_DEMO=false`,
-   `SUPER_ADMIN_PASSWORD` (strong — gates the `/admin` super-admin console).
+   `SUPER_ADMIN_PASSWORD` (strong — gates the `/admin` super-admin console),
+   `REMEMBER_ME_KEY` (`openssl rand -hex 32`, keeps "remember me" logins across
+   deploys), `BACKUP_REMOTE` (off-site target for nightly backups, see below).
+   Leave `RATE_LIMIT_ENABLED=true`; the staging compose file already forces the
+   session cookie to `Secure` and pins the container to `Asia/Baghdad`.
    Optional: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (Sign in with Google —
    remember to add `https://<domain>/login/oauth2/code/google` as an authorized
    redirect URI in the Google Cloud console), `GOOGLE_MAPS_API_KEY`
@@ -45,17 +49,32 @@ migration; new schema changes always arrive as new `V<n>__*.sql` files.
 
 ## Backups
 
-Nightly database dump (run from cron on the host):
+Nightly database + uploads backup (run from cron on the host):
 
 ```bash
-./scripts/backup.sh            # writes ./backups/ievent-YYYYmmdd-HHMM.sql.gz, keeps 14
+./scripts/backup.sh            # writes ./backups/ievent-YYYYmmdd-HHMM.dump and uploads-YYYYmmdd-HHMM.tgz, keeps 14 of each
 ```
 Cron example: `15 2 * * * cd /opt/ievent && ./scripts/backup.sh >> backups/backup.log 2>&1`
 
-Also back up the uploads volume (transfer receipts):
-`docker run --rm -v ievent_ievent_uploads:/data -v $PWD/backups:/out alpine tar czf /out/uploads-$(date +%F).tgz /data`
+Off-site copy: set `BACKUP_REMOTE` in the cron environment (an rclone remote such
+as `b2:ievent-backups` or an scp target such as `backup@host:/srv/ievent`) and the
+script mirrors each new file there. A backup that only lives on the same disk as
+the database does not count as a backup.
 
-Restore: `gunzip -c backups/<file>.sql.gz | docker compose exec -T db psql -U ievent ievent`
+Restore the database (the dump is in pg_dump custom format, so it replays cleanly
+over a live database; stop the app first so nothing writes during the restore):
+
+```bash
+docker compose -f docker-compose.staging.yml stop app
+docker compose -f docker-compose.staging.yml exec -T db \
+  pg_restore -U ievent -d ievent --clean --if-exists --no-owner < backups/<file>.dump
+docker compose -f docker-compose.staging.yml start app
+```
+
+Restore the uploads volume:
+`docker run --rm -v ievent_ievent_uploads:/data -v $PWD/backups:/in alpine sh -c "cd /data && tar xzf /in/<file>.tgz"`
+
+Test a restore on a throwaway machine before go-live and again every few months.
 
 ## Safety rails
 

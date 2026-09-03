@@ -54,9 +54,9 @@ public class Ticket {
     public Event getEvent() { return event; }
     public void setEvent(Event event) { this.event = event; }
     public String getHolderName() { return holderName; }
-    public void setHolderName(String holderName) { this.holderName = holderName; }
+    public void setHolderName(String holderName) { this.holderName = Text.clip(holderName, 120); }
     public String getHolderEmail() { return holderEmail; }
-    public void setHolderEmail(String holderEmail) { this.holderEmail = holderEmail; }
+    public void setHolderEmail(String holderEmail) { this.holderEmail = Text.clip(holderEmail, 255); }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public OffsetDateTime getCheckedInAt() { return checkedInAt; }

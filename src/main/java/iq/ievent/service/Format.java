@@ -63,6 +63,11 @@ public final class Format {
         return displayLocale() == Locale.ENGLISH;
     }
 
+    /** Word joining the two ends of a date or time range, in the given locale. */
+    private static String rangeSep(Locale loc) {
+        return loc != null && "ar".equals(loc.getLanguage()) ? " إلى " : " to ";
+    }
+
     /** Picks event copy matching the viewer's locale: {@code origin} as-written
      *  when the request locale matches the language the host wrote it in
      *  ({@code originLang}, "ar"/"en"); otherwise {@code translated} when a
@@ -104,7 +109,7 @@ public final class Format {
         DateTimeFormatter time = DateTimeFormatter.ofPattern("h:mm a", loc);
         String base = s.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", loc)) + " · " + s.format(time);
         if (endsAt != null) {
-            base += " – " + endsAt.atZoneSameInstant(BAGHDAD).format(time);
+            base += rangeSep(loc) + endsAt.atZoneSameInstant(BAGHDAD).format(time);
         }
         return base;
     }
@@ -148,13 +153,13 @@ public final class Format {
         ZonedDateTime e = (endsAt == null ? startsAt : endsAt).atZoneSameInstant(BAGHDAD);
         String out;
         if (s.getYear() != e.getYear()) {
-            out = s.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc)) + " – "
+            out = s.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc)) + rangeSep(loc)
                     + e.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc));
         } else if (s.getMonth() != e.getMonth()) {
-            out = s.format(DateTimeFormatter.ofPattern("MMM d", loc)) + " – "
+            out = s.format(DateTimeFormatter.ofPattern("MMM d", loc)) + rangeSep(loc)
                     + e.format(DateTimeFormatter.ofPattern("MMM d, yyyy", loc));
         } else {
-            out = s.format(DateTimeFormatter.ofPattern("MMM d", loc)) + " – "
+            out = s.format(DateTimeFormatter.ofPattern("MMM d", loc)) + rangeSep(loc)
                     + e.format(DateTimeFormatter.ofPattern("d, yyyy", loc));
         }
         if (hasStartTime) out += " · " + s.format(DateTimeFormatter.ofPattern("h:mm a", loc));
@@ -199,7 +204,7 @@ public final class Format {
                 DateTimeFormatter full = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", loc);
                 DateTimeFormatter noYear = DateTimeFormatter.ofPattern("EEEE, MMMM d", loc);
                 String base = (s.getYear() == e.getYear() ? s.format(noYear) : s.format(full))
-                        + " – " + e.format(full);
+                        + rangeSep(loc) + e.format(full);
                 if (hasStartTime) base += " · " + s.format(DateTimeFormatter.ofPattern("h:mm a", loc));
                 return base;
             }

@@ -51,7 +51,7 @@ public class AdminController {
     }
 
     private static String dateLine(OffsetDateTime t) {
-        return t == null ? "—" : t.atZoneSameInstant(BAGHDAD).format(DATE_FMT);
+        return t == null ? "-" : t.atZoneSameInstant(BAGHDAD).format(DATE_FMT);
     }
 
     public record OrgRow(Long id, String name, String handle, String ownerName, String ownerEmail,
@@ -144,8 +144,8 @@ public class AdminController {
                 .toList();
 
         model.addAttribute("org", org);
-        model.addAttribute("ownerName", owner == null ? "—" : owner.getFullName());
-        model.addAttribute("ownerEmail", owner == null ? "—" : owner.getEmail());
+        model.addAttribute("ownerName", owner == null ? "-" : owner.getFullName());
+        model.addAttribute("ownerEmail", owner == null ? "-" : owner.getEmail());
         model.addAttribute("createdLine", dateLine(org.getCreatedAt()));
         model.addAttribute("eventRows", filtered);
         model.addAttribute("q", q == null ? "" : q);

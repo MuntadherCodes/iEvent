@@ -45,9 +45,13 @@
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
         [[#{public.auth.signedOut}]]
       </div>
-      <div th:if="${nextParam != null && nextParam != '' && param.error == null && param.oauth_error == null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">
+      <div th:if="${nextParam != null && nextParam != '' && param.error == null && param.oauth_error == null && param.ordered == null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-ticket"/></svg>
         [[#{public.auth.backWhereLeft}]]
+      </div>
+      <div th:if="${param.ordered != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+        [[#{public.auth.orderedSignIn}]]
       </div>
       <div th:if="${param.reset != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
         <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>

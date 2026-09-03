@@ -109,6 +109,8 @@ public class CheckoutController {
      *  email matches) is only needed again once this session ends. */
     private void autoLogin(User user, jakarta.servlet.http.HttpServletRequest request,
                            jakarta.servlet.http.HttpServletResponse response) {
+        // fresh session id on privilege change (session-fixation hygiene)
+        if (request.getSession(false) != null) request.changeSessionId();
         UserDetails details = userService.loadUserByUsername(user.getEmail());
         var authToken = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
         SecurityContext context = SecurityContextHolder.createEmptyContext();
@@ -127,6 +129,10 @@ public class CheckoutController {
         User user = currentUser(principal);
         EventDetail event = catalog.eventDetail(slug)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        // announce-only listings sell nothing: back to the event page
+        if (event.announceOnly()) {
+            return "redirect:/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, java.nio.charset.StandardCharsets.UTF_8);
+        }
 
         // #11 sign-in continuation: the current checkout URL (path + query, incl.
         // qty-* selection) becomes the ?next= target of the "Sign in to complete
@@ -250,6 +256,7 @@ public class CheckoutController {
                              RedirectAttributes redirect) {
         User user = currentUser(principal);
         boolean wasGuest = user == null;
+        boolean guestCreated = false;
         Map<Long, Integer> quantities = new HashMap<>();
         for (Map.Entry<String, String> entry : params.entrySet()) {
             if (entry.getKey().startsWith("qty-")) {
@@ -275,7 +282,8 @@ public class CheckoutController {
             }
             UserService.GuestProvision guest = userService.findOrCreateGuest(buyerName, email, buyerPhone);
             user = guest.user();
-            if (guest.created()) {
+            guestCreated = guest.created();
+            if (guestCreated) {
                 passwordResetService.requestReset(user.getEmail());
             }
         }
@@ -283,6 +291,14 @@ public class CheckoutController {
             Order order = orderService.checkout(user, slug, quantities,
                     buyerName, buyerEmail, buyerPhone, paymentMethodLabel, transferReference, receipt,
                     promo, holderNames, holderEmails, keepUpdated);
+            if (wasGuest && !guestCreated) {
+                // QA: the email belongs to an EXISTING account. Typing someone's
+                // email at checkout must never log the visitor into that account,
+                // so the order is placed (tickets go to that inbox as always) and
+                // the visitor is asked to sign in normally to see it.
+                return "redirect:/auth/login?ordered&next=" + java.net.URLEncoder.encode(
+                        "/orders/" + order.getOrderCode(), java.nio.charset.StandardCharsets.UTF_8);
+            }
             if (wasGuest) autoLogin(user, request, response);
             return "redirect:/orders/" + order.getOrderCode();
         } catch (OrderService.CheckoutException e) {

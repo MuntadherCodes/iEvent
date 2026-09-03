@@ -191,7 +191,7 @@ public class MailService {
             helper.setFrom(from);
             helper.setTo(supportEmail);
             helper.setReplyTo(fromEmail);
-            helper.setSubject("[iEvent support] " + (topic == null || topic.isBlank() ? "General" : topic) + " — " + name);
+            helper.setSubject("[iEvent support] " + (topic == null || topic.isBlank() ? "General" : topic) + " · " + name);
             helper.setText(html, true);
             sender.send(message);
             log.info("Sent support contact mail from {} ({})", fromEmail, topic);

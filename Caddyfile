@@ -5,7 +5,9 @@
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
+		# X-Frame-Options is set by the app itself: DENY everywhere except the
+		# embeddable /e/** widget page, which must be frameable on other sites.
+		# Forcing it here would break the widget's iframe mode.
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 }

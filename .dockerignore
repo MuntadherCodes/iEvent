@@ -1,0 +1,10 @@
+.git
+.github
+target
+backups
+e2e/node_modules
+e2e/test-results
+e2e/playwright-report
+frontend/node_modules
+*.bundle
+.env

@@ -57,7 +57,7 @@
     // Full checkout: the event page embedded in an iframe.
     var frame = document.createElement('iframe');
     frame.src = url;
-    frame.title = 'iEvent checkout — ' + title;
+    frame.title = 'iEvent checkout · ' + title;
     frame.style.cssText =
       'width:420px;max-width:100%;height:640px;border:1px solid #ececf1;' +
       'border-radius:' + r(14) + ';background:#fff;box-shadow:0 6px 20px -8px rgba(35,34,47,.12);';

@@ -20,6 +20,7 @@ import java.io.IOException;
 public class SecurityConfig {
 
     private final boolean googleEnabled;
+    private final String rememberMeKey;
     private final HostAccountGateFilter hostAccountGateFilter;
     private final SuperAdminAuthFilter superAdminAuthFilter;
     private final org.springframework.beans.factory.ObjectProvider<
@@ -33,6 +34,7 @@ public class SecurityConfig {
 
     public SecurityConfig(
             @org.springframework.beans.factory.annotation.Value("${app.google.client-id:}") String googleClientId,
+            @org.springframework.beans.factory.annotation.Value("${app.security.remember-me-key:}") String rememberMeKey,
             org.springframework.beans.factory.ObjectProvider<
                     org.springframework.security.oauth2.client.userinfo.OAuth2UserService<
                             org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest,
@@ -44,6 +46,10 @@ public class SecurityConfig {
             HostAccountGateFilter hostAccountGateFilter,
             SuperAdminAuthFilter superAdminAuthFilter) {
         this.googleEnabled = googleClientId != null && !googleClientId.isBlank();
+        // No configured key: sign remember-me cookies with a per-boot random secret
+        // rather than a constant anyone can read in the repository.
+        this.rememberMeKey = rememberMeKey != null && !rememberMeKey.isBlank()
+                ? rememberMeKey : java.util.UUID.randomUUID().toString() + java.util.UUID.randomUUID();
         this.googleUserService = googleUserService;
         this.googleOidcUserService = googleOidcUserService;
         this.hostAccountGateFilter = hostAccountGateFilter;
@@ -110,12 +116,12 @@ public class SecurityConfig {
         // the default X-Frame-Options: DENY is written for every path EXCEPT
         // /e/**. All other pages stay clickjacking-protected.
         org.springframework.security.web.util.matcher.RequestMatcher notEmbed =
-                request -> !request.getRequestURI().startsWith("/e/");
+                request -> !RequestPaths.appPath(request).startsWith("/e/");
         // Belt-and-suspenders alongside the noindex meta tag + robots.txt disallow:
         // an HTTP header survives even a redirect or a crawler that ignores the
         // other two, and covers every /admin/** response, not just the rendered pages.
         org.springframework.security.web.util.matcher.RequestMatcher isAdmin =
-                request -> request.getRequestURI().startsWith("/admin");
+                request -> RequestPaths.under(request, "/admin");
         http
             .headers(headers -> headers
                 .frameOptions(frame -> frame.disable())
@@ -146,7 +152,7 @@ public class SecurityConfig {
                 .failureUrl("/auth/login?error"))
             .rememberMe(remember -> remember
                 .rememberMeParameter("remember-me")
-                .key("ievent-remember")
+                .key(rememberMeKey)
                 .tokenValiditySeconds(60 * 60 * 24 * 30))
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
@@ -156,7 +162,7 @@ public class SecurityConfig {
             // in-memory) previously surfaced as a raw 403 whitelabel page. Redirecting
             // to the login form instead just asks for the password again.
             .exceptionHandling(handling -> handling.accessDeniedHandler((request, response, ex) -> {
-                if (request.getRequestURI().startsWith("/admin")) {
+                if (RequestPaths.under(request, "/admin")) {
                     response.sendRedirect(request.getContextPath() + "/admin/login");
                 } else {
                     new org.springframework.security.web.access.AccessDeniedHandlerImpl().handle(request, response, ex);

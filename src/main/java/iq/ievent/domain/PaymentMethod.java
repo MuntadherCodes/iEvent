@@ -47,11 +47,11 @@ public class PaymentMethod {
     public Organization getOrganization() { return organization; }
     public void setOrganization(Organization organization) { this.organization = organization; }
     public String getLabel() { return label; }
-    public void setLabel(String label) { this.label = label; }
+    public void setLabel(String label) { this.label = Text.clip(label, 60); }
     public String getAccountNumber() { return accountNumber; }
-    public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+    public void setAccountNumber(String accountNumber) { this.accountNumber = Text.clip(accountNumber, 60); }
     public String getAccountName() { return accountName; }
-    public void setAccountName(String accountName) { this.accountName = accountName; }
+    public void setAccountName(String accountName) { this.accountName = Text.clip(accountName, 120); }
     public String getInstructions() { return instructions; }
     public void setInstructions(String instructions) { this.instructions = instructions; }
     public String getQrImagePath() { return qrImagePath; }

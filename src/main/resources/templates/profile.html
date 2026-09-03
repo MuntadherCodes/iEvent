@@ -86,7 +86,7 @@
             </div>
             <div>
               <label for="pf-phone" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.checkout.phone}">Phone</label>
-              <input id="pf-phone" name="phone" type="tel" th:value="${currentUser.phone}" th:placeholder="#{public.checkout.phonePh}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+              <input id="pf-phone" name="phone" type="tel" dir="ltr" th:value="${currentUser.phone}" th:placeholder="#{public.checkout.phonePh}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
             </div>
             <div>
               <label for="pf-city" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.browse.city}">City</label>

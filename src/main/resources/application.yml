@@ -34,9 +34,40 @@ spring:
     properties:
       mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
       mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+      # Never let a stalled SMTP connection pin a mail thread forever (ms).
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 15000
+      mail.smtp.writetimeout: 15000
+
+  # Bounded pool for @Async mail. The default SimpleAsyncTaskExecutor spawns an
+  # unbounded thread per email, which under a burst of checkouts is what takes
+  # the JVM down rather than a slow mail provider.
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 8
+        queue-capacity: 500
+      thread-name-prefix: async-
 
 server:
   forward-headers-strategy: framework
+  shutdown: graceful
+  tomcat:
+    # Boot 3.4.13 caps multipart parts at 50 by default; the event wizard posts
+    # ~40 fields plus 5 parts per gallery photo (up to 10 photos).
+    max-part-count: 200
+    max-part-header-size: 4KB
+  servlet:
+    session:
+      cookie:
+        # Lax blocks cross-site POSTs carrying the session (CSRF defence in depth)
+        # while still sending the cookie on normal top-level navigations.
+        same-site: lax
+        # Set SESSION_COOKIE_SECURE=true wherever the site is served over HTTPS
+        # (the staging/production compose file does). Off by default so local
+        # http://localhost:8080 logins keep working.
+        secure: ${SESSION_COOKIE_SECURE:false}
 
 management:
   endpoints:
@@ -53,6 +84,14 @@ management:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  security:
+    # Signs remember-me cookies. Leave empty to use a random key generated at
+    # startup (remember-me sessions then end at every restart); set a long random
+    # value in production so they survive deploys.
+    remember-me-key: ${REMEMBER_ME_KEY:}
+    # Per-IP throttle on login, password reset, admin login, contact, newsletter
+    # and checkout POSTs (see RateLimitFilter). Off only for automated test runs.
+    rate-limit: ${RATE_LIMIT_ENABLED:true}
   content:
     # Show the product screenshot slots on the learn/content pages. Off until the
     # real screenshots exist in static/img/shots (see the README there).

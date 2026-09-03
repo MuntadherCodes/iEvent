@@ -63,6 +63,22 @@ services:
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
       GOOGLE_TRANSLATE_API_KEY: ${GOOGLE_TRANSLATE_API_KEY:-}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:?set SUPER_ADMIN_PASSWORD in .env}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      REMEMBER_ME_KEY: ${REMEMBER_ME_KEY:-}
+      SESSION_COOKIE_SECURE: "true"
+      CONTENT_SCREENSHOTS: ${CONTENT_SCREENSHOTS:-false}
+      TZ: Asia/Baghdad
+    # keep one runaway request from taking the whole VPS down
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    stop_grace_period: 40s
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
       interval: 10s

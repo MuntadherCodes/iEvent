@@ -36,7 +36,7 @@ public class HostAccountGateFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String path = request.getRequestURI();
+        String path = RequestPaths.appPath(request);
         boolean underHost = path.equals("/host") || path.startsWith("/host/");
         boolean exempt = path.equals("/host/start") || path.equals("/host/disabled");
         if (underHost && !exempt) {

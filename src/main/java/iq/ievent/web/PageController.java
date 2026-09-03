@@ -331,6 +331,10 @@ public class PageController {
                 owner != null ? owner.getRefundPolicy() : entity.getRefundPolicy(), messages));
         model.addAttribute("refundPolicyVisible", owner == null || owner.isRefundPolicyVisible());
         model.addAttribute("directionsUrl", directionsUrl(entity));
+        // Unlisted = reachable by link only: keep it out of search engines too.
+        if (entity.getVisibility() != null && !"PUBLIC".equals(entity.getVisibility())) {
+            model.addAttribute("noIndex", true);
+        }
         return "event";
     }
 

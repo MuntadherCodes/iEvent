@@ -189,7 +189,7 @@ public class Event {
     public Organization getOrganization() { return organization; }
     public void setOrganization(Organization organization) { this.organization = organization; }
     public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public void setTitle(String title) { this.title = Text.clip(title, 160); }
     public String getSlug() { return slug; }
     public void setSlug(String slug) { this.slug = slug; }
     public Category getCategory() { return category; }
@@ -199,9 +199,9 @@ public class Event {
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
     public String getVenueName() { return venueName; }
-    public void setVenueName(String venueName) { this.venueName = venueName; }
+    public void setVenueName(String venueName) { this.venueName = Text.clip(venueName, 160); }
     public String getVenueAddress() { return venueAddress; }
-    public void setVenueAddress(String venueAddress) { this.venueAddress = venueAddress; }
+    public void setVenueAddress(String venueAddress) { this.venueAddress = Text.clip(venueAddress, 255); }
     public OffsetDateTime getStartsAt() { return startsAt; }
     public void setStartsAt(OffsetDateTime startsAt) { this.startsAt = startsAt; }
     public OffsetDateTime getEndsAt() { return endsAt; }
@@ -219,7 +219,7 @@ public class Event {
     public String getCoverImageUrl() { return coverImageUrl; }
     public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
     public String getCoverImageCreditName() { return coverImageCreditName; }
-    public void setCoverImageCreditName(String coverImageCreditName) { this.coverImageCreditName = coverImageCreditName; }
+    public void setCoverImageCreditName(String coverImageCreditName) { this.coverImageCreditName = Text.clip(coverImageCreditName, 160); }
     public String getCoverImageCreditUrl() { return coverImageCreditUrl; }
     public void setCoverImageCreditUrl(String coverImageCreditUrl) { this.coverImageCreditUrl = coverImageCreditUrl; }
     public int getCoverFocusY() { return coverFocusY; }
@@ -227,9 +227,9 @@ public class Event {
     public long getViewCount() { return viewCount; }
     public void setViewCount(long viewCount) { this.viewCount = viewCount; }
     public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
+    public void setSummary(String summary) { this.summary = Text.clip(summary, 160); }
     public String getTags() { return tags; }
-    public void setTags(String tags) { this.tags = tags; }
+    public void setTags(String tags) { this.tags = Text.clip(tags, 255); }
     public String getLineup() { return lineup; }
     public void setLineup(String lineup) { this.lineup = lineup; }
     public String getVisibility() { return visibility; }
@@ -239,9 +239,9 @@ public class Event {
     public boolean isAnnounceOnly() { return announceOnly; }
     public void setAnnounceOnly(boolean announceOnly) { this.announceOnly = announceOnly; }
     public String getOnlineUrl() { return onlineUrl; }
-    public void setOnlineUrl(String onlineUrl) { this.onlineUrl = onlineUrl; }
+    public void setOnlineUrl(String onlineUrl) { this.onlineUrl = Text.clip(onlineUrl, 500); }
     public String getMapsUrl() { return mapsUrl; }
-    public void setMapsUrl(String mapsUrl) { this.mapsUrl = mapsUrl; }
+    public void setMapsUrl(String mapsUrl) { this.mapsUrl = Text.clip(mapsUrl, 500); }
     public String getFeeMode() { return feeMode; }
     public void setFeeMode(String feeMode) { this.feeMode = feeMode; }
     public boolean isRequirePaymentProof() { return requirePaymentProof; }
@@ -253,9 +253,9 @@ public class Event {
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
     public String getTitleTranslated() { return titleTranslated; }
-    public void setTitleTranslated(String titleTranslated) { this.titleTranslated = titleTranslated; }
+    public void setTitleTranslated(String titleTranslated) { this.titleTranslated = Text.clip(titleTranslated, 160); }
     public String getSummaryTranslated() { return summaryTranslated; }
-    public void setSummaryTranslated(String summaryTranslated) { this.summaryTranslated = summaryTranslated; }
+    public void setSummaryTranslated(String summaryTranslated) { this.summaryTranslated = Text.clip(summaryTranslated, 160); }
     public String getDescriptionTranslated() { return descriptionTranslated; }
     public void setDescriptionTranslated(String descriptionTranslated) { this.descriptionTranslated = descriptionTranslated; }
     public String getLineupTranslated() { return lineupTranslated; }

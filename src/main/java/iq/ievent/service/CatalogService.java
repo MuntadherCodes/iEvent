@@ -230,8 +230,9 @@ public class CatalogService {
     }
 
     public List<EventCard> upcomingForOrganization(Long orgId, int limit) {
-        return toCards(events.findByOrganizationIdAndStatusAndAdminHiddenFalseAndStartsAtAfterOrderByStartsAtAsc(
-                orgId, Event.Status.LIVE, OffsetDateTime.now(), PageRequest.of(0, limit)));
+        // PUBLIC only: an UNLISTED event is link-only and must not surface on the organizer page
+        return toCards(events.findByOrganizationIdAndStatusAndVisibilityAndAdminHiddenFalseAndStartsAtAfterOrderByStartsAtAsc(
+                orgId, Event.Status.LIVE, "PUBLIC", OffsetDateTime.now(), PageRequest.of(0, limit)));
     }
 
     /** Checkout view of one payment method the buyer can pick. */

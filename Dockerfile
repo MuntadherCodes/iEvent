@@ -15,4 +15,5 @@ RUN mkdir -p /app/data/uploads && chown -R ievent /app/data
 COPY --from=build /workspace/target/ievent.jar app.jar
 USER ievent
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
+# 60% heap leaves room for metaspace, code cache, thread stacks and PDF/QR buffers inside the compose memory limit
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]

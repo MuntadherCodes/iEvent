@@ -227,7 +227,12 @@ public class HostController {
             redirect.addFlashAttribute("error", msg("flash.org.nameRequired"));
             return "redirect:/host/start";
         }
-        hostService.createOrganization(u, orgName, handle, city, bio);
+        try {
+            hostService.createOrganization(u, orgName, handle, city, bio);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // double submit: the first click already created it (ux_organizations_owner)
+            if (hostService.organizationOf(u).isEmpty()) throw e;
+        }
         return "redirect:/host";
     }
 
@@ -482,8 +487,13 @@ public class HostController {
             hostService.replaceGalleryImages(created, capGalleryImages(gallery.picks()), galleryManaged);
             if (gallery.anyRejected()) redirect.addFlashAttribute("error", msg("host.cover.someRejected"));
             if ("publish".equals(action)) {
-                hostService.publish(created);
-                redirect.addFlashAttribute("published", true);
+                String blocker = hostService.publishBlocker(created);
+                if (blocker != null) {
+                    redirect.addFlashAttribute("error", msg(blocker));
+                } else {
+                    hostService.publish(created);
+                    redirect.addFlashAttribute("published", true);
+                }
             }
             return "redirect:/host/events/" + created.getId();
         } catch (Exception e) {
@@ -565,6 +575,9 @@ public class HostController {
         requireManage(u);
         Event ev = hostService.eventOf(org.getId(), id).orElse(null);
         if (ev == null) return java.util.Map.of("error", "not-found");
+        // QA: autosave is a DRAFT-only convenience. A LIVE (or ended/cancelled)
+        // event must change only on an explicit Save click, never on a timer.
+        if (ev.getStatus() != Event.Status.DRAFT) return java.util.Map.of("error", "not-draft");
         LocationForm loc = locationForm(locationType, venueName, venueAddress, onlineUrl, mapsUrl);
         if (loc.error() != null) return java.util.Map.of("error", loc.error());
         try {
@@ -1011,6 +1024,12 @@ public class HostController {
      *  fields round-trip through the form exactly like summary/lineup do. */
     private void applyTranslations(Event ev, String titleTranslated, String summaryTranslated,
                                    String descriptionTranslated, String lineupTranslated) {
+        // The translation inputs only render when the Translate key is configured
+        // (th:if="${translateAvailable}"). A form that never carried them posts
+        // all four as null: leave whatever translation exists untouched instead
+        // of wiping it on every save.
+        if (titleTranslated == null && summaryTranslated == null
+                && descriptionTranslated == null && lineupTranslated == null) return;
         ev.setTitleTranslated(titleTranslated == null || titleTranslated.isBlank() ? null : titleTranslated.trim());
         ev.setSummaryTranslated(summaryTranslated == null || summaryTranslated.isBlank() ? null : summaryTranslated.trim());
         ev.setDescriptionTranslated(descriptionTranslated == null || descriptionTranslated.isBlank()
@@ -1216,6 +1235,11 @@ public class HostController {
         if (org == null) return "redirect:/host/start";
         requireManage(u);
         hostService.eventOf(org.getId(), id).ifPresent(e -> {
+            String blocker = hostService.publishBlocker(e);
+            if (blocker != null) {
+                redirect.addFlashAttribute("error", msg(blocker));
+                return;
+            }
             hostService.publish(e);
             if (hasPaidTickets(e.getId()) && !hostService.paymentsReady(org)) {
                 redirect.addFlashAttribute("warning", msg("flash.event.publishedNoPayments"));
@@ -1599,7 +1623,7 @@ public class HostController {
     private OrderRow toRow(Order o) {
         String items = o.getItems().stream()
                 .map(i -> i.getQuantity() + "× " + i.getTicketType().getName())
-                .reduce((a, b) -> a + ", " + b).orElse("—");
+                .reduce((a, b) -> a + ", " + b).orElse("-");
         return new OrderRow(o.getId(), o.getOrderCode(), o.getBuyerName(), o.getBuyerEmail(),
                 o.getEvent().getTitle(), items, Format.iqd(o.getTotalIqd()),
                 switch (o.getPaymentMethod()) {

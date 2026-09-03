@@ -26,14 +26,15 @@ public class SuperAdminAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String path = request.getRequestURI();
+        // decoded path: "/%61dmin/x" must be treated exactly like "/admin/x"
+        String path = RequestPaths.appPath(request);
         boolean underAdmin = path.equals("/admin") || path.startsWith("/admin/");
         boolean exempt = path.equals("/admin/login");
         if (underAdmin && !exempt) {
             HttpSession session = request.getSession(false);
             boolean ok = session != null && Boolean.TRUE.equals(session.getAttribute(SESSION_ATTR));
             if (!ok) {
-                String next = request.getRequestURI()
+                String next = path
                         + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
                 response.sendRedirect(request.getContextPath() + "/admin/login?next="
                         + java.net.URLEncoder.encode(next, java.nio.charset.StandardCharsets.UTF_8));

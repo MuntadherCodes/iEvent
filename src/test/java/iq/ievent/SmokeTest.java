@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = {"app.seed.demo=true", "app.upload-dir=${java.io.tmpdir}/ievent-test-uploads"})
+@TestPropertySource(properties = {"app.seed.demo=true", "app.upload-dir=${java.io.tmpdir}/ievent-test-uploads", "app.security.rate-limit=false"})
 class SmokeTest {
 
     /** Seeded demo host (owner of @zainevents) — loaded by the demo seed. */
@@ -1317,5 +1318,155 @@ class SmokeTest {
         String menu = html.substring(html.indexOf("id=\"mobileMenu\""));
         menu = menu.substring(0, menu.indexOf("</div>\n  </div>") > 0 ? menu.indexOf("</div>\n  </div>") : menu.length());
         org.junit.jupiter.api.Assertions.assertFalse(menu.contains("rounded-xl bg-brand-500 px-4 py-3.5"), "no duplicate Host CTA inside the menu");
+    }
+
+    // ---- QA round: security + checkout hardening ----
+
+    @Autowired
+    private iq.ievent.repo.TicketTypeRepository ticketTypesRepo;
+
+    @Autowired
+    private iq.ievent.repo.OrderRepository ordersRepo;
+
+    private Long generalAdmissionId() {
+        Long eventId = events.findBySlug("baghdad-nights-music-festival").orElseThrow().getId();
+        return ticketTypesRepo.findByEventIdOrderBySortOrderAsc(eventId).stream()
+                .filter(t -> t.getStatus() == iq.ievent.domain.TicketType.Status.ON_SALE)
+                .findFirst().orElseThrow().getId();
+    }
+
+    @Test
+    void percentEncodedAdminPathIsStillGated() throws Exception {
+        // "/%61dmin" routes to /admin in Spring MVC; the shared-password gate must see it too.
+        mockMvc.perform(get(java.net.URI.create("/%61dmin/")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+        mockMvc.perform(get(java.net.URI.create("/en/%61dmin")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+    }
+
+    @Test
+    void guestCheckoutWithExistingEmailNeverLogsTheVisitorIn() throws Exception {
+        long before = ordersRepo.count();
+        var result = mockMvc.perform(multipart("/e/baghdad-nights-music-festival/checkout")
+                        .param("qty-" + generalAdmissionId(), "1")
+                        .param("buyerName", "Not Amira")
+                        .param("buyerEmail", DEMO_BUYER_EMAIL) // an EXISTING account
+                        .param("paymentMethodLabel", "ZainCash wallet")
+                        .param("transferReference", "QA-TAKEOVER-1")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith("/auth/login?ordered&next=")))
+                .andReturn();
+        // the order exists (tickets go to that inbox as always) ...
+        org.junit.jupiter.api.Assertions.assertEquals(before + 1, ordersRepo.count());
+        // ... but the visitor holds NO authenticated session for that account
+        var session = result.getRequest().getSession(false);
+        Object ctx = session == null ? null
+                : session.getAttribute("SPRING_SECURITY_CONTEXT");
+        org.junit.jupiter.api.Assertions.assertNull(ctx, "guest checkout must not sign in to an existing account");
+        // and the login page explains what happened
+        mockMvc.perform(get("/en/auth/login?ordered&next=/orders/x"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("already has an iEvent account")));
+    }
+
+    @Test
+    void guestCheckoutWithNewEmailSignsInAndOpensTheOrder() throws Exception {
+        String email = "qa-guest-" + System.nanoTime() + "@example.iq";
+        var result = mockMvc.perform(multipart("/e/baghdad-nights-music-festival/checkout")
+                        .param("qty-" + generalAdmissionId(), "1")
+                        .param("buyerName", "QA Guest")
+                        .param("buyerEmail", email)
+                        .param("paymentMethodLabel", "ZainCash wallet")
+                        .param("transferReference", "QA-GUEST-1")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith("/orders/")))
+                .andReturn();
+        String location = result.getResponse().getHeader("Location");
+        var session = (org.springframework.mock.web.MockHttpSession) result.getRequest().getSession(false);
+        org.junit.jupiter.api.Assertions.assertNotNull(session, "a brand-new guest gets a session");
+        mockMvc.perform(get("/en" + location).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("QA Guest")));
+    }
+
+    @Test
+    void checkoutRejectsAnnounceOnlyAndHiddenEvents() throws Exception {
+        iq.ievent.domain.Event ev = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        Long ttId = generalAdmissionId();
+        try {
+            ev.setAnnounceOnly(true);
+            events.save(ev);
+            mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(header().string("Location", "/e/baghdad-nights-music-festival"));
+            mockMvc.perform(multipart("/e/baghdad-nights-music-festival/checkout")
+                            .param("qty-" + ttId, "1")
+                            .param("buyerName", "QA").param("buyerEmail", DEMO_BUYER_EMAIL)
+                            .with(csrf()).with(user(DEMO_BUYER_EMAIL)))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(header().string("Location", containsString("/checkout?_e")));
+        } finally {
+            ev.setAnnounceOnly(false);
+            events.save(ev);
+        }
+    }
+
+    @Test
+    void unlistedEventIsNoIndexAndOffTheOrganizerPage() throws Exception {
+        iq.ievent.domain.Event ev = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        try {
+            ev.setVisibility("UNLISTED");
+            events.save(ev);
+            mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("name=\"robots\" content=\"noindex")));
+            mockMvc.perform(get("/en/organizers/zainevents"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString("href=\"/e/baghdad-nights-music-festival\""))));
+        } finally {
+            ev.setVisibility("PUBLIC");
+            events.save(ev);
+        }
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("content=\"noindex"))));
+    }
+
+    @Test
+    void longTextIsClippedInsteadOfFailingTheInsert() {
+        iq.ievent.domain.User u = new iq.ievent.domain.User();
+        u.setFullName("x".repeat(500));
+        u.setPhone("+964 " + "7".repeat(60));
+        org.junit.jupiter.api.Assertions.assertEquals(120, u.getFullName().length());
+        org.junit.jupiter.api.Assertions.assertEquals(32, u.getPhone().length());
+        org.junit.jupiter.api.Assertions.assertEquals("ab", iq.ievent.domain.Text.clip("ab", 5));
+        org.junit.jupiter.api.Assertions.assertNull(iq.ievent.domain.Text.clip(null, 5));
+        // never splits a surrogate pair
+        String emoji = "\uD83C\uDF89".repeat(3);
+        org.junit.jupiter.api.Assertions.assertEquals(2, iq.ievent.domain.Text.clip(emoji, 3).length());
+    }
+
+    @Test
+    void wizardFeeCardCarriesTheWaiverFlag() throws Exception {
+        mockMvc.perform(get("/en/host/events/new").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"feeCard\"")))
+                .andExpect(content().string(containsString("data-fee-waived=\""
+                        + iq.ievent.service.Format.BOOKING_FEE_WAIVED + "\"")));
+    }
+
+    @Test
+    void securityHeadersAndCookiesAreHardened() throws Exception {
+        mockMvc.perform(get("/en/auth/login"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Frame-Options", "DENY"));
+        // the embeddable widget page stays frameable
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist("X-Frame-Options"));
     }
 }

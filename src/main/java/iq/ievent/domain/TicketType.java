@@ -39,7 +39,7 @@ public class TicketType {
     public Event getEvent() { return event; }
     public void setEvent(Event event) { this.event = event; }
     public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setName(String name) { this.name = Text.clip(name, 80); }
     public long getPriceIqd() { return priceIqd; }
     public void setPriceIqd(long priceIqd) { this.priceIqd = priceIqd; }
     public int getQuantity() { return quantity; }

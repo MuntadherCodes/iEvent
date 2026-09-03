@@ -44,9 +44,16 @@ public class GoogleOAuthConfig {
      *  avatar from Google on every login (only writes when it actually changed) so a
      *  new Google photo follows the account without needing re-provisioning. */
     private static User provision(UserRepository users, PasswordEncoder passwordEncoder,
-                                  SecureRandom random, String email, String name, String pictureUrl) {
+                                  SecureRandom random, String email, String name, String pictureUrl,
+                                  Boolean emailVerified) {
         if (email == null || email.isBlank()) {
             throw new OAuth2AuthenticationException("Google account has no email");
+        }
+        // Google Workspace admins can put ANY address on an account; only a
+        // verified claim may be matched to (or create) a local account, or
+        // an attacker could sign in as an existing iEvent user by email alone.
+        if (!Boolean.TRUE.equals(emailVerified)) {
+            throw new OAuth2AuthenticationException("Google account email is not verified");
         }
         var existing = users.findByEmailIgnoreCase(email);
         if (existing.isPresent()) {
@@ -95,8 +102,10 @@ public class GoogleOAuthConfig {
         SecureRandom random = new SecureRandom();
         return request -> {
             OAuth2User oauth = delegate.loadUser(request);
+            Object verified = oauth.getAttribute("email_verified");
             User user = provision(users, passwordEncoder, random,
-                    oauth.getAttribute("email"), oauth.getAttribute("name"), oauth.getAttribute("picture"));
+                    oauth.getAttribute("email"), oauth.getAttribute("name"), oauth.getAttribute("picture"),
+                    verified instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(verified)));
             return new AppOAuth2User(user, oauth.getAttributes());
         };
     }
@@ -118,7 +127,7 @@ public class GoogleOAuthConfig {
         return request -> {
             org.springframework.security.oauth2.core.oidc.user.OidcUser oidc = delegate.loadUser(request);
             User user = provision(users, passwordEncoder, random,
-                    oidc.getEmail(), oidc.getFullName(), oidc.getPicture());
+                    oidc.getEmail(), oidc.getFullName(), oidc.getPicture(), oidc.getEmailVerified());
             return new AppOidcUser(user, oidc);
         };
     }

@@ -989,7 +989,7 @@ public class HostExtrasController {
     private static String itemsLabel(Order o) {
         return o.getItems().stream()
                 .map(i -> i.getQuantity() + "× " + i.getTicketType().getName())
-                .reduce((a, b) -> a + ", " + b).orElse("—");
+                .reduce((a, b) -> a + ", " + b).orElse("-");
     }
 
     private OStats orderStats(Long orgId) {
@@ -1033,7 +1033,7 @@ public class HostExtrasController {
         String url = baseUrl + "/e/" + e.getSlug();
         String encUrl = URLEncoder.encode(url, StandardCharsets.UTF_8);
         String encTitle = URLEncoder.encode(e.getTitle(), StandardCharsets.UTF_8);
-        String encBoth = URLEncoder.encode(e.getTitle() + " — " + url, StandardCharsets.UTF_8);
+        String encBoth = URLEncoder.encode(e.getTitle() + " · " + url, StandardCharsets.UTF_8);
         return new ShareRow(e.getTitle(), Format.cardDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()), url,
                 "https://wa.me/?text=" + encBoth,
                 "https://t.me/share/url?url=" + encUrl + "&text=" + encTitle,
@@ -1132,6 +1132,10 @@ public class HostExtrasController {
     /** CSV field escaping: quote when the value contains a comma, quote or newline. */
     private static String csv(String v) {
         if (v == null) return "";
+        // Formula injection: a buyer name like "=HYPERLINK(...)" must not execute
+        // when the host opens the export in Excel. A leading apostrophe makes the
+        // spreadsheet treat the cell as text; \t as a first char triggers too.
+        if (!v.isEmpty() && "=+-@\t\r".indexOf(v.charAt(0)) >= 0) v = "'" + v;
         if (v.contains(",") || v.contains("\"") || v.contains("\n") || v.contains("\r")) {
             return '"' + v.replace("\"", "\"\"") + '"';
         }

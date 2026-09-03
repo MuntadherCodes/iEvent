@@ -647,5 +647,7 @@
   "public.home.thisMonth": "يجري هذا الشهر",
   "public.home.monthSub": "كل ما ينتظرك في الأسابيع القادمة، الأقرب أولاً.",
   "public.home.railPrev": "الفعاليات السابقة",
-  "public.home.railNext": "الفعاليات التالية"
+  "public.home.railNext": "الفعاليات التالية",
+  "public.auth.orderedSignIn": "تم تسجيل طلبك وأرسلنا التذاكر إلى بريدك. هذا البريد مرتبط بحساب iEvent موجود، سجّل دخولك لتشوف الطلب هنا أيضاً.",
+  "public.error.tooMany": "محاولات كثيرة خلال وقت قصير. انتظر دقيقة ثم حاول مرة أخرى."
 }

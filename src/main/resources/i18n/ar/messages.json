@@ -168,5 +168,6 @@
   "when.tomorrow": "غدًا",
   "when.week": "الأيام السبعة القادمة",
   "when.weekend": "نهاية هذا الأسبوع",
-  "notif.newOrderAuto.title": "طلب جديد، تأكد تلقائياً · {0}"
+  "notif.newOrderAuto.title": "طلب جديد، تأكد تلقائياً · {0}",
+  "flash.event.publishNoTickets": "أضف نوع تذكرة واحداً على الأقل قبل النشر، أو اجعل الفعالية إعلاناً فقط."
 }

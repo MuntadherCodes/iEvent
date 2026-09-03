@@ -17,8 +17,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByOrganizationIdOrderByStartsAtDesc(Long organizationId);
 
-    List<Event> findByOrganizationIdAndStatusAndAdminHiddenFalseAndStartsAtAfterOrderByStartsAtAsc(
-            Long organizationId, Event.Status status, OffsetDateTime after, Pageable pageable);
+    List<Event> findByOrganizationIdAndStatusAndVisibilityAndAdminHiddenFalseAndStartsAtAfterOrderByStartsAtAsc(
+            Long organizationId, Event.Status status, String visibility, OffsetDateTime after, Pageable pageable);
 
     @Query("""
            select e from Event e

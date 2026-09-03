@@ -356,7 +356,7 @@ public class ExtrasController {
         return "contact";
     }
 
-    private static String buildIcs(Event e) {
+    private String buildIcs(Event e) {
         OffsetDateTime start = e.getStartsAt().withOffsetSameInstant(ZoneOffset.UTC);
         OffsetDateTime end = (e.getEndsAt() == null ? e.getStartsAt().plusHours(3) : e.getEndsAt())
                 .withOffsetSameInstant(ZoneOffset.UTC);
@@ -372,7 +372,7 @@ public class ExtrasController {
           .append("DTEND:").append(ICS_STAMP.format(end)).append("\r\n")
           .append("SUMMARY:").append(icsEscape(e.getTitle())).append("\r\n")
           .append("LOCATION:").append(icsEscape(location)).append("\r\n")
-          .append("DESCRIPTION:").append(icsEscape("Tickets & details: https://ievent.iq/e/" + e.getSlug()))
+          .append("DESCRIPTION:").append(icsEscape("Tickets & details: " + siteBaseUrl + "/e/" + e.getSlug()))
           .append("\r\n")
           .append("END:VEVENT\r\n")
           .append("END:VCALENDAR\r\n");

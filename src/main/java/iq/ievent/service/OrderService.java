@@ -105,9 +105,19 @@ public class OrderService {
                           boolean keepUpdated) {
         Event event = events.findBySlug(slug)
                 .filter(e -> e.getStatus() == Event.Status.LIVE)
+                // QA: mirror every gate the event page itself applies. A hidden or
+                // suspended listing, or an announce-only one, has no checkout even
+                // for someone who kept the old URL or crafts the POST by hand.
+                .filter(e -> !e.isAdminHidden() && !e.isAnnounceOnly())
+                .filter(e -> e.getOrganization() != null && !e.getOrganization().isDisabled())
                 .orElseThrow(() -> new CheckoutException(msg("checkout.eventNotOnSale")));
 
-        Map<TicketType, Integer> selection = new LinkedHashMap<>();
+        // Holder names arrive as ONE flat list in the order the checkout page
+        // renders the ticket types (sort_order, then id). The selection must be
+        // walked in that same order, otherwise a HashMap-ordered qty map would
+        // attach holder names to the wrong ticket type.
+        List<TicketType> picked = new ArrayList<>();
+        Map<Long, Integer> qtyById = new java.util.HashMap<>();
         int totalQty = 0;
         for (Map.Entry<Long, Integer> entry : quantities.entrySet()) {
             int qty = entry.getValue() == null ? 0 : entry.getValue();
@@ -120,9 +130,14 @@ public class OrderService {
             if (tt.getStatus() != TicketType.Status.ON_SALE) {
                 throw new CheckoutException(msg("checkout.typeNotOnSale", tt.getName()));
             }
-            selection.put(tt, qty);
+            picked.add(tt);
+            qtyById.put(tt.getId(), qty);
             totalQty += qty;
         }
+        picked.sort(java.util.Comparator.comparingInt(TicketType::getSortOrder)
+                .thenComparing(TicketType::getId));
+        Map<TicketType, Integer> selection = new LinkedHashMap<>();
+        for (TicketType tt : picked) selection.put(tt, qtyById.get(tt.getId()));
         if (totalQty == 0) throw new CheckoutException(msg("checkout.pickAtLeastOne"));
         if (totalQty > 10) throw new CheckoutException(msg("checkout.maxTickets"));
 
@@ -169,9 +184,19 @@ public class OrderService {
         // value) decides whether this is a cash-on-arrival order — cash never
         // needs a transfer reference/receipt, transfer orders do unless the
         // host turned that requirement off for this event.
-        boolean cash = !free && paymentMethodLabel != null && !paymentMethodLabel.isBlank()
-                && paymentMethods.findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(event.getOrganization().getId())
-                        .stream().anyMatch(m -> m.isCash() && m.getLabel().equals(paymentMethodLabel.trim()));
+        // Only the methods this EVENT offers count (event_payment_methods narrows
+        // the organizer's list; an empty selection means "all of them"), so a
+        // "Cash" label cannot be replayed against an event that excluded cash.
+        boolean cash = false;
+        if (!free && paymentMethodLabel != null && !paymentMethodLabel.isBlank()) {
+            java.util.Set<Long> selected = new java.util.HashSet<>(jdbc.queryForList(
+                    "SELECT payment_method_id FROM event_payment_methods WHERE event_id = ?",
+                    Long.class, event.getId()));
+            cash = paymentMethods.findByOrganizationIdAndEnabledTrueOrderBySortOrderAscIdAsc(event.getOrganization().getId())
+                    .stream()
+                    .filter(m -> selected.isEmpty() || selected.contains(m.getId()))
+                    .anyMatch(m -> m.isCash() && m.getLabel().equals(paymentMethodLabel.trim()));
+        }
         if (!free && !cash && event.isRequirePaymentProof()) {
             boolean hasRef = transferReference != null && !transferReference.isBlank();
             boolean hasReceipt = receipt != null && !receipt.isEmpty();
@@ -355,6 +380,11 @@ public class OrderService {
             jdbc.update("UPDATE ticket_types SET sold = GREATEST(0, sold - ?) WHERE id = ?",
                     item.getQuantity(), item.getTicketType().getId());
         }
+        // give the promo use back too, the buyer never got anything for it
+        if (order.getPromoCode() != null) {
+            jdbc.update("UPDATE promo_codes SET used = GREATEST(0, used - 1) WHERE organization_id = ? AND code = ?",
+                    hostOrgId, order.getPromoCode());
+        }
         Locale buyerLocale = localeForUser(order.getBuyerUserId());
         mail.sendOrderRejected(order, buyerLocale);
         notifications.notify(order.getBuyerUserId(), "ORDER_REJECTED",
@@ -372,6 +402,9 @@ public class OrderService {
         }
         if (order.getStatus() != Order.Status.PENDING_CONFIRMATION) {
             throw new CheckoutException(msg("checkout.notAwaiting"));
+        }
+        if (order.getEvent().getStatus() == Event.Status.CANCELLED) {
+            throw new CheckoutException(msg("checkout.eventNotOnSale"));
         }
         return order;
     }

@@ -168,5 +168,6 @@
   "when.tomorrow": "Tomorrow",
   "when.week": "Next 7 days",
   "when.weekend": "This weekend",
-  "notif.newOrderAuto.title": "New order, confirmed automatically · {0}"
+  "notif.newOrderAuto.title": "New order, confirmed automatically · {0}",
+  "flash.event.publishNoTickets": "Add at least one ticket type before publishing, or mark the event as announcement only."
 }

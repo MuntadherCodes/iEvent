@@ -46,6 +46,7 @@ jobs:
           SPRING_DATASOURCE_USERNAME: ievent
           SPRING_DATASOURCE_PASSWORD: ci-test-password
           SEED_DEMO: 'true'
+          RATE_LIMIT_ENABLED: 'false'
         run: |
           set -o pipefail
           mvn -B verify 2>&1 | tee mvn-output.log
@@ -73,7 +74,21 @@ jobs:
             else
               echo "(no maven output captured)"
             fi
-          } > report.txt
+          } > report-full.txt
+          # Release notes are capped at 125,000 characters by GitHub. Keep the
+          # summary + FAILED test names + the tail; the complete file goes up
+          # as a build artifact next to the surefire reports.
+          {
+            head -c 60000 report-full.txt
+            echo
+            echo "======== (report truncated for the release body; full report in the run artifacts) ========"
+            echo
+            echo "======== FAILED / ERROR test lines ========"
+            grep -E "FAIL|ERROR\]|Tests run:.*Failures: [1-9]|Tests run:.*Errors: [1-9]" report-full.txt | head -n 200 || true
+            echo
+            echo "======== Last 120 lines ========"
+            tail -n 120 report-full.txt || true
+          } | head -c 110000 > report.txt || true
           echo "---- report.txt preview ----"
           head -n 40 report.txt
 
@@ -87,23 +102,30 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           gh release delete ci-report --yes || true
           git tag -f ci-report
-          git push -f origin ci-report
+          git push -f origin ci-report || echo "::warning::could not move the ci-report tag"
+          # A failed publish must never turn a green build red (or hide a red one).
           gh release create ci-report \
-            --title "CI report (build-test) — run ${{ github.run_number }}" \
-            --notes-file report.txt
+            --title "CI report (build-test) · run ${{ github.run_number }} · ${{ steps.verify.outcome }}" \
+            --notes-file report.txt \
+            || echo "::warning::release publish failed; the report is still available as a run artifact"
 
-      - name: Upload surefire reports artifact
+      - name: Upload build report + surefire reports artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-reports
-          path: target/surefire-reports/
+          name: build-test-report
+          path: |
+            report-full.txt
+            target/surefire-reports/
           if-no-files-found: ignore
 
   compose-e2e:
     name: Compose stack & Playwright E2E
     runs-on: ubuntu-latest
     needs: build-test
+    # Runs after build-test but regardless of its result, so a red smoke test
+    # never leaves the e2e report silently frozen at an older commit.
+    if: always()
     permissions:
       contents: write
 
@@ -118,7 +140,8 @@ jobs:
           sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-test-password/' .env
           sed -i 's/^SEED_DEMO=.*/SEED_DEMO=true/' .env
           sed -i 's/^SEED_SCALE=.*/SEED_SCALE=300/' .env
-          grep -E '^(POSTGRES_PASSWORD|SEED_DEMO|SEED_SCALE)=' .env
+          echo 'RATE_LIMIT_ENABLED=false' >> .env
+          grep -E '^(POSTGRES_PASSWORD|SEED_DEMO|SEED_SCALE|RATE_LIMIT_ENABLED)=' .env
 
       - name: Start the stack
         shell: bash
@@ -179,7 +202,21 @@ jobs:
             echo
             echo "============ App logs (last 300 lines) ================"
             docker compose logs app --tail 300 || echo "(could not collect app logs)"
-          } > report.txt
+          } > report-full.txt
+          {
+            head -c 20000 report-full.txt
+            echo
+            echo "======== (report truncated for the release body; full report in the run artifacts) ========"
+            echo
+            echo "======== Failed tests ========"
+            grep -nE "^\s+[0-9]+\) |✘|failed|Error:" e2e-output.log 2>/dev/null | head -n 200 || true
+            echo
+            echo "======== Playwright summary (last 60 lines of test output) ========"
+            tail -n 60 e2e-output.log 2>/dev/null || true
+            echo
+            echo "======== App log (last 120 lines) ========"
+            docker compose logs app --tail 120 2>/dev/null || true
+          } | head -c 110000 > report.txt || true
           echo "---- report.txt preview ----"
           head -n 40 report.txt
 
@@ -193,10 +230,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           gh release delete ci-report-compose --yes || true
           git tag -f ci-report-compose
-          git push -f origin ci-report-compose
+          git push -f origin ci-report-compose || echo "::warning::could not move the ci-report-compose tag"
           gh release create ci-report-compose \
-            --title "CI report (compose-e2e) — run ${{ github.run_number }}" \
-            --notes-file report.txt
+            --title "CI report (compose-e2e) · run ${{ github.run_number }} · ${{ steps.e2e.outcome }}" \
+            --notes-file report.txt \
+            || echo "::warning::release publish failed; the report is still available as a run artifact"
           shopt -s globstar nullglob
           screenshots=(e2e/test-results/**/*.png)
           if [ ${#screenshots[@]} -gt 0 ]; then
@@ -212,6 +250,8 @@ jobs:
         with:
           name: playwright-results
           path: |
+            report-full.txt
+            e2e-output.log
             e2e/playwright-report/
             e2e/test-results/
           if-no-files-found: ignore

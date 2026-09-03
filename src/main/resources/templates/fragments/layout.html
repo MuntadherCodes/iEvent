@@ -353,7 +353,8 @@ the dropdown list. DOM nodes are built with textContent only (no innerHTML). -->
   }
 
   function pollBell() {
-    fetch('/api/notifications/summary', { headers: { 'Accept': 'application/json' } })
+    // /en prefix so "3 minutes ago" style labels come back in the page's language
+    fetch((document.documentElement.lang === 'en' ? '/en' : '') + '/api/notifications/summary', { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { if (d) renderBell(d); })
       .catch(function () { /* offline / transient — try again next tick */ });

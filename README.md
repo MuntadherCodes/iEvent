@@ -63,7 +63,15 @@ e2e/            Playwright walkthrough (config, tests, package.json)
 - release tagged **`ci-report`** → build-test (surefire summary + last 200 lines of build output)
 - release tagged **`ci-report-compose`** → compose-e2e (Playwright results + last 300 lines of app logs; failure screenshots attached as release assets)
 
-The tags are force-moved on every run, so each release always reflects the latest run. Surefire reports and the Playwright HTML report/test-results are also uploaded as workflow artifacts.
+The tags are force-moved on every run, so each release always reflects the latest run. The release body is capped (GitHub limits notes to 125,000 characters), so it carries the summary, the failed-test lines and the tail; the complete `report-full.txt`, the surefire reports and the Playwright HTML report/test-results are uploaded as workflow artifacts (`build-test-report`, `playwright-results`). compose-e2e runs even when build-test is red, so both reports always move to the latest commit. Both jobs set `RATE_LIMIT_ENABLED=false`.
+
+### Running the e2e walkthrough locally
+
+```bash
+# .env: SEED_DEMO=true, SEED_SCALE=300, RATE_LIMIT_ENABLED=false (the suite signs in dozens of times a minute)
+docker compose up -d --build
+cd e2e && npm ci && npx playwright install chromium && npx playwright test
+```
 
 ## Bundle workflow
 

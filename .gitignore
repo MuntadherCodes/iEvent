@@ -7,3 +7,6 @@ test-results/
 .idea/
 *.iml
 .DS_Store
+repository/
+backups/
+*.bundle

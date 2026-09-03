@@ -249,7 +249,7 @@
                   </div>
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="c-phone" th:text="#{host.set.contactPhone}">Contact phone</label>
-                    <input id="c-phone" name="contactPhone" type="tel" th:value="${org.contactPhone}" th:disabled="${!access.owner()}" placeholder="+964 770 555 0102" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
+                    <input id="c-phone" name="contactPhone" type="tel" dir="ltr" th:value="${org.contactPhone}" th:disabled="${!access.owner()}" placeholder="+964 770 555 0102" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-ink-50 disabled:text-ink-500">
                   </div>
                   <div>
                     <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="c-site" th:text="#{host.set.website}">Website</label>

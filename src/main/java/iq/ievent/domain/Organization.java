@@ -94,34 +94,34 @@ public class Organization {
     public Long getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(Long ownerUserId) { this.ownerUserId = ownerUserId; }
     public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setName(String name) { this.name = Text.clip(name, 120); }
     public String getHandle() { return handle; }
     public void setHandle(String handle) { this.handle = handle; }
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
     public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
+    public void setCity(String city) { this.city = Text.clip(city, 60); }
     public boolean isVerified() { return verified; }
     public void setVerified(boolean verified) { this.verified = verified; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public boolean isDirectPaymentsEnabled() { return directPaymentsEnabled; }
     public void setDirectPaymentsEnabled(boolean directPaymentsEnabled) { this.directPaymentsEnabled = directPaymentsEnabled; }
     public String getPayCardNumber() { return payCardNumber; }
-    public void setPayCardNumber(String payCardNumber) { this.payCardNumber = payCardNumber; }
+    public void setPayCardNumber(String payCardNumber) { this.payCardNumber = Text.clip(payCardNumber, 32); }
     public String getPayAccountName() { return payAccountName; }
-    public void setPayAccountName(String payAccountName) { this.payAccountName = payAccountName; }
+    public void setPayAccountName(String payAccountName) { this.payAccountName = Text.clip(payAccountName, 120); }
     public String getPayWalletBank() { return payWalletBank; }
-    public void setPayWalletBank(String payWalletBank) { this.payWalletBank = payWalletBank; }
+    public void setPayWalletBank(String payWalletBank) { this.payWalletBank = Text.clip(payWalletBank, 60); }
     public String getPayInstructions() { return payInstructions; }
     public void setPayInstructions(String payInstructions) { this.payInstructions = payInstructions; }
     public String getContactEmail() { return contactEmail; }
     public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
     public String getContactPhone() { return contactPhone; }
-    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = Text.clip(contactPhone, 32); }
     public String getWebsite() { return website; }
-    public void setWebsite(String website) { this.website = website; }
+    public void setWebsite(String website) { this.website = Text.clip(website, 255); }
     public String getInstagram() { return instagram; }
-    public void setInstagram(String instagram) { this.instagram = instagram; }
+    public void setInstagram(String instagram) { this.instagram = Text.clip(instagram, 80); }
     public String getLogoPath() { return logoPath; }
     public void setLogoPath(String logoPath) { this.logoPath = logoPath; }
     public String getBrandColor() { return brandColor; }

@@ -75,6 +75,7 @@ public class Order {
     private OffsetDateTime confirmedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @jakarta.persistence.OrderBy("id ASC")
     private List<OrderItem> items = new ArrayList<>();
 
     public Long getId() { return id; }
@@ -85,11 +86,11 @@ public class Order {
     public Long getBuyerUserId() { return buyerUserId; }
     public void setBuyerUserId(Long buyerUserId) { this.buyerUserId = buyerUserId; }
     public String getBuyerName() { return buyerName; }
-    public void setBuyerName(String buyerName) { this.buyerName = buyerName; }
+    public void setBuyerName(String buyerName) { this.buyerName = Text.clip(buyerName, 120); }
     public String getBuyerEmail() { return buyerEmail; }
     public void setBuyerEmail(String buyerEmail) { this.buyerEmail = buyerEmail; }
     public String getBuyerPhone() { return buyerPhone; }
-    public void setBuyerPhone(String buyerPhone) { this.buyerPhone = buyerPhone; }
+    public void setBuyerPhone(String buyerPhone) { this.buyerPhone = Text.clip(buyerPhone, 32); }
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
     public Status getStatus() { return status; }
@@ -101,7 +102,7 @@ public class Order {
     public long getTotalIqd() { return totalIqd; }
     public void setTotalIqd(long totalIqd) { this.totalIqd = totalIqd; }
     public String getTransferReference() { return transferReference; }
-    public void setTransferReference(String transferReference) { this.transferReference = transferReference; }
+    public void setTransferReference(String transferReference) { this.transferReference = Text.clip(transferReference, 80); }
     public String getReceiptPath() { return receiptPath; }
     public void setReceiptPath(String receiptPath) { this.receiptPath = receiptPath; }
     public String getPromoCode() { return promoCode; }

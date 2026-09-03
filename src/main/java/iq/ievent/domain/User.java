@@ -58,9 +58,9 @@ public class User {
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setFullName(String fullName) { this.fullName = Text.clip(fullName, 120); }
     public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public void setPhone(String phone) { this.phone = Text.clip(phone, 32); }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

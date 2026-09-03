@@ -647,5 +647,7 @@
   "public.home.thisMonth": "Happening this month",
   "public.home.monthSub": "Everything coming up in the next few weeks, closest first.",
   "public.home.railPrev": "Previous events",
-  "public.home.railNext": "Next events"
+  "public.home.railNext": "Next events",
+  "public.auth.orderedSignIn": "Your order is in and the tickets were emailed to you. That email already has an iEvent account, so sign in to see the order here too.",
+  "public.error.tooMany": "Too many attempts in a short time. Wait a minute, then try again."
 }

@@ -10,7 +10,9 @@
  *                      - "Baghdad Nights Music Festival" (baghdad-nights-music-festival)
  *                        GA 35,000 IQD on sale, Early Bird sold out
  *                      - "Startup Mixer Baghdad" (startup-mixer-baghdad) free "RSVP" ticket
- *                      Booking fee: 1,500 IQD per PAID ticket.
+ *                      Booking fee: 750 IQD per paid ticket up to 15,000 IQD, else
+ *                      3% + 2,000 IQD capped at 15,000; WAIVED (0) while
+ *                      Format.BOOKING_FEE_WAIVED is true (beta). See FEE_WAIVED below.
  *   SEED_SCALE=300  -> 300 synthetic "Scale Event #N — <City>" events
  *
  * Selectors are bound to the actual Thymeleaf templates in
@@ -32,6 +34,19 @@ test.describe.configure({ mode: 'serial' });
 // API/asset/binary paths (/api, /js, /css, /media, /actuator, *.png, *.pdf,
 // *.ics, *.csv) are never language-redirected and keep working on bare paths.
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
+
+// ---------- booking fee model (mirror of Format.java) ----------
+// Flip FEE_WAIVED together with Format.BOOKING_FEE_WAIVED; every money assertion
+// below derives from these helpers instead of hard-coded totals.
+const FEE_WAIVED = true;
+function bookingFee(price) {
+  if (FEE_WAIVED || price <= 0) return 0;
+  if (price <= 15000) return 750;
+  return Math.min(15000, Math.round(price * 0.03) + 2000);
+}
+const iqd = (n) => n.toLocaleString('en-US');
+const orderTotal = (price, qty = 1, discount = 0) => Math.max(0, price * qty - discount) + bookingFee(price) * qty;
+const iqdRe = (n) => new RegExp(iqd(n) + '\\s*IQD');
 
 test.beforeEach(async ({ context }) => {
   await context.addCookies([{ name: 'lang', value: 'en', url: BASE_URL }]);
@@ -409,18 +424,18 @@ test('d. event detail: tickets, sold out, organizer, related, stepper total', as
     )
     .toBeGreaterThan(0);
 
-  log('round 9: GA (first buyable type) defaults to qty 1 — rail total starts at 36,500 IQD (35,000 + 1,500 fee)');
+  log(`round 9: GA (first buyable type) defaults to qty 1 — rail total starts at ${iqd(orderTotal(35000))} IQD (35,000 + ${iqd(bookingFee(35000))} fee)`);
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
-  await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
+  await expect(page.locator('#railTotal')).toHaveText(iqdRe(orderTotal(35000)));
 
-  log('ticket stepper: +1 General Admission on top of the default → 2 tickets, 73,000 IQD');
+  log(`ticket stepper: +1 General Admission on top of the default → 2 tickets, ${iqd(orderTotal(35000, 2))} IQD`);
   await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
   await expect(page.locator('.qty-input').first()).toHaveValue('2');
-  await expect(page.locator('#railTotal')).toHaveText(/73,000\s*IQD/);
+  await expect(page.locator('#railTotal')).toHaveText(iqdRe(orderTotal(35000, 2)));
 
   log('− returns to the single-ticket default');
   await page.getByRole('button', { name: 'Remove one General Admission ticket' }).click();
-  await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
+  await expect(page.locator('#railTotal')).toHaveText(iqdRe(orderTotal(35000)));
 });
 
 test('e. auth: register, login shows initials, logout restores Sign in', async ({ page }) => {
@@ -579,12 +594,12 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
 });
 
 test('i. direct-transfer flow: card number, reference, receipt upload, pending order', async ({ page, request }, testInfo) => {
-  log('buyer opens Baghdad Nights — GA already defaults to 1 (round 9), total 36,500 IQD');
+  log(`buyer opens Baghdad Nights — GA already defaults to 1 (round 9), total ${iqd(orderTotal(35000))} IQD`);
   await page.goto('/auth/login');
   await login(page, BUYER_EMAIL, buyerPassword);
   await page.goto('/e/baghdad-nights-music-festival');
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
-  await expect(page.locator('#railTotal')).toHaveText(/36,500\s*IQD/);
+  await expect(page.locator('#railTotal')).toHaveText(iqdRe(orderTotal(35000)));
   await page.getByRole('button', { name: /Get tickets/ }).click();
   await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
 
@@ -611,12 +626,12 @@ test('i. direct-transfer flow: card number, reference, receipt upload, pending o
   await page.locator('#submitBtn').click();
   await expect(page).toHaveURL(/\/orders\//);
 
-  log('confirmation should be the amber PENDING state with total 36,500 IQD and no tickets');
+  log(`confirmation should be the amber PENDING state with total ${iqd(orderTotal(35000))} IQD and no tickets`);
   await expect(
     page.getByRole('heading', { name: /pending organizer confirmation/i })
   ).toBeVisible();
   await expect(page.getByText('Pending confirmation').first()).toBeVisible();
-  await expect(page.getByText(/36,500\s*IQD/).first()).toBeVisible();
+  await expect(page.getByText(iqdRe(orderTotal(35000))).first()).toBeVisible();
   await expect(page.locator('.qr-box')).toHaveCount(0);
 
   log('pending orders must NOT offer the tickets PDF download');
@@ -847,11 +862,11 @@ test('o. promo code EARLY20: apply at checkout, discount carries to order and ti
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(page).toHaveURL(/promo=EARLY20/);
 
-  log('green confirmation, discount line −7,000 IQD, total 29,500 IQD (35,000 − 7,000 + 1,500)');
+  log(`green confirmation, discount line −7,000 IQD, total ${iqd(orderTotal(35000, 1, 7000))} IQD (35,000 − 7,000 + ${iqd(bookingFee(35000))})`);
   await expect(page.getByText(/EARLY20 applied/).first()).toBeVisible();
   await expect(page.locator('#discountLine')).toContainText('EARLY20');
   await expect(page.locator('#discountLine')).toContainText('7,000 IQD');
-  await expect(page.getByText(/29,500\s*IQD/).first()).toBeVisible();
+  await expect(page.getByText(iqdRe(orderTotal(35000, 1, 7000))).first()).toBeVisible();
 
   log('naming the ticket holder and completing the direct-transfer order');
   await page.locator('input[name="holderName"]').first().fill('Holder One');
@@ -860,11 +875,11 @@ test('o. promo code EARLY20: apply at checkout, discount carries to order and ti
   await page.locator('#submitBtn').click();
   await expect(page).toHaveURL(/\/orders\//);
 
-  log('confirmation shows the discount with the EARLY20 chip and total 29,500 IQD');
+  log(`confirmation shows the discount with the EARLY20 chip and total ${iqd(orderTotal(35000, 1, 7000))} IQD`);
   await expect(page.getByText('Discount').first()).toBeVisible();
   await expect(page.getByText('EARLY20').first()).toBeVisible();
   await expect(page.getByText(/7,000 IQD/).first()).toBeVisible();
-  await expect(page.getByText(/29,500\s*IQD/).first()).toBeVisible();
+  await expect(page.getByText(iqdRe(orderTotal(35000, 1, 7000))).first()).toBeVisible();
 
   log('fahad approves the promo order (round 10: Approve lives in the open detail panel of the pending row)');
   await signOut(page);
@@ -2047,7 +2062,7 @@ test('au. checkout method picker: both methods with copy buttons + amount callou
   log('each method card has a copy button; the amount callout carries the total');
   await expect(page.locator('.copy-acct')).toHaveCount(2);
   await expect(page.getByText('Amount to transfer')).toBeVisible();
-  await expect(page.getByText(/36,500\s*IQD/).first()).toBeVisible();
+  await expect(page.getByText(iqdRe(orderTotal(35000))).first()).toBeVisible();
 
   log('the buyer can switch the selected method to Test FIB');
   await page.locator('input[name="paymentMethodLabel"][value="Test FIB"]').check();
@@ -2210,15 +2225,15 @@ test('az. checkout default: fresh GET preselects 1× first on-sale type; explici
   await expect(page.locator('.holder-row')).toHaveCount(1);
   await expect(page.getByText('Ticket 1 · General Admission')).toBeVisible();
 
-  log('the total shows the single-ticket amount: 36,500 IQD (35,000 + 1,500 fee)');
-  await expect(page.locator('.sum-total').first()).toHaveText(/36,500\s*IQD/);
+  log(`the total shows the single-ticket amount: ${iqd(orderTotal(35000))} IQD (35,000 + ${iqd(bookingFee(35000))} fee)`);
+  await expect(page.locator('.sum-total').first()).toHaveText(iqdRe(orderTotal(35000)));
   await expect(page.locator('#submitLabel')).toHaveText('Submit order for confirmation');
 
   log('the stepper starts FROM the default: one + click makes it 2 (not 1)');
   await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
   await expect(qtyInputs.first()).toHaveValue('2');
   await expect(page.locator('.holder-row')).toHaveCount(2);
-  await expect(page.locator('.sum-total').first()).toHaveText(/73,000\s*IQD/);
+  await expect(page.locator('.sum-total').first()).toHaveText(iqdRe(orderTotal(35000, 2)));
 
   log('a deep link WITH explicit qty-* params is respected exactly (all zero → no default, no holder rows)');
   await page.goto('/e/baghdad-nights-music-festival/checkout?qty-0=0');
@@ -2335,7 +2350,7 @@ test('bb. login-return (#11): anonymous checkout → sign in → land back with 
   log('LANDS BACK on the checkout URL with the qty params intact — selection preserved');
   await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout\?.*qty-/);
   await expect(page.locator('.qty-input').first()).toHaveValue('1');
-  await expect(page.locator('.sum-total').first()).toHaveText(/36,500\s*IQD/);
+  await expect(page.locator('.sum-total').first()).toHaveText(iqdRe(orderTotal(35000)));
   await expect(page.locator('#buyerEmail')).toHaveValue(LR_EMAIL);
 
   log('the direct-transfer order now submits normally');
@@ -2423,13 +2438,17 @@ test('bc. fee mode (#17): ABSORB event charges the buyer face value; host earnin
     .click();
   await expect(page.locator('tr').filter({ hasText: BUYER_EMAIL })).toHaveCount(0);
 
-  log('earnings: the Absorb Gala row shows gross 20,000, fee 1,500 deducted, net 18,500');
+  log(`earnings: the Absorb Gala row shows gross 20,000, fee ${iqd(bookingFee(20000))} deducted, net ${iqd(20000 - bookingFee(20000))}`);
   await page.goto('/host/earnings');
   const earningsRow = page.locator('tr').filter({ hasText: 'E2E Absorb Gala' }).first();
   await expect(earningsRow).toBeVisible();
   await expect(earningsRow.getByText(/20,000\s*IQD/).first()).toBeVisible();
-  await expect(earningsRow.getByText(/1,500\s*IQD/).first()).toBeVisible();
-  await expect(earningsRow.getByText(/18,500\s*IQD/).first()).toBeVisible();
+  await expect(earningsRow.getByText(iqdRe(bookingFee(20000))).first()).toBeVisible();
+  await expect(earningsRow.getByText(iqdRe(20000 - bookingFee(20000))).first()).toBeVisible();
+  if (FEE_WAIVED) {
+    log('beta waiver: the earnings page marks booking fees as waived');
+    await expect(page.getByText('Waived').first()).toBeVisible();
+  }
 });
 
 test('bd. free toggle (#16) + cover preview (#14): wizard zeroes prices, publishes a Free event', async ({ page }) => {
@@ -2911,9 +2930,10 @@ test('bq. edit fee card (R12): price-derived pass/absorb examples; free toggle h
   log('#editFeeCard is visible for a paid event, with notes rewritten from the 20,000 top price');
   const feeCard = page.locator('#editFeeCard');
   await expect(feeCard).toBeVisible();
-  await expect(feeCard.locator('.fee-note-pass')).toContainText('21,500'); // 20,000 + 1,500
+  await expect(feeCard.locator('.fee-note-pass')).toContainText(iqd(20000 + bookingFee(20000))); // buyer pays
   await expect(feeCard.locator('.fee-note-pass')).toContainText('20,000');
-  await expect(feeCard.locator('.fee-note-absorb')).toContainText('18,500'); // 20,000 − 1,500
+  await expect(feeCard.locator('.fee-note-absorb')).toContainText(iqd(20000 - bookingFee(20000))); // host receives
+  if (FEE_WAIVED) await expect(feeCard.getByText(/Waived during the beta/)).toBeVisible();
 
   log('"My event is free" zeroes + locks every price input and HIDES the fee card');
   const firstPrice = page.locator('#ticketTypes input[name="price"]').first();
@@ -2930,7 +2950,7 @@ test('bq. edit fee card (R12): price-derived pass/absorb examples; free toggle h
   await expect(firstPrice).toHaveValue('20000');
   await expect(firstPrice).toHaveJSProperty('readOnly', false);
   await expect(feeCard).toBeVisible();
-  await expect(feeCard.locator('.fee-note-pass')).toContainText('21,500');
+  await expect(feeCard.locator('.fee-note-pass')).toContainText(iqd(20000 + bookingFee(20000)));
 });
 
 test('br. edit autosave (R12): #autosaveTick appears on changes, hides on revert; reload offers Discard', async ({ page }) => {
@@ -3170,9 +3190,9 @@ test('bv. wizard fee card gating (R13): hidden until a positive price, dynamic e
   log('typing ttPrice 20000 → the card appears with the price-derived notes');
   await page.locator('input[name="ttPrice"]').first().fill('20000');
   await expect(page.locator('#feeCard')).toBeVisible();
-  await expect(page.locator('#feeCard .fee-note-pass')).toContainText('21,500'); // 20,000 + 1,500
+  await expect(page.locator('#feeCard .fee-note-pass')).toContainText(iqd(20000 + bookingFee(20000)));
   await expect(page.locator('#feeCard .fee-note-pass')).toContainText('20,000');
-  await expect(page.locator('#feeCard .fee-note-absorb')).toContainText('18,500'); // 20,000 − 1,500
+  await expect(page.locator('#feeCard .fee-note-absorb')).toContainText(iqd(20000 - bookingFee(20000)));
 
   log('clearing the price back to 0 hides the card again (this wizard is abandoned — nothing published)');
   await page.locator('input[name="ttPrice"]').first().fill('0');
@@ -3475,4 +3495,57 @@ test('cd. learn section (R22): how it works, features, solutions and guides are 
   await page.goto('/set-lang?to=ar&next=/guides/attendees');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.locator('#c2 h2')).toContainText('تلگي الفعالية الصح');
+});
+
+test('ce. QA: guest checkout signs in a brand-new buyer but never an existing account', async ({ page }) => {
+  const GUEST_NEW = `e2e-guest+${RUN_ID}@test.iq`;
+
+  log('anonymous visitor buys with a NEW email: order placed and the visitor is signed in to the fresh account');
+  await page.goto('/e/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/checkout/);
+  await page.locator('#buyerName').fill('Guest Newcomer');
+  await page.locator('#buyerEmail').fill(GUEST_NEW);
+  await page.locator('#transferReference').fill('E2E-GUEST-NEW');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+  await expect(page.getByRole('heading', { name: /pending organizer confirmation/i })).toBeVisible();
+  await expect(page.getByText('Guest Newcomer').first()).toBeVisible();
+  await signOut(page);
+
+  log(`anonymous visitor types the EXISTING buyer email (${BUYER_EMAIL}): order placed, but NO sign-in, login page explains`);
+  await page.goto('/e/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/checkout/);
+  await page.locator('#buyerName').fill('Impostor');
+  await page.locator('#buyerEmail').fill(BUYER_EMAIL);
+  await page.locator('#transferReference').fill('E2E-GUEST-EXISTING');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/auth\/login\?ordered/);
+  await expect(page.getByText(/already has an iEvent account/)).toBeVisible();
+
+  log('the visitor is still anonymous: /me/tickets bounces to login');
+  const nextParam = new URL(page.url()).searchParams.get('next');
+  expect(nextParam).toMatch(/^\/orders\//);
+  await page.goto('/me/tickets');
+  await expect(page).toHaveURL(/\/auth\/login/);
+
+  log('the real buyer signs in and can open that order (it belongs to their account)');
+  await login(page, BUYER_EMAIL, buyerPassword);
+  await page.goto(nextParam);
+  await expect(page.getByText('Impostor').first()).toBeVisible();
+  await signOut(page);
+});
+
+test('cf. QA: percent-encoded /admin path is still gated; the double-submit guard ships site-wide', async ({ page, request }) => {
+  log('/%61dmin (decodes to /admin) must land on the admin login, not the console');
+  const res = await page.goto('/%61dmin/');
+  expect(res && res.url()).toMatch(/\/admin\/login/);
+
+  log('pwa.js carries the form double-submit guard and is loaded by public and host layouts');
+  const js = await request.get('/js/pwa.js');
+  expect(js.ok()).toBeTruthy();
+  expect(await js.text()).toContain('data-submitted');
+  await page.goto('/en');
+  await expect(page.locator('script[src="/js/pwa.js"]')).toHaveCount(1);
 });

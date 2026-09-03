@@ -10,7 +10,10 @@ import java.util.List;
 
 public interface TicketTypeRepository extends JpaRepository<TicketType, Long> {
 
-    List<TicketType> findByEventIdOrderBySortOrderAsc(Long eventId);
+    List<TicketType> findByEventIdOrderBySortOrderAscIdAsc(Long eventId);
+
+    /** Kept as the name every caller uses; ties on sort_order now break on id so page and checkout agree. */
+    default List<TicketType> findByEventIdOrderBySortOrderAsc(Long eventId) { return findByEventIdOrderBySortOrderAscIdAsc(eventId); }
 
     void deleteByEventId(Long eventId);
 
