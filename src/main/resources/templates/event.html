@@ -256,7 +256,7 @@
         <!-- Refund policy + tags (refund policy doesn't apply to announcement-only events — no
              tickets are sold — nor to fully free events, where there's nothing to refund) -->
         <section class="mt-10 grid gap-8"
-                 th:with="hideRefund=${event.announceOnly() or event.ticketTypes.?[priceIqd > 0].isEmpty()}"
+                 th:with="hideRefund=${event.announceOnly() or event.ticketTypes.?[priceIqd > 0].isEmpty() or !refundPolicyVisible}"
                  th:classappend="${hideRefund} ? '' : 'sm:grid-cols-2'">
           <div th:if="${!hideRefund}">
             <h2 id="refund-policy" class="flex items-center gap-2 font-display text-lg font-extrabold text-ink-900"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-receipt"/></svg>[[#{public.event.refundPolicy}]]</h2>

@@ -142,6 +142,11 @@ public class Event {
     @Column(name = "require_payment_proof", nullable = false)
     private boolean requirePaymentProof = true;
 
+    /** R27: when true, paid orders skip the host's manual verification and are
+     *  confirmed + ticketed immediately (proof is still stored). Default off. */
+    @Column(name = "auto_confirm_orders", nullable = false)
+    private boolean autoConfirmOrders = false;
+
     /** The language the host actually wrote title/summary/description/lineup
      *  in ("ar"/"en") — set once at creation from the host's UI locale. Drives
      *  which of the *Translated columns below feeds a given viewer: their own
@@ -241,6 +246,8 @@ public class Event {
     public void setFeeMode(String feeMode) { this.feeMode = feeMode; }
     public boolean isRequirePaymentProof() { return requirePaymentProof; }
     public void setRequirePaymentProof(boolean requirePaymentProof) { this.requirePaymentProof = requirePaymentProof; }
+    public boolean isAutoConfirmOrders() { return autoConfirmOrders; }
+    public void setAutoConfirmOrders(boolean autoConfirmOrders) { this.autoConfirmOrders = autoConfirmOrders; }
     public String getRefundPolicy() { return refundPolicy; }
     public void setRefundPolicy(String refundPolicy) { this.refundPolicy = refundPolicy; }
     public String getLanguage() { return language; }

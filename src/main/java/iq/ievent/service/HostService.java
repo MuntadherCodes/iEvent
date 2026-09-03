@@ -413,6 +413,15 @@ public class HostService {
         org.setCity(city);
         org.setBio(bio);
         org = organizations.save(org);
+        // R27 #4: new organizers start with direct payments AND cash-on-arrival
+        // switched on (both can be turned off in Settings > Payments). Direct
+        // payments is the entity default; cash is a PaymentMethod row.
+        jdbc.update("""
+                INSERT INTO payment_methods (organization_id, label, method_type, enabled, sort_order)
+                VALUES (?, 'Cash', 'CASH', TRUE, 99)
+                """, org.getId());
+        // sort_order 99: transfer methods the host adds later (sort = list size)
+        // stay ahead of cash at checkout, so the preselected option is a transfer.
         if (owner.getRole() == User.Role.USER) {
             owner.setRole(User.Role.HOST);
             users.save(owner);
@@ -1013,8 +1022,10 @@ public class HostService {
         Long team = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM org_members WHERE organization_id = ?",
                 Long.class, org.getId());
+        // R27: cash-on-arrival is on by default, so the checklist item only counts
+        // a TRANSFER method the host actually configured.
         Long methods = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM payment_methods WHERE organization_id = ? AND enabled = TRUE",
+                "SELECT COUNT(*) FROM payment_methods WHERE organization_id = ? AND enabled = TRUE AND method_type = 'TRANSFER'",
                 Long.class, org.getId());
         boolean paymentsSetup = nz(methods) > 0
                 || (org.isDirectPaymentsEnabled() && org.getPayCardNumber() != null);
@@ -1103,6 +1114,14 @@ public class HostService {
         }
         organizations.save(org);
         return null;
+    }
+
+    /** R27 #5: organizer-level refund policy + whether event pages show it. */
+    @Transactional
+    public void saveRefundPolicy(Organization org, String policy, boolean visible) {
+        org.setRefundPolicy("UP_TO_7_DAYS".equals(policy) || "UP_TO_48H".equals(policy) ? policy : "NO_REFUNDS");
+        org.setRefundPolicyVisible(visible);
+        organizations.save(org);
     }
 
     @Transactional

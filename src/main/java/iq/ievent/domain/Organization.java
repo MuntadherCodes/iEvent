@@ -30,8 +30,9 @@ public class Organization {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    /** R27 #4: on for new organizers by default (they can switch it off). */
     @Column(name = "direct_payments_enabled", nullable = false)
-    private boolean directPaymentsEnabled;
+    private boolean directPaymentsEnabled = true;
 
     @Column(name = "pay_card_number")
     private String payCardNumber;
@@ -63,6 +64,14 @@ public class Organization {
 
     @Column(name = "notify_pending_orders", nullable = false)
     private boolean notifyPendingOrders = true;
+
+    /** R27 #5: the refund policy is an organizer-level setting shown (or not)
+     *  on every event page. Values: NO_REFUNDS | UP_TO_48H | UP_TO_7_DAYS. */
+    @Column(name = "refund_policy", nullable = false)
+    private String refundPolicy = "NO_REFUNDS";
+
+    @Column(name = "refund_policy_visible", nullable = false)
+    private boolean refundPolicyVisible = true;
 
     @Column(name = "cover_image_path")
     private String coverImagePath;
@@ -117,6 +126,10 @@ public class Organization {
     public void setLogoPath(String logoPath) { this.logoPath = logoPath; }
     public String getBrandColor() { return brandColor; }
     public void setBrandColor(String brandColor) { this.brandColor = brandColor; }
+    public String getRefundPolicy() { return refundPolicy; }
+    public void setRefundPolicy(String refundPolicy) { this.refundPolicy = refundPolicy; }
+    public boolean isRefundPolicyVisible() { return refundPolicyVisible; }
+    public void setRefundPolicyVisible(boolean refundPolicyVisible) { this.refundPolicyVisible = refundPolicyVisible; }
     public boolean isNotifyPendingOrders() { return notifyPendingOrders; }
     public void setNotifyPendingOrders(boolean notifyPendingOrders) { this.notifyPendingOrders = notifyPendingOrders; }
     public String getCoverImagePath() { return coverImagePath; }

@@ -1242,4 +1242,62 @@ class SmokeTest {
                 // the price radios remain in the side forms
                 .andExpect(content().string(containsString("type=\"radio\" name=\"price\" value=\"free\"")));
     }
+
+    // ---- R27: wizard rows, refund policy in settings, auto-confirm, auth tabs ----
+
+    @Test
+    void wizardHasAddRowAutoConfirmAndNoRefundField() throws Exception {
+        mockMvc.perform(get("/en/host/events/new").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"addTicketRowBtn\"")))
+                .andExpect(content().string(containsString("name=\"autoConfirmOrders\"")))
+                .andExpect(content().string(containsString("Directory listing")))
+                .andExpect(content().string(not(containsString("id=\"ev-refund\""))));
+    }
+
+    @Test
+    void refundPolicyLivesInPaymentSettingsAndHidesFromEventPage() throws Exception {
+        // the settings card renders with the organizer's policy select
+        mockMvc.perform(get("/en/host/settings/payments").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"refund\"")))
+                .andExpect(content().string(containsString("id=\"org-refund\"")));
+        // hiding the policy removes the refund section from the public event page
+        mockMvc.perform(post("/host/settings/payments/refund")
+                        .param("refundPolicy", "UP_TO_48H")
+                        .with(csrf()).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/host/settings/payments#refund"));
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"refund-policy\""))));
+        // showing it again renders the organizer-level text (48 hours)
+        mockMvc.perform(post("/host/settings/payments/refund")
+                        .param("refundPolicy", "UP_TO_48H")
+                        .param("refundPolicyVisible", "true")
+                        .with(csrf()).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"refund-policy\"")))
+                .andExpect(content().string(containsString("Full refund up to 48 hours before doors open")));
+        // restore the default so other tests see the seeded state
+        mockMvc.perform(post("/host/settings/payments/refund")
+                        .param("refundPolicy", "NO_REFUNDS")
+                        .param("refundPolicyVisible", "true")
+                        .with(csrf()).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void authPagesCarrySignInSignUpTabs() throws Exception {
+        mockMvc.perform(get("/en/auth/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("aria-label=\"Sign in or create an account\"")))
+                .andExpect(content().string(containsString("href=\"/auth/register\"")));
+        mockMvc.perform(get("/en/auth/register"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("aria-label=\"Sign in or create an account\"")))
+                .andExpect(content().string(containsString("href=\"/auth/login\"")));
+    }
 }

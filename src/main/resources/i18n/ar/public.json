@@ -92,7 +92,7 @@
   "public.checkout.amountToTransfer": "المبلغ المستحق",
   "public.checkout.attachedSuffix": " مرفق",
   "public.checkout.backAria": "العودة إلى الفعالية",
-  "public.checkout.bookingFeeLine": "رسم الحجز (750 د.ع أو 3% + 2,000 د.ع)",
+  "public.checkout.bookingFeeLine": "رسم الحجز (750 د.ع حتى 15,000 د.ع، وما فوق ذلك 3% + 2,000 د.ع)",
   "public.checkout.buyerNamePh": "مثال: علي حسن",
   "public.checkout.cashReviewNote": "فقط احضر وادفع عند الباب، يؤكد المنظّم طلبك فور تسجيل وصولك.",
   "public.checkout.cashSub": "ادفع نقدًا عند تسجيل الوصول عند الباب، لا حاجة لإيصال أو رقم مرجعي.",
@@ -109,7 +109,7 @@
   "public.checkout.feeNote": "رسم الحجز: 750 د.ع للتذاكر حتى 15,000 د.ع، أو 3% + 2,000 د.ع (بحد أقصى 15,000 د.ع) لما هو أعلى. التذاكر المجانية بلا رسوم.",
   "public.checkout.feeWaivedNote": "رسم الحجز ملغى، مجاني للجميع خلال الفترة التجريبية.",
   "public.fee.waivedBadge": "ملغاة",
-  "public.checkout.feeSummaryLine": "رسم الحجز (750 د.ع أو 3% + 2,000 د.ع)",
+  "public.checkout.feeSummaryLine": "رسم الحجز (750 د.ع حتى 15,000 د.ع، وما فوق ذلك 3% + 2,000 د.ع)",
   "public.checkout.freeNote": "تسجيل مجاني · تصدر التذاكر فوراً.",
   "public.checkout.fullName": "الاسم الكامل",
   "public.checkout.havePromo": "لديك رمز خصم؟",
@@ -644,5 +644,6 @@
   "public.tstatus.poweredBy": "مقدَّم من",
   "public.tstatus.ticketType": "نوع التذكرة",
   "public.tstatus.valid": "تذكرة صالحة",
-  "public.tstatus.void": "تذكرة ملغاة"
+  "public.tstatus.void": "تذكرة ملغاة",
+  "public.auth.switchAria": "تسجيل الدخول أو إنشاء حساب"
 }

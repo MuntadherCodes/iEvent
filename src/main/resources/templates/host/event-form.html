@@ -353,7 +353,7 @@
             <h2 class="mt-4 font-display text-lg font-bold text-ink-900" th:text="#{wizard.tickets.announceOnlyTitle}">No tickets needed</h2>
             <p class="mx-auto mt-1 max-w-sm text-sm text-ink-500" th:text="#{wizard.tickets.announceOnlySub}">"Announcement only" events don't need tickets — this is just information shared with visitors.</p>
           </div>
-          <div id="ticketsBuilder">
+          <div id="ticketsBuilder" class="space-y-6">
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
             <h2 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{wizard.tickets.title}">Set up your tickets</h2>
             <p class="mt-1 text-sm text-ink-500" th:text="#{wizard.tickets.subtitle}">Fill in the rows you need — leave the rest empty. Price 0 = free ticket.</p>
@@ -368,7 +368,7 @@
               </span>
             </label>
 
-            <div class="mt-5 space-y-4">
+            <div id="ticketRows" class="mt-5 space-y-4" th:attr="data-name-aria=#{wizard.tickets.nameAria('{n}')},data-price-aria=#{wizard.tickets.priceAria('{n}')},data-qty-aria=#{wizard.tickets.qtyAria('{n}')}">
               <div class="ticket-row rounded-2xl border border-ink-200 p-4 transition hover:border-brand-300 sm:p-5">
                 <div class="grid gap-3 sm:grid-cols-[1fr_150px_100px]">
                   <div>
@@ -421,6 +421,10 @@
                 </div>
               </div>
             </div>
+            <!-- R27 #1: more rows on demand, like the edit page's "Add ticket type" -->
+            <button type="button" id="addTicketRowBtn" th:attr="data-remove-label=#{wizard.tickets.removeRow}" class="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-ink-300 px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">
+              <svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg><span th:text="#{wizard.tickets.addRow}">Add another ticket type</span>
+            </button>
           </div>
 
           <!-- Booking fee mode (wireframe: Pass to buyer / Absorb it) -->
@@ -471,6 +475,11 @@
             <label class="mt-4 flex items-start gap-2.5 text-sm text-ink-700">
               <input type="checkbox" name="requirePaymentProof" value="true" checked class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
               <span><span class="font-semibold" th:text="#{wizard.pay.requireProof}">Require a transfer reference or receipt</span> <span class="text-ink-500" th:text="#{wizard.pay.requireProofSub}">— buyers must add one before they can submit a transfer order. Cash on arrival never needs this.</span></span>
+            </label>
+            <!-- R27 #9: opt out of manual verification for this event (off by default) -->
+            <label class="mt-3 flex items-start gap-2.5 text-sm text-ink-700">
+              <input type="checkbox" name="autoConfirmOrders" value="true" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span><span class="font-semibold" th:text="#{wizard.pay.autoConfirm}">Confirm paid orders automatically</span> <span class="text-ink-500" th:text="#{wizard.pay.autoConfirmSub}">Tickets are issued the moment the buyer submits, without waiting for your verification. Receipts and references are still saved in Orders for you to review.</span></span>
             </label>
           </div>
           </div>
@@ -538,30 +547,19 @@
           </div>
 
           <div class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-            <div id="detailsGridRefundVis" class="grid gap-5 sm:grid-cols-2">
-              <div id="refundPolicyField">
-                <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund" th:text="#{wizard.refund.title}">Refund policy</label>
-                <div class="relative">
-                  <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                    <option value="UP_TO_7_DAYS" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</option>
-                    <option value="UP_TO_48H" th:text="#{wizard.refund.48h}">Refunds up to 48 hours before event</option>
-                    <option value="NO_REFUNDS" selected th:text="#{wizard.refund.none}">No refunds</option>
-                  </select>
-                  <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-                </div>
+            <!-- R27 #5/#6: the refund policy moved to Settings > Payments (organizer-level);
+                 listing visibility gets its own row and says what it controls. -->
+            <div>
+              <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.vis.title}">Directory listing</span>
+              <div class="flex gap-2 sm:max-w-md">
+                <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                  <input type="radio" name="visibility" value="PUBLIC" checked class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.public}">Public</span>
+                </label>
+                <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                  <input type="radio" name="visibility" value="UNLISTED" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.unlisted}">Unlisted</span>
+                </label>
               </div>
-              <div>
-                <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.vis.title}">Visibility</span>
-                <div class="flex gap-2">
-                  <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                    <input type="radio" name="visibility" value="PUBLIC" checked class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.public}">Public</span>
-                  </label>
-                  <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                    <input type="radio" name="visibility" value="UNLISTED" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.unlisted}">Unlisted</span>
-                  </label>
-                </div>
-                <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.vis.note}">Public appears in the directory and search. Unlisted is reachable only by people with the link.</p>
-              </div>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.vis.note}">Public appears in the directory and search. Unlisted is reachable only by people with the link.</p>
             </div>
             <div class="mt-5">
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags" th:text="#{wizard.tags.title}">Tags</label>
@@ -594,7 +592,7 @@
                 <p class="flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-map-pin"/></svg><span id="rv-place" th:text="#{wizard.loc.city}">City</span></p>
                 <p id="rv-summary" class="hidden text-sm text-ink-600"></p>
                 <div id="rv-tickets" class="flex flex-wrap gap-2 pt-1 text-xs"></div>
-                <p class="text-xs text-ink-400"><span id="rv-fee" th:text="#{wizard.js.feePass}">Booking fee: passed to buyer</span> · <span id="rv-policy" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</span> · <span id="rv-visibility" th:text="#{wizard.vis.public}">Public</span></p>
+                <p class="text-xs text-ink-400"><span id="rv-fee" th:text="#{wizard.js.feePass}">Booking fee: passed to buyer</span> · <span id="rv-visibility" th:text="#{wizard.vis.public}">Public</span></p>
                 <div id="rvPayWarn" class="mt-3 hidden items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
                   <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
                   <span><span th:text="#{wizard.paywarn.review}">Your tickets are paid but payments aren't set up yet — buyers won't be able to pay. You can publish now and add a payment method right after.</span> <a th:href="@{/host/settings/payments}" target="_blank" class="font-semibold underline" th:text="#{host.paywarn.cta}">Set up payments</a></span>
@@ -816,11 +814,56 @@
       firstInvalid.focus({ preventScroll: true });
     }
   }
-  document.querySelectorAll('.tt-name, .tt-qty').forEach(function (inp) {
-    inp.addEventListener('input', function () {
+  // Delegated so rows added later (R27 #1) clear their error styling too.
+  document.addEventListener('input', function (e) {
+    var inp = e.target;
+    if (inp && inp.classList && (inp.classList.contains('tt-name') || inp.classList.contains('tt-qty'))) {
       inp.classList.remove('border-rose-400', 'ring-4', 'ring-rose-100');
-    });
+    }
   });
+
+  // R27 #1: "Add another ticket type" clones the last row (blank) so the wizard
+  // isn't capped at three rows. The three inputs always travel together so the
+  // server's positional ttName/ttPrice/ttQty lists stay aligned. Max 10 rows.
+  (function () {
+    var rowsWrap = document.getElementById('ticketRows');
+    var addBtn = document.getElementById('addTicketRowBtn');
+    if (!rowsWrap || !addBtn) return;
+    function fill(pattern, n) { return (pattern || '').replace('{n}', String(n)); }
+    addBtn.addEventListener('click', function () {
+      var rows = rowsWrap.querySelectorAll('.ticket-row');
+      if (rows.length >= 10) { addBtn.setAttribute('disabled', 'disabled'); return; }
+      var clone = rows[rows.length - 1].cloneNode(true);
+      var n = rows.length + 1;
+      clone.querySelectorAll('input').forEach(function (inp) {
+        inp.value = '';
+        inp.classList.remove('border-rose-400', 'ring-4', 'ring-rose-100');
+        if (inp.name === 'ttName') inp.setAttribute('aria-label', fill(rowsWrap.getAttribute('data-name-aria'), n));
+        if (inp.name === 'ttPrice') inp.setAttribute('aria-label', fill(rowsWrap.getAttribute('data-price-aria'), n));
+        if (inp.name === 'ttQty') inp.setAttribute('aria-label', fill(rowsWrap.getAttribute('data-qty-aria'), n));
+      });
+      var hint = clone.querySelector('p'); if (hint) hint.remove();
+      var old = clone.querySelector('.tt-remove'); if (old) old.remove();
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'tt-remove mt-2 text-xs font-semibold text-ink-400 transition hover:text-rose-600';
+      remove.textContent = addBtn.getAttribute('data-remove-label') || 'Remove';
+      remove.addEventListener('click', function () {
+        clone.remove();
+        addBtn.removeAttribute('disabled');
+        if (typeof updateFeeExample === 'function') updateFeeExample();
+      });
+      clone.appendChild(remove);
+      rowsWrap.appendChild(clone);
+      var freeToggleEl = document.getElementById('freeToggle');
+      if (freeToggleEl && freeToggleEl.checked) {
+        var price = clone.querySelector('input[name="ttPrice"]');
+        if (price) { price.value = '0'; price.setAttribute('readonly', 'readonly'); }
+      }
+      var first = clone.querySelector('.tt-name'); if (first) first.focus();
+      if (rowsWrap.querySelectorAll('.ticket-row').length >= 10) addBtn.setAttribute('disabled', 'disabled');
+    });
+  })();
 
   // Location type: which pill is checked (VENUE default)
   function locType() {
@@ -944,9 +987,6 @@
     var rvSummary = document.getElementById('rv-summary');
     rvSummary.textContent = summary;
     rvSummary.classList.toggle('hidden', !summary);
-    var refundSel = document.getElementById('ev-refund');
-    document.getElementById('rv-policy').textContent =
-      refundSel.options[refundSel.selectedIndex] ? refundSel.options[refundSel.selectedIndex].text : '';
     var vis = document.querySelector('input[name="visibility"]:checked');
     document.getElementById('rv-visibility').textContent =
       vis && vis.value === 'UNLISTED' ? msg('unlisted') : msg('public');
@@ -1171,27 +1211,10 @@
   if (announceOnlyCheckbox) announceOnlyCheckbox.addEventListener('change', renderAnnounceOnly);
   renderAnnounceOnly();
 
-  // Refund policy field: pointless (and hidden) for announcement-only events
-  // (no tickets at all) or fully free ones (nothing to refund) — mirrors the
-  // same rule the public event page uses to hide the refund section.
-  var refundPolicyField = document.getElementById('refundPolicyField');
-  var detailsGridRefundVis = document.getElementById('detailsGridRefundVis');
-  function renderRefundVisibility() {
-    if (!refundPolicyField) return;
-    var freeToggleEl = document.getElementById('freeToggle');
-    var anyPaid = false;
-    document.querySelectorAll('input[name="ttPrice"]').forEach(function (inp) {
-      if ((parseInt(inp.value, 10) || 0) > 0) anyPaid = true;
-    });
-    var hide = announceOnly() || (freeToggleEl && freeToggleEl.checked) || !anyPaid;
-    refundPolicyField.classList.toggle('hidden', hide);
-    if (detailsGridRefundVis) detailsGridRefundVis.classList.toggle('sm:grid-cols-2', !hide);
-  }
-  if (announceOnlyCheckbox) announceOnlyCheckbox.addEventListener('change', renderRefundVisibility);
-  document.addEventListener('input', function (e) {
-    if (e.target && e.target.name === 'ttPrice') renderRefundVisibility();
-  });
-  renderRefundVisibility();
+  // R27 #5: the refund policy is an organizer setting now (Settings > Payments),
+  // so the wizard has no refund field left to show or hide. Kept as a no-op so
+  // the callers below stay untouched.
+  function renderRefundVisibility() {}
 
   // Cover theme live preview
   var GRAD_BASE = 'relative mt-5 aspect-[21/9] max-h-56 overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 ';

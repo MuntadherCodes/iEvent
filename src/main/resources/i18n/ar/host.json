@@ -441,7 +441,7 @@
   "host.set.directPayments": "الدفع المباشر",
   "host.set.doorStaff": "موظف بوابة",
   "host.set.emailsSentTo": "تُرسل الرسائل إلى",
-  "host.set.feeAmount": "750 د.ع أو 3% + 2,000 د.ع",
+  "host.set.feeAmount": "750 د.ع حتى 15,000 د.ع، وما فوق ذلك 3% + 2,000 د.ع",
   "host.set.feeNote1": "رسوم حجز",
   "host.set.feeNote2": "عن كل تذكرة مدفوعة (بحد أقصى 15,000 د.ع)، يدفعها المشتري. بوابة مدفوعات iEvent الإلكترونية تصل في المرحلة الثانية.",
   "host.set.handle": "المعرّف",
@@ -506,9 +506,9 @@
   "host.start.bioPlaceholder": "عرّف الحضور بنفسك وبنوع الفعاليات التي تقيمها.",
   "host.start.createProfile": "إنشاء ملف المنظّم",
   "host.start.exit": "خروج",
-  "host.start.feeNote1": "الفعاليات المجانية مجانية دائمًا. التذاكر المدفوعة: ",
-  "host.start.feeNote2": "رسوم حجز 750 د.ع (أو 3% + 2,000 د.ع) عن كل تذكرة",
-  "host.start.feeNote3": " · يدفعها المشتري.",
+  "host.start.feeNote1": "الفعاليات المجانية مجانية دائماً. التذاكر المدفوعة: ",
+  "host.start.feeNote2": "750 د.ع عن كل تذكرة حتى 15,000 د.ع، وما فوق ذلك 3% + 2,000 د.ع (بحد أقصى 15,000 د.ع)",
+  "host.start.feeNote3": "، يدفعها المشتري.",
   "host.start.freqFew": "بضع مرات في السنة",
   "host.start.freqFirst": "فعاليتي الأولى",
   "host.start.freqMonthly": "شهريًا",
@@ -581,5 +581,10 @@
   "host.start.mock2Meta": "أربيل · 24 مقعداً",
   "host.start.mock3Title": "معرض البصرة للتصميم والحرف",
   "host.start.mock3Meta": "البصرة · 3 أيام",
-  "host.start.mockCheckedIn": "سجّلوا وصولهم على الباب"
+  "host.start.mockCheckedIn": "سجّلوا وصولهم على الباب",
+  "host.pay.refundTitle": "سياسة الاسترجاع",
+  "host.pay.refundSub": "سياسة واحدة لكل فعالياتك. اختر إن كانت صفحات الفعاليات والدفع تعرضها أم لا.",
+  "host.pay.refundShowAria": "إظهار سياسة الاسترجاع في صفحات الفعاليات",
+  "host.pay.refundSave": "حفظ السياسة",
+  "host.pay.refundNote": "أطفئ الخيار لتبقى السياسة خاصة: عندها لا تعرض صفحات الفعاليات ولا صفحة الدفع أي نص عن الاسترجاع."
 }

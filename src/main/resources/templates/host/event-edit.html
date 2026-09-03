@@ -325,37 +325,19 @@
             </div>
           </div>
 
-          <!-- Refund policy is pointless (and hidden) for announcement-only events (no
-               tickets at all) or fully free ones (nothing to refund) — mirrors the same
-               rule the public event page uses to hide its refund section. Ticket prices
-               here are saved data (each row is its own form), not live wizard input, so
-               this is computed server-side rather than reactively in JS. -->
-          <div class="mt-5 grid gap-4"
-               th:with="hideRefund=${evEntity.announceOnly() or ticketRows.?[priceIqd > 0].isEmpty()}"
-               th:classappend="${hideRefund} ? '' : 'sm:grid-cols-2'">
-            <div th:if="${!hideRefund}">
-              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-refund" th:text="#{wizard.refund.title}">Refund policy</label>
-              <div class="relative">
-                <select id="ev-refund" name="refundPolicy" class="w-full appearance-none rounded-xl border border-ink-200 bg-white px-4 py-3 pe-10 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
-                  <option value="UP_TO_7_DAYS" th:selected="${evEntity.refundPolicy() == 'UP_TO_7_DAYS'}" th:text="#{wizard.refund.7days}">Refunds up to 7 days before event</option>
-                  <option value="UP_TO_48H" th:selected="${evEntity.refundPolicy() == 'UP_TO_48H'}" th:text="#{wizard.refund.48h}">Refunds up to 48 hours before event</option>
-                  <option value="NO_REFUNDS" th:selected="${evEntity.refundPolicy() == 'NO_REFUNDS'}" th:text="#{wizard.refund.none}">No refunds</option>
-                </select>
-                <svg class="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-              </div>
+          <!-- R27 #5/#6: refund policy is an organizer setting (Settings > Payments);
+               the directory-listing choice stands on its own row. -->
+          <div class="mt-5">
+            <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.vis.title}">Directory listing</span>
+            <div class="flex gap-2 sm:max-w-md">
+              <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                <input type="radio" name="visibility" value="PUBLIC" th:checked="${evEntity.visibility() != 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.public}">Public</span>
+              </label>
+              <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
+                <input type="radio" name="visibility" value="UNLISTED" th:checked="${evEntity.visibility() == 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.unlisted}">Unlisted</span>
+              </label>
             </div>
-            <div>
-              <span class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{wizard.vis.title}">Visibility</span>
-              <div class="flex gap-2">
-                <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                  <input type="radio" name="visibility" value="PUBLIC" th:checked="${evEntity.visibility() != 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.public}">Public</span>
-                </label>
-                <label class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm font-medium text-ink-700 transition hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700">
-                  <input type="radio" name="visibility" value="UNLISTED" th:checked="${evEntity.visibility() == 'UNLISTED'}" class="h-4 w-4 border-ink-300 text-brand-500 focus:ring-brand-400"> <span th:text="#{wizard.vis.unlisted}">Unlisted</span>
-                </label>
-              </div>
-              <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.vis.noteEdit}">Unlisted events are reachable only by people with the link.</p>
-            </div>
+            <p class="mt-1.5 text-xs text-ink-400" th:text="#{wizard.vis.note}">Public appears in the directory and search. Unlisted is reachable only by people with the link.</p>
           </div>
           <div class="mt-5">
             <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="ev-tags" th:text="#{wizard.tags.title}">Tags</label>
@@ -416,6 +398,10 @@
             <label class="mt-4 flex items-start gap-2.5 text-sm text-ink-700">
               <input type="checkbox" name="requirePaymentProof" value="true" th:checked="${evEntity.requirePaymentProof()}" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
               <span><span class="font-semibold" th:text="#{wizard.pay.requireProof}">Require a transfer reference or receipt</span> <span class="text-ink-500" th:text="#{wizard.pay.requireProofSub}">— buyers must add one before they can submit a transfer order. Cash on arrival never needs this.</span></span>
+            </label>
+            <label class="mt-3 flex items-start gap-2.5 text-sm text-ink-700">
+              <input type="checkbox" name="autoConfirmOrders" value="true" th:checked="${evEntity.autoConfirmOrders()}" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span><span class="font-semibold" th:text="#{wizard.pay.autoConfirm}">Confirm paid orders automatically</span> <span class="text-ink-500" th:text="#{wizard.pay.autoConfirmSub}">Tickets are issued the moment the buyer submits, without waiting for your verification.</span></span>
             </label>
           </div>
 

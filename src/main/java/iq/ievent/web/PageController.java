@@ -324,7 +324,12 @@ public class PageController {
         String lineupText = Format.localized(
                 entity.getLineup(), entity.getLineupTranslated(), entity.getLanguage());
         model.addAttribute("lineup", parseLineup(lineupText));
-        model.addAttribute("refundPolicyText", refundPolicyText(entity.getRefundPolicy(), messages));
+        // R27 #5: the refund policy shown is the ORGANIZER's setting, and only
+        // when they chose to display it (Settings > Payments).
+        Organization owner = entity.getOrganization();
+        model.addAttribute("refundPolicyText", refundPolicyText(
+                owner != null ? owner.getRefundPolicy() : entity.getRefundPolicy(), messages));
+        model.addAttribute("refundPolicyVisible", owner == null || owner.isRefundPolicyVisible());
         model.addAttribute("directionsUrl", directionsUrl(entity));
         return "event";
     }

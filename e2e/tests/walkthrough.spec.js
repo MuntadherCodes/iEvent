@@ -1602,14 +1602,15 @@ test('ak. event edit: summary/tags/lineup/visibility/refund fields, summary reac
   await expect(page.locator('#ev-summary')).toBeVisible();
   await expect(page.locator('#ev-tags')).toBeVisible();
   await expect(page.locator('#ev-lineup')).toBeVisible();
-  await expect(page.locator('#ev-refund')).toBeVisible();
+  // R27: the refund policy is an organizer setting now, not a per-event field
+  await expect(page.locator('#ev-refund')).toHaveCount(0);
   await expect(page.locator('input[name="visibility"]')).toHaveCount(2);
+  await expect(page.locator('input[name="autoConfirmOrders"]')).not.toBeChecked();
 
-  log('filling summary, tags, lineup and a NO_REFUNDS policy, then saving');
+  log('filling summary, tags and lineup, then saving (refund policy comes from Settings > Payments, default no refunds)');
   await page.locator('#ev-summary').fill('An unforgettable E2E night out in Baghdad.');
   await page.locator('#ev-tags').fill('e2eparity, test');
   await page.locator('#ev-lineup').fill('DJ E2E — 9:00 PM\nThe Regression Band — 10:30 PM');
-  await page.locator('#ev-refund').selectOption('NO_REFUNDS');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByText(/Saved ✓/).first()).toBeVisible();
 
@@ -2350,12 +2351,10 @@ test('bc. fee mode (#17): ABSORB event charges the buyer face value; host earnin
   await signOut(page);
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
 
-  log('HOST2 enables direct payments + adds a method (fresh orgs have none — paid checkout needs one)');
+  log('HOST2 adds a transfer method (R27: direct payments + cash are ON by default for fresh orgs)');
   await page.goto('/host/settings/payments');
-  await page.locator('label[title="Enable direct payments"]').click();
-  await expect(page.locator('input[name="enabled"]')).toBeChecked();
-  await page.getByRole('button', { name: 'Save toggle' }).click();
-  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await expect(page.locator('label[title="Enable direct payments"] input')).toBeChecked();
+  await expect(page.locator('label[title="Enable cash on arrival"] input')).toBeChecked();
   await page.locator('#pm-label').fill('E2E Wallet');
   await page.locator('#pm-number').fill('0781 000 1111');
   await page.getByRole('button', { name: 'Add payment method' }).click();
@@ -3047,8 +3046,16 @@ test('bs. checklist (R13): pinned at the top for a new org and STAYS after the f
 // ---------- round 13: payment-readiness warnings, rich text, fee-card gating ----------
 
 test('bt. payment warnings (R13): review #rvPayWarn, publish flash, persistent console banner until payments exist', async ({ page }) => {
-  // HOST3 (from test be) owns an org with NO payment setup — exactly the warning case.
+  // HOST3 (from test be) owns a fresh org. Since R27 fresh orgs start with direct
+  // payments + cash ON, switch direct payments OFF first to reproduce the
+  // "no payment setup" warning case this test is about.
   await login(page, HOST3_EMAIL, HOST3_PASSWORD);
+  log('R27 setup: turning direct payments OFF for HOST3 so the org counts as payments-less');
+  await page.goto('/host/settings/payments');
+  await page.locator('label[title="Enable direct payments"]').click();
+  await expect(page.locator('label[title="Enable direct payments"] input')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Save toggle' }).click();
+  await expect(page.locator('label[title="Enable direct payments"] input')).not.toBeChecked();
 
   log('wizard with a PAID ticket for a payments-less org');
   await wizardBasics(page, {
@@ -3086,9 +3093,9 @@ test('bt. payment warnings (R13): review #rvPayWarn, publish flash, persistent c
   log('setting up payments (enable + first method) …');
   await page.goto('/host/settings/payments');
   await page.locator('label[title="Enable direct payments"]').click();
-  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await expect(page.locator('label[title="Enable direct payments"] input')).toBeChecked();
   await page.getByRole('button', { name: 'Save toggle' }).click();
-  await expect(page.locator('input[name="enabled"]')).toBeChecked();
+  await expect(page.locator('label[title="Enable direct payments"] input')).toBeChecked();
   await page.locator('#pm-label').fill('BT Wallet');
   await page.locator('#pm-number').fill('0790 222 3333');
   await page.getByRole('button', { name: 'Add payment method' }).click();

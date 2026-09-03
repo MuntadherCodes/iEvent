@@ -204,6 +204,10 @@ public class CheckoutController {
 
         model.addAttribute("currentUser", user);
         model.addAttribute("event", event);
+        // R27 #5: the refund-policy link only makes sense when the organizer shows one
+        model.addAttribute("refundPolicyVisible",
+                eventEntity == null || eventEntity.getOrganization() == null
+                        || eventEntity.getOrganization().isRefundPolicyVisible());
         model.addAttribute("quantities", quantities);
         model.addAttribute("totalQty", totalQty);
         model.addAttribute("subtotalLabel", Format.iqd(subtotal));

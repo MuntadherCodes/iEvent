@@ -189,7 +189,12 @@ public class OrderService {
         order.setBuyerPhone(buyerPhone == null || buyerPhone.isBlank() ? null : buyerPhone.trim());
         order.setPaymentMethod(free ? Order.PaymentMethod.FREE
                 : cash ? Order.PaymentMethod.CASH : Order.PaymentMethod.DIRECT_TRANSFER);
-        order.setStatus(free ? Order.Status.CONFIRMED : Order.Status.PENDING_CONFIRMATION);
+        // R27 #9: a host can opt an event out of manual verification, in which
+        // case paid orders (transfer or cash) are confirmed and ticketed on the
+        // spot exactly like free ones; the proof (reference/receipt) is still
+        // stored below so the host can review it later in Orders.
+        boolean autoConfirm = free || event.isAutoConfirmOrders();
+        order.setStatus(autoConfirm ? Order.Status.CONFIRMED : Order.Status.PENDING_CONFIRMATION);
         order.setSubtotalIqd(subtotal);
         order.setBookingFeeIqd(fee);
         order.setTotalIqd(total);
@@ -202,7 +207,7 @@ public class OrderService {
                     ? null : transferReference.trim());
             order.setReceiptPath(storeReceipt(receipt, order.getOrderCode()));
         }
-        if (free) {
+        if (autoConfirm) {
             order.setConfirmedAt(OffsetDateTime.now());
         }
         for (Map.Entry<TicketType, Integer> entry : selection.entrySet()) {
@@ -226,13 +231,32 @@ public class OrderService {
         }
 
         final Locale locale = LocaleContextHolder.getLocale();
-        if (free) {
+        if (autoConfirm) {
             List<Ticket> issued = issueTickets(order);
             mail.sendOrderConfirmed(order, issued, locale);
             notifications.notify(buyer.getId(), "ORDER_CONFIRMED",
                     msg("notif.orderConfirmed.title", event.getTitle()),
                     msg("notif.orderConfirmed.body", order.getOrderCode()),
                     "/me/tickets");
+            if (!free) {
+                // Paid but auto-confirmed: the host still gets the in-app heads-up
+                // (no "pending" alert email, there is nothing to act on).
+                Organization org = event.getOrganization();
+                final Locale hostLocale = localeForUser(org.getOwnerUserId());
+                String newOrderBody;
+                Locale prev = LocaleContextHolder.getLocale();
+                LocaleContextHolder.setLocale(hostLocale);
+                try {
+                    newOrderBody = order.getBuyerName() + " · " + Format.iqd(order.getTotalIqd())
+                            + " · " + order.getOrderCode();
+                } finally {
+                    LocaleContextHolder.setLocale(prev);
+                }
+                notifications.notify(org.getOwnerUserId(), "NEW_ORDER",
+                        msgFor(hostLocale, "notif.newOrderAuto.title", event.getTitle()),
+                        newOrderBody,
+                        "/host/orders");
+            }
         } else {
             mail.sendOrderPending(order, locale);
             notifications.notify(buyer.getId(), "ORDER_PENDING",

@@ -167,5 +167,6 @@
   "when.today": "اليوم",
   "when.tomorrow": "غدًا",
   "when.week": "الأيام السبعة القادمة",
-  "when.weekend": "نهاية هذا الأسبوع"
+  "when.weekend": "نهاية هذا الأسبوع",
+  "notif.newOrderAuto.title": "طلب جديد، تأكد تلقائياً · {0}"
 }

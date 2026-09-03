@@ -17,6 +17,12 @@
         <img th:if="${rtl}" th:src="@{/img/brand-mark-color-arabic.png}" alt="iEvent" class="h-11 w-auto">
       </a>
 
+      <!-- R27 #7: sign in / create account switcher (both pages) -->
+      <nav class="mb-6 grid grid-cols-2 rounded-xl bg-ink-100 p-1 text-sm font-semibold" th:attr="aria-label=#{public.auth.switchAria}" aria-label="Sign in or create an account">
+        <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/login(next=${nextParam})} : @{/auth/login}" class="rounded-lg px-4 py-2.5 text-center transition text-ink-500 hover:text-ink-800"  th:text="#{public.nav.signIn}">Sign in</a>
+        <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/register(next=${nextParam})} : @{/auth/register}" class="rounded-lg px-4 py-2.5 text-center transition bg-white text-ink-900 shadow-card" aria-current="page" th:text="#{public.auth.createAccount}">Create account</a>
+      </nav>
+
       <div class="mb-8">
         <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl" th:text="#{public.auth.welcomeTo}">Welcome to iEvent</h1>
         <p class="mt-2 text-sm text-ink-500" th:text="#{public.auth.tagline}">Discover, save and book events across Iraq.</p>

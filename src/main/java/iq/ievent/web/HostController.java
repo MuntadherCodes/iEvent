@@ -405,6 +405,7 @@ public class HostController {
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
                               @RequestParam(name = "requirePaymentProof", defaultValue = "false") boolean requirePaymentProof,
+                              @RequestParam(name = "autoConfirmOrders", defaultValue = "false") boolean autoConfirmOrders,
                               @RequestParam(name = "paymentMethodsMode", defaultValue = "ALL") String paymentMethodsMode,
                               @RequestParam(name = "paymentMethodIds", required = false) List<Long> paymentMethodIds,
                               @RequestParam(name = "freeEvent", defaultValue = "false") boolean freeEvent,
@@ -471,8 +472,9 @@ public class HostController {
             created.setOnlineUrl(loc.onlineUrl());
             created.setMapsUrl(loc.mapsUrl());
             created.setAnnounceOnly(announceOnly);
-            applyExtras(created, summary, tags, lineup, visibility, refundPolicy, feeMode,
-                    requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
+            applyExtras(created, org, summary, tags, lineup, visibility, refundPolicy, feeMode,
+                    requirePaymentProof, autoConfirmOrders,
+                    "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             applyTranslations(created, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(created, coverTheme);
             ResolvedGallery gallery = resolveGalleryPicks(created, galleryUrls, galleryCreditNames,
@@ -577,8 +579,9 @@ public class HostController {
             ev.setAnnounceOnly(announceOnly);
             // Autosave partial-saves the wizard draft — it never touches payment
             // settings, so those are re-applied unchanged rather than reset.
-            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode,
-                    ev.isRequirePaymentProof(), hostService.selectedPaymentMethodIds(ev.getId()));
+            applyExtras(ev, org, summary, tags, lineup, visibility, refundPolicy, feeMode,
+                    ev.isRequirePaymentProof(), ev.isAutoConfirmOrders(),
+                    hostService.selectedPaymentMethodIds(ev.getId()));
             applyTranslations(ev, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(ev, coverTheme);
             return java.util.Map.of("ok", true);
@@ -704,7 +707,8 @@ public class HostController {
                 "RANGE".equals(dateModeOf(ev)) && ev.getEndsAt() != null
                         ? ev.getEndsAt().atZoneSameInstant(Format.BAGHDAD).toLocalDate().toString() : "",
                 // input type=month wants "yyyy-MM"
-                "MONTH".equals(dateModeOf(ev)) ? z.toLocalDate().toString().substring(0, 7) : ""));
+                "MONTH".equals(dateModeOf(ev)) ? z.toLocalDate().toString().substring(0, 7) : "",
+                ev.isAutoConfirmOrders()));
         model.addAttribute("isLive", ev.getStatus() == Event.Status.LIVE);
         model.addAttribute("isDraft", ev.getStatus() == Event.Status.DRAFT);
         model.addAttribute("isCancelled", ev.getStatus() == Event.Status.CANCELLED);
@@ -771,7 +775,8 @@ public class HostController {
                                 String visibility, String refundPolicy,
                                 String locationType, String onlineUrl, String mapsUrl,
                                 boolean announceOnly, String feeMode, boolean requirePaymentProof,
-                                String dateMode, String endDate, String monthValue) {}
+                                String dateMode, String endDate, String monthValue,
+                                boolean autoConfirmOrders) {}
 
     public record TicketTypeEditRow(Long id, String name, long priceIqd, int quantity, int sold,
                                     String status) {}
@@ -805,6 +810,7 @@ public class HostController {
                               @RequestParam(required = false) String refundPolicy,
                               @RequestParam(required = false) String feeMode,
                               @RequestParam(name = "requirePaymentProof", defaultValue = "false") boolean requirePaymentProof,
+                              @RequestParam(name = "autoConfirmOrders", defaultValue = "false") boolean autoConfirmOrders,
                               @RequestParam(name = "paymentMethodsMode", defaultValue = "ALL") String paymentMethodsMode,
                               @RequestParam(name = "paymentMethodIds", required = false) List<Long> paymentMethodIds,
                               @RequestParam(name = "announceOnly", defaultValue = "false") boolean announceOnly,
@@ -839,8 +845,9 @@ public class HostController {
             ev.setOnlineUrl(loc.onlineUrl());
             ev.setMapsUrl(loc.mapsUrl());
             ev.setAnnounceOnly(announceOnly);
-            applyExtras(ev, summary, tags, lineup, visibility, refundPolicy, feeMode,
-                    requirePaymentProof, "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
+            applyExtras(ev, org, summary, tags, lineup, visibility, refundPolicy, feeMode,
+                    requirePaymentProof, autoConfirmOrders,
+                    "CUSTOM".equals(paymentMethodsMode) ? paymentMethodIds : List.of());
             applyTranslations(ev, titleTranslated, summaryTranslated, descriptionTranslated, lineupTranslated);
             hostService.applyCoverTheme(ev, coverTheme);
             // Legacy no-JS escape hatch: with the checkbox gone from the page,
@@ -965,20 +972,33 @@ public class HostController {
 
     /** Persists the descriptive extras (summary, tags, lineup, visibility, refund policy, fee mode,
      *  per-event payment-method selection, proof-required toggle). */
-    private void applyExtras(Event ev, String summary, String tags, String lineup,
+    private void applyExtras(Event ev, Organization org, String summary, String tags, String lineup,
                              String visibility, String refundPolicy, String feeMode,
-                             boolean requirePaymentProof, List<Long> paymentMethodIds) {
+                             boolean requirePaymentProof, boolean autoConfirmOrders,
+                             List<Long> paymentMethodIds) {
         String s = summary == null || summary.isBlank() ? null : summary.strip();
         ev.setSummary(s != null && s.length() > 160 ? s.substring(0, 160) : s);
         ev.setTags(tags == null || tags.isBlank() ? null : tags.strip());
         ev.setLineup(lineup == null || lineup.isBlank() ? null : lineup.strip());
         ev.setVisibility("UNLISTED".equalsIgnoreCase(visibility) ? "UNLISTED" : "PUBLIC");
-        ev.setRefundPolicy(
-                "UP_TO_7_DAYS".equals(refundPolicy) || "UP_TO_48H".equals(refundPolicy)
-                        ? refundPolicy : "NO_REFUNDS");
+        // R27 #5: the refund policy is an organizer setting now (Settings >
+        // Payments). The wizard/edit forms no longer send one, so the event
+        // column simply mirrors the organizer's current policy; a legacy value
+        // posted by an old form is still whitelisted.
+        // (`org` is the caller's fully loaded organization: ev.getOrganization() is a
+        // LAZY proxy and these handlers run outside a transaction, OSIV is off.)
+        if (refundPolicy == null || refundPolicy.isBlank()) {
+            String orgPolicy = org != null ? org.getRefundPolicy() : null;
+            ev.setRefundPolicy(orgPolicy == null ? "NO_REFUNDS" : orgPolicy);
+        } else {
+            ev.setRefundPolicy(
+                    "UP_TO_7_DAYS".equals(refundPolicy) || "UP_TO_48H".equals(refundPolicy)
+                            ? refundPolicy : "NO_REFUNDS");
+        }
         // Booking fee mode, whitelisted: ABSORB (organizer swallows the fee) or PASS (buyer pays it).
         ev.setFeeMode("ABSORB".equals(feeMode) ? "ABSORB" : "PASS");
         ev.setRequirePaymentProof(requirePaymentProof);
+        ev.setAutoConfirmOrders(autoConfirmOrders);
         events.save(ev);
         // Empty/null clears back to the default (every enabled org method).
         hostService.syncEventPaymentMethods(ev.getId(), paymentMethodIds);
@@ -1526,6 +1546,21 @@ public class HostController {
         hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings/payments";
+    }
+
+    /** R27 #5: refund policy lives with the payment settings. */
+    @PostMapping("/settings/payments/refund")
+    public String saveRefundPolicy(@AuthenticationPrincipal UserDetails principal,
+                                   @RequestParam(required = false) String refundPolicy,
+                                   @RequestParam(name = "refundPolicyVisible", defaultValue = "false") boolean refundPolicyVisible,
+                                   RedirectAttributes redirect) {
+        User u = user(principal);
+        Organization org = hostService.organizationOf(u).orElse(null);
+        if (org == null) return "redirect:/host/start";
+        requireOwner(u);
+        hostService.saveRefundPolicy(org, refundPolicy, refundPolicyVisible);
+        redirect.addFlashAttribute("saved", true);
+        return "redirect:/host/settings/payments#refund";
     }
 
     /** Soonest upcoming events first, then past events (most recent first). */

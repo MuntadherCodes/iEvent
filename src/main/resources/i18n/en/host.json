@@ -441,7 +441,7 @@
   "host.set.directPayments": "Direct payments",
   "host.set.doorStaff": "Door staff",
   "host.set.emailsSentTo": "Emails sent to",
-  "host.set.feeAmount": "750 IQD or 3% + 2,000 IQD",
+  "host.set.feeAmount": "750 IQD up to 15,000 IQD, or 3% + 2,000 IQD above that",
   "host.set.feeNote1": "Booking fee",
   "host.set.feeNote2": "per paid ticket (capped at 15,000 IQD), paid by the buyer. The iEvent Payments online gateway arrives in phase 2.",
   "host.set.handle": "Handle",
@@ -507,8 +507,8 @@
   "host.start.createProfile": "Create organizer profile",
   "host.start.exit": "Exit",
   "host.start.feeNote1": "Free events are free. Paid tickets: ",
-  "host.start.feeNote2": "750 IQD (or 3% + 2,000 IQD) booking fee per ticket",
-  "host.start.feeNote3": " · paid by the buyer.",
+  "host.start.feeNote2": "750 IQD per ticket up to 15,000 IQD, or 3% + 2,000 IQD (capped at 15,000 IQD) above that",
+  "host.start.feeNote3": ", paid by the buyer.",
   "host.start.freqFew": "A few per year",
   "host.start.freqFirst": "First event",
   "host.start.freqMonthly": "Monthly",
@@ -581,5 +581,10 @@
   "host.start.mock2Meta": "Erbil · 24 seats",
   "host.start.mock3Title": "Basra Design & Crafts Exhibition",
   "host.start.mock3Meta": "Basra · 3 days",
-  "host.start.mockCheckedIn": "checked in at the door"
+  "host.start.mockCheckedIn": "checked in at the door",
+  "host.pay.refundTitle": "Refund policy",
+  "host.pay.refundSub": "One policy for all your events. Choose whether event pages and checkout show it.",
+  "host.pay.refundShowAria": "Show refund policy on event pages",
+  "host.pay.refundSave": "Save policy",
+  "host.pay.refundNote": "Switch it off to keep the policy private: event pages and checkout then show no refund text at all."
 }

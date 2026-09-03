@@ -92,7 +92,7 @@
   "public.checkout.amountToTransfer": "Amount due",
   "public.checkout.attachedSuffix": " attached",
   "public.checkout.backAria": "Back to event",
-  "public.checkout.bookingFeeLine": "Booking fee (750 IQD, or 3% + 2,000 IQD)",
+  "public.checkout.bookingFeeLine": "Booking fee (750 IQD up to 15,000 IQD, or 3% + 2,000 IQD above that)",
   "public.checkout.buyerNamePh": "e.g. Ali Hassan",
   "public.checkout.cashReviewNote": "Just show up and pay at the door, the organizer confirms your order once you check in.",
   "public.checkout.cashSub": "Pay in cash when you check in at the door, no receipt or reference needed.",
@@ -109,7 +109,7 @@
   "public.checkout.feeNote": "Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD (capped at 15,000 IQD) above that. Free tickets have no fee.",
   "public.checkout.feeWaivedNote": "Booking fee waived, free for everyone during the beta period.",
   "public.fee.waivedBadge": "Waived",
-  "public.checkout.feeSummaryLine": "Booking fee (750 IQD, or 3% + 2,000 IQD)",
+  "public.checkout.feeSummaryLine": "Booking fee (750 IQD up to 15,000 IQD, or 3% + 2,000 IQD above that)",
   "public.checkout.freeNote": "Free registration, tickets are issued instantly.",
   "public.checkout.fullName": "Full name",
   "public.checkout.havePromo": "Have a promo code?",
@@ -644,5 +644,6 @@
   "public.tstatus.poweredBy": "Powered by",
   "public.tstatus.ticketType": "Ticket type",
   "public.tstatus.valid": "Valid ticket",
-  "public.tstatus.void": "Void ticket"
+  "public.tstatus.void": "Void ticket",
+  "public.auth.switchAria": "Sign in or create an account"
 }
