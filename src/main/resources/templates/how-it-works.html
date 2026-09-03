@@ -39,13 +39,13 @@
 
     <div class="mt-10 space-y-14">
       <div th:each="s, it : ${ { {1,'hiw-browse',1600,1000,'from-brand-500 to-fuchsia-500'}, {2,'hiw-event',1600,1000,'from-sky-400 to-indigo-600'}, {3,'hiw-checkout',1600,1000,'from-emerald-400 to-teal-600'}, {4,'hiw-ticket',800,1600,'from-amber-400 to-orange-500'} } }"
-           class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
-        <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+           class="grid items-center gap-8" th:classappend="${showShots} ? 'lg:grid-cols-2 lg:gap-14' : 'mx-auto max-w-3xl'">
+        <div th:classappend="${showShots and it.odd} ? 'lg:order-last' : ''">
           <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br font-display text-lg font-extrabold text-white shadow-pop" th:classappend="${s[4]}" th:text="${s[0]}">1</span>
           <h3 class="mt-4 font-display text-xl font-extrabold text-ink-900" th:text="#{${'learn.hiw.a' + s[0] + 'Title'}}">Step</h3>
           <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.hiw.a' + s[0] + 'Body'}}">Body</p>
         </div>
-        <div th:classappend="${s[3] > s[2]} ? 'mx-auto w-full max-w-[300px]' : ''">
+        <div th:if="${showShots}" th:classappend="${s[3] > s[2]} ? 'mx-auto w-full max-w-[300px]' : ''">
           <figure th:replace="~{fragments/layout :: shot(${s[1]}, ${s[2]}, ${s[3]}, #{${'learn.hiw.a' + s[0] + 'Title'}})}"></figure>
         </div>
       </div>
@@ -67,13 +67,13 @@
 
       <div class="mt-10 space-y-14">
         <div th:each="s, it : ${ { {1,'hiw-profile',1600,1000,'from-brand-500 to-violet-600'}, {2,'hiw-wizard',1600,1000,'from-sky-400 to-indigo-600'}, {3,'hiw-share',1600,1000,'from-rose-400 to-pink-600'}, {4,'hiw-console',1600,1000,'from-emerald-400 to-teal-600'}, {5,'hiw-checkin',800,1600,'from-amber-400 to-orange-500'} } }"
-             class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
-          <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+             class="grid items-center gap-8" th:classappend="${showShots} ? 'lg:grid-cols-2 lg:gap-14' : 'mx-auto max-w-3xl'">
+          <div th:classappend="${showShots and it.odd} ? 'lg:order-last' : ''">
             <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br font-display text-lg font-extrabold text-white shadow-pop" th:classappend="${s[4]}" th:text="${s[0]}">1</span>
             <h3 class="mt-4 font-display text-xl font-extrabold text-ink-900" th:text="#{${'learn.hiw.o' + s[0] + 'Title'}}">Step</h3>
             <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.hiw.o' + s[0] + 'Body'}}">Body</p>
           </div>
-          <div th:classappend="${s[3] > s[2]} ? 'mx-auto w-full max-w-[300px]' : ''">
+          <div th:if="${showShots}" th:classappend="${s[3] > s[2]} ? 'mx-auto w-full max-w-[300px]' : ''">
             <figure th:replace="~{fragments/layout :: shot(${s[1]}, ${s[2]}, ${s[3]}, #{${'learn.hiw.o' + s[0] + 'Title'}})}"></figure>
           </div>
         </div>

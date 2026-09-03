@@ -71,6 +71,14 @@ public class CatalogService {
         return toCards(list);
     }
 
+    /** R28: the home rail shows the next 31 days (same window as browse?when=month). */
+    public List<EventCard> upcomingThisMonth(int limit) {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<Event> list = events.findUpcomingWindow(Event.Status.LIVE, now, now.plusDays(31),
+                PageRequest.of(0, limit));
+        return toCards(list);
+    }
+
     public List<EventCard> trending(int limit) {
         return toCards(events.findTrending(PageRequest.of(0, limit)));
     }

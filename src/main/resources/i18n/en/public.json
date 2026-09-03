@@ -368,10 +368,8 @@
   "public.home.searchPlaceholder": "Search events, artists, venues…",
   "public.home.seeAll": "See all",
   "public.home.subscribe": "Subscribe",
-  "public.home.thisWeekend": "This weekend",
   "public.home.trending": "Trending across Iraq",
   "public.home.trendingSub": "The events everyone is talking about right now.",
-  "public.home.weekendSub": "Plans for Friday & Saturday, sorted.",
   "public.nav.browse": "Browse events",
   "public.nav.caughtUp": "You're all caught up.",
   "public.nav.homeAria": "iEvent home",
@@ -645,5 +643,9 @@
   "public.tstatus.ticketType": "Ticket type",
   "public.tstatus.valid": "Valid ticket",
   "public.tstatus.void": "Void ticket",
-  "public.auth.switchAria": "Sign in or create an account"
+  "public.auth.switchAria": "Sign in or create an account",
+  "public.home.thisMonth": "Happening this month",
+  "public.home.monthSub": "Everything coming up in the next few weeks, closest first.",
+  "public.home.railPrev": "Previous events",
+  "public.home.railNext": "Next events"
 }

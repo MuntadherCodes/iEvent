@@ -1026,6 +1026,9 @@ class SmokeTest {
         // guarantee at least one).
         mockMvc.perform(get("/en"))
                 .andExpect(status().isOk())
+                // R28: the seeded catalog fills the 31-day "Happening this month" rail
+                .andExpect(content().string(containsString("Happening this month")))
+                .andExpect(content().string(containsString("id=\"monthRail\"")))
                 .andExpect(content().string(containsString("View all events")))
                 .andExpect(content().string(not(containsString("events across Iraq this month"))))
                 .andExpect(content().string(containsString("Popular:")));
@@ -1153,12 +1156,13 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("In this guide")))
                 .andExpect(content().string(containsString("one QR code per person")))
-                // screenshot slot renders its labeled placeholder until the file exists
-                .andExpect(content().string(containsString("ga-tickets.png")));
+                // R28: screenshot slots are hidden until CONTENT_SCREENSHOTS=true
+                .andExpect(content().string(not(containsString("ga-tickets.png"))))
+                .andExpect(content().string(not(containsString("data-shot="))));
         mockMvc.perform(get("/en/guides/organizers"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Set up your organizer profile")))
-                .andExpect(content().string(containsString("go-checkin.png")));
+                .andExpect(content().string(not(containsString("go-checkin.png"))));
         mockMvc.perform(get("/guides/organizers"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("دليل المنظمين")));

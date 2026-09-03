@@ -49,7 +49,7 @@
           <span th:text="#{${'learn.go.c' + c[0] + 's' + s}}">Step</span>
         </li>
       </ol>
-      <div th:if="${c[1] != null}" class="mt-6" th:classappend="${c[3] > c[2]} ? 'mx-auto w-full max-w-[280px]' : ''">
+      <div th:if="${showShots and c[1] != null}" class="mt-6" th:classappend="${c[3] > c[2]} ? 'mx-auto w-full max-w-[280px]' : ''">
         <figure th:replace="~{fragments/layout :: shot(${c[1]}, ${c[2]}, ${c[3]}, #{${'learn.go.c' + c[0] + 'Title'}})}"></figure>
       </div>
       <div class="mt-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3.5">

@@ -3463,9 +3463,13 @@ test('cd. learn section (R22): how it works, features, solutions and guides are 
   await page.locator('a[href="#c9"]').click();
   await expect(page.locator('#c9 h2')).toContainText('Event day and after');
 
-  log('an empty screenshot slot shows its labeled placeholder');
-  await expect(page.locator('[data-shot="go-checkin"]')).toBeVisible();
-  await expect(page.getByText('go-checkin.png', { exact: false })).toBeVisible();
+  log('R28: screenshot slots stay hidden until CONTENT_SCREENSHOTS=true');
+  await expect(page.locator('[data-shot]')).toHaveCount(0);
+
+  log('home: the month rail replaces the weekend grid (R28)');
+  await page.goto('/en');
+  await expect(page.locator('#monthRail')).toBeVisible();
+  await expect(page.getByText('Happening this month')).toBeVisible();
 
   log('the Arabic side renders RTL with the Iraqi voice');
   await page.goto('/set-lang?to=ar&next=/guides/attendees');

@@ -53,6 +53,10 @@ management:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  content:
+    # Show the product screenshot slots on the learn/content pages. Off until the
+    # real screenshots exist in static/img/shots (see the README there).
+    screenshots: ${CONTENT_SCREENSHOTS:false}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}

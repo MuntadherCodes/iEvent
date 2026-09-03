@@ -368,10 +368,8 @@
   "public.home.searchPlaceholder": "ابحث عن فعاليات، فنانين، أماكن…",
   "public.home.seeAll": "عرض الكل",
   "public.home.subscribe": "اشترك",
-  "public.home.thisWeekend": "نهاية هذا الأسبوع",
   "public.home.trending": "الرائج في أنحاء العراق",
   "public.home.trendingSub": "الفعاليات التي يتحدث عنها الجميع الآن.",
-  "public.home.weekendSub": "خططك ليومي الجمعة والسبت، جاهزة.",
   "public.nav.browse": "تصفح الفعاليات",
   "public.nav.caughtUp": "اطّلعت على كل شيء.",
   "public.nav.homeAria": "الصفحة الرئيسية iEvent",
@@ -645,5 +643,9 @@
   "public.tstatus.ticketType": "نوع التذكرة",
   "public.tstatus.valid": "تذكرة صالحة",
   "public.tstatus.void": "تذكرة ملغاة",
-  "public.auth.switchAria": "تسجيل الدخول أو إنشاء حساب"
+  "public.auth.switchAria": "تسجيل الدخول أو إنشاء حساب",
+  "public.home.thisMonth": "يجري هذا الشهر",
+  "public.home.monthSub": "كل ما ينتظرك في الأسابيع القادمة، الأقرب أولاً.",
+  "public.home.railPrev": "الفعاليات السابقة",
+  "public.home.railNext": "الفعاليات التالية"
 }

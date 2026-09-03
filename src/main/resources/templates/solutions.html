@@ -26,8 +26,8 @@
   <!-- ============ SOLUTIONS ============ -->
   <div class="mx-auto max-w-7xl space-y-16 px-4 py-10 sm:px-6 md:space-y-20 md:py-14 lg:px-8">
     <section th:each="f, it : ${ { {1,'i-briefcase','sol-conference','BUSINESS','conferences','from-brand-500 to-indigo-600','text-brand-600'}, {2,'i-music','sol-concert','MUSIC','concerts','from-fuchsia-500 to-pink-600','text-fuchsia-600'}, {3,'i-graduation-cap','sol-workshop','EDUCATION','workshops','from-emerald-400 to-teal-600','text-emerald-600'}, {4,'i-heart-handshake','sol-community','COMMUNITY','community','from-rose-400 to-orange-500','text-rose-600'}, {5,'i-palette','sol-bazaar','ARTS','bazaars','from-amber-400 to-yellow-500','text-amber-600'}, {6,'i-trophy','sol-sports','SPORTS','sports','from-sky-400 to-cyan-600','text-sky-600'} } }"
-             th:id="${f[4]}" class="grid scroll-mt-24 items-center gap-8 lg:grid-cols-2 lg:gap-14">
-      <div th:classappend="${it.odd} ? 'lg:order-last' : ''">
+             th:id="${f[4]}" class="grid scroll-mt-24 items-center gap-8" th:classappend="${showShots} ? 'lg:grid-cols-2 lg:gap-14' : 'mx-auto max-w-3xl'">
+      <div th:classappend="${showShots and it.odd} ? 'lg:order-last' : ''">
         <span class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-pop" th:classappend="${f[5]}"><svg class="h-6 w-6" aria-hidden="true"><use th:attr="href='#' + ${f[1]}"/></svg></span>
         <h2 class="mt-4 font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{${'learn.sol.s' + f[0] + 'Title'}}">Solution</h2>
         <p class="mt-2.5 leading-relaxed text-ink-500" th:text="#{${'learn.sol.s' + f[0] + 'Intro'}}">Intro</p>
@@ -42,7 +42,7 @@
           <svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg>
         </a>
       </div>
-      <div>
+      <div th:if="${showShots}">
         <figure th:replace="~{fragments/layout :: shot(${f[2]}, 1600, 1000, #{${'learn.sol.s' + f[0] + 'Title'}})}"></figure>
       </div>
     </section>

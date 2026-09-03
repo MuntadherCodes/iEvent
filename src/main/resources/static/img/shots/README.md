@@ -1,5 +1,8 @@
 # Screenshot slots
 
+**Switch:** the slots only render when `CONTENT_SCREENSHOTS=true` is set in `.env`
+(default false while the images are being prepared). Flip it once the files below exist.
+
 Drop PNG screenshots into this folder with EXACTLY these filenames and sizes and
 they appear on the site automatically (no code change, no rebuild). Until a file
 exists, its slot shows a labeled placeholder with the same name and size.

@@ -173,7 +173,7 @@ public class PageController {
 
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("weekendEvents", catalog.upcomingThisWeek(4));
+        model.addAttribute("monthEvents", catalog.upcomingThisMonth(12));
         model.addAttribute("trendingEvents", catalog.trending(8));
         model.addAttribute("cities", catalog.liveCities());
         model.addAttribute("categories", localizedCategories());

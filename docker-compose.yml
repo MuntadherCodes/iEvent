@@ -42,6 +42,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       SEED_DEMO: ${SEED_DEMO:-true}
       SEED_SCALE: ${SEED_SCALE:-0}
+      CONTENT_SCREENSHOTS: ${CONTENT_SCREENSHOTS:-false}
       MAIL_MODE: ${MAIL_MODE:-mailpit}
       MAIL_FROM: ${MAIL_FROM:-no-reply@ievent.iq}
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-mailpit}

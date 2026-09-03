@@ -86,18 +86,28 @@
     </div>
   </section>
 
-  <!-- ============ THIS WEEKEND ============ -->
-  <section class="bg-ink-50 py-12 md:py-16 lg:py-20" th:if="${!weekendEvents.isEmpty()}">
+  <!-- ============ HAPPENING THIS MONTH (R28: 31-day rail, horizontal slider) ============ -->
+  <section class="bg-ink-50 py-12 md:py-16 lg:py-20" th:if="${!monthEvents.isEmpty()}">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-end justify-between gap-4">
         <div>
-          <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.thisWeekend}">This weekend</h2>
-          <p class="mt-1.5 text-sm text-ink-500" th:text="#{public.home.weekendSub}">Plans for Friday &amp; Saturday, sorted.</p>
+          <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.thisMonth}">Happening this month</h2>
+          <p class="mt-1.5 text-sm text-ink-500" th:text="#{public.home.monthSub}">Everything coming up in the next few weeks, closest first.</p>
         </div>
-        <a th:href="@{/browse(when='weekend')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        <div class="flex shrink-0 items-center gap-2">
+          <a th:href="@{/browse(when='month')}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          <div class="hidden items-center gap-1.5 md:flex" th:if="${#lists.size(monthEvents) > 4}">
+            <button type="button" data-rail-prev="#monthRail" class="grid h-9 w-9 place-items-center rounded-full border border-ink-200 bg-white text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.home.railPrev}" aria-label="Previous events"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+            <button type="button" data-rail-next="#monthRail" class="grid h-9 w-9 place-items-center rounded-full border border-ink-200 bg-white text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.home.railNext}" aria-label="Next events"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+          </div>
+        </div>
       </div>
-      <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-        <th:block th:each="card : ${weekendEvents}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+      <!-- One horizontal rail: swipe on touch, arrows on desktop, snap per card.
+           Negative margins let the rail bleed to the screen edge on phones. -->
+      <div id="monthRail" class="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4 pb-2 sm:mx-0 sm:gap-6 sm:px-0">
+        <div th:each="card : ${monthEvents}" class="w-[46%] shrink-0 snap-start sm:w-72 lg:w-80">
+          <a th:replace="~{fragments/layout :: eventCard(${card})}"></a>
+        </div>
       </div>
     </div>
   </section>
@@ -383,6 +393,23 @@
 </div>
 
 <script th:replace="~{fragments/layout :: menuScript}"></script>
+<script>
+  // Home month rail arrows (R28): scroll one viewport of cards per click; the
+  // scroll direction follows the document direction so the arrows feel native in RTL.
+  (function () {
+    var dir = document.documentElement.dir === 'rtl' ? -1 : 1;
+    document.querySelectorAll('[data-rail-prev],[data-rail-next]').forEach(function (btn) {
+      var sel = btn.getAttribute('data-rail-prev') || btn.getAttribute('data-rail-next');
+      var rail = document.querySelector(sel);
+      if (!rail) return;
+      var sign = btn.hasAttribute('data-rail-next') ? 1 : -1;
+      btn.addEventListener('click', function () {
+        rail.scrollBy({ left: sign * dir * rail.clientWidth * 0.9, behavior: 'smooth' });
+      });
+    });
+  })();
+</script>
+
 <script th:replace="~{fragments/layout :: suggestScript}"></script>
 </body>
 </html>

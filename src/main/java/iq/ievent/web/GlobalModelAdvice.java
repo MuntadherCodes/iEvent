@@ -25,6 +25,9 @@ public class GlobalModelAdvice {
     private final UserService userService;
     private final HostService hostService;
     private final String siteBaseUrl;
+    /** R28: content-page screenshot slots are hidden until the user flips
+     *  CONTENT_SCREENSHOTS=true (the images are not ready yet). */
+    private final boolean showShots;
 
     public GlobalModelAdvice(@Value("${app.google.client-id:}") String googleClientId,
                              @Value("${app.google.maps-key:}") String mapsKey,
@@ -34,8 +37,10 @@ public class GlobalModelAdvice {
                              @Value("${app.google.analytics-id:}") String gaId,
                              @Value("${app.google.site-verification:}") String googleSiteVerification,
                              @Value("${app.base-url}") String siteBaseUrl,
+                             @Value("${app.content.screenshots:false}") boolean showShots,
                              UserService userService,
                              HostService hostService) {
+        this.showShots = showShots;
         this.googleLoginEnabled = googleClientId != null && !googleClientId.isBlank();
         this.mapsKey = mapsKey == null ? "" : mapsKey;
         this.aiAvailable = openaiApiKey != null && !openaiApiKey.isBlank();
@@ -54,6 +59,7 @@ public class GlobalModelAdvice {
     public void globals(@AuthenticationPrincipal UserDetails principal, Model model,
                         jakarta.servlet.http.HttpServletRequest request) {
         model.addAttribute("googleLoginEnabled", googleLoginEnabled);
+        model.addAttribute("showShots", showShots);
         model.addAttribute("mapsKey", mapsKey.isBlank() ? null : mapsKey);
         model.addAttribute("aiAvailable", aiAvailable);
         model.addAttribute("pexelsAvailable", pexelsAvailable);
