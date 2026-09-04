@@ -222,8 +222,8 @@
                 <p class="flex items-center gap-2 font-semibold text-ink-900"><svg class="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${event.venueName}">Al-Zawraa Park — Main Amphitheatre</span></p>
                 <p class="mt-0.5 ps-6 text-sm text-ink-500" th:text="${event.venueAddress != null ? event.venueAddress : @t.city(event.city)}">Zawraa Park Main Gate, Al-Mansour District, Baghdad</p>
               </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <a th:href="${event.mapsUrl() != null ? event.mapsUrl() : directionsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">[[#{public.event.openInMaps}]]<svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg></a>
+              <div th:if="${mapsHref != null}" class="flex flex-wrap items-center gap-2">
+                <a th:href="${mapsHref}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">[[#{public.event.openInMaps}]]<svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg></a>
                 <a th:href="${wazeUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">[[#{public.event.openInWaze}]]<svg class="h-4 w-4" aria-hidden="true"><use href="#i-external-link"/></svg></a>
               </div>
             </div>

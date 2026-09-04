@@ -1680,4 +1680,69 @@ class SmokeTest {
                 .andReturn().getResponse().getContentAsString();
         org.junit.jupiter.api.Assertions.assertFalse(home.contains("تسجيل دخول بالـ QR"), "no login wording for check-in");
     }
+
+    // ---- R33: directions (Google Maps + Waze) on every ticket surface ----
+
+    @Test
+    void ticketSurfacesOfferDirectionsForVenueEvents() throws Exception {
+        // the demo seed's confirmed orders belong to generated guest accounts, so
+        // pick one straight from a seeded ticket of the flagship (venue) event
+        Long eventId = events.findBySlug("baghdad-nights-music-festival").orElseThrow().getId();
+        iq.ievent.domain.Ticket seededTicket = tickets.searchForEvent(eventId, null).get(0);
+        iq.ievent.domain.Order order = ordersRepo.findById(seededTicket.getOrder().getId()).orElseThrow();
+        String buyerEmail = usersRepo.findById(order.getBuyerUserId()).orElseThrow().getEmail();
+
+        // 1) order confirmation page
+        String confirmation = mockMvc.perform(get("/en/orders/" + order.getOrderCode()).with(user(buyerEmail)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Directions:")))
+                .andExpect(content().string(containsString("Google Maps")))
+                .andExpect(content().string(containsString("Waze")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertTrue(
+                confirmation.contains("https://www.waze.com/ul?navigate=yes&amp;q="), "Waze link on the confirmation");
+
+        // 2) my tickets
+        mockMvc.perform(get("/en/me/tickets").with(user(buyerEmail)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("waze.com/ul?navigate=yes")))
+                .andExpect(content().string(containsString("Google Maps")));
+
+        // 3) public ticket status page (no login needed)
+        String code = seededTicket.getCode();
+        mockMvc.perform(get("/en/t/" + code))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("waze.com/ul?navigate=yes")))
+                .andExpect(content().string(containsString("Google Maps")));
+        // Arabic labels too
+        mockMvc.perform(get("/t/" + code))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("خرائط Google")));
+    }
+
+    @Test
+    void onlineAndTbaEventsGetNoDirections() {
+        iq.ievent.domain.Event online = new iq.ievent.domain.Event();
+        online.setLocationType("ONLINE");
+        online.setCity("Baghdad");
+        org.junit.jupiter.api.Assertions.assertFalse(iq.ievent.service.MapLinks.available(online));
+        iq.ievent.domain.Event tba = new iq.ievent.domain.Event();
+        tba.setLocationType("TBA");
+        tba.setCity("Baghdad");
+        org.junit.jupiter.api.Assertions.assertFalse(iq.ievent.service.MapLinks.available(tba));
+        iq.ievent.domain.Event venue = new iq.ievent.domain.Event();
+        venue.setLocationType("VENUE");
+        venue.setVenueName("Al Zawraa Park");
+        venue.setCity("Baghdad");
+        org.junit.jupiter.api.Assertions.assertTrue(iq.ievent.service.MapLinks.available(venue));
+        // spaces as %20 (Waze leaves a form-encoded "+" literal), organizer pin wins for Google
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "https://www.waze.com/ul?navigate=yes&q=Al%20Zawraa%20Park%2C%20Baghdad",
+                iq.ievent.service.MapLinks.waze(venue));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                iq.ievent.service.MapLinks.directions(venue).startsWith("https://maps.google.com/?q="));
+        venue.setMapsUrl("https://maps.app.goo.gl/abc123");
+        org.junit.jupiter.api.Assertions.assertEquals("https://maps.app.goo.gl/abc123",
+                iq.ievent.service.MapLinks.directions(venue));
+    }
 }

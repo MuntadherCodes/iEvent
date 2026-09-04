@@ -69,7 +69,8 @@ public class UserAreaController {
                             String statusKey, String statusLabel, boolean confirmed,
                             List<String> itemLines, List<TicketRow> tickets,
                             boolean online, String onlineUrl, boolean cash,
-                            String joinInstructions) {}
+                            String joinInstructions,
+                            String mapsHref, String wazeHref) {}
 
     /** One ticket row inside an order card (rendered only for confirmed orders). */
     public record TicketRow(String code, String typeName, String holderName) {}
@@ -184,7 +185,10 @@ public class UserAreaController {
                 Format.coverUrl(e),
                 o.getStatus().name(), statusLabel(o.getStatus()), confirmed, itemLines, rows,
                 online, joinUrl, o.getPaymentMethod() == Order.PaymentMethod.CASH,
-                confirmed && online ? e.getOnlineInstructions() : null);
+                confirmed && online ? e.getOnlineInstructions() : null,
+                // R33: directions straight from the ticket card, venue events only
+                iq.ievent.service.MapLinks.available(e) ? iq.ievent.service.MapLinks.directions(e) : null,
+                iq.ievent.service.MapLinks.available(e) ? iq.ievent.service.MapLinks.waze(e) : null);
     }
 
     private String statusLabel(Order.Status s) {
@@ -461,6 +465,14 @@ public class UserAreaController {
                         : msg("ticket.checkedInAt", Format.cardDateLine(t.getCheckedInAt())),
                 t.getOrder().getPaymentMethod() == Order.PaymentMethod.CASH));
         model.addAttribute("qrSvg", qr.ticketQrSvg(t.getCode()));
+        boolean mapsAvailable = iq.ievent.service.MapLinks.available(t.getEvent());
+        model.addAttribute("venueLine", mapsAvailable
+                ? (t.getEvent().getVenueName() == null ? "" : t.getEvent().getVenueName() + ", ")
+                        + iq.ievent.service.Cities.label(t.getEvent().getCity(),
+                                org.springframework.context.i18n.LocaleContextHolder.getLocale())
+                : null);
+        model.addAttribute("mapsHref", mapsAvailable ? iq.ievent.service.MapLinks.directions(t.getEvent()) : null);
+        model.addAttribute("wazeHref", mapsAvailable ? iq.ievent.service.MapLinks.waze(t.getEvent()) : null);
         return "ticket-status";
     }
 

@@ -654,5 +654,8 @@
   "public.calendar.google": "تقويم Google",
   "public.calendar.outlook": "Outlook",
   "public.calendar.apple": "Apple / ملف ‎.ics",
-  "public.event.openInWaze": "افتح في Waze"
+  "public.event.openInWaze": "افتح في Waze",
+  "public.map.label": "الاتجاهات:",
+  "public.map.google": "خرائط Google",
+  "public.map.waze": "Waze"
 }

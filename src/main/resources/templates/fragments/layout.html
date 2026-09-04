@@ -89,6 +89,7 @@
 <svg th:fragment="icons" xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></symbol>
 <symbol id="i-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></symbol>
+<symbol id="i-navigation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></symbol>
 <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></symbol>
 <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></symbol>
@@ -515,7 +516,7 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
         <div>
           <p class="text-xs font-bold uppercase tracking-wide text-brand-600" th:text="${dateLine}">Saturday, September 12 · 7:00 PM</p>
           <h3 class="mt-1 font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="${title}">Baghdad Nights Music Festival</h3>
-          <p class="mt-1 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="${venueLine}">Al-Zawraa Park, Baghdad</span></p>
+          <p class="mt-1 flex items-center gap-1.5 text-sm text-ink-500"><svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><bdi th:text="${venueLine}">Al-Zawraa Park, Baghdad</bdi></p>
         </div>
         <div class="flex shrink-0 flex-col items-end gap-1.5">
           <span th:if="${t.statusLabel == 'CHECKED_IN'}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>[[#{public.stub.checkedIn}]]</span>
@@ -722,6 +723,25 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
 </div>
 
 <!-- ============ MOBILE MENU SCRIPT FRAGMENT ============ -->
+<!-- R33: "Directions" row (Google Maps + Waze) for any surface that shows a
+     venue: event page, order confirmation, my tickets, ticket status page.
+     Both hrefs come from iq.ievent.service.MapLinks and are null for online /
+     to-be-announced events, so the whole block renders only when applicable. -->
+<th:block th:fragment="mapButtons(mapsHref, wazeHref, cls)">
+  <a th:if="${mapsHref != null}" th:href="${mapsHref}" target="_blank" rel="noopener" th:class="${cls}">
+    <svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-map-pin"/></svg><span th:text="#{public.map.google}">Google Maps</span>
+  </a>
+  <a th:if="${wazeHref != null}" th:href="${wazeHref}" target="_blank" rel="noopener" th:class="${cls}">
+    <svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-navigation"/></svg><span th:text="#{public.map.waze}">Waze</span>
+  </a>
+</th:block>
+
+<!-- Label + both buttons, mirroring the "Add to calendar" row. -->
+<div th:fragment="directionsRow(mapsHref, wazeHref)" th:if="${mapsHref != null}" class="flex flex-wrap items-center gap-2 pt-1">
+  <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-map-pin"/></svg>[[#{public.map.label}]]</span>
+  <th:block th:replace="~{fragments/layout :: mapButtons(${mapsHref}, ${wazeHref}, 'inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600')}"></th:block>
+</div>
+
 <script th:fragment="menuScript">
   var menuBtn = document.getElementById('menuBtn');
   var mobileMenu = document.getElementById('mobileMenu');

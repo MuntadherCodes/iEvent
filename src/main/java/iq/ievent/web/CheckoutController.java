@@ -378,6 +378,10 @@ public class CheckoutController {
                 ? order.getEvent().getOnlineUrl() : null;
         // R31 #8: host-written joining notes travel with the link, confirmed orders only
         model.addAttribute("joinInstructions", confirmed && online ? order.getEvent().getOnlineInstructions() : null);
+        // R33: directions for a physical venue (null for online / TBA events)
+        boolean mapsAvailable = iq.ievent.service.MapLinks.available(order.getEvent());
+        model.addAttribute("mapsHref", mapsAvailable ? iq.ievent.service.MapLinks.directions(order.getEvent()) : null);
+        model.addAttribute("wazeHref", mapsAvailable ? iq.ievent.service.MapLinks.waze(order.getEvent()) : null);
         // R31 #11: calendar deep links (same availability rule as the .ics)
         if (iq.ievent.service.CalendarLinks.available(order.getEvent())) {
             String publicUrl = siteBaseUrl + "/e/" + order.getEvent().getSlug();

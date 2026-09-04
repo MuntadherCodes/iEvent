@@ -579,6 +579,12 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   log(`captured RSVP ticket code: ${rsvpTicketCode}`);
   expect(rsvpTicketCode.length).toBeGreaterThan(5);
 
+  log('R33: /me/tickets shows Google Maps + Waze buttons for a venue event');
+  await page.goto('/me/tickets');
+  const venueCard = page.locator('article').filter({ hasText: 'Startup Mixer Baghdad' }).first();
+  await expect(venueCard.getByRole('link', { name: 'Waze' })).toHaveAttribute('href', /waze\.com\/ul\?navigate=yes/);
+  await expect(venueCard.getByRole('link', { name: 'Google Maps' })).toBeVisible();
+
   log('/me/tickets should list the Startup Mixer ticket');
   await page.goto('/me/tickets');
   await expect(page.getByRole('link', { name: 'Startup Mixer Baghdad' })).toBeVisible();
@@ -587,6 +593,9 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   log(`public ticket status /t/${rsvpTicketCode} should show "Valid ticket"`);
   await page.goto(`/t/${rsvpTicketCode}`);
   await expect(page.getByText('Valid ticket')).toBeVisible();
+  log('R33: the ticket stub carries the venue line and both map buttons');
+  await expect(page.getByRole('link', { name: 'Waze' })).toHaveAttribute('href', /waze\.com\/ul\?navigate=yes/);
+  await expect(page.getByRole('link', { name: 'Google Maps' })).toBeVisible();
 
   log('EMAIL: the ticket email for the free order must land in Mailpit');
   await assertMail(request, testInfo, {
@@ -635,6 +644,11 @@ test('i. direct-transfer flow: card number, reference, receipt upload, pending o
   await expect(page.getByText('Pending confirmation').first()).toBeVisible();
   await expect(page.getByText(iqdRe(orderTotal(35000))).first()).toBeVisible();
   await expect(page.locator('.qr-box')).toHaveCount(0);
+
+  log('R33: the confirmation page carries Google Maps + Waze directions for a venue event');
+  await expect(page.getByText('Directions:')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Google Maps' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Waze' })).toHaveAttribute('href', /waze\.com\/ul\?navigate=yes/);
 
   log('pending orders must NOT offer the tickets PDF download');
   await expect(page.getByRole('link', { name: /Download all tickets \(PDF\)/ })).toHaveCount(0);
@@ -2164,11 +2178,16 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
   await expect(joinLink).toBeVisible();
   expect(await joinLink.getAttribute('href')).toContain('meet.example.com/x');
 
+  log('R33: an ONLINE event offers no directions on the confirmation page');
+  await expect(page.getByRole('link', { name: 'Waze' })).toHaveCount(0);
+  await expect(page.getByText('Directions:')).toHaveCount(0);
+
   log('/me/tickets shows the online order with its join link');
   await page.goto('/me/tickets');
   const orderCard = page.locator('article').filter({ hasText: ONLINE_EVENT_TITLE }).first();
   await expect(orderCard).toBeVisible();
   await expect(orderCard.getByRole('link', { name: 'Join online event' })).toBeVisible();
+  await expect(orderCard.getByRole('link', { name: 'Waze' })).toHaveCount(0);
 });
 
 test('aw. locations: venue page embeds the keyless Google map; TBA state renders after an edit', async ({ page }) => {
