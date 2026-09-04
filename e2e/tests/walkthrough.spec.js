@@ -2817,7 +2817,7 @@ test('bk. /en deep equivalence: the same event page renders English under /en an
     log('same structural blocks: ticket price in د.ع, Arabic Lineup heading, tag chips');
     await expect(p.getByText('General Admission').first()).toBeVisible();
     await expect(p.getByText(/35,000\s*د\.ع/).first()).toBeVisible();
-    await expect(p.getByRole('heading', { name: 'برنامج العرض' })).toBeVisible();
+    await expect(p.getByRole('heading', { name: 'برنامج الفعالية' })).toBeVisible();
     await expect(p.getByText('DJ Rafi')).toBeVisible();
     await expect(p.getByRole('link', { name: '#family-friendly' })).toBeVisible();
   } finally {
@@ -3461,7 +3461,7 @@ test('cc. public content pages (R21): about, help center and pricing render in b
   // the /en visit above set the en cookie, so switch back to Arabic explicitly
   await page.goto('/set-lang?to=ar&next=/about');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.getByText('جمهورك يلگاك')).toBeVisible();
+  await expect(page.getByText('جمهورك يصل إليك')).toBeVisible();
   await page.goto('/set-lang?to=en&next=/help');
 
   log('the help center accordion opens an attendee answer');
@@ -3506,6 +3506,20 @@ test('cd. learn section (R22): how it works, features, solutions and guides are 
   await page.locator('a[href="#c9"]').click();
   await expect(page.locator('#c9 h2')).toContainText('Event day and after');
 
+  log('R32 #1: the event page offers Google Maps and Waze side by side');
+  await page.goto('/en/e/baghdad-nights-music-festival');
+  await expect(page.getByRole('link', { name: 'Open in Waze' })).toHaveAttribute('href', /waze\.com\/ul\?navigate=yes/);
+  await expect(page.getByRole('link', { name: 'Open in Google Maps' })).toBeVisible();
+
+  log('R32 #2: the Arabic help center reads as formal Arabic, no dialect');
+  await page.goto('/set-lang?to=ar&next=/help');
+  await expect(page.getByText('كيف أجد الفعاليات القريبة مني؟')).toBeVisible();
+  const helpAr = await page.locator('main').innerText();
+  for (const dialect of ['شلون', 'شنو', 'تگدر', 'يلگ', 'اكو ', 'وين ']) {
+    expect(helpAr, `formal Arabic only, found "${dialect}"`).not.toContain(dialect);
+  }
+  await page.goto('/set-lang?to=en&next=/guides/attendees');
+
   log('R28: screenshot slots stay hidden until CONTENT_SCREENSHOTS=true');
   await expect(page.locator('[data-shot]')).toHaveCount(0);
 
@@ -3517,7 +3531,7 @@ test('cd. learn section (R22): how it works, features, solutions and guides are 
   log('the Arabic side renders RTL with the Iraqi voice');
   await page.goto('/set-lang?to=ar&next=/guides/attendees');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.locator('#c2 h2')).toContainText('تلگي الفعالية الصح');
+  await expect(page.locator('#c2 h2')).toContainText('اعثر على الفعالية المناسبة');
 });
 
 test('ce. QA: guest checkout signs in a brand-new buyer but never an existing account', async ({ page }) => {

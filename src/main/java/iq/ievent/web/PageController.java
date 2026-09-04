@@ -335,6 +335,7 @@ public class PageController {
                 owner != null ? owner.getRefundPolicy() : entity.getRefundPolicy(), messages));
         model.addAttribute("refundPolicyVisible", owner == null || owner.isRefundPolicyVisible());
         model.addAttribute("directionsUrl", directionsUrl(entity));
+        model.addAttribute("wazeUrl", wazeUrl(entity));
         // R31 #11: Google / Outlook deep links next to the .ics download
         if (iq.ievent.service.CalendarLinks.available(entity)) {
             String publicUrl = siteBaseUrl + "/e/" + entity.getSlug();
@@ -432,13 +433,31 @@ public class PageController {
     }
 
     static String directionsUrl(Event e) {
+        return "https://maps.google.com/?q=" + encodedVenue(e);
+    }
+
+    /** R32 #1: Waze deep link for the same venue. Waze cannot consume a Google
+     *  Maps URL, so it always navigates by the venue/address text (the app falls
+     *  back to its own search when it cannot resolve an exact pin). */
+    public static String wazeUrl(Event e) {
+        return "https://www.waze.com/ul?navigate=yes&q=" + encodedVenue(e);
+    }
+
+    /** Waze decodes the query with decodeURIComponent, which leaves a form-encoded
+     *  "+" as a literal plus in the search text, so spaces go out as %20. */
+    private static String encodedVenue(Event e) {
+        return URLEncoder.encode(venueQuery(e), StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    /** "Venue name, address or city": the text both map apps search for. */
+    private static String venueQuery(Event e) {
         StringBuilder sb = new StringBuilder();
         if (e.getVenueName() != null && !e.getVenueName().isBlank()) sb.append(e.getVenueName().trim());
         String addr = e.getVenueAddress() != null && !e.getVenueAddress().isBlank()
                 ? e.getVenueAddress().trim() : e.getCity();
         if (sb.length() > 0) sb.append(", ");
         sb.append(addr);
-        return "https://maps.google.com/?q=" + URLEncoder.encode(sb.toString(), StandardCharsets.UTF_8);
+        return sb.toString();
     }
 
     /**

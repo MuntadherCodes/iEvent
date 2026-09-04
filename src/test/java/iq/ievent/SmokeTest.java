@@ -1072,7 +1072,7 @@ class SmokeTest {
         mockMvc.perform(get("/about"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("أن يعرف كل عراقي ما يجري في مدينته")))
-                .andExpect(content().string(containsString("جمهورك يلگاك")));
+                .andExpect(content().string(containsString("جمهورك يصل إليك")));
     }
 
     @Test
@@ -1083,7 +1083,7 @@ class SmokeTest {
                 .andExpect(content().string(containsString("id=\"organizers\"")));
         mockMvc.perform(get("/help"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("شلون ألگي الفعاليات القريبة مني؟")));
+                .andExpect(content().string(containsString("كيف أجد الفعاليات القريبة مني؟")));
     }
 
     @Test
@@ -1127,7 +1127,7 @@ class SmokeTest {
                 .andExpect(content().string(containsString("Track sales and confirm orders")));
         mockMvc.perform(get("/how-it-works"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("رايح لفعالية")));
+                .andExpect(content().string(containsString("أنت ذاهب إلى فعالية")));
     }
 
     @Test
@@ -1600,5 +1600,84 @@ class SmokeTest {
         mockMvc.perform(get("/host/start").with(user(DEMO_BUYER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("يدفعها المشتري"))));
+    }
+
+    // ---- R32 ----
+
+    @Test
+    void eventPageOffersBothGoogleMapsAndWaze() throws Exception {
+        String html = mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Open in Waze")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertTrue(
+                html.contains("https://www.waze.com/ul?navigate=yes&amp;q="), "Waze deep link rendered");
+        org.junit.jupiter.api.Assertions.assertTrue(
+                html.contains("maps.google.com") || html.contains("google.com/maps"), "Google maps link kept");
+        // both buttons also render on the Arabic side
+        mockMvc.perform(get("/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("افتح في Waze")))
+                .andExpect(content().string(containsString("افتح في خرائط Google")));
+        // the query is the venue text, not a Google URL
+        iq.ievent.domain.Event ev = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        String waze = iq.ievent.web.PageController.wazeUrl(ev);
+        org.junit.jupiter.api.Assertions.assertTrue(waze.startsWith("https://www.waze.com/ul?navigate=yes&q="));
+        org.junit.jupiter.api.Assertions.assertFalse(waze.contains("maps.google"));
+    }
+
+    /**
+     * R32 #2: the Arabic bundle is Modern Standard Arabic. This guards the whole
+     * site copy against Iraqi-dialect wording creeping back in (the platform used
+     * a deliberate dialect voice until round 31).
+     */
+    @Test
+    void arabicBundleIsFormalArabicOnly() throws Exception {
+        String[] substrings = {
+            "\u06AF", "\u0686",                    // Iraqi kaf/cheh letters
+            "شلون", "شنو", "هسه", "هواي", "كلش", "يمعود", "شكد", "تكدر", "نكدر", "يكدر",
+            "هذولا", "هيچ", "چان", "وياك", "وياه", "سوّي", "منو", "گاعد", "خلّي", "خليك",
+            "تشوف", "نشوف", "يشوف", "بيهم", "عدهم", "صاير"
+        };
+        // NB: "زين" is deliberately absent, it is also the Zain brand name.
+        String[] words = { "وين", "ليش", "اللي", "بس", "مو", "هاي", "خلي", "ويا", "بيها",
+                           "جاي", "رايح", "شغلة", "شوية", "راح", "اكو", "ماكو" };
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var files = new org.springframework.core.io.support.PathMatchingResourcePatternResolver()
+                .getResources("classpath:i18n/ar/*.json");
+        org.junit.jupiter.api.Assertions.assertTrue(files.length >= 8, "arabic bundle files found");
+        java.util.List<String> offenders = new java.util.ArrayList<>();
+        for (var file : files) {
+            java.util.Map<String, String> keys;
+            try (var in = file.getInputStream()) {
+                keys = mapper.readValue(in, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+            }
+            for (var entry : keys.entrySet()) {
+                String v = entry.getValue();
+                for (String bad : substrings) {
+                    if (v.contains(bad)) offenders.add(file.getFilename() + " " + entry.getKey() + " <- " + bad);
+                }
+                for (String w : words) {
+                    if (java.util.regex.Pattern.compile("(?<![ء-ي])" + java.util.regex.Pattern.quote(w) + "(?![ء-ي])")
+                            .matcher(v).find()) {
+                        offenders.add(file.getFilename() + " " + entry.getKey() + " <- " + w);
+                    }
+                }
+            }
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(offenders.isEmpty(),
+                "Arabic copy must stay formal (MSA): " + offenders);
+    }
+
+    @Test
+    void arabicCheckInWordingIsNeverLogin() throws Exception {
+        // "تسجيل الدخول" means LOGIN; the check-in action must read "تسجيل الوصول".
+        Long eventId = events.findBySlug("baghdad-nights-music-festival").orElseThrow().getId();
+        mockMvc.perform(get("/host/checkin").param("event", String.valueOf(eventId)).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("تسجيل الوصول")));
+        String home = mockMvc.perform(get("/")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(home.contains("تسجيل دخول بالـ QR"), "no login wording for check-in");
     }
 }

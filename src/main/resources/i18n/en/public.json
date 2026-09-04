@@ -653,5 +653,6 @@
   "public.confirm.joinInstructions": "Joining instructions",
   "public.calendar.google": "Google Calendar",
   "public.calendar.outlook": "Outlook",
-  "public.calendar.apple": "Apple / .ics file"
+  "public.calendar.apple": "Apple / .ics file",
+  "public.event.openInWaze": "Open in Waze"
 }
