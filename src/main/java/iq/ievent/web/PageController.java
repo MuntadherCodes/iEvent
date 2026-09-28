@@ -3,11 +3,15 @@ package iq.ievent.web;
 import iq.ievent.domain.Event;
 import iq.ievent.domain.Organization;
 import iq.ievent.service.CatalogService;
+import iq.ievent.service.Cities;
 import iq.ievent.service.Format;
+import iq.ievent.service.LandingPages;
 import iq.ievent.service.UserService;
 import iq.ievent.web.dto.Views.EventCard;
 import iq.ievent.web.dto.Views.EventDetail;
 import iq.ievent.web.dto.Views.GalleryImageView;
+import iq.ievent.web.dto.Views.Landing;
+import iq.ievent.web.dto.Views.LandingLink;
 import iq.ievent.web.dto.Views.LineupItem;
 import iq.ievent.web.dto.Views.OrganizerExtras;
 import iq.ievent.web.dto.Views.OrganizerView;
@@ -70,6 +74,7 @@ public class PageController {
     private final iq.ievent.repo.OrganizationRepository organizations;
     private final iq.ievent.repo.LikeCountRepository likeCounts;
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final iq.ievent.service.LandingPages landingPages;
     private final String supportEmail;
 
     private final String siteBaseUrl;
@@ -82,6 +87,7 @@ public class PageController {
                           iq.ievent.repo.OrganizationRepository organizations,
                           iq.ievent.repo.LikeCountRepository likeCounts,
                           org.springframework.jdbc.core.JdbcTemplate jdbc,
+                          iq.ievent.service.LandingPages landingPages,
                           @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
         this.siteBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -94,6 +100,7 @@ public class PageController {
         this.organizations = organizations;
         this.likeCounts = likeCounts;
         this.jdbc = jdbc;
+        this.landingPages = landingPages;
         this.supportEmail = supportEmail;
     }
 
@@ -182,6 +189,8 @@ public class PageController {
         // R20: the hero chips reflect the live catalog, not a hardcoded guess
         model.addAttribute("popularChips", catalog.popularCategories(3));
         model.addAttribute("hasFreeThisWeek", catalog.hasFreeEventThisWeek());
+        // R34: WebSite + Organization markup (Arabic wordmark as alternateName)
+        model.addAttribute("siteJsonLd", SeoJsonLd.site(siteBaseUrl));
         return "index";
     }
 
@@ -193,6 +202,7 @@ public class PageController {
                          @RequestParam(required = false) String when,
                          @RequestParam(required = false) String sort,
                          @RequestParam(required = false, defaultValue = "0") int page,
+                         jakarta.servlet.http.HttpServletRequest request,
                          Model model) {
         int safePage = Math.max(0, page);
         String safeWhen = when != null && WHEN_VALUES.contains(when) ? when : "";
@@ -228,7 +238,124 @@ public class PageController {
         model.addAttribute("pageItems", pageItems(results.getNumber(), results.getTotalPages()));
         model.addAttribute("cities", catalog.liveCities());
         model.addAttribute("categories", localizedCategories());
+        model.addAttribute("pageTitle", msg("public.title.browse"));
+        // R34: every filter/search/sort/page combination is a variant of /browse.
+        // Search Console showed these variants being indexed on their own
+        // (browse?q=..., browse?category=...), so they now carry noindex (and no
+        // canonical/hreflang); "follow" keeps the event links crawlable.
+        // The stable, indexable listings are the landing pages (/city/..., /category/...).
+        // (Parameter map rather than the raw query string: MockMvc's .param() and
+        // forwarded requests populate the map without a query string.)
+        if (!request.getParameterMap().isEmpty()) {
+            model.addAttribute("noIndexFollow", true);
+        } else {
+            addLandingLinks(model);
+        }
         return "browse";
+    }
+
+    // ---- R34: evergreen landing pages (see LandingPages) ----
+
+    private static final int LANDING_PAGE_SIZE = 12;
+
+    @GetMapping("/city/{slug}")
+    public String cityLanding(@PathVariable String slug,
+                              @RequestParam(required = false, defaultValue = "0") int page,
+                              Model model) {
+        String city = Cities.fromSlug(slug);
+        if (city == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown city");
+        String label = Cities.label(city, LocaleContextHolder.getLocale());
+        Page<EventCard> results = catalog.search(null, null, null, city, null, null, "soonest",
+                PageRequest.of(Math.max(0, page), LANDING_PAGE_SIZE));
+        Landing landing = new Landing("city", LandingPages.cityPath(city),
+                msg("public.landing.cityHeading", label), msg("public.landing.cityIntro", label));
+        return renderLanding(landing, msg("public.landing.cityTitle", label), results, "", city, model);
+    }
+
+    @GetMapping("/category/{slug}")
+    public String categoryLanding(@PathVariable String slug,
+                                  @RequestParam(required = false, defaultValue = "0") int page,
+                                  Model model) {
+        Event.Category category = LandingPages.categoryBySlug(slug);
+        if (category == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown category");
+        // The landing name carries the Arabic definite article ("الأعمال والريادة"),
+        // unlike the short chip label ("أعمال"), so the heading reads as a sentence.
+        String label = msg("public.landing.category." + category.name() + ".name");
+        Page<EventCard> results = catalog.search(null, null, category.name(), null, null, null, "soonest",
+                PageRequest.of(Math.max(0, page), LANDING_PAGE_SIZE));
+        Landing landing = new Landing("category", LandingPages.categoryPath(category),
+                msg("public.landing.categoryHeading", label), msg("public.landing.categoryIntro", label));
+        return renderLanding(landing, msg("public.landing.categoryTitle", label), results,
+                category.name(), "", model);
+    }
+
+    /** /exhibitions, /conferences, /courses, /workshops, /concerts, /festivals: the
+     *  words Iraqis actually search for (معارض, مؤتمرات, دورات ...), matched on titles. */
+    @GetMapping("/{typeSlug:exhibitions|conferences|courses|workshops|concerts|festivals}")
+    public String typeLanding(@PathVariable String typeSlug,
+                              @RequestParam(required = false, defaultValue = "0") int page,
+                              Model model) {
+        LandingPages.Type type = LandingPages.typeBySlug(typeSlug);
+        if (type == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown type");
+        Page<EventCard> results = catalog.search(null, type.titleRegex(), null, null, null, null, "soonest",
+                PageRequest.of(Math.max(0, page), LANDING_PAGE_SIZE));
+        String year = String.valueOf(java.time.Year.now(Format.BAGHDAD).getValue());
+        Landing landing = new Landing("type", LandingPages.typePath(type),
+                msg("public.landing.type." + type.slug() + ".heading"),
+                msg("public.landing.type." + type.slug() + ".intro"));
+        return renderLanding(landing, msg("public.landing.type." + type.slug() + ".title", year),
+                results, "", "", model);
+    }
+
+    /** Fills the browse.html model for a landing page: no active filters, the landing's
+     *  own dimension pre-selected in the sidebar, and cross-links to the sibling pages. */
+    private String renderLanding(Landing landing, String pageTitle, Page<EventCard> results,
+                                 String selectedCategory, String selectedCity, Model model) {
+        model.addAttribute("landing", landing);
+        model.addAttribute("pageTitle", pageTitle);
+        model.addAttribute("results", results);
+        model.addAttribute("q", "");
+        model.addAttribute("selectedCategory", selectedCategory);
+        model.addAttribute("selectedCategoryLabel", "");
+        model.addAttribute("selectedCity", selectedCity);
+        model.addAttribute("selectedPrice", "");
+        model.addAttribute("selectedWhen", "");
+        model.addAttribute("selectedWhenLabel", "");
+        model.addAttribute("selectedSort", "soonest");
+        model.addAttribute("hasFilters", false);
+        model.addAttribute("totalCountLine",
+                String.format(Locale.ENGLISH, "%,d", results.getTotalElements()));
+        model.addAttribute("pageItems", pageItems(results.getNumber(), results.getTotalPages()));
+        model.addAttribute("cities", catalog.liveCities());
+        model.addAttribute("categories", localizedCategories());
+        addLandingLinks(model);
+        // An empty listing is thin content: keep it out of the index until it fills up
+        // (the sitemap lists only pages that currently have events, same rule).
+        if (results.getTotalElements() == 0) {
+            model.addAttribute("noIndexFollow", true);
+        }
+        return "browse";
+    }
+
+    /** "Browse by city / category / type" link rows shown on /browse and every landing page. */
+    private void addLandingLinks(Model model) {
+        Locale locale = LocaleContextHolder.getLocale();
+        List<LandingLink> cityLinks = new ArrayList<>();
+        for (String city : landingPages.citiesWithEvents()) {
+            cityLinks.add(new LandingLink(LandingPages.cityPath(city), Cities.label(city, locale)));
+        }
+        List<LandingLink> categoryLinks = new ArrayList<>();
+        for (CategoryOption c : CATEGORIES) {
+            Event.Category category = Event.Category.valueOf(c.value());
+            categoryLinks.add(new LandingLink(LandingPages.categoryPath(category), Format.categoryLabel(category)));
+        }
+        List<LandingLink> typeLinks = new ArrayList<>();
+        for (LandingPages.Type t : LandingPages.TYPES) {
+            typeLinks.add(new LandingLink(LandingPages.typePath(t), msg("public.landing.type." + t.slug() + ".name")));
+        }
+        model.addAttribute("landingCities", cityLinks);
+        model.addAttribute("landingCategories", categoryLinks);
+        model.addAttribute("landingTypes", typeLinks);
     }
 
     /** Windowed 0-based page indices for numbered pagination; -1 marks an ellipsis. */
@@ -342,6 +469,21 @@ public class PageController {
             String publicUrl = siteBaseUrl + "/e/" + entity.getSlug();
             model.addAttribute("gcalUrl", iq.ievent.service.CalendarLinks.google(entity, publicUrl));
             model.addAttribute("outlookUrl", iq.ievent.service.CalendarLinks.outlook(entity, publicUrl));
+        }
+        // R34: schema.org Event markup, only for pages search engines may index
+        // (drafts/previews and unlisted events stay without it).
+        boolean indexable = !previewMode
+                && (entity.getVisibility() == null || "PUBLIC".equals(entity.getVisibility()));
+        if (indexable) {
+            boolean en = "en".equals(LocaleContextHolder.getLocale().getLanguage());
+            String pageUrl = siteBaseUrl + (en ? "/en" : "") + "/e/"
+                    + org.springframework.web.util.UriUtils.encodePathSegment(
+                            entity.getSlug(), java.nio.charset.StandardCharsets.UTF_8);
+            String cover = detail.coverImageUrl();
+            String imageUrl = cover == null || cover.isBlank() ? null
+                    : (cover.startsWith("/") ? siteBaseUrl + cover : cover);
+            model.addAttribute("eventJsonLd", SeoJsonLd.event(entity, detail, owner, pageUrl,
+                    en ? "en" : "ar", imageUrl, summaryText, siteBaseUrl));
         }
         // Unlisted = reachable by link only: keep it out of search engines too.
         if (entity.getVisibility() != null && !"PUBLIC".equals(entity.getVisibility())) {

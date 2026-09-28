@@ -99,8 +99,19 @@ services:
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # R34: IP blocklist imported by the Caddyfile (edit + `caddy reload`, no restart).
+      # The DIRECTORY is mounted: a single-file bind mount pins the old inode, so an
+      # editor that saves by rewriting the file would leave the container reading
+      # the stale copy.
+      - ./caddy:/etc/caddy/conf.d:ro
       - ievent_caddy_data:/data
       - ievent_caddy_config:/config
+    # R34: the proxy now writes a JSON access log to stdout; cap it like the app's.
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
 volumes:
   ievent_pgdata:

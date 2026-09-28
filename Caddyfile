@@ -1,4 +1,20 @@
 {$DOMAIN} {
+	# R34: JSON access log on stdout (docker compose logs proxy). Needed to find
+	# who is hammering the site: Search Console showed 0 Singapore visitors while
+	# GA4 showed dozens at once, i.e. a headless crawler, and without a request
+	# log there was no way to get its IP ranges. Field names: request.remote_ip
+	# and request.headers.User-Agent.
+	log {
+		output stdout
+		format json
+	}
+
+	# R34: IP/CIDR blocklist, edited without touching this file. See caddy/blocklist.caddy
+	# (the ./caddy directory is mounted at /etc/caddy/conf.d by docker-compose.staging.yml;
+	# a directory mount, so an editor that rewrites the file is still seen by `caddy reload`)
+	# and DEPLOY.md "Blocking a bot".
+	import /etc/caddy/conf.d/blocklist.caddy
+
 	# gzip everything except the notification bell's Server-Sent-Events stream:
 	# the encoder buffers small writes, which would hold live events back.
 	@notsse not header Accept text/event-stream*
@@ -18,6 +34,13 @@
 		# Forcing it here would break the widget's iframe mode.
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
+}
+
+# R34: one host in the index. Search Console listed https://www.{$DOMAIN}/... pages
+# next to the bare domain; the permanent redirect folds them back (and Caddy
+# obtains the certificate for the www name so the redirect itself is HTTPS).
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
 }
 
 # Convenience host for organizers: console.<domain> → the host dashboard.

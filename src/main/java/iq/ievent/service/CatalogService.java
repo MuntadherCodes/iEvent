@@ -89,6 +89,15 @@ public class CatalogService {
      */
     public Page<EventCard> search(String q, String category, String city, String price,
                                   String when, String sort, Pageable pageable) {
+        return search(q, null, category, city, price, when, sort, pageable);
+    }
+
+    /**
+     * @param titleRe optional case-insensitive regex the title (either language) must
+     *                match: the event-type landing pages (see LandingPages.TYPES)
+     */
+    public Page<EventCard> search(String q, String titleRe, String category, String city, String price,
+                                  String when, String sort, Pageable pageable) {
         String qn = normalize(q);
         String cat = normalize(category);
         String cty = normalize(city);
@@ -129,7 +138,7 @@ public class CatalogService {
             case "price", "popular" -> sort;
             default -> "soonest";
         };
-        Page<Event> page = events.search(qn, cat == null ? null : cat.toUpperCase(), cty,
+        Page<Event> page = events.search(qn, normalize(titleRe), cat == null ? null : cat.toUpperCase(), cty,
                 freeOnly, paidOnly, fromTs, toTs, sortKey, pageable);
         List<EventCard> cards = toCards(page.getContent());
         return new PageImpl<>(cards, pageable, page.getTotalElements());

@@ -778,7 +778,8 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   await signOut(page);
   log('R31 #5: for a signed-out visitor the header "Host an event" goes to sign-UP with /host as the continuation');
   await page.goto('/en');
-  await expect(page.locator('header a[href="/auth/register?next=/host"]').first()).toBeVisible();
+  // English renders prefix every internal link with /en (I18nConfig link builder)
+  await expect(page.locator('header a[href="/en/auth/register?next=/host"]').first()).toBeVisible();
   await registerUser(page, { name: HOST2_NAME, email: HOST2_EMAIL, password: HOST2_PASSWORD });
   await login(page, HOST2_EMAIL, HOST2_PASSWORD);
 
@@ -3474,7 +3475,8 @@ test('cc. public content pages (R21): about, help center and pricing render in b
   await expect(page.getByText('All of Iraq', { exact: true })).toBeVisible();
   // R23: lively about page carries the stat strip, city tiles and the "why" promises
   await expect(page.getByText('Why people choose iEvent')).toBeVisible();
-  await expect(page.locator('a[href="/browse?city=Najaf"]').first()).toBeVisible();
+  // R34: city tiles link the indexable per-city landing pages
+  await expect(page.locator('a[href="/en/city/najaf"]').first()).toBeVisible();
 
   log('the Arabic about page uses the Iraqi voice');
   // the /en visit above set the en cookie, so switch back to Arabic explicitly
@@ -3497,9 +3499,9 @@ test('cc. public content pages (R21): about, help center and pricing render in b
   log('the footer links to all three pages');
   await page.goto('/en');
   const footer = page.locator('footer');
-  await expect(footer.locator('a[href="/about"]')).toBeVisible();
-  await expect(footer.locator('a[href="/help"]')).toBeVisible();
-  await expect(footer.locator('a[href="/pricing"]')).toBeVisible();
+  await expect(footer.locator('a[href="/en/about"]')).toBeVisible();
+  await expect(footer.locator('a[href="/en/help"]')).toBeVisible();
+  await expect(footer.locator('a[href="/en/pricing"]')).toBeVisible();
 });
 
 test('cd. learn section (R22): how it works, features, solutions and guides are navigable and hold screenshot slots', async ({ page }) => {

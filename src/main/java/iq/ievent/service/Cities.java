@@ -40,10 +40,25 @@ public final class Cities {
     private static final Map<String, String> AR_BY_EN = ALL.stream()
             .collect(Collectors.toUnmodifiableMap(City::en, City::ar));
 
+    /** URL slug (lower-case, hyphenated: "Dhi Qar" becomes "dhi-qar") to canonical
+     *  English name, for the per-city landing pages under /city/{slug}. */
+    private static final Map<String, String> EN_BY_SLUG = ALL.stream()
+            .collect(Collectors.toUnmodifiableMap(c -> slug(c.en()), City::en));
+
     private Cities() { }
 
     public static boolean isValid(String en) {
         return en != null && AR_BY_EN.containsKey(en);
+    }
+
+    /** Slug for a canonical English city name ("Dhi Qar" becomes "dhi-qar"). */
+    public static String slug(String en) {
+        return en == null ? "" : en.trim().toLowerCase(Locale.ENGLISH).replaceAll("[^a-z0-9]+", "-");
+    }
+
+    /** Canonical English name for a landing-page slug, or null when unknown. */
+    public static String fromSlug(String slug) {
+        return slug == null ? null : EN_BY_SLUG.get(slug.trim().toLowerCase(Locale.ENGLISH));
     }
 
     /** Localized display label for a stored English city name. */

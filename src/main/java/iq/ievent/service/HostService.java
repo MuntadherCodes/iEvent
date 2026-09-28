@@ -613,6 +613,18 @@ public class HostService {
     @Transactional
     public void updateEvent(Event e, String title, Event.Category category, String city,
                             String venueName, String venueAddress, When when, String description) {
+        // R34: a never-published DRAFT has no public URL yet (the page 404s for
+        // everyone but the team), so its slug follows the title until publish. This
+        // is what stops "(copy)" drafts renamed to their real title from going live
+        // under the old title's words (Search Console listed a dozen "...-copy" event
+        // URLs). viewCount is the "was it ever public" signal: public renders count
+        // views, previews do not, so an event that went LIVE and was unpublished keeps
+        // the URL that buyers' emails, notifications and search engines already hold.
+        if (e.getStatus() == Event.Status.DRAFT && e.getViewCount() == 0
+                && !title.trim().equals(e.getTitle())) {
+            String base = slugify(title);
+            if (!base.equals(e.getSlug())) e.setSlug(uniqueSlugFor(title, e.getId()));
+        }
         e.setTitle(title.trim());
         e.setCategory(category);
         e.setCity(city);
@@ -946,7 +958,9 @@ public class HostService {
         Event copy = new Event();
         copy.setOrganization(source.getOrganization());
         copy.setTitle(source.getTitle() + " (copy)");
-        copy.setSlug(uniqueSlug(source.getTitle() + " copy"));
+        // R34: slug from the title alone (uniqueSlug appends -2, -3 on a clash), never
+        // a "-copy" suffix; renaming the draft re-slugs it anyway (see updateEvent).
+        copy.setSlug(uniqueSlug(source.getTitle()));
         copy.setCategory(source.getCategory());
         copy.setCity(source.getCity());
         copy.setVenueName(source.getVenueName());
@@ -1168,10 +1182,17 @@ public class HostService {
     }
 
     private String uniqueSlug(String title) {
+        return uniqueSlugFor(title, null);
+    }
+
+    /** Like uniqueSlug, but a slug held by {@code selfId} (the event being renamed)
+     *  counts as free, so a draft at "x-2" renamed to a title that slugs to "x-2"
+     *  stays put instead of hopping to "x-3". */
+    private String uniqueSlugFor(String title, Long selfId) {
         String base = slugify(title);
         String slug = base;
         int i = 2;
-        while (events.findBySlug(slug).isPresent()) {
+        while (events.findBySlug(slug).filter(other -> selfId == null || !selfId.equals(other.getId())).isPresent()) {
             slug = base + "-" + i++;
         }
         return slug;

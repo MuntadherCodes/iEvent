@@ -44,7 +44,17 @@ public class LocaleFilter extends OncePerRequestFilter {
             String to = "en".equals(request.getParameter("to")) ? "en" : "ar";
             String next = safePath(request.getParameter("next"));
             setLangCookie(response, to);
-            response.sendRedirect("en".equals(to) ? "/en" + ("/".equals(next) ? "" : next) : next);
+            // R34: Search Console had indexed /set-lang?to=ar&next=... URLs. Google
+            // keeps the SOURCE of a temporary (302) redirect, but drops the source of
+            // a permanent one and credits the target, so this is now a 301. A cached
+            // 301 would skip the cookie write on the next click, hence Cache-Control:
+            // no-store (browsers only cache a 301 when caching headers allow it). The
+            // switcher links also carry rel=nofollow; robots.txt deliberately does NOT
+            // disallow the path, or Google could never re-crawl it to see the 301.
+            response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+            response.setHeader("Location", "en".equals(to) ? "/en" + ("/".equals(next) ? "" : next) : next);
+            response.setHeader("Cache-Control", "no-store");
+            response.setHeader("X-Robots-Tag", "noindex, nofollow");
             return;
         }
 

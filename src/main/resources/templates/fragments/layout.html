@@ -20,21 +20,43 @@
      call site needing to pass extra positional args. -->
 <meta name="description" th:content="${pageDescription != null ? pageDescription : #messages.msg('public.meta.defaultDescription')}">
 <meta th:if="${noIndex}" name="robots" content="noindex, nofollow">
+<!-- R34: filter/search variants of /browse and empty landing pages: kept out of the
+     index, but their event links stay crawlable (no canonical/hreflang is emitted on
+     such a render, see below). -->
+<meta th:if="${noIndexFollow != null and noIndexFollow and noIndex == null}" name="robots" content="noindex, follow">
 <!-- Search Console ownership proof (HTML-tag method) — hides when GOOGLE_SITE_VERIFICATION is unset. -->
 <meta th:if="${googleSiteVerification != null}" name="google-site-verification" th:content="${googleSiteVerification}">
 <!-- GA4 — hides when GA_MEASUREMENT_ID is unset. Loaded on every page (public
      and host) so host-side usage shows up in the same property; host pages
      stay noindex regardless, this is purely analytics, not indexing. -->
+<!-- R34: the tag is only loaded for real browsers. Headless/automated browsers
+     (navigator.webdriver: Puppeteer, Playwright, Selenium, SEO site-audit crawlers
+     with JS rendering) and self-declared bots execute JavaScript too, and GA4 only
+     filters the IAB-listed ones; a Singapore-datacenter crawler showed up as
+     hundreds of "users" a day. Skipped visitors never reach GA at all. -->
 <th:block th:if="${gaId != null}">
-  <script th:src="'https://www.googletagmanager.com/gtag/js?id=' + ${gaId}" async></script>
   <script th:inline="javascript">
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', /*[[${gaId}]]*/ 'G-XXXXXXX');
+    (function () {
+      var ua = navigator.userAgent || '';
+      var automated = navigator.webdriver === true
+        || /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|gtmetrix|ahrefs|semrush|screaming|phantom|scrapy|python-requests|curl|wget/i.test(ua);
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      if (automated) { return; }
+      var id = /*[[${gaId}]]*/ 'G-XXXXXXX';
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('config', id);
+    })();
   </script>
 </th:block>
-<th:block th:unless="${noIndex}">
+<!-- No canonical/hreflang on a noindex render: a noindex page pointing its canonical
+     at an indexable URL is a contradictory signal Google may apply to the target. -->
+<th:block th:unless="${(noIndex != null and noIndex) or (noIndexFollow != null and noIndexFollow)}">
   <link rel="canonical" th:href="${siteBaseUrl + (rtl ? canonicalPath : ('/en' + (canonicalPath == '/' ? '' : canonicalPath)))}">
   <link rel="alternate" hreflang="ar" th:href="${siteBaseUrl + canonicalPath}">
   <link rel="alternate" hreflang="en" th:href="${siteBaseUrl + '/en' + (canonicalPath == '/' ? '' : canonicalPath)}">
@@ -198,7 +220,10 @@
       </div>
       <div class="ms-auto flex items-center gap-0.5">
       <a th:href="@{${hostCtaHref}}" class="ms-2 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${isHost} ? #{public.nav.hostConsole} : #{public.nav.hostEvent}">Host an event</a>
-      <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" class="ms-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
+      <!-- R34: rel=nofollow on the /set-lang switcher (a cookie-setting redirect that
+           Search Console had started indexing); the /en link is a real page and
+           stays followable. -->
+      <a th:href="${lang == 'en'} ? ${urlAr} : ${urlEn}" th:rel="${lang == 'en'} ? 'nofollow' : null" class="ms-2 inline-flex items-center gap-1 rounded-full border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.nav.langAria}" aria-label="Change language, current language English">
         <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-globe"/></svg>[[${lang == 'en'} ? #{common.arabic} : #{common.english}]]
       </a>
       </div>
@@ -266,7 +291,7 @@
       <div class="mt-3 flex gap-2 px-1">
         <a th:href="${urlEn}" class="rounded-full border px-3.5 py-2 text-xs font-semibold"
            th:classappend="${lang == 'en'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 text-ink-600'">EN</a>
-        <a th:href="${urlAr}" class="rounded-full border px-3.5 py-2 text-xs font-semibold"
+        <a th:href="${urlAr}" rel="nofollow" class="rounded-full border px-3.5 py-2 text-xs font-semibold"
            th:classappend="${lang == 'ar'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 text-ink-600'" th:text="#{common.arabic}">العربية</a>
       </div>
     </nav>
@@ -663,7 +688,7 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
       <div class="mt-5 flex gap-2">
         <a th:href="${urlEn}" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
            th:classappend="${lang == 'en'} ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-ink-600 hover:border-brand-400 hover:text-white'">EN</a>
-        <a th:href="${urlAr}" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
+        <a th:href="${urlAr}" rel="nofollow" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
            th:classappend="${lang == 'ar'} ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-ink-600 hover:border-brand-400 hover:text-white'" th:text="#{common.arabic}">العربية</a>
       </div>
     </div>
@@ -671,7 +696,7 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
       <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.discover}">Discover</h3>
       <ul class="space-y-2.5 text-sm">
         <li><a th:href="@{/browse}" class="transition hover:text-brand-300" th:text="#{public.nav.browse}">Browse events</a></li>
-        <li th:each="c : ${ {'Baghdad','Erbil','Basra','Mosul'} }"><a th:href="@{/browse(city=${c})}" class="transition hover:text-brand-300" th:text="${@t.city(c)}">Baghdad</a></li>
+        <li th:each="c : ${ {'Baghdad','Erbil','Basra','Mosul'} }"><a th:href="@{${@t.cityPath(c)}}" class="transition hover:text-brand-300" th:text="${@t.city(c)}">Baghdad</a></li>
         <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300" th:text="#{public.footer.freeEvents}">Free events</a></li>
       </ul>
     </nav>

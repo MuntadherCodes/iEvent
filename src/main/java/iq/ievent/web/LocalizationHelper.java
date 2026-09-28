@@ -57,4 +57,20 @@ public class LocalizationHelper {
     public String msg(String code, Object... args) {
         return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
+
+    /** R34: un-prefixed path of the indexable per-city listing ("/city/baghdad"). */
+    public String cityPath(String canonicalEn) {
+        return iq.ievent.service.LandingPages.cityPath(canonicalEn);
+    }
+
+    /** R34: un-prefixed path of the indexable per-category listing ("/category/business");
+     *  unknown names fall back to the plain browse filter. */
+    public String categoryPath(String enumName) {
+        try {
+            return iq.ievent.service.LandingPages.categoryPath(
+                    iq.ievent.domain.Event.Category.valueOf(enumName));
+        } catch (Exception e) {
+            return "/browse?category=" + enumName;
+        }
+    }
 }

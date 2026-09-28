@@ -4,6 +4,9 @@
                pageImage=${event.coverImageUrl == null ? null : (event.coverImageUrl.startsWith('/') ? siteBaseUrl + event.coverImageUrl : event.coverImageUrl)}">
 <head th:replace="~{fragments/layout :: head(${event.title} + #{public.title.suffix})}"></head>
 <body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+<!-- R34: schema.org Event JSON-LD (built server-side, see SeoJsonLd.event; absent for
+     drafts, unlisted events and month-only/TBA dates) -->
+<script type="application/ld+json" th:if="${eventJsonLd != null}" th:utext="${eventJsonLd}"></script>
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
 
@@ -275,8 +278,8 @@
             <div class="mt-3 flex flex-wrap gap-2">
               <a th:each="tag : ${tags}" th:href="@{/browse(q=${tag})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${tag}">#LiveMusic</a>
               <th:block th:if="${tags.isEmpty()}">
-                <a th:each="cc : ${event.categoryChips}" th:href="@{/browse(category=${cc.value()})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${cc.label()}">#LiveMusic</a>
-                <a th:href="@{/browse(city=${event.city})}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${@t.city(event.city)}">#Baghdad</a>
+                <a th:each="cc : ${event.categoryChips}" th:href="@{${@t.categoryPath(cc.value())}}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${cc.label()}">#LiveMusic</a>
+                <a th:href="@{${@t.cityPath(event.city)}}" class="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600" th:text="'#' + ${@t.city(event.city)}">#Baghdad</a>
               </th:block>
             </div>
           </div>

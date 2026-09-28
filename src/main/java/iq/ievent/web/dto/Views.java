@@ -105,4 +105,12 @@ public final class Views {
 
     /** Organizer direct-transfer payment details shown at checkout (null when not enabled). */
     public record DirectPayInfo(String cardNumber, String accountName, String walletBank, String instructions) {}
+
+    /** R34: an evergreen listing page (/city/baghdad, /category/business, /exhibitions)
+     *  rendered through browse.html. kind = "city" | "category" | "type"; path is the
+     *  un-prefixed public path (pagination links append ?page=N to it). */
+    public record Landing(String kind, String path, String heading, String intro) {}
+
+    /** A link on a landing page's "browse by ..." rows (path is un-prefixed). */
+    public record LandingLink(String path, String label) {}
 }

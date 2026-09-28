@@ -57,6 +57,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            WHERE e.status IN ('LIVE', 'ENDED') AND e.visibility = 'PUBLIC'
              AND e.admin_hidden = false AND o.disabled = false
              AND (:q IS NULL OR lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
+             AND (:titleRe IS NULL OR e.title ~* CAST(:titleRe AS text)
+                  OR COALESCE(e.title_translated, '') ~* CAST(:titleRe AS text))
              AND (:category IS NULL OR e.category = CAST(:category AS text)
                   OR EXISTS (SELECT 1 FROM event_categories ec
                               WHERE ec.event_id = e.id AND ec.category = CAST(:category AS text)))
@@ -81,6 +83,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            WHERE e.status IN ('LIVE', 'ENDED') AND e.visibility = 'PUBLIC'
              AND e.admin_hidden = false AND o.disabled = false
              AND (:q IS NULL OR lower(e.title) LIKE lower(CONCAT('%', CAST(:q AS text), '%')))
+             AND (:titleRe IS NULL OR e.title ~* CAST(:titleRe AS text)
+                  OR COALESCE(e.title_translated, '') ~* CAST(:titleRe AS text))
              AND (:category IS NULL OR e.category = CAST(:category AS text)
                   OR EXISTS (SELECT 1 FROM event_categories ec
                               WHERE ec.event_id = e.id AND ec.category = CAST(:category AS text)))
@@ -92,6 +96,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            """,
            nativeQuery = true)
     Page<Event> search(@Param("q") String q,
+                       @Param("titleRe") String titleRe,
                        @Param("category") String category,
                        @Param("city") String city,
                        @Param("freeOnly") boolean freeOnly,

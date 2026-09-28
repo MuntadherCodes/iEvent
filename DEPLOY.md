@@ -93,3 +93,34 @@ docker compose -f docker-compose.staging.yml up -d --build app
 Note: rolling back code does NOT roll back applied DB migrations. Migrations are
 additive; older app versions tolerate newer columns. For anything riskier,
 restore last night's dump first.
+
+## Blocking a bot (R34)
+
+Symptom: GA4 shows a burst of "users" from one country (Singapore, in September 2026)
+while Search Console shows no impressions from it, all at the same moment, one page
+per visit. That is a headless crawler running JavaScript, not people.
+
+Three layers are in place:
+
+1. **The GA4 tag skips automated browsers** (`navigator.webdriver`, bot user agents), so
+   most crawlers never count as users again. Nothing to operate.
+2. **Caddy access log** on stdout. Find the offender's addresses:
+   ```bash
+   docker compose -f docker-compose.staging.yml logs proxy --since 2h \
+     | grep -o '"remote_ip":"[^"]*"' | sort | uniq -c | sort -rn | head
+   docker compose -f docker-compose.staging.yml logs proxy --since 2h \
+     | grep '"remote_ip":"<ip>"' | grep -o '"User-Agent":\["[^"]*"' | sort | uniq -c
+   curl -s https://ipinfo.io/<ip>        # org + announced prefix ("route")
+   ```
+3. **Caddy blocklist**: put the prefixes (not single addresses) on the `remote_ip` line
+   in `caddy/blocklist.caddy`, then apply without downtime:
+   ```bash
+   docker compose -f docker-compose.staging.yml exec proxy caddy reload --config /etc/caddy/Caddyfile
+   ```
+   Blocked requests get a bare 403 and never reach the app. Do not block a whole
+   country: Iraqi users on VPNs exit from the same datacenters.
+
+GA4 itself cannot filter by country. For the history that is already recorded, add a
+Comparison that excludes the country in the reports you read; for the future, the
+tag guard above plus (optionally) Admin > Data streams > Configure tag settings >
+Define internal traffic with the same CIDR ranges, and set that data filter to Active.

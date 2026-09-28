@@ -2,6 +2,8 @@
 <html lang="en" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(#{public.title.home})}"></head>
 <body class="flex min-h-screen flex-col bg-white font-body text-ink-800 antialiased">
+<!-- R34: WebSite + Organization JSON-LD (built server-side, see SeoJsonLd.site) -->
+<script type="application/ld+json" th:if="${siteJsonLd != null}" th:utext="${siteJsonLd}"></script>
 
 <svg th:replace="~{fragments/layout :: icons}"></svg>
 
@@ -44,7 +46,7 @@
         <div th:if="${hasFreeThisWeek or !#lists.isEmpty(popularChips)}" class="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm">
           <span class="text-xs font-semibold uppercase tracking-wide text-ink-400" th:text="#{public.home.popular}">Popular:</span>
           <a th:if="${hasFreeThisWeek}" th:href="@{/browse(price='free',when='week')}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.home.chipFreeWeek}]]</a>
-          <a th:each="chip : ${popularChips}" th:href="@{/browse(category=${chip.value()})}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use th:attr="href='#'+${chip.icon()}"/></svg><span th:text="${chip.label()}">Music</span></a>
+          <a th:each="chip : ${popularChips}" th:href="@{${@t.categoryPath(chip.value())}}" class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-3.5 w-3.5 text-brand-500" aria-hidden="true"><use th:attr="href='#'+${chip.icon()}"/></svg><span th:text="${chip.label()}">Music</span></a>
         </div>
       </div>
     </div>
@@ -58,7 +60,7 @@
         <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="relative -mx-4 flex gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0 md:grid md:grid-cols-5 md:gap-6 md:overflow-visible lg:grid-cols-10">
-        <a th:each="c : ${categories}" th:href="@{/browse(category=${c.value})}" class="group flex w-20 shrink-0 flex-col items-center gap-2.5 md:w-auto"
+        <a th:each="c : ${categories}" th:href="@{${@t.categoryPath(c.value)}}" class="group flex w-20 shrink-0 flex-col items-center gap-2.5 md:w-auto"
            th:with="tile=${c.value == 'MUSIC'     ? 'bg-violet-100 text-violet-600'
                     : (c.value == 'TECH'      ? 'bg-indigo-100 text-indigo-600'
                     : (c.value == 'BUSINESS'  ? 'bg-ink-100 text-ink-700'
@@ -169,7 +171,7 @@
         <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4">
-        <a th:each="c, st : ${cities}" th:href="@{/browse(city=${c.city})}"
+        <a th:each="c, st : ${cities}" th:href="@{${@t.cityPath(c.city)}}"
            class="group relative flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-5 shadow-card ring-1 ring-inset ring-black/5 transition hover:-translate-y-0.5 hover:shadow-cardHover sm:aspect-[3/2]"
            th:with="cityGrad=${st.index % 8 == 0 ? 'from-brand-600 via-brand-500 to-fuchsia-500'
                     : (st.index % 8 == 1 ? 'from-indigo-600 via-brand-500 to-sky-500'

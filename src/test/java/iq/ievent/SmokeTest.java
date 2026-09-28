@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -75,6 +76,9 @@ class SmokeTest {
 
     @Autowired
     private iq.ievent.repo.UserRepository usersRepo;
+
+    @Autowired
+    private iq.ievent.service.HostService hostService;
 
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
@@ -1040,16 +1044,17 @@ class SmokeTest {
     void countdownRendersOnlyForRealFutureDates() throws Exception {
         // R20 #2: upcoming DAY-precision events carry the countdown element;
         // TBA events don't (and their badge shows no orphan dash).
+        // (the page script always mentions the id; only the ELEMENT is conditional)
         mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("eventCountdown")));
+                .andExpect(content().string(containsString("id=\"eventCountdown\"")));
         var tba = r18Event("Smoke Cd Tba", "smoke-cd-tba");
         tba.setDatePrecision(iq.ievent.domain.Event.PRECISION_TBA);
         tba.setStartsAt(iq.ievent.service.Format.TBA_PLACEHOLDER);
         events.save(tba);
         mockMvc.perform(get("/en/e/" + tba.getSlug()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("eventCountdown"))));
+                .andExpect(content().string(not(containsString("id=\"eventCountdown\""))));
     }
 
     @Test
@@ -1102,11 +1107,12 @@ class SmokeTest {
         // Footer links to the new pages (links stay un-prefixed; the lang
         // cookie bounce puts English readers on /en/... on the follow-up GET);
         // sitemap and llms.txt list them.
+        // (English renders prefix every @{} link with /en, see I18nConfig's link builder)
         mockMvc.perform(get("/en"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/about\"")))
-                .andExpect(content().string(containsString("href=\"/help\"")))
-                .andExpect(content().string(containsString("href=\"/pricing\"")));
+                .andExpect(content().string(containsString("href=\"/en/about\"")))
+                .andExpect(content().string(containsString("href=\"/en/help\"")))
+                .andExpect(content().string(containsString("href=\"/en/pricing\"")));
         mockMvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/about")))
@@ -1175,10 +1181,10 @@ class SmokeTest {
         // learn sub-nav shows on pricing; footer Learn column links the guides
         mockMvc.perform(get("/en/pricing"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/how-it-works\"")));
+                .andExpect(content().string(containsString("href=\"/en/how-it-works\"")));
         mockMvc.perform(get("/en"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/guides/organizers\"")));
+                .andExpect(content().string(containsString("href=\"/en/guides/organizers\"")));
         mockMvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/how-it-works")))
@@ -1195,9 +1201,10 @@ class SmokeTest {
         mockMvc.perform(get("/en"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Conferences, workshops, exhibitions, festivals and community gatherings")))
-                // footer Discover column is city-led now
-                .andExpect(content().string(containsString("href=\"/browse?city=Baghdad\"")))
-                .andExpect(content().string(containsString("href=\"/browse?city=Erbil\"")))
+                // footer Discover column is city-led now (R34: it links the indexable
+                // per-city landing pages rather than the noindex browse filter)
+                .andExpect(content().string(containsString("href=\"/en/city/baghdad\"")))
+                .andExpect(content().string(containsString("href=\"/en/city/erbil\"")))
                 // the old footer "Tech & Business" shortcut is gone (the category
                 // strip on the home page still lists every category, music last)
                 .andExpect(content().string(not(containsString("Tech &amp; Business"))));
@@ -1214,7 +1221,7 @@ class SmokeTest {
                 // R25: public type scale is scoped to content pages
                 .andExpect(content().string(containsString("class=\"type-public flex-1\"")))
                 .andExpect(content().string(containsString("governorates, all of Iraq")))
-                .andExpect(content().string(containsString("href=\"/browse?city=Najaf\"")));
+                .andExpect(content().string(containsString("href=\"/en/city/najaf\"")));
         mockMvc.perform(get("/en/features"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("event categories, from summits to sports")));
@@ -1300,11 +1307,11 @@ class SmokeTest {
         mockMvc.perform(get("/en/auth/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("aria-label=\"Sign in or create an account\"")))
-                .andExpect(content().string(containsString("href=\"/auth/register\"")));
+                .andExpect(content().string(containsString("href=\"/en/auth/register\"")));
         mockMvc.perform(get("/en/auth/register"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("aria-label=\"Sign in or create an account\"")))
-                .andExpect(content().string(containsString("href=\"/auth/login\"")));
+                .andExpect(content().string(containsString("href=\"/en/auth/login\"")));
     }
 
     // ---- R29: mobile header (bell in the top bar, no duplicate CTA in the menu) ----
@@ -1495,11 +1502,11 @@ class SmokeTest {
     void hostCtaSendsGuestsToSignUpAndMembersToConsole() throws Exception {
         mockMvc.perform(get("/en"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/auth/register?next=/host\"")));
+                .andExpect(content().string(containsString("href=\"/en/auth/register?next=/host\"")));
         mockMvc.perform(get("/en").with(user(DEMO_BUYER_EMAIL)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("href=\"/auth/register?next=/host\""))))
-                .andExpect(content().string(containsString("href=\"/host\"")));
+                .andExpect(content().string(not(containsString("/auth/register?next=/host\""))))
+                .andExpect(content().string(containsString("href=\"/en/host\"")));
     }
 
     @Test
@@ -1744,5 +1751,176 @@ class SmokeTest {
         venue.setMapsUrl("https://maps.app.goo.gl/abc123");
         org.junit.jupiter.api.Assertions.assertEquals("https://maps.app.goo.gl/abc123",
                 iq.ievent.service.MapLinks.directions(venue));
+    }
+
+    // ---- R34: search visibility (Search Console follow-up) ----
+
+    @Test
+    void sitemapListsBothLanguagesWithHreflangAlternates() throws Exception {
+        String xml = mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("xmlns:xhtml=\"http://www.w3.org/1999/xhtml\"")))
+                // both language versions of a page are entries of their own ...
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/about</loc>")))
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/en/about</loc>")))
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/en</loc>")))
+                // ... each carrying the alternates, Arabic declared as x-default
+                .andExpect(content().string(containsString(
+                        "<xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"http://localhost:8080/about\"/>")))
+                .andExpect(content().string(containsString(
+                        "<xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"http://localhost:8080/en/e/baghdad-nights-music-festival\"/>")))
+                // landing pages that have something on them are listed (seeded Baghdad
+                // events; "Baghdad Nights Music Festival" makes /festivals non-empty)
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/city/baghdad</loc>")))
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/en/city/baghdad</loc>")))
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/category/music</loc>")))
+                .andExpect(content().string(containsString("<loc>http://localhost:8080/festivals</loc>")))
+                .andReturn().getResponse().getContentAsString();
+        // never the language switch or filter variants
+        org.junit.jupiter.api.Assertions.assertFalse(xml.contains("set-lang"), "no /set-lang in sitemap");
+        org.junit.jupiter.api.Assertions.assertFalse(xml.contains("/browse?"), "no browse filter variants in sitemap");
+    }
+
+    @Test
+    void robotsTxtKeepsPrivateAreasOutButNotMediaOrRedirects() throws Exception {
+        String body = mockMvc.perform(get("/robots.txt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Disallow: /host/")))
+                .andExpect(content().string(containsString("Disallow: /me/")))
+                .andExpect(content().string(containsString("Sitemap: http://localhost:8080/sitemap.xml")))
+                .andReturn().getResponse().getContentAsString();
+        // "/me" without the slash would also block /media/** (event covers)
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains("Disallow: /me\n"), body);
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains("Disallow: /browse"), "filter variants carry a noindex tag instead");
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains("Disallow: /set-lang"), "a blocked URL can never be seen to redirect");
+    }
+
+    @Test
+    void languageSwitchIsAPermanentUncachedRedirect() throws Exception {
+        // permanent so search engines drop the /set-lang URL and credit the target,
+        // no-store so the browser still hits the server (and its cookie write) each click
+        mockMvc.perform(get("/set-lang").param("to", "ar").param("next", "/browse"))
+                .andExpect(status().isMovedPermanently())
+                .andExpect(header().string("Location", "/browse"))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(header().string("X-Robots-Tag", "noindex, nofollow"))
+                .andExpect(cookie().value("lang", "ar"));
+        // the switcher links themselves are nofollow (header pill on the English page)
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("rel=\"nofollow\"")));
+    }
+
+    @Test
+    void browseFilterVariantsAreNoindexWhileTheBarePageLinksTheLandingPages() throws Exception {
+        // (URL-embedded query: MockMvc's .param() fills the parameter map only)
+        mockMvc.perform(get("/en/browse?category=MUSIC"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"robots\" content=\"noindex, follow\"")))
+                // and no canonical pointing elsewhere on a noindex render
+                .andExpect(content().string(not(containsString("rel=\"canonical\""))))
+                .andExpect(content().string(not(containsString("hreflang="))));
+        mockMvc.perform(get("/en/browse?q=qa"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("content=\"noindex, follow\"")));
+        mockMvc.perform(get("/en/browse"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("content=\"noindex"))))
+                .andExpect(content().string(containsString("<link rel=\"canonical\" href=\"http://localhost:8080/en/browse\"")))
+                .andExpect(content().string(containsString("href=\"/en/city/baghdad\"")))
+                .andExpect(content().string(containsString("href=\"/en/category/business\"")))
+                .andExpect(content().string(containsString("href=\"/en/exhibitions\"")))
+                .andExpect(content().string(containsString("Browse by city")));
+        mockMvc.perform(get("/browse"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/city/baghdad\"")))
+                .andExpect(content().string(containsString("تصفح حسب المدينة")));
+    }
+
+    @Test
+    void landingPagesRenderInBothLanguagesWithTheirOwnSeoHead() throws Exception {
+        mockMvc.perform(get("/en/city/baghdad"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<title>Events in Baghdad: ")))
+                .andExpect(content().string(containsString("Events in Baghdad</h1>")))
+                .andExpect(content().string(containsString("Baghdad Nights Music Festival")))
+                .andExpect(content().string(containsString("<link rel=\"canonical\" href=\"http://localhost:8080/en/city/baghdad\"")))
+                .andExpect(content().string(containsString("hreflang=\"ar\" href=\"http://localhost:8080/city/baghdad\"")))
+                .andExpect(content().string(not(containsString("content=\"noindex"))));
+        mockMvc.perform(get("/city/baghdad"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("فعاليات بغداد</h1>")))
+                .andExpect(content().string(containsString("ايفنت iEvent</title>")));
+        mockMvc.perform(get("/en/category/music"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Music events in Iraq</h1>")))
+                .andExpect(content().string(containsString("Baghdad Nights Music Festival")));
+        mockMvc.perform(get("/category/business"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("فعاليات الأعمال والريادة في العراق</h1>")));
+        // type pages match on the title words in either language ("... Festival")
+        mockMvc.perform(get("/en/festivals"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Festivals in Iraq</h1>")))
+                .andExpect(content().string(containsString("Baghdad Nights Music Festival")))
+                .andExpect(content().string(containsString("Browse by type")));
+        mockMvc.perform(get("/en/conferences"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Erbil Tech Summit 2026")));
+        // an empty landing page stays out of the index (noindex, links still followed)
+        mockMvc.perform(get("/en/city/halabja"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("content=\"noindex, follow\"")))
+                .andExpect(content().string(containsString("No events are published here right now")));
+        mockMvc.perform(get("/en/city/nowhere")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/en/category/nope")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void publicPagesCarrySchemaOrgJsonLd() throws Exception {
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<script type=\"application/ld+json\">")))
+                .andExpect(content().string(containsString("\"@type\":\"Event\"")))
+                .andExpect(content().string(containsString("\"name\":\"Baghdad Nights Music Festival\"")))
+                .andExpect(content().string(containsString("\"priceCurrency\":\"IQD\"")))
+                .andExpect(content().string(containsString("\"addressLocality\":\"Baghdad\"")))
+                .andExpect(content().string(containsString("\"inLanguage\":\"en\"")))
+                .andExpect(content().string(containsString("\"url\":\"http://localhost:8080/en/e/baghdad-nights-music-festival\"")));
+        mockMvc.perform(get("/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"inLanguage\":\"ar\"")))
+                .andExpect(content().string(containsString("\"addressLocality\":\"بغداد\"")));
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"@type\":\"WebSite\"")))
+                .andExpect(content().string(containsString("\"alternateName\":[\"ايفنت\"")))
+                // the Arabic wordmark is in the Arabic home title too
+                .andExpect(content().string(containsString("<title>ايفنت iEvent | ")));
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void duplicatedDraftSlugFollowsItsTitleInsteadOfACopySuffix() {
+        iq.ievent.domain.Event source = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        iq.ievent.domain.Event copy = hostService.duplicateEvent(source);
+        org.junit.jupiter.api.Assertions.assertTrue(copy.getTitle().endsWith("(copy)"));
+        org.junit.jupiter.api.Assertions.assertFalse(copy.getSlug().contains("copy"), copy.getSlug());
+        org.junit.jupiter.api.Assertions.assertTrue(copy.getSlug().startsWith("baghdad-nights-music-festival-"), copy.getSlug());
+        // renaming the DRAFT moves its slug to the new title ...
+        hostService.updateEvent(copy, "Kirkuk Winter Nights", copy.getCategory(), copy.getCity(),
+                copy.getVenueName(), copy.getVenueAddress(),
+                iq.ievent.service.HostService.When.day(java.time.LocalDate.now().plusDays(30),
+                        java.time.LocalTime.of(19, 0), true, null),
+                copy.getDescription());
+        org.junit.jupiter.api.Assertions.assertEquals("kirkuk-winter-nights", copy.getSlug());
+        // ... while a LIVE event keeps the URL people already have
+        String liveSlug = source.getSlug();
+        hostService.updateEvent(source, source.getTitle() + " Live", source.getCategory(), source.getCity(),
+                source.getVenueName(), source.getVenueAddress(),
+                iq.ievent.service.HostService.When.day(java.time.LocalDate.now().plusDays(5),
+                        java.time.LocalTime.of(19, 0), true, null),
+                source.getDescription());
+        org.junit.jupiter.api.Assertions.assertEquals(liveSlug, source.getSlug());
     }
 }

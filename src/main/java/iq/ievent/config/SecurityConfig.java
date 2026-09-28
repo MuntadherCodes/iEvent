@@ -136,6 +136,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/", "/browse", "/events/**", "/organizers/**",
+                        // R34 evergreen landing pages (PageController#cityLanding & co.)
+                        "/city/*", "/category/*", "/exhibitions", "/conferences", "/courses",
+                        "/workshops", "/concerts", "/festivals",
                         "/auth/**", "/t/**", "/e/**", "/l/**", "/invite/*", "/newsletter", "/contact", "/about", "/help", "/pricing", "/how-it-works", "/features", "/solutions", "/guides", "/guides/**", "/privacy", "/terms", "/media/**", "/css/**", "/img/**", "/js/**",
                         "/favicon.ico", "/sw.js", "/robots.txt", "/sitemap.xml", "/llms.txt", "/actuator/health", "/error", "/set-lang", "/.well-known/**", "/api/events/suggest",
                         // /admin/** is gated by SuperAdminAuthFilter (a shared .env password, not a

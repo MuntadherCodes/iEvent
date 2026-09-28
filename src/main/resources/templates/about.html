@@ -48,7 +48,7 @@
       <h2 class="text-center font-display text-2xl font-extrabold tracking-tight text-ink-900 md:text-3xl" th:text="#{public.about.citiesLabel}">City by city</h2>
       <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <a th:each="c : ${ { {'Baghdad','from-brand-500 to-violet-700'}, {'Erbil','from-emerald-400 to-teal-600'}, {'Basra','from-sky-400 to-blue-600'}, {'Mosul','from-amber-400 to-orange-600'}, {'Najaf','from-rose-400 to-pink-600'}, {'Anbar','from-indigo-400 to-purple-600'} } }"
-           th:href="@{/browse(city=${c[0]})}" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-pop transition hover:-translate-y-0.5" th:classappend="${c[1]}">
+           th:href="@{${@t.cityPath(c[0])}}" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-pop transition hover:-translate-y-0.5" th:classappend="${c[1]}">
           <svg class="absolute -end-3 -top-3 h-16 w-16 opacity-20 transition group-hover:scale-110" aria-hidden="true"><use href="#i-map-pin"/></svg>
           <span class="block text-[11px] font-semibold uppercase tracking-wide text-white/80" th:text="#{learn.cities.eyebrow}">Events in</span>
           <span class="mt-1 block font-display text-lg font-extrabold" th:text="${@t.city(c[0])}">Baghdad</span>

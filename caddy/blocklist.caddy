@@ -1,0 +1,18 @@
+# Requests from these IPs / CIDR ranges get a bare 403 from Caddy before they
+# reach the app (R34: the Singapore-datacenter crawler that showed up as "users"
+# in GA4). Edited on the server, then applied without a restart:
+#
+#   docker compose -f docker-compose.staging.yml exec proxy caddy reload --config /etc/caddy/Caddyfile
+#
+# Put every range on the SAME remote_ip line, space separated. 192.0.2.0/24 is a
+# reserved documentation range that never appears on the internet: it only
+# guarantees the matcher has an argument when the real list is empty.
+#
+# To find the ranges: docker compose -f docker-compose.staging.yml logs proxy --since 2h
+#   | grep -o '"remote_ip":"[^"]*"' | sort | uniq -c | sort -rn | head
+# then look each IP up (curl -s https://ipinfo.io/<ip>) and block the whole
+# announced prefix ("route"), not just the one address.
+@blocked {
+	remote_ip 192.0.2.0/24
+}
+respond @blocked 403

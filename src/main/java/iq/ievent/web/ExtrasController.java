@@ -48,14 +48,17 @@ public class ExtrasController {
     private final TicketPdfService pdf;
     private final MailService mail;
     private final UserService userService;
+    private final iq.ievent.service.LandingPages landingPages;
     private final String supportEmail;
     private final String siteBaseUrl;
 
     public ExtrasController(EventRepository events, OrderRepository orders, TicketRepository tickets,
                             JdbcTemplate jdbc, QrService qr, TicketPdfService pdf,
                             MailService mail, UserService userService,
+                            iq.ievent.service.LandingPages landingPages,
                             @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail,
                             @org.springframework.beans.factory.annotation.Value("${app.base-url}") String siteBaseUrl) {
+        this.landingPages = landingPages;
         this.events = events;
         this.orders = orders;
         this.tickets = tickets;
@@ -145,7 +148,19 @@ public class ExtrasController {
      *  file couldn't tell localhost apart from production. */
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> robotsTxt() {
-        String body = "User-agent: *\nDisallow: /admin\n\nSitemap: " + siteBaseUrl + "/sitemap.xml\n";
+        // R34: /host/ and /me/ are signed-in areas; /api/ is JSON. Trailing slashes
+        // matter: a bare "/me" would also block /media/** (event covers).
+        // Deliberately NOT disallowed: /browse?... filter variants (they carry a
+        // noindex tag) and /set-lang (now a 301, see LocaleFilter). Crawlers can only
+        // act on a noindex or a redirect if they are allowed to fetch the URL.
+        String body = "User-agent: *\n"
+                + "Disallow: /admin\n"
+                + "Disallow: /host/\n"
+                + "Disallow: /me/\n"
+                + "Disallow: /api/\n"
+                + "Disallow: /en/host/\n"
+                + "Disallow: /en/me/\n"
+                + "\nSitemap: " + siteBaseUrl + "/sitemap.xml\n";
         return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(body);
     }
 
@@ -187,29 +202,42 @@ public class ExtrasController {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/markdown;charset=UTF-8")).body(body);
     }
 
-    /** One canonical (Arabic-default) URL per public page — event/organizer
-     *  pages already carry hreflang alternates for English via layout.html's
-     *  head fragment, so the sitemap itself doesn't need to list both. Excludes
-     *  admin-hidden events and disabled orgs, same boundary the public site
+    /** Both language versions of every public page, each carrying xhtml:link hreflang
+     *  alternates (the shape Google recommends), so the /en/ tree is crawled as a
+     *  peer of the Arabic default and the Arabic page is the declared x-default.
+     *  R34 adds the evergreen landing pages, but only the ones that currently list
+     *  something (an empty one renders noindex, see PageController#renderLanding).
+     *  Excludes admin-hidden events and disabled orgs, same boundary the public site
      *  itself enforces (see CatalogService/EventRepository). */
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public ResponseEntity<String> sitemap() {
         StringBuilder xml = new StringBuilder();
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
-        appendUrl(xml, siteBaseUrl + "/", null, "daily");
-        appendUrl(xml, siteBaseUrl + "/browse", null, "hourly");
-        appendUrl(xml, siteBaseUrl + "/about", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/how-it-works", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/features", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/solutions", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/guides", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/guides/attendees", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/guides/organizers", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/help", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/pricing", null, "monthly");
-        appendUrl(xml, siteBaseUrl + "/privacy", null, "yearly");
-        appendUrl(xml, siteBaseUrl + "/terms", null, "yearly");
+        xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\""
+                + " xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
+        appendPage(xml, "/", null, "daily");
+        appendPage(xml, "/browse", null, "hourly");
+        appendPage(xml, "/about", null, "monthly");
+        appendPage(xml, "/how-it-works", null, "monthly");
+        appendPage(xml, "/features", null, "monthly");
+        appendPage(xml, "/solutions", null, "monthly");
+        appendPage(xml, "/guides", null, "monthly");
+        appendPage(xml, "/guides/attendees", null, "monthly");
+        appendPage(xml, "/guides/organizers", null, "monthly");
+        appendPage(xml, "/help", null, "monthly");
+        appendPage(xml, "/pricing", null, "monthly");
+        appendPage(xml, "/privacy", null, "yearly");
+        appendPage(xml, "/terms", null, "yearly");
+
+        for (String city : landingPages.citiesWithEvents()) {
+            appendPage(xml, iq.ievent.service.LandingPages.cityPath(city), null, "daily");
+        }
+        for (Event.Category category : landingPages.categoriesWithEvents()) {
+            appendPage(xml, iq.ievent.service.LandingPages.categoryPath(category), null, "daily");
+        }
+        for (iq.ievent.service.LandingPages.Type type : landingPages.typesWithEvents()) {
+            appendPage(xml, iq.ievent.service.LandingPages.typePath(type), null, "daily");
+        }
 
         jdbc.query("""
                 SELECT e.slug, e.updated_at FROM events e
@@ -221,7 +249,7 @@ public class ExtrasController {
                 (rs, i) -> {
                     String slug = rs.getString("slug");
                     OffsetDateTime updated = rs.getObject("updated_at", OffsetDateTime.class);
-                    appendUrl(xml, siteBaseUrl + "/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, StandardCharsets.UTF_8),
+                    appendPage(xml, "/e/" + org.springframework.web.util.UriUtils.encodePathSegment(slug, StandardCharsets.UTF_8),
                             updated, "weekly");
                     return null;
                 });
@@ -229,7 +257,7 @@ public class ExtrasController {
         jdbc.query("SELECT handle FROM organizations WHERE disabled = false ORDER BY id",
                 (rs, i) -> {
                     String handle = rs.getString("handle");
-                    appendUrl(xml, siteBaseUrl + "/organizers/" + org.springframework.web.util.UriUtils.encodePathSegment(handle, StandardCharsets.UTF_8),
+                    appendPage(xml, "/organizers/" + org.springframework.web.util.UriUtils.encodePathSegment(handle, StandardCharsets.UTF_8),
                             null, "weekly");
                     return null;
                 });
@@ -238,12 +266,26 @@ public class ExtrasController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML).body(xml.toString());
     }
 
-    private static void appendUrl(StringBuilder xml, String loc, OffsetDateTime lastmod, String changefreq) {
+    /** One un-prefixed path becomes two sitemap entries (Arabic + /en), each listing
+     *  both alternates and the Arabic x-default. */
+    private void appendPage(StringBuilder xml, String path, OffsetDateTime lastmod, String changefreq) {
+        String ar = siteBaseUrl + path;
+        String en = siteBaseUrl + "/en" + ("/".equals(path) ? "" : path);
+        appendUrl(xml, ar, en, ar, lastmod, changefreq);
+        appendUrl(xml, en, en, ar, lastmod, changefreq);
+    }
+
+    private static void appendUrl(StringBuilder xml, String loc, String enLoc, String arLoc,
+                                  OffsetDateTime lastmod, String changefreq) {
         xml.append("  <url>\n    <loc>").append(escapeXml(loc)).append("</loc>\n");
         if (lastmod != null) {
             xml.append("    <lastmod>").append(lastmod.atZoneSameInstant(ZoneOffset.UTC).toLocalDate()).append("</lastmod>\n");
         }
-        xml.append("    <changefreq>").append(changefreq).append("</changefreq>\n  </url>\n");
+        xml.append("    <changefreq>").append(changefreq).append("</changefreq>\n");
+        xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"ar\" href=\"").append(escapeXml(arLoc)).append("\"/>\n");
+        xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(escapeXml(enLoc)).append("\"/>\n");
+        xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(escapeXml(arLoc)).append("\"/>\n");
+        xml.append("  </url>\n");
     }
 
     private static String escapeXml(String s) {
