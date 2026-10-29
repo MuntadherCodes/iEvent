@@ -402,6 +402,14 @@ public class HostService {
 
     @Transactional
     public Organization createOrganization(User owner, String name, String handle, String city, String bio) {
+        return createOrganization(owner, name, handle, city, bio, null);
+    }
+
+    /** R35: organizer onboarding also records the owner's mobile number (already
+     *  validated and normalized to E.164 by the controller; null leaves it alone). */
+    @Transactional
+    public Organization createOrganization(User owner, String name, String handle, String city, String bio,
+                                           String ownerPhoneE164) {
         String cleanHandle = slugify(handle == null || handle.isBlank() ? name : handle);
         if (organizations.findByHandle(cleanHandle).isPresent()) {
             cleanHandle = cleanHandle + "-" + (System.nanoTime() % 1000);
@@ -422,10 +430,16 @@ public class HostService {
                 """, org.getId());
         // sort_order 99: transfer methods the host adds later (sort = list size)
         // stay ahead of cash at checkout, so the preselected option is a transfer.
+        boolean ownerChanged = false;
+        if (ownerPhoneE164 != null && !ownerPhoneE164.equals(owner.getPhone())) {
+            owner.setPhone(ownerPhoneE164);
+            ownerChanged = true;
+        }
         if (owner.getRole() == User.Role.USER) {
             owner.setRole(User.Role.HOST);
-            users.save(owner);
+            ownerChanged = true;
         }
+        if (ownerChanged) users.save(owner);
         // R31 #4: organizer welcome with the guide + payment settings + first event
         mail.sendHostWelcome(owner.getEmail(), owner.getFullName(), org.getName(), LocaleContextHolder.getLocale());
         return org;
@@ -1109,7 +1123,9 @@ public class HostService {
                                String website, String instagram, String brandColor,
                                boolean notifyPendingOrders, MultipartFile logo, MultipartFile cover) {
         org.setContactEmail(blankToNull(contactEmail));
-        org.setContactPhone(blankToNull(contactPhone));
+        // R35: public contact number; an Iraqi mobile is stored in E.164, anything
+        // else (an office landline, say) is kept as typed
+        org.setContactPhone(UserService.cleanPhone(contactPhone));
         org.setWebsite(blankToNull(website));
         String ig = blankToNull(instagram);
         org.setInstagram(ig == null ? null : ig.replaceFirst("^@", ""));

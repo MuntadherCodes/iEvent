@@ -349,6 +349,11 @@ public class UserAreaController {
             redirect.addFlashAttribute("error", msg("flash.profile.nameRequired"));
             return "redirect:/me/profile";
         }
+        // R35: optional, but an Iraqi mobile when filled (stored as +9647...)
+        if (phone != null && !phone.isBlank() && !iq.ievent.service.IraqPhone.isValid(phone)) {
+            redirect.addFlashAttribute("error", msg("phone.invalid"));
+            return "redirect:/me/profile";
+        }
         userService.updateProfile(user, fullName, phone);
         String cleanCity = Cities.isValid(city) ? city : null;
         user.setCity(cleanCity);

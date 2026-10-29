@@ -16,6 +16,17 @@
   <main id="main" class="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-10 lg:px-8">
     <div class="mx-auto max-w-6xl space-y-6 lg:space-y-8 2xl:max-w-7xl">
 
+      <!-- R35: organizers registered before the mobile number became required (or
+           with a number that is not an Iraqi mobile) are nudged to add one. Owner
+           only: the number on file is the account owner's. -->
+      <div th:if="${isOrgOwner and !@t.validPhone(currentUser.phone)}" id="phoneNudge" class="flex flex-col gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <p class="flex items-start gap-2 text-sm font-semibold text-brand-900">
+          <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true"><use href="#i-phone"/></svg>
+          <span th:text="#{host.dash.phoneBanner}">Add your mobile number so we can reach you about your events.</span>
+        </p>
+        <a th:href="@{/me/profile}" class="inline-flex items-center gap-1.5 self-start rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 active:scale-[.98] sm:self-auto"><span th:text="#{host.dash.phoneBannerCta}">Add number</span><svg class="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </div>
+
       <!-- Pending confirmations banner -->
       <div th:if="${pendingCount > 0}" class="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <p class="flex items-start gap-2 text-sm font-semibold text-amber-800">

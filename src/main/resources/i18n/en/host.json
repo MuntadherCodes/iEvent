@@ -586,5 +586,10 @@
   "host.pay.refundSub": "One policy for all your events. Choose whether event pages and checkout show it.",
   "host.pay.refundShowAria": "Show refund policy on event pages",
   "host.pay.refundSave": "Save policy",
-  "host.pay.refundNote": "Switch it off to keep the policy private: event pages and checkout then show no refund text at all."
+  "host.pay.refundNote": "Switch it off to keep the policy private: event pages and checkout then show no refund text at all.",
+  "host.start.phone": "Mobile number",
+  "host.start.phonePlaceholder": "7XX XXX XXXX",
+  "host.start.phoneHint": "Iraqi mobile number, with or without the leading 0. We use it to reach you about your events and account.",
+  "host.dash.phoneBanner": "Add your mobile number so we can reach you about your events.",
+  "host.dash.phoneBannerCta": "Add number"
 }

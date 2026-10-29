@@ -702,5 +702,6 @@
   "public.landing.browseByCategory": "تصفح حسب التصنيف",
   "public.landing.browseByType": "تصفح حسب نوع الفعالية",
   "public.landing.empty": "لا توجد فعاليات منشورة هنا حالياً. عد قريباً أو تصفح كل الفعاليات.",
-  "public.landing.allEvents": "كل الفعاليات"
+  "public.landing.allEvents": "كل الفعاليات",
+  "public.profile.phoneHint": "رقم هاتف محمول عراقي، مثل 0790 123 4567."
 }

@@ -43,8 +43,11 @@
       <span th:text="${error}">Give your organizer profile a name.</span>
     </div>
 
-    <form th:action="@{/host/start}" method="post" class="flex flex-1 flex-col">
-      <input type="hidden" name="city" id="cityInput" value="Baghdad">
+    <!-- R35: after a validation bounce the controller flashes "form" (typed values)
+         and "error"; data-start-step then opens the profile step straight away
+         instead of making the host click through the three visual steps again. -->
+    <form th:action="@{/host/start}" method="post" class="flex flex-1 flex-col" th:attr="data-start-step=${error != null} ? '4' : '1'">
+      <input type="hidden" name="city" id="cityInput" th:value="${form.city()}" value="Baghdad">
 
       <div class="flex-1 pb-24 lg:pb-0">
 
@@ -146,14 +149,26 @@
           <div class="mt-6 max-w-lg space-y-5">
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="orgName"><span th:text="#{host.start.orgName}">Organizer name</span> <span class="text-rose-500">*</span></label>
-              <input id="orgName" name="orgName" type="text" required th:placeholder="#{host.start.orgNamePlaceholder}" placeholder="e.g. Zain Events Co."
+              <input id="orgName" name="orgName" type="text" required th:value="${form.orgName()}" th:placeholder="#{host.start.orgNamePlaceholder}" placeholder="e.g. Zain Events Co."
                      class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+            </div>
+            <!-- R35: required mobile number, Iraq only for now (no SMS verification yet,
+                 the numbering-plan check on the server is the gate). The +964 prefix is
+                 fixed, the national part is typed; a leading 0 is tolerated. -->
+            <div>
+              <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="phone"><span th:text="#{host.start.phone}">Mobile number</span> <span class="text-rose-500">*</span></label>
+              <div class="flex items-center overflow-hidden rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100" dir="ltr">
+                <span class="inline-flex shrink-0 items-center gap-1.5 border-e border-ink-100 bg-ink-50 px-3.5 py-3 text-sm font-semibold tabular-nums text-ink-600"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-phone"/></svg>+964</span>
+                <input id="phone" name="phone" type="tel" inputmode="tel" required minlength="10" autocomplete="tel-national" th:value="${form.phone()}" th:placeholder="#{host.start.phonePlaceholder}" placeholder="7XX XXX XXXX"
+                       class="w-full bg-transparent px-3.5 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400">
+              </div>
+              <p class="mt-1.5 text-xs text-ink-400" th:text="#{host.start.phoneHint}">Iraqi mobile number, with or without the leading 0. We use it to reach you about your events and account.</p>
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="handle" th:text="#{host.start.handle}">Profile handle</label>
               <div class="flex items-center overflow-hidden rounded-xl border border-ink-200 bg-white transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100" dir="ltr">
                 <span class="shrink-0 border-e border-ink-100 bg-ink-50 px-3.5 py-3 text-sm font-medium text-ink-400">ievent.events/o/</span>
-                <input id="handle" name="handle" type="text" placeholder="zain-events"
+                <input id="handle" name="handle" type="text" placeholder="zain-events" th:value="${form.handle()}"
                        class="w-full bg-transparent px-3.5 py-3 text-sm outline-none placeholder:text-ink-400">
               </div>
               <p class="mt-1.5 text-xs text-ink-400" th:text="#{host.start.handleHint}">Leave blank and we'll create one from your name.</p>
@@ -161,7 +176,7 @@
             <div>
               <label class="mb-1.5 block text-sm font-semibold text-ink-800" for="bio" th:text="#{host.start.bio}">Short bio</label>
               <textarea id="bio" name="bio" rows="3" th:placeholder="#{host.start.bioPlaceholder}" placeholder="Tell attendees who you are and what kind of events you host."
-                        class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"></textarea>
+                        class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:text="${form.bio()}"></textarea>
             </div>
             <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-4 text-base font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]">
               <span th:text="#{host.start.createProfile}">Create organizer profile</span><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg>
@@ -288,6 +303,10 @@
 
   var CHIP_OFF = ['border-ink-200', 'bg-white', 'text-ink-700', 'hover:border-brand-400', 'hover:text-brand-600'];
   var CHIP_ON = ['border-brand-500', 'bg-brand-50', 'text-brand-700'];
+  // R35: a validation bounce re-opens the profile step with the typed values kept
+  var formEl = document.querySelector('form[data-start-step]');
+  var startStep = formEl ? parseInt(formEl.getAttribute('data-start-step'), 10) : 1;
+  if (startStep >= 1 && startStep <= total) current = startStep;
 
   function setChip(btn, on) {
     CHIP_OFF.forEach(function (c) { btn.classList.toggle(c, !on); });
@@ -345,6 +364,28 @@
   nextBtn.addEventListener('click', function () { if (current < total) { current++; render(); } });
   backBtn.addEventListener('click', function () { if (current > 1) { current--; render(); } });
   skipBtn.addEventListener('click', function () { current = total; render(); });
+
+  // R35: reflect a kept city (after a bounce) on the step-3 chips before first render
+  (function syncCityChips() {
+    var kept = cityInput.value;
+    var chips = document.querySelectorAll('.city-chip');
+    var matched = false;
+    chips.forEach(function (b) {
+      var on = b.getAttribute('data-value') === kept;
+      if (on) matched = true;
+      setChip(b, on);
+    });
+    if (!matched && kept) {
+      for (var i = 0; i < otherCitySelect.options.length; i++) {
+        if (otherCitySelect.options[i].value === kept) {
+          otherCitySelect.selectedIndex = i;
+          setChip(otherCityBtn, true);
+          otherCityWrap.classList.remove('hidden');
+          break;
+        }
+      }
+    }
+  })();
   render();
 
   // Step 1: category chips — multi-select, visual only

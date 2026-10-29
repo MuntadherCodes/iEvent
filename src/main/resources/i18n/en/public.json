@@ -702,5 +702,6 @@
   "public.landing.browseByCategory": "Browse by category",
   "public.landing.browseByType": "Browse by type",
   "public.landing.empty": "No events are published here right now. Check back soon or browse all events.",
-  "public.landing.allEvents": "All events"
+  "public.landing.allEvents": "All events",
+  "public.profile.phoneHint": "Iraqi mobile number, e.g. 0790 123 4567."
 }

@@ -260,6 +260,9 @@ public class CheckoutController {
         User user = currentUser(principal);
         boolean wasGuest = user == null;
         boolean guestCreated = false;
+        // R35: an Iraqi mobile is stored in E.164 so the organizer can call or message
+        // it as-is; anything else is kept as typed (buyers abroad are never blocked)
+        buyerPhone = UserService.cleanPhone(buyerPhone);
         Map<Long, Integer> quantities = new HashMap<>();
         for (Map.Entry<String, String> entry : params.entrySet()) {
             if (entry.getKey().startsWith("qty-")) {

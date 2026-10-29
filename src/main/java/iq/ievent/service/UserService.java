@@ -72,7 +72,7 @@ public class UserService implements UserDetailsService {
         User user = new User();
         user.setFullName(fullName.trim());
         user.setEmail(email.trim().toLowerCase());
-        user.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
+        user.setPhone(cleanPhone(phone));
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setRole(User.Role.USER);
         user.setPreferredLang(currentLang());
@@ -115,7 +115,7 @@ public class UserService implements UserDetailsService {
         User u = new User();
         u.setEmail(normalized);
         u.setFullName(fullName == null || fullName.isBlank() ? normalized : fullName.trim());
-        u.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
+        u.setPhone(cleanPhone(phone));
         byte[] noise = new byte[32];
         new java.security.SecureRandom().nextBytes(noise);
         u.setPasswordHash(passwordEncoder.encode(java.util.Base64.getEncoder().encodeToString(noise)));
@@ -131,8 +131,18 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void updateProfile(User user, String fullName, String phone) {
         user.setFullName(fullName.trim());
-        user.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
+        user.setPhone(cleanPhone(phone));
         users.save(user);
+    }
+
+    /** R35: blank becomes null; a valid Iraqi mobile is stored in E.164 (+9647...);
+     *  anything else is kept as typed. The STRICT check (reject what is not an Iraqi
+     *  mobile) lives in the controllers that own a form: organizer onboarding
+     *  (required), account sign-up and profile (when filled). Guest checkout stays
+     *  lenient on purpose: a buyer abroad must still be able to pay. */
+    public static String cleanPhone(String phone) {
+        if (phone == null || phone.isBlank()) return null;
+        return IraqPhone.normalize(phone).orElse(phone.trim());
     }
 
     /** Returns an error message, or null on success. */

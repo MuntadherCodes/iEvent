@@ -798,6 +798,14 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
 
   log('creating organizer profile "E2E Test Events"');
   await page.locator('#orgName').fill('E2E Test Events');
+  log('R35: the mobile number is required; a landline bounces back to the form step with the values kept');
+  await page.locator('#phone').fill('01 234 5678');
+  await page.getByRole('button', { name: /Create organizer profile/ }).click();
+  await expect(page).toHaveURL(/\/host\/start/);
+  await expect(page.getByText('Enter a valid Iraqi mobile number')).toBeVisible();
+  await expect(page.locator('#orgName')).toBeVisible();
+  await expect(page.locator('#orgName')).toHaveValue('E2E Test Events');
+  await page.locator('#phone').fill('0790 123 4567');
   await page.getByRole('button', { name: /Create organizer profile/ }).click();
 
   // Regression (round 6): a brand-new host's EMPTY dashboard must render — the
@@ -2568,6 +2576,7 @@ test('be. to-do dismiss (#7): fresh org sees the checklist, Dismiss hides it per
   await page.locator('#nextBtn').click();
   await page.locator('#nextBtn').click();
   await page.locator('#orgName').fill('E2E Dismiss Org');
+  await page.locator('#phone').fill('07701234567'); // R35: required Iraqi mobile
   await page.getByRole('button', { name: /Create organizer profile/ }).click();
   await expect(page).toHaveURL(/\/host(\/)?$/);
 
@@ -3060,6 +3069,7 @@ test('bs. checklist (R13): pinned at the top for a new org and STAYS after the f
   await page.locator('#nextBtn').click();
   await page.locator('#nextBtn').click();
   await page.locator('#orgName').fill('E2E Lifecycle Org');
+  await page.locator('#phone').fill('+964 750 123 4567'); // R35: required Iraqi mobile
   await page.getByRole('button', { name: /Create organizer profile/ }).click();
   await expect(page).toHaveURL(/\/host(\/)?$/);
 

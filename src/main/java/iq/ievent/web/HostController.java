@@ -11,6 +11,7 @@ import iq.ievent.repo.LikeCountRepository;
 import iq.ievent.repo.OrderRepository;
 import iq.ievent.repo.TicketRepository;
 import iq.ievent.repo.TicketTypeRepository;
+import iq.ievent.service.Cities;
 import iq.ievent.service.Format;
 import iq.ievent.service.HostService;
 import iq.ievent.service.OrderService;
@@ -194,11 +195,24 @@ public class HostController {
 
     // ---------- onboarding ----------
 
+    /** R35: what the host typed on /host/start, carried over a validation bounce so
+     *  the form re-renders filled in (and opens on its own step). */
+    public record StartForm(String orgName, String handle, String city, String bio, String phone) {}
+
     @GetMapping("/start")
     public String start(@AuthenticationPrincipal UserDetails principal, Model model) {
         User u = user(principal);
         if (hostService.organizationOf(u).isPresent()) return "redirect:/host";
         model.addAttribute("currentUser", u);
+        // A bounce (see createOrg) arrives with "form" + "error" as flash attributes;
+        // a first visit pre-fills the number from the account when it already is a
+        // valid Iraqi mobile (the input shows the +964 prefix, so the national part).
+        Object flashed = model.asMap().get("form");
+        if (!(flashed instanceof StartForm)) {
+            String known = iq.ievent.service.IraqPhone.normalize(u.getPhone())
+                    .map(iq.ievent.service.IraqPhone::national).orElse("");
+            model.addAttribute("form", new StartForm("", "", "Baghdad", "", known));
+        }
         return "host/start";
     }
 
@@ -216,19 +230,32 @@ public class HostController {
 
     @PostMapping("/start")
     public String createOrg(@AuthenticationPrincipal UserDetails principal,
-                            @RequestParam String orgName,
+                            @RequestParam(required = false) String orgName,
                             @RequestParam(required = false) String handle,
                             @RequestParam(required = false) String city,
                             @RequestParam(required = false) String bio,
+                            @RequestParam(required = false) String phone,
                             RedirectAttributes redirect) {
         User u = user(principal);
         if (hostService.organizationOf(u).isPresent()) return "redirect:/host";
-        if (orgName == null || orgName.isBlank()) {
-            redirect.addFlashAttribute("error", msg("flash.org.nameRequired"));
+        // R35: organizers must leave a mobile number. There is no SMS verification
+        // yet, so the Iraqi numbering-plan check (IraqPhone) is the whole gate; the
+        // number is stored normalized (+9647...) on the owner's account.
+        java.util.Optional<String> ownerPhone = iq.ievent.service.IraqPhone.normalize(phone);
+        String error = null;
+        if (orgName == null || orgName.isBlank()) error = msg("flash.org.nameRequired");
+        else if (phone == null || phone.isBlank()) error = msg("flash.org.phoneRequired");
+        else if (ownerPhone.isEmpty()) error = msg("phone.invalid");
+        if (error != null) {
+            redirect.addFlashAttribute("error", error);
+            redirect.addFlashAttribute("form", new StartForm(
+                    orgName == null ? "" : orgName, handle == null ? "" : handle,
+                    Cities.isValid(city) ? city : "Baghdad", bio == null ? "" : bio,
+                    phone == null ? "" : phone));
             return "redirect:/host/start";
         }
         try {
-            hostService.createOrganization(u, orgName, handle, city, bio);
+            hostService.createOrganization(u, orgName, handle, city, bio, ownerPhone.get());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             // double submit: the first click already created it (ux_organizations_owner)
             if (hostService.organizationOf(u).isEmpty()) throw e;

@@ -127,6 +127,12 @@ public class AuthController {
         if (!binding.hasFieldErrors("email") && userService.emailTaken(form.getEmail())) {
             binding.rejectValue("email", "email.taken", "An account with this email already exists");
         }
+        // R35: the number stays optional at sign-up, but when given it must be an
+        // Iraqi mobile (the only validation we have, there is no SMS step)
+        if (form.getPhone() != null && !form.getPhone().isBlank()
+                && !iq.ievent.service.IraqPhone.isValid(form.getPhone())) {
+            binding.rejectValue("phone", "phone.invalid", msg("phone.invalid"));
+        }
         boolean termsAccepted = terms != null;
         if (!termsAccepted) {
             model.addAttribute("termsError", msg("auth.terms.required"));

@@ -58,6 +58,18 @@ public class LocalizationHelper {
         return messages.getMessage(code, args, LocaleContextHolder.getLocale());
     }
 
+    /** R35: readable form of a stored phone number ("+964 790 123 4567"); legacy
+     *  free-text values come back unchanged, null becomes "". */
+    public String phone(String stored) {
+        return iq.ievent.service.IraqPhone.display(stored);
+    }
+
+    /** R35: true when a stored number is a valid Iraqi mobile (drives the "add your
+     *  number" nudge on the host dashboard). */
+    public boolean validPhone(String stored) {
+        return iq.ievent.service.IraqPhone.isValid(stored);
+    }
+
     /** R34: un-prefixed path of the indexable per-city listing ("/city/baghdad"). */
     public String cityPath(String canonicalEn) {
         return iq.ievent.service.LandingPages.cityPath(canonicalEn);

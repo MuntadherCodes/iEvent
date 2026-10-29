@@ -206,5 +206,7 @@
   "pdf.void": "Void",
   "pdf.cash": "Cash, pay at the door",
   "pdf.showQr": "Show this QR code at the door. Each code admits one person once.",
-  "pdf.verifyAt": "Verify any ticket at"
+  "pdf.verifyAt": "Verify any ticket at",
+  "flash.org.phoneRequired": "Enter your mobile number to create your organizer profile.",
+  "phone.invalid": "Enter a valid Iraqi mobile number, e.g. 0790 123 4567."
 }

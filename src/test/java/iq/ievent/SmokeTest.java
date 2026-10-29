@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -79,6 +80,9 @@ class SmokeTest {
 
     @Autowired
     private iq.ievent.service.HostService hostService;
+
+    @Autowired
+    private iq.ievent.service.UserService userService;
 
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
@@ -1922,5 +1926,182 @@ class SmokeTest {
                         java.time.LocalTime.of(19, 0), true, null),
                 source.getDescription());
         org.junit.jupiter.api.Assertions.assertEquals(liveSlug, source.getSlug());
+    }
+
+    // ---- R35: organizer mobile number, Iraqi numbering plan ----
+
+    @Test
+    void iraqPhoneAcceptsEveryWayIraqisTypeANumberAndRejectsTheRest() {
+        var ok = java.util.Map.ofEntries(
+                java.util.Map.entry("07901234567", "+9647901234567"),
+                java.util.Map.entry("0790 123 4567", "+9647901234567"),
+                java.util.Map.entry("0790-123-4567", "+9647901234567"),
+                java.util.Map.entry("+964 790 123 4567", "+9647901234567"),
+                java.util.Map.entry("00964 790 123 4567", "+9647901234567"),
+                java.util.Map.entry("9647901234567", "+9647901234567"),
+                java.util.Map.entry("+964 0790 123 4567", "+9647901234567"),   // trunk zero kept after +964
+                java.util.Map.entry("7901234567", "+9647901234567"),            // no trunk zero at all
+                java.util.Map.entry("\u0660\u0667\u0669\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667", "+9647901234567"), // Arabic-Indic digits
+                java.util.Map.entry("\u06F0\u06F7\u06F9\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7", "+9647901234567"), // Persian/Kurdish digits
+                java.util.Map.entry("07501234567", "+9647501234567"),           // Korek
+                java.util.Map.entry("07701234567", "+9647701234567"),           // Asiacell
+                java.util.Map.entry("07801234567", "+9647801234567"));          // Zain
+        ok.forEach((in, expected) -> org.junit.jupiter.api.Assertions.assertEquals(expected,
+                iq.ievent.service.IraqPhone.normalize(in).orElse("REJECTED"), in));
+        for (String bad : new String[] {"", "   ", "0790123456", "079012345678", "07101234567",
+                "01 234 5678", "0617 123 456", "+971 50 123 4567", "+1 212 555 0100", "+9641234567",
+                "0790 123 45a7", "+ 0790 123 4567"}) {
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    iq.ievent.service.IraqPhone.normalize(bad).isEmpty(), "must reject [" + bad + "]");
+        }
+        org.junit.jupiter.api.Assertions.assertEquals("+964 790 123 4567", iq.ievent.service.IraqPhone.display("+9647901234567"));
+        org.junit.jupiter.api.Assertions.assertEquals("790 123 4567", iq.ievent.service.IraqPhone.national("+9647901234567"));
+        org.junit.jupiter.api.Assertions.assertEquals("legacy", iq.ievent.service.IraqPhone.display("legacy"));
+        org.junit.jupiter.api.Assertions.assertEquals("", iq.ievent.service.IraqPhone.display(null));
+    }
+
+    @Test
+    void organizerOnboardingRequiresAnIraqiMobileAndKeepsTheTypedValuesOnABounce() throws Exception {
+        String email = "smoke-host-phone+" + System.nanoTime() + "@test.iq";
+        userService.register("Phone Host", email, null, "SmokePassw0rd!");
+
+        // no number: bounced back with the error, the typed values flashed along
+        // (POST under /en: a flashed message is localized when it is CREATED, and the
+        // follow-up GET asserts the English text)
+        var bounce = mockMvc.perform(post("/en/host/start")
+                        .with(csrf()).with(user(email))
+                        .param("orgName", "Phone Org")
+                        .param("handle", "phone-org")
+                        .param("city", "Erbil")
+                        .param("bio", "We host things")
+                        .param("phone", ""))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/host/start"))
+                .andExpect(flash().attributeExists("error", "form"))
+                .andReturn();
+        var session = (org.springframework.mock.web.MockHttpSession) bounce.getRequest().getSession(false);
+        org.junit.jupiter.api.Assertions.assertNotNull(session);
+        mockMvc.perform(get("/en/host/start").session(session).with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Enter your mobile number to create your organizer profile")))
+                .andExpect(content().string(containsString("data-start-step=\"4\"")))
+                .andExpect(content().string(containsString("value=\"Phone Org\"")))
+                .andExpect(content().string(containsString("value=\"phone-org\"")))
+                .andExpect(content().string(containsString("id=\"cityInput\" value=\"Erbil\"")))
+                .andExpect(content().string(containsString("We host things</textarea>")));
+
+        // a landline, a foreign number and a too-short number are all rejected
+        for (String bad : new String[] {"01 234 5678", "+971 50 123 4567", "0790 123"}) {
+            mockMvc.perform(post("/en/host/start")
+                            .with(csrf()).with(user(email))
+                            .param("orgName", "Phone Org")
+                            .param("phone", bad))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(flash().attribute("error", containsString("Enter a valid Iraqi mobile number")));
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(hostService.organizationOf(users_findByEmail(email)).isEmpty(),
+                "no organization until the number is valid");
+
+        // a real Iraqi mobile, typed the Iraqi way: profile created, number stored as E.164
+        mockMvc.perform(post("/host/start")
+                        .with(csrf()).with(user(email))
+                        .param("orgName", "Phone Org")
+                        .param("city", "Erbil")
+                        .param("phone", "0790 123 4567"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/host"));
+        var owner = users_findByEmail(email);
+        org.junit.jupiter.api.Assertions.assertEquals("+9647901234567", owner.getPhone());
+        org.junit.jupiter.api.Assertions.assertEquals(iq.ievent.domain.User.Role.HOST, owner.getRole());
+        org.junit.jupiter.api.Assertions.assertTrue(hostService.organizationOf(owner).isPresent());
+        // and the dashboard has no "add your number" nudge for them
+        mockMvc.perform(get("/en/host").with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"phoneNudge\""))));
+    }
+
+    @Test
+    void onboardingPrefillsAKnownIraqiMobileWithoutTheCountryCode() throws Exception {
+        String email = "smoke-host-prefill+" + System.nanoTime() + "@test.iq";
+        userService.register("Prefill Host", email, "+964 770 123 4567", "SmokePassw0rd!");
+        org.junit.jupiter.api.Assertions.assertEquals("+9647701234567", users_findByEmail(email).getPhone());
+        mockMvc.perform(get("/en/host/start").with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"phone\"")))
+                .andExpect(content().string(containsString("value=\"770 123 4567\"")))
+                .andExpect(content().string(containsString("data-start-step=\"1\"")));
+    }
+
+    @Test
+    void signUpAndProfilePhonesAreOptionalButMustBeIraqiMobilesWhenGiven() throws Exception {
+        // sign-up: a foreign number re-renders the form with the field error
+        String email = "smoke-signup-phone+" + System.nanoTime() + "@test.iq";
+        mockMvc.perform(post("/en/auth/register")
+                        .with(csrf())
+                        .param("fullName", "Phone Signup")
+                        .param("email", email)
+                        .param("phone", "+971 50 123 4567")
+                        .param("password", "SmokePassw0rd!")
+                        .param("terms", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Enter a valid Iraqi mobile number")));
+        // Arabic-Indic digits are fine and land normalized
+        mockMvc.perform(post("/auth/register")
+                        .with(csrf())
+                        .param("fullName", "Phone Signup")
+                        .param("email", email)
+                        .param("phone", "\u0660\u0667\u0669\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667")
+                        .param("password", "SmokePassw0rd!")
+                        .param("terms", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/auth/login?registered"));
+        org.junit.jupiter.api.Assertions.assertEquals("+9647901234567", users_findByEmail(email).getPhone());
+
+        // profile: an invalid number is refused with a flash, a valid one is stored normalized
+        // (/en so the flashed message is the English one)
+        mockMvc.perform(multipart("/en/me/profile")
+                        .param("fullName", "Phone Signup")
+                        .param("phone", "12345")
+                        .with(csrf()).with(user(email)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", containsString("Enter a valid Iraqi mobile number")));
+        org.junit.jupiter.api.Assertions.assertEquals("+9647901234567", users_findByEmail(email).getPhone());
+        mockMvc.perform(multipart("/me/profile")
+                        .param("fullName", "Phone Signup")
+                        .param("phone", "0750-987-6543")
+                        .with(csrf()).with(user(email)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/me/profile"));
+        org.junit.jupiter.api.Assertions.assertEquals("+9647509876543", users_findByEmail(email).getPhone());
+        // the profile shows it readably, and the number can still be cleared
+        mockMvc.perform(get("/en/me/profile").with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("value=\"+964 750 987 6543\"")));
+        mockMvc.perform(multipart("/me/profile")
+                        .param("fullName", "Phone Signup")
+                        .param("phone", "")
+                        .with(csrf()).with(user(email)))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertNull(users_findByEmail(email).getPhone());
+    }
+
+    @Test
+    void dashboardNudgesOwnersWithoutAnIraqiMobile() throws Exception {
+        // the seeded demo host has no number on file
+        var host = users_findByEmail(DEMO_HOST_EMAIL);
+        String before = host.getPhone();
+        try {
+            userService.updateProfile(host, host.getFullName(), null);
+            mockMvc.perform(get("/en/host").with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("id=\"phoneNudge\"")))
+                    .andExpect(content().string(containsString("Add your mobile number")));
+            userService.updateProfile(host, host.getFullName(), "07801234567");
+            mockMvc.perform(get("/host").with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString("id=\"phoneNudge\""))));
+        } finally {
+            userService.updateProfile(host, host.getFullName(), before);
+        }
     }
 }
