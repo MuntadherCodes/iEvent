@@ -97,6 +97,12 @@
             </div>
             <button type="submit" class="shrink-0 self-start rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:self-auto" th:text="#{host.pay.saveToggle}">Save toggle</button>
           </div>
+          <!-- R36: checkout shows transfer buyers an own-risk note and a number to call first -->
+          <p id="buyerPhoneNote" class="mt-3 flex items-start gap-2 text-xs leading-relaxed text-ink-500">
+            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-phone"/></svg>
+            <span th:if="${organizerPhone != null}">[[#{host.pay.buyerSeesPhone}]] <span dir="ltr" class="inline-block font-semibold tabular-nums text-ink-800" th:text="${@t.phone(organizerPhone)}">+964 770 123 4567</span> <a th:href="@{/host/settings(tab='brand')}" class="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2" th:text="#{host.pay.changePhone}">Change</a></span>
+            <span th:unless="${organizerPhone != null}">[[#{host.pay.buyerSeesNoPhone}]] <a th:href="@{/host/settings(tab='brand')}" class="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2" th:text="#{host.pay.addPhone}">Add a contact phone</a></span>
+          </p>
         </form>
       </div>
 

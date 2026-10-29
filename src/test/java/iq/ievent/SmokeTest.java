@@ -84,6 +84,9 @@ class SmokeTest {
     @Autowired
     private iq.ievent.service.UserService userService;
 
+    @Autowired
+    private iq.ievent.service.CatalogService catalogService;
+
     @Test
     void homeRendersAndMentionsIevent() throws Exception {
         // English home lives under /en (the bare root is covered by arabicDefaultAtRoot).
@@ -2103,5 +2106,79 @@ class SmokeTest {
         } finally {
             userService.updateProfile(host, host.getFullName(), before);
         }
+    }
+
+    // ---- R36: transfer = own risk, with the organizer's number to call first ----
+
+    @Test
+    void checkoutWarnsTransferBuyersAndShowsTheOrganizerNumber() throws Exception {
+        // the demo organizer has a public contact phone (seed) -> that one is shown,
+        // inside the transfer-only block (cash on arrival hides it client-side)
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"transferRiskNote\"")))
+                .andExpect(content().string(containsString("so it is at your own risk")))
+                .andExpect(content().string(containsString("Unsure? Call the organizer first:")))
+                .andExpect(content().string(containsString("href=\"tel:+964 770 123 4567\"")))
+                .andExpect(content().string(containsString(">+964 770 123 4567</a>")));
+        mockMvc.perform(get("/e/baghdad-nights-music-festival/checkout"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("على مسؤوليتك الخاصة")))
+                .andExpect(content().string(containsString("اتصل بالمنظّم أولاً")));
+        // the organizer's payment settings say which number buyers see
+        mockMvc.perform(get("/en/host/settings/payments").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"buyerPhoneNote\"")))
+                .andExpect(content().string(containsString("at their own risk, and this number")))
+                .andExpect(content().string(containsString("+964 770 123 4567")))
+                .andExpect(content().string(containsString("href=\"/en/host/settings?tab=brand\"")));
+    }
+
+    @Test
+    void organizerPhoneFallsBackToTheOwnersAccountNumber() {
+        var owner = users_findByEmail(DEMO_HOST_EMAIL);
+        var organization = organizations.findByHandle("zainevents").orElseThrow();
+        String contactBefore = organization.getContactPhone();
+        String ownerBefore = owner.getPhone();
+        try {
+            // contact phone wins when set
+            org.junit.jupiter.api.Assertions.assertEquals(java.util.Optional.of("+964 770 123 4567"),
+                    catalogService.organizerPhone(organization));
+            // without it, the owner's (R35) account number; without that, nothing
+            organization.setContactPhone(null);
+            organizations.save(organization);
+            userService.updateProfile(owner, owner.getFullName(), null);
+            org.junit.jupiter.api.Assertions.assertTrue(catalogService.organizerPhone(organization).isEmpty());
+            userService.updateProfile(owner, owner.getFullName(), "0790 123 4567");
+            org.junit.jupiter.api.Assertions.assertEquals(java.util.Optional.of("+9647901234567"),
+                    catalogService.organizerPhone(organization));
+        } finally {
+            organization.setContactPhone(contactBefore);
+            organizations.save(organization);
+            userService.updateProfile(owner, owner.getFullName(), ownerBefore);
+        }
+    }
+
+    @Test
+    void pendingTransferOrderPageOffersTheOrganizerNumber() throws Exception {
+        String email = "qa-risk-" + System.nanoTime() + "@example.iq";
+        var result = mockMvc.perform(multipart("/e/baghdad-nights-music-festival/checkout")
+                        .param("qty-" + generalAdmissionId(), "1")
+                        .param("buyerName", "QA Risk")
+                        .param("buyerEmail", email)
+                        .param("paymentMethodLabel", "ZainCash wallet")
+                        .param("transferReference", "QA-RISK-1")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith("/orders/")))
+                .andReturn();
+        String location = result.getResponse().getHeader("Location");
+        var session = (org.springframework.mock.web.MockHttpSession) result.getRequest().getSession(false);
+        org.junit.jupiter.api.Assertions.assertNotNull(session);
+        mockMvc.perform(get("/en" + location).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"organizerPhoneLine\"")))
+                .andExpect(content().string(containsString("Questions about your transfer? Call the organizer:")))
+                .andExpect(content().string(containsString(">+964 770 123 4567</a>")));
     }
 }

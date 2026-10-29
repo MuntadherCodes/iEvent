@@ -284,6 +284,23 @@ public class CatalogService {
                         o.getPayWalletBank(), o.getPayInstructions()));
     }
 
+    /** R36: the number a buyer can call before transferring money to the organizer:
+     *  the organizer's public contact phone when set (Settings > Branding), else the
+     *  owner's account number (required at onboarding since R35). Empty for older
+     *  organizers that have neither. */
+    public Optional<String> organizerPhone(Organization organization) {
+        if (organization == null) return Optional.empty();
+        String contact = organization.getContactPhone();
+        if (contact != null && !contact.isBlank()) return Optional.of(contact.trim());
+        if (organization.getOwnerUserId() == null) return Optional.empty();
+        return jdbc.queryForList("SELECT phone FROM users WHERE id = ?", String.class,
+                        organization.getOwnerUserId())
+                .stream()
+                .filter(p -> p != null && !p.isBlank())
+                .map(String::trim)
+                .findFirst();
+    }
+
     public List<EventCard> related(String slug, int limit) {
         return events.findBySlug(slug)
                 .map(e -> toCards(events.findRelated(e.getId(), e.getCategory().name(), e.getCity(),

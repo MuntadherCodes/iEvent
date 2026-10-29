@@ -102,6 +102,7 @@ public class HostController {
     private final iq.ievent.service.AiContentService aiContentService;
     private final iq.ievent.service.PexelsService pexelsService;
     private final iq.ievent.service.PaymentMethodService paymentMethodService;
+    private final iq.ievent.service.CatalogService catalog;
     private final MessageSource messages;
 
     public HostController(UserService userService, HostService hostService, OrderService orderService,
@@ -111,8 +112,10 @@ public class HostController {
                           iq.ievent.service.AiContentService aiContentService,
                           iq.ievent.service.PexelsService pexelsService,
                           iq.ievent.service.PaymentMethodService paymentMethodService,
+                          iq.ievent.service.CatalogService catalog,
                           MessageSource messages,
                           @org.springframework.beans.factory.annotation.Value("${app.base-url}") String baseUrl) {
+        this.catalog = catalog;
         this.userService = userService;
         this.hostService = hostService;
         this.orderService = orderService;
@@ -1608,6 +1611,8 @@ public class HostController {
         model.addAttribute("isOwner", hostService.accessOf(u).map(a -> a.owner()).orElse(false));
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
+        // R36: which number buyers see next to the own-risk note at checkout
+        model.addAttribute("organizerPhone", catalog.organizerPhone(org).orElse(null));
         return "host/settings-payments";
     }
 

@@ -237,6 +237,10 @@ public class CheckoutController {
         model.addAttribute("directPay", directPay);
         model.addAttribute("hasPayment", !paymentMethods.isEmpty() || directPay != null);
         model.addAttribute("requirePaymentProof", requirePaymentProof);
+        // R36: transfers go to the organizer's own account, so the transfer methods
+        // carry an own-risk note plus the organizer's number to call first
+        model.addAttribute("organizerPhone", eventEntity == null ? null
+                : catalog.organizerPhone(eventEntity.getOrganization()).orElse(null));
         return "checkout";
     }
 
@@ -348,6 +352,9 @@ public class CheckoutController {
         }
         boolean pending = order.getStatus() == Order.Status.PENDING_CONFIRMATION;
         boolean confirmed = order.getStatus() == Order.Status.CONFIRMED;
+        // R36: while a transfer waits for the organizer, the page offers their number
+        model.addAttribute("organizerPhone", pending
+                ? catalog.organizerPhone(order.getEvent().getOrganization()).orElse(null) : null);
 
         String statusLabel = switch (order.getStatus()) {
             case PENDING_CONFIRMATION -> msg("status.order.pending");

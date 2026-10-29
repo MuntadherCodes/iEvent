@@ -262,6 +262,17 @@
 
             <!-- Transfer proof — hidden entirely when the buyer picks cash on arrival -->
             <div id="transferProofBlock">
+              <!-- R36: money goes to the organizer's own account, not through iEvent, so a
+                   transfer is at the buyer's own risk; the organizer's number lets them
+                   call before sending anything. Inside the proof block so cash on arrival
+                   (and free orders) never show it. -->
+              <div id="transferRiskNote" class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+                <div class="min-w-0">
+                  <p th:text="#{public.checkout.transferRisk}">You are transferring straight to the organizer's own account. iEvent does not hold or guarantee this payment, so it is at your own risk: send the exact amount and keep your receipt until your tickets are confirmed.</p>
+                  <p th:if="${organizerPhone != null}" class="mt-1.5 font-semibold">[[#{public.checkout.callFirst}]] <a th:href="'tel:' + ${organizerPhone}" dir="ltr" class="inline-block tabular-nums underline decoration-amber-400 underline-offset-2 hover:text-amber-900" th:text="${@t.phone(organizerPhone)}">+964 770 123 4567</a></p>
+                </div>
+              </div>
               <div class="mt-4">
                 <label for="transferReference" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.transferReference}]] <span class="font-normal text-ink-400" th:text="#{public.checkout.optional}">(optional)</span></label>
                 <input id="transferReference" name="transferReference" type="text" th:placeholder="#{public.checkout.transferRefPh}" placeholder="e.g. transaction number or sender phone" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
