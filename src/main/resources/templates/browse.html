@@ -26,9 +26,11 @@
       </nav>
       <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
         <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="${landing != null} ? ${landing.heading} : #{public.nav.browse}">Browse events</h1>
-        <!-- R37 #3: the total is only shown once the visitor narrowed things down (a
-             filter or a landing page); the bare catalogue carries no number. -->
-        <p th:if="${hasFilters or landing != null}" id="resultsCount" class="text-sm text-ink-500"><span class="font-bold tabular-nums text-ink-800" th:text="${totalCountLine}">1,248</span> [[#{public.browse.acrossIraq}]]</p>
+        <!-- R37 #3 / R38 #1: the total is only shown once the visitor applied a filter
+             (search, city, price, category or date), i.e. exactly when the active-filter
+             chips row below shows. The bare catalogue and the landing pages (/city/...,
+             /category/..., /exhibitions ... reached from the home page) carry no number. -->
+        <p th:if="${hasFilters}" id="resultsCount" class="text-sm text-ink-500"><span class="font-bold tabular-nums text-ink-800" th:text="${totalCountLine}">1,248</span> [[#{public.browse.acrossIraq}]]</p>
       </div>
       <p th:if="${landing != null}" class="mt-3 max-w-3xl text-base leading-relaxed text-ink-600" th:text="${landing.intro}">Discover upcoming events in Baghdad.</p>
     </div>

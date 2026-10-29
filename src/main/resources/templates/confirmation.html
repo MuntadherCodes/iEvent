@@ -210,7 +210,8 @@
         <span class="font-semibold tabular-nums text-ink-800" th:text="${item.lineLabel}">70,000 IQD</span>
       </div>
       <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.subtotalLabel}">70,000 IQD</span></div>
-      <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.confirm.bookingFee}">Booking fee</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.feeLabel}">3,000 IQD</span></div>
+      <!-- R38 #4: only for an order that actually carried a fee (feeLabel is null otherwise) -->
+      <div th:if="${order.feeLabel != null}" class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.confirm.bookingFee}">Booking fee</span><span class="font-semibold tabular-nums text-ink-800" th:text="${order.feeLabel}">3,000 IQD</span></div>
       <div th:if="${order.discountLabel != null}" class="flex justify-between py-1 text-green-700">
         <span class="flex items-center gap-2">[[#{public.checkout.discount}]] <span th:if="${order.promoCode != null}" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-tag"/></svg><span th:text="${order.promoCode}">SUMMER10</span></span></span>
         <span class="font-semibold tabular-nums" th:text="'−' + ${order.discountLabel}">−5,000 IQD</span>

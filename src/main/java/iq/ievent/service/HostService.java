@@ -1185,11 +1185,23 @@ public class HostService {
     @Transactional
     public void savePaymentSettings(Organization org, boolean enabled, String cardNumber,
                                     String accountName, String walletBank, String instructions) {
+        savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions,
+                org.getPaymentPhone());
+    }
+
+    /** R38 #2: same, plus the number buyers may call before transferring. The caller
+     *  validates it (an Iraqi mobile in E.164) or passes null to fall back to the
+     *  contact phone / owner number (CatalogService.organizerPhone). */
+    @Transactional
+    public void savePaymentSettings(Organization org, boolean enabled, String cardNumber,
+                                    String accountName, String walletBank, String instructions,
+                                    String paymentPhoneE164) {
         org.setDirectPaymentsEnabled(enabled);
         org.setPayCardNumber(blankToNull(cardNumber));
         org.setPayAccountName(blankToNull(accountName));
         org.setPayWalletBank(blankToNull(walletBank));
         org.setPayInstructions(blankToNull(instructions));
+        org.setPaymentPhone(blankToNull(paymentPhoneE164));
         organizations.save(org);
     }
 

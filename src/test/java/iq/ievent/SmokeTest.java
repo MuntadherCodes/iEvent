@@ -2125,23 +2125,36 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("على مسؤوليتك الخاصة")))
                 .andExpect(content().string(containsString("اتصل بالمنظّم أولاً")));
-        // the organizer's payment settings say which number buyers see
+        // R38 #2: the organizer's payment settings carry the field for that number; empty
+        // here, so the note explains the fallback (the demo contact phone from Branding)
         mockMvc.perform(get("/en/host/settings/payments").with(user(DEMO_HOST_EMAIL)))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"buyerPhoneField\"")))
+                .andExpect(content().string(containsString("name=\"paymentPhone\"")))
+                .andExpect(content().string(containsString("Number buyers can call before transferring")))
                 .andExpect(content().string(containsString("id=\"buyerPhoneNote\"")))
-                .andExpect(content().string(containsString("at their own risk, and this number")))
+                .andExpect(content().string(containsString("Leave it empty and buyers see the contact phone from your Branding settings:")))
                 .andExpect(content().string(containsString("+964 770 123 4567")))
-                .andExpect(content().string(containsString("href=\"/en/host/settings?tab=brand\"")));
+                .andExpect(content().string(containsString("href=\"/en/host/settings?tab=brand\"")))
+                .andExpect(content().string(not(containsString("Save toggle"))));
     }
 
     @Test
     void organizerPhoneFallsBackToTheOwnersAccountNumber() {
         var owner = users_findByEmail(DEMO_HOST_EMAIL);
         var organization = organizations.findByHandle("zainevents").orElseThrow();
+        String paymentBefore = organization.getPaymentPhone();
         String contactBefore = organization.getContactPhone();
         String ownerBefore = owner.getPhone();
         try {
-            // contact phone wins when set
+            // R38: the payments number wins over everything when set
+            organization.setPaymentPhone("+9647811111111");
+            organizations.save(organization);
+            org.junit.jupiter.api.Assertions.assertEquals(java.util.Optional.of("+9647811111111"),
+                    catalogService.organizerPhone(organization));
+            organization.setPaymentPhone(null);
+            organizations.save(organization);
+            // then the contact phone
             org.junit.jupiter.api.Assertions.assertEquals(java.util.Optional.of("+964 770 123 4567"),
                     catalogService.organizerPhone(organization));
             // without it, the owner's (R35) account number; without that, nothing
@@ -2153,9 +2166,89 @@ class SmokeTest {
             org.junit.jupiter.api.Assertions.assertEquals(java.util.Optional.of("+9647901234567"),
                     catalogService.organizerPhone(organization));
         } finally {
+            organization.setPaymentPhone(paymentBefore);
             organization.setContactPhone(contactBefore);
             organizations.save(organization);
             userService.updateProfile(owner, owner.getFullName(), ownerBefore);
+        }
+    }
+
+    // ---- R38 #2: the organizer sets the buyer-visible number on Settings > Payments ----
+
+    @Test
+    void organizerSetsTheNumberBuyersCallFromThePaymentsPage() throws Exception {
+        var organization = organizations.findByHandle("zainevents").orElseThrow();
+        String paymentBefore = organization.getPaymentPhone();
+        boolean enabledBefore = organization.isDirectPaymentsEnabled();
+        // the POSTs below omit the form's hidden legacy pay fields (card number, holder,
+        // wallet, instructions), which the save nulls; put them back for a persistent DB
+        String cardBefore = organization.getPayCardNumber();
+        String holderBefore = organization.getPayAccountName();
+        String walletBefore = organization.getPayWalletBank();
+        String instructionsBefore = organization.getPayInstructions();
+        try {
+            // a valid Iraqi mobile (typed with the leading 0 and spaces) is stored in E.164
+            // and immediately replaces the contact phone at checkout and on the page itself
+            mockMvc.perform(post("/en/host/settings/payments")
+                            .with(csrf()).with(user(DEMO_HOST_EMAIL))
+                            .param("enabled", "true")
+                            .param("paymentPhone", "0781 234 5678"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/host/settings/payments"))
+                    .andExpect(flash().attributeExists("saved"));
+            org.junit.jupiter.api.Assertions.assertEquals("+9647812345678",
+                    organizations.findByHandle("zainevents").orElseThrow().getPaymentPhone());
+            mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("href=\"tel:+9647812345678\"")))
+                    .andExpect(content().string(containsString(">+964 781 234 5678</a>")))
+                    .andExpect(content().string(not(containsString("+964 770 123 4567"))));
+            mockMvc.perform(get("/en/host/settings/payments").with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("name=\"paymentPhone\" type=\"tel\" inputmode=\"numeric\" autocomplete=\"tel-national\" value=\"781 234 5678\"")))
+                    .andExpect(content().string(not(containsString("id=\"buyerPhoneNote\""))));
+
+            // a landline is rejected: nothing changes, the typed value and the error come back
+            var bounce = mockMvc.perform(post("/en/host/settings/payments")
+                            .with(csrf()).with(user(DEMO_HOST_EMAIL))
+                            .param("enabled", "false")
+                            .param("paymentPhone", "01 234 5678"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/host/settings/payments"))
+                    .andExpect(flash().attribute("pmError", containsString("Enter a valid Iraqi mobile number")))
+                    .andExpect(flash().attribute("paymentPhoneInput", "01 234 5678"))
+                    .andReturn();
+            var after = organizations.findByHandle("zainevents").orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals("+9647812345678", after.getPaymentPhone());
+            org.junit.jupiter.api.Assertions.assertTrue(after.isDirectPaymentsEnabled(), "a rejected number saves nothing, the toggle included");
+            var session = (org.springframework.mock.web.MockHttpSession) bounce.getRequest().getSession(false);
+            org.junit.jupiter.api.Assertions.assertNotNull(session);
+            mockMvc.perform(get("/en/host/settings/payments").session(session).with(user(DEMO_HOST_EMAIL)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Enter a valid Iraqi mobile number")))
+                    .andExpect(content().string(containsString("value=\"01 234 5678\"")));
+
+            // clearing the field brings the fallback (the contact phone) back
+            mockMvc.perform(post("/en/host/settings/payments")
+                            .with(csrf()).with(user(DEMO_HOST_EMAIL))
+                            .param("enabled", "true")
+                            .param("paymentPhone", "  "))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(flash().attributeExists("saved"));
+            org.junit.jupiter.api.Assertions.assertNull(
+                    organizations.findByHandle("zainevents").orElseThrow().getPaymentPhone());
+            mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(">+964 770 123 4567</a>")));
+        } finally {
+            var restore = organizations.findByHandle("zainevents").orElseThrow();
+            restore.setPaymentPhone(paymentBefore);
+            restore.setDirectPaymentsEnabled(enabledBefore);
+            restore.setPayCardNumber(cardBefore);
+            restore.setPayAccountName(holderBefore);
+            restore.setPayWalletBank(walletBefore);
+            restore.setPayInstructions(instructionsBefore);
+            organizations.save(restore);
         }
     }
 
@@ -2203,10 +2296,12 @@ class SmokeTest {
                 .andExpect(content().string(containsString("id=\"resultsCount\"")))
                 .andExpect(content().string(containsString("events across Iraq</p>")))
                 .andExpect(content().string(containsString("tabular-nums text-white\">2</span>")));
-        // a landing page shows its count too
+        // R38 #1: a landing page (reached from the home page tiles) is not a filter the
+        // visitor applied, so it carries no count either
         mockMvc.perform(get("/en/city/baghdad"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("id=\"resultsCount\"")));
+                .andExpect(content().string(containsString("Events in Baghdad")))
+                .andExpect(content().string(not(containsString("id=\"resultsCount\""))));
         // page N as a bare fragment: cards only, no document around them
         String fragment = mockMvc.perform(get("/en/browse?q=Baghdad%20Nights&partial=1&page=0"))
                 .andExpect(status().isOk())

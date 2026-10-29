@@ -285,11 +285,14 @@ public class CatalogService {
     }
 
     /** R36: the number a buyer can call before transferring money to the organizer:
-     *  the organizer's public contact phone when set (Settings > Branding), else the
-     *  owner's account number (required at onboarding since R35). Empty for older
-     *  organizers that have neither. */
+     *  the payments number when the organizer set one (Settings > Payments, R38), else
+     *  the public contact phone (Settings > Branding), else the owner's account number
+     *  (required at onboarding since R35). Empty for older organizers that have none. */
     public Optional<String> organizerPhone(Organization organization) {
         if (organization == null) return Optional.empty();
+        // R38 #2: the number the organizer chose for payments wins over everything
+        String payment = organization.getPaymentPhone();
+        if (payment != null && !payment.isBlank()) return Optional.of(payment.trim());
         String contact = organization.getContactPhone();
         if (contact != null && !contact.isBlank()) return Optional.of(contact.trim());
         if (organization.getOwnerUserId() == null) return Optional.empty();

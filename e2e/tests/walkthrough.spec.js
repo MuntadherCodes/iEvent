@@ -2075,6 +2075,11 @@ test('at. payment methods: seeded card listed, add "Test FIB", disable/enable to
   await expect(zainCard.getByText('0770 123 4567')).toBeVisible();
   await expect(zainCard.getByText('Enabled', { exact: true })).toBeVisible();
 
+  log('R38: the direct-payments card carries the number buyers can call, empty for the demo org, with the Branding fallback explained');
+  await expect(page.locator('#pay-phone')).toBeVisible();
+  await expect(page.locator('#pay-phone')).toHaveValue('');
+  await expect(page.locator('#buyerPhoneNote')).toContainText('+964 770 123 4567');
+
   log('adding a method "Test FIB" (label + number + holder)');
   await page.locator('#pm-label').fill('Test FIB');
   await page.locator('#pm-number').fill('1234 5678 9012');
@@ -3146,7 +3151,7 @@ test('bt. payment warnings (R13): review #rvPayWarn, publish flash, persistent c
   await page.goto('/host/settings/payments');
   await page.locator('label[title="Enable direct payments"]').click();
   await expect(page.locator('label[title="Enable direct payments"] input')).not.toBeChecked();
-  await page.getByRole('button', { name: 'Save toggle' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click(); // R38: the direct-payments card saves the toggle and the buyers' number together
   await expect(page.locator('label[title="Enable direct payments"] input')).not.toBeChecked();
 
   log('wizard with a PAID ticket for a payments-less org');
@@ -3186,7 +3191,7 @@ test('bt. payment warnings (R13): review #rvPayWarn, publish flash, persistent c
   await page.goto('/host/settings/payments');
   await page.locator('label[title="Enable direct payments"]').click();
   await expect(page.locator('label[title="Enable direct payments"] input')).toBeChecked();
-  await page.getByRole('button', { name: 'Save toggle' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click(); // R38: the direct-payments card saves the toggle and the buyers' number together
   await expect(page.locator('label[title="Enable direct payments"] input')).toBeChecked();
   await page.locator('#pm-label').fill('BT Wallet');
   await page.locator('#pm-number').fill('0790 222 3333');

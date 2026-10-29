@@ -589,11 +589,13 @@
   "host.pay.refundNote": "Switch it off to keep the policy private: event pages and checkout then show no refund text at all.",
   "host.start.phone": "Mobile number",
   "host.start.phonePlaceholder": "7XX XXX XXXX",
-  "host.start.phoneHint": "Iraqi mobile number, with or without the leading 0. We use it to reach you, and buyers paying by transfer see it so they can call you first (a contact phone set in Settings takes its place).",
-  "host.dash.phoneBanner": "Add your mobile number so we can reach you about your events. Buyers paying by transfer see it too, unless you set a contact phone in Settings.",
+  "host.start.phoneHint": "Iraqi mobile number, with or without the leading 0. We use it to reach you, and buyers paying by transfer see it so they can call you first (a number you set in Settings takes its place).",
+  "host.dash.phoneBanner": "Add your mobile number so we can reach you about your events. Buyers paying by transfer see it too, unless you set a number in Settings.",
   "host.dash.phoneBannerCta": "Add number",
-  "host.pay.buyerSeesPhone": "Buyers paying by transfer see a note that the transfer is at their own risk, and this number to call you before sending money:",
-  "host.pay.buyerSeesNoPhone": "Buyers paying by transfer see a note that the transfer is at their own risk. Add a contact phone so they can call you before sending money.",
-  "host.pay.changePhone": "Change",
-  "host.pay.addPhone": "Add a contact phone"
+  "host.pay.buyerPhone": "Number buyers can call before transferring",
+  "host.pay.buyerPhoneHint": "Buyers paying by transfer see a note that the transfer is at their own risk, and this number to call you before sending money. It also appears on their pending order. Iraqi mobile numbers only.",
+  "host.pay.buyerPhoneFallbackContact": "Leave it empty and buyers see the contact phone from your Branding settings:",
+  "host.pay.buyerPhoneFallbackOwner": "Leave it empty and buyers see the owner's account number:",
+  "host.pay.buyerPhoneNone": "Leave it empty and buyers see no number at all: there is no contact phone in your Branding settings and no number on the owner's account.",
+  "host.pay.buyerPhoneChangeFallback": "Change it in Branding"
 }

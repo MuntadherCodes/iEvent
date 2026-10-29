@@ -90,19 +90,34 @@
           <input type="hidden" name="walletBank" th:value="${org.payWalletBank}">
           <input type="hidden" name="instructions" th:value="${org.payInstructions}">
 
+          <!-- R36 / R38 #2: checkout shows transfer buyers an own-risk note and a number to
+               call first; the organizer sets that number right here (Iraqi mobile, fixed
+               +964 prefix like onboarding). Empty = fall back to the Branding contact phone,
+               then the owner's account number (CatalogService.organizerPhone). -->
+          <div id="buyerPhoneField" class="mt-4 rounded-xl border border-ink-100 bg-ink-50/60 p-4">
+            <label for="pay-phone" class="flex items-center gap-2 text-sm font-semibold text-ink-800"><svg class="h-4 w-4 text-ink-400" aria-hidden="true"><use href="#i-phone"/></svg><span th:text="#{host.pay.buyerPhone}">Number buyers can call before transferring</span></label>
+            <p class="mt-1 text-xs leading-relaxed text-ink-500" th:text="#{host.pay.buyerPhoneHint}">Buyers paying by transfer see a note that the transfer is at their own risk, and this number to call you before sending money. It also appears on their pending order. Iraqi mobile numbers only.</p>
+            <div class="mt-3 flex max-w-xs overflow-hidden rounded-xl border border-ink-200 bg-white focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100" dir="ltr">
+              <span class="flex items-center border-e border-ink-200 bg-ink-50 px-3 text-sm font-semibold text-ink-500">+964</span>
+              <input id="pay-phone" name="paymentPhone" type="tel" inputmode="numeric" autocomplete="tel-national" th:value="${paymentPhoneInput}" placeholder="790 123 4567" class="w-full px-3 py-3 text-sm tabular-nums outline-none placeholder:text-ink-400">
+            </div>
+            <p id="buyerPhoneNote" th:if="${paymentPhoneInput == ''}" class="mt-2 text-xs leading-relaxed text-ink-500">
+              <th:block th:if="${fallbackPhone != null}">
+                <span th:text="${fallbackIsContact} ? #{host.pay.buyerPhoneFallbackContact} : #{host.pay.buyerPhoneFallbackOwner}">Leave it empty and buyers see the owner's account number:</span>
+                <span dir="ltr" class="inline-block font-semibold tabular-nums text-ink-800" th:text="${@t.phone(fallbackPhone)}">+964 770 123 4567</span>
+                <a th:if="${fallbackIsContact}" th:href="@{/host/settings(tab='brand')}" class="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2" th:text="#{host.pay.buyerPhoneChangeFallback}">Change it in Branding</a>
+              </th:block>
+              <span th:unless="${fallbackPhone != null}" th:text="#{host.pay.buyerPhoneNone}">Leave it empty and buyers see no number at all: there is no contact phone in your Branding settings and no number on the owner's account.</span>
+            </p>
+          </div>
+
           <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800">
               <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
               <span><span class="font-semibold" th:text="#{host.pay.responsible}">You are responsible for confirming transfers before tickets are issued</span><span th:text="#{host.pay.responsibleSub}"> — pending orders wait in </span><a th:href="@{/host/orders(status='pending')}" class="font-semibold underline decoration-amber-300 underline-offset-2" th:text="#{host.nav.orders}">Orders</a>.</span>
             </div>
-            <button type="submit" class="shrink-0 self-start rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:self-auto" th:text="#{host.pay.saveToggle}">Save toggle</button>
+            <button type="submit" class="shrink-0 self-start rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98] sm:self-auto" th:text="#{host.set.saveChanges}">Save changes</button>
           </div>
-          <!-- R36: checkout shows transfer buyers an own-risk note and a number to call first -->
-          <p id="buyerPhoneNote" class="mt-3 flex items-start gap-2 text-xs leading-relaxed text-ink-500">
-            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-phone"/></svg>
-            <span th:if="${organizerPhone != null}">[[#{host.pay.buyerSeesPhone}]] <span dir="ltr" class="inline-block font-semibold tabular-nums text-ink-800" th:text="${@t.phone(organizerPhone)}">+964 770 123 4567</span> <a th:href="@{/host/settings(tab='brand')}" class="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2" th:text="#{host.pay.changePhone}">Change</a></span>
-            <span th:unless="${organizerPhone != null}">[[#{host.pay.buyerSeesNoPhone}]] <a th:href="@{/host/settings(tab='brand')}" class="font-semibold text-brand-600 underline decoration-brand-300 underline-offset-2" th:text="#{host.pay.addPhone}">Add a contact phone</a></span>
-          </p>
         </form>
       </div>
 

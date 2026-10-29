@@ -1611,8 +1611,18 @@ public class HostController {
         model.addAttribute("isOwner", hostService.accessOf(u).map(a -> a.owner()).orElse(false));
         model.addAttribute("currentUser", u);
         model.addAttribute("org", org);
-        // R36: which number buyers see next to the own-risk note at checkout
-        model.addAttribute("organizerPhone", catalog.organizerPhone(org).orElse(null));
+        // R38 #2: the payments number the organizer typed (national digits behind the
+        // fixed +964 prefix); a rejected submission flashes the raw input back instead
+        if (!model.containsAttribute("paymentPhoneInput")) {
+            model.addAttribute("paymentPhoneInput",
+                    iq.ievent.service.IraqPhone.normalize(org.getPaymentPhone())
+                            .map(iq.ievent.service.IraqPhone::national).orElse(""));
+        }
+        // R36: which number buyers see next to the own-risk note at checkout when the
+        // payments number is empty (contact phone, else the owner's account number)
+        model.addAttribute("fallbackPhone", catalog.organizerPhone(org).orElse(null));
+        model.addAttribute("fallbackIsContact", org.getPaymentPhone() == null
+                && org.getContactPhone() != null && !org.getContactPhone().isBlank());
         return "host/settings-payments";
     }
 
@@ -1623,12 +1633,26 @@ public class HostController {
                                       @RequestParam(required = false) String accountName,
                                       @RequestParam(required = false) String walletBank,
                                       @RequestParam(required = false) String instructions,
+                                      @RequestParam(required = false) String paymentPhone,
                                       RedirectAttributes redirect) {
         User u = user(principal);
         Organization org = hostService.organizationOf(u).orElse(null);
         if (org == null) return "redirect:/host/start";
         requireOwner(u);
-        hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank, instructions);
+        // R38 #2: the number buyers may call is optional, but when given it must be an
+        // Iraqi mobile (same gate as onboarding, R35); nothing is saved on a bad number
+        String phoneE164 = null;
+        if (paymentPhone != null && !paymentPhone.isBlank()) {
+            java.util.Optional<String> normalized = iq.ievent.service.IraqPhone.normalize(paymentPhone);
+            if (normalized.isEmpty()) {
+                redirect.addFlashAttribute("pmError", msg("phone.invalid"));
+                redirect.addFlashAttribute("paymentPhoneInput", paymentPhone.trim());
+                return "redirect:/host/settings/payments";
+            }
+            phoneE164 = normalized.get();
+        }
+        hostService.savePaymentSettings(org, enabled, cardNumber, accountName, walletBank,
+                instructions, phoneE164);
         redirect.addFlashAttribute("saved", true);
         return "redirect:/host/settings/payments";
     }

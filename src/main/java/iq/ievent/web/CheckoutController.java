@@ -406,7 +406,9 @@ public class CheckoutController {
                 order.getBuyerName(), order.getBuyerEmail(),
                 statusLabel,
                 pending,
-                Format.iqd(order.getSubtotalIqd()), Format.iqd(order.getBookingFeeIqd()),
+                Format.iqd(order.getSubtotalIqd()),
+                // R38 #4: no fee line for an order that carried no fee (waived or absorbed)
+                order.getBookingFeeIqd() > 0 ? Format.iqd(order.getBookingFeeIqd()) : null,
                 Format.iqd(order.getTotalIqd()),
                 order.getDiscountIqd() > 0 ? Format.iqd(order.getDiscountIqd()) : null,
                 order.getPromoCode(), items,

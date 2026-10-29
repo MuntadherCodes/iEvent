@@ -46,6 +46,12 @@ public class Organization {
     @Column(name = "pay_instructions")
     private String payInstructions;
 
+    /** R38 #2: the number buyers may call before a transfer (E.164 Iraqi mobile), set on
+     *  Settings > Payments. NULL falls back to contactPhone, then the owner's number
+     *  (CatalogService.organizerPhone). */
+    @Column(name = "payment_phone")
+    private String paymentPhone;
+
     @Column(name = "contact_email")
     private String contactEmail;
 
@@ -114,6 +120,8 @@ public class Organization {
     public void setPayWalletBank(String payWalletBank) { this.payWalletBank = Text.clip(payWalletBank, 60); }
     public String getPayInstructions() { return payInstructions; }
     public void setPayInstructions(String payInstructions) { this.payInstructions = payInstructions; }
+    public String getPaymentPhone() { return paymentPhone; }
+    public void setPaymentPhone(String paymentPhone) { this.paymentPhone = Text.clip(paymentPhone, 32); }
     public String getContactEmail() { return contactEmail; }
     public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
     public String getContactPhone() { return contactPhone; }
