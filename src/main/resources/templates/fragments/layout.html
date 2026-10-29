@@ -103,6 +103,17 @@
   .qr-box svg{display:block;width:100%;height:100%}
   .no-scrollbar{scrollbar-width:none}
   .no-scrollbar::-webkit-scrollbar{display:none}
+  /* R37 #1: cover images shimmer until they arrive, then fade in (pwa.js marks the
+     box .is-loaded on the image's load/error event; cached images are caught on scan) */
+  .img-shimmer::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(100deg,rgba(255,255,255,0) 20%,rgba(255,255,255,.45) 50%,rgba(255,255,255,0) 80%);background-size:220% 100%;animation:ievent-shimmer 1.3s ease-in-out 3}
+  .img-shimmer.is-loaded::before{display:none}
+  /* progressive enhancement: with no script (or a stale cached pwa.js) the image still
+     reveals itself after 2.5 s, and the sweep stops on its own after three passes */
+  .img-fade{opacity:0;transition:opacity .35s ease;animation:ievent-reveal .35s ease 2.5s forwards}
+  .img-shimmer.is-loaded .img-fade{opacity:1;animation:none}
+  @keyframes ievent-shimmer{0%{background-position:160% 0}100%{background-position:-60% 0}}
+  @keyframes ievent-reveal{to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.img-shimmer::before{display:none}.img-fade{transition:none;animation-duration:0s}}
 </style>
 </head>
 <body>
@@ -506,10 +517,10 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
             : (card.coverTheme == 'family'    ? 'i-baby'
             :                                   'i-heart-handshake'))))))))}">
   <a th:href="@{/e/{s}(s=${card.slug})}" class="absolute inset-0 z-10 rounded-2xl" th:aria-label="${card.title}" aria-label="View event"></a>
-  <div class="relative aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 transition group-hover:shadow-cardHover" th:classappend="${grad}">
+  <div class="relative aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br ring-1 ring-inset ring-black/5 transition group-hover:shadow-cardHover" th:classappend="${grad + (card.coverImageUrl != null ? ' img-shimmer' : '')}">
     <svg class="absolute inset-0 h-full w-full opacity-15" xmlns="http://www.w3.org/2000/svg"><defs><pattern th:attr="id='p-'+${card.slug}" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="white"/></pattern></defs><rect width="100%" height="100%" th:attr="fill='url(#p-'+${card.slug}+')'"/></svg>
     <svg class="absolute inset-0 m-auto h-14 w-14 text-white/40" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
-    <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" class="absolute inset-0 h-full w-full object-cover" th:classappend="${card.ended} ? 'grayscale' : ''">
+    <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" decoding="async" class="img-fade absolute inset-0 h-full w-full object-cover" th:classappend="${card.ended} ? 'grayscale' : ''">
     <span class="absolute start-2 top-2 max-w-[55%] truncate rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-ink-800 sm:start-3 sm:top-3 sm:max-w-none sm:px-3 sm:text-xs" th:text="${card.categoryLabel}">Music</span>
     <!-- R20 #12: ended events stay listed (record + SEO) but read clearly as over -->
     <span th:if="${card.ended}" class="absolute bottom-3 start-3 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-bold text-white" th:text="#{public.card.ended}">Ended</span>
@@ -530,6 +541,47 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
     <button th:if="${currentUser != null}" type="button" data-like-btn th:attr="data-slug=${card.slug},aria-label=#{public.card.saveAria}" aria-label="Save event" aria-pressed="false" class="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500 sm:h-9 sm:w-9"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></button>
     <a th:if="${currentUser == null}" th:href="@{/auth/login}" th:attr="aria-label=#{public.card.saveAria}" aria-label="Save event" class="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-rose-500 sm:h-9 sm:w-9"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-heart"/></svg></a>
     <button type="button" data-share-btn th:attr="data-url=@{/e/{s}(s=${card.slug})},data-title=${card.title},aria-label=#{public.event.shareAria}" aria-label="Share event" class="hidden h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-700 transition hover:text-brand-600 sm:grid"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-share-2"/></svg></button>
+  </div>
+</div>
+
+<!-- ============ COMPACT EVENT CARD FRAGMENT (R37 #6) ============
+A one-row card: small cover on the side, date / title / place beside it. Used
+where a list of related events should take little room (the event page's "More
+events like this"). Same stretched-link pattern as the full card. -->
+<div th:fragment="eventCardCompact(card)"
+   class="group relative flex items-center gap-3 rounded-xl border border-ink-100 bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card"
+   th:classappend="${card.ended} ? 'opacity-75' : ''"
+   th:attr="data-event-card-compact=${card.slug}"
+   th:with="grad=${card.coverTheme == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
+            : (card.coverTheme == 'tech'      ? 'from-indigo-500 via-brand-500 to-sky-500'
+            : (card.coverTheme == 'business'  ? 'from-ink-800 via-ink-700 to-brand-700'
+            : (card.coverTheme == 'arts'      ? 'from-amber-400 via-orange-400 to-rose-400'
+            : (card.coverTheme == 'food'      ? 'from-rose-400 via-red-400 to-orange-400'
+            : (card.coverTheme == 'sports'    ? 'from-emerald-400 via-teal-400 to-cyan-500'
+            : (card.coverTheme == 'education' ? 'from-sky-400 via-blue-500 to-indigo-500'
+            : (card.coverTheme == 'film'      ? 'from-slate-600 via-ink-700 to-brand-800'
+            : (card.coverTheme == 'family'    ? 'from-emerald-600 via-teal-500 to-sky-500'
+            :                                   'from-brand-400 via-brand-500 to-indigo-500'))))))))},
+            icon=${card.coverTheme == 'music'     ? 'i-music'
+            : (card.coverTheme == 'tech'      ? 'i-laptop'
+            : (card.coverTheme == 'business'  ? 'i-briefcase'
+            : (card.coverTheme == 'arts'      ? 'i-palette'
+            : (card.coverTheme == 'food'      ? 'i-utensils'
+            : (card.coverTheme == 'sports'    ? 'i-volleyball'
+            : (card.coverTheme == 'education' ? 'i-graduation-cap'
+            : (card.coverTheme == 'film'      ? 'i-clapperboard'
+            : (card.coverTheme == 'family'    ? 'i-baby'
+            :                                   'i-heart-handshake'))))))))}">
+  <a th:href="@{/e/{s}(s=${card.slug})}" class="absolute inset-0 z-10 rounded-xl" th:aria-label="${card.title}" aria-label="View event"></a>
+  <div class="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br ring-1 ring-inset ring-black/5 sm:h-[4.5rem] sm:w-28" th:classappend="${grad + (card.coverImageUrl != null ? ' img-shimmer' : '')}">
+    <svg class="absolute inset-0 m-auto h-7 w-7 text-white/50" aria-hidden="true"><use th:attr="href='#'+${icon}"/></svg>
+    <img th:if="${card.coverImageUrl != null}" th:src="${card.coverImageUrl}" th:alt="${card.title}" loading="lazy" decoding="async" class="img-fade absolute inset-0 h-full w-full object-cover" th:classappend="${card.ended} ? 'grayscale' : ''">
+    <span th:if="${card.ended}" class="absolute bottom-1 start-1 rounded-full bg-ink-900/80 px-2 py-0.5 text-[10px] font-bold text-white" th:text="#{public.card.ended}">Ended</span>
+  </div>
+  <div class="min-w-0 flex-1">
+    <p class="truncate text-[11px] font-bold uppercase tracking-wide text-brand-600" th:text="${card.dateLine}">Sat, Sep 12 · 7:00 PM</p>
+    <h3 class="mt-0.5 line-clamp-2 font-display text-sm font-bold leading-snug text-ink-900 transition group-hover:text-brand-600" th:text="${card.title}">Baghdad Nights Music Festival</h3>
+    <p class="mt-0.5 flex items-center gap-1 truncate text-xs text-ink-500"><svg class="h-3 w-3 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-map-pin"/></svg><span class="truncate" th:text="${card.venueName != null ? card.venueName + ', ' + @t.city(card.city) : @t.city(card.city)}">Al-Zawraa Park, Baghdad</span><th:block th:if="${!#strings.isEmpty(card.priceLine)}"><span class="shrink-0 text-ink-300" aria-hidden="true">·</span><span class="shrink-0 font-semibold tabular-nums text-ink-700" th:text="${card.priceLine}">From 25,000 IQD</span></th:block></p>
   </div>
 </div>
 

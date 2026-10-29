@@ -202,6 +202,7 @@ public class PageController {
                          @RequestParam(required = false) String when,
                          @RequestParam(required = false) String sort,
                          @RequestParam(required = false, defaultValue = "0") int page,
+                         @RequestParam(required = false) String partial,
                          jakarta.servlet.http.HttpServletRequest request,
                          Model model) {
         int safePage = Math.max(0, page);
@@ -251,8 +252,12 @@ public class PageController {
         } else {
             addLandingLinks(model);
         }
-        return "browse";
+        return partial != null ? RESULTS_PARTIAL : "browse";
     }
+
+    /** R37 #2: infinite scroll fetches page N as the bare card fragment of browse.html
+     *  (cards + a marker with the next page number) instead of a whole page. */
+    static final String RESULTS_PARTIAL = "browse :: resultsPartial";
 
     // ---- R34: evergreen landing pages (see LandingPages) ----
 
@@ -261,6 +266,7 @@ public class PageController {
     @GetMapping("/city/{slug}")
     public String cityLanding(@PathVariable String slug,
                               @RequestParam(required = false, defaultValue = "0") int page,
+                              @RequestParam(required = false) String partial,
                               Model model) {
         String city = Cities.fromSlug(slug);
         if (city == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown city");
@@ -269,12 +275,13 @@ public class PageController {
                 PageRequest.of(Math.max(0, page), LANDING_PAGE_SIZE));
         Landing landing = new Landing("city", LandingPages.cityPath(city),
                 msg("public.landing.cityHeading", label), msg("public.landing.cityIntro", label));
-        return renderLanding(landing, msg("public.landing.cityTitle", label), results, "", city, model);
+        return renderLanding(landing, msg("public.landing.cityTitle", label), results, "", city, partial, model);
     }
 
     @GetMapping("/category/{slug}")
     public String categoryLanding(@PathVariable String slug,
                                   @RequestParam(required = false, defaultValue = "0") int page,
+                                  @RequestParam(required = false) String partial,
                                   Model model) {
         Event.Category category = LandingPages.categoryBySlug(slug);
         if (category == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown category");
@@ -286,7 +293,7 @@ public class PageController {
         Landing landing = new Landing("category", LandingPages.categoryPath(category),
                 msg("public.landing.categoryHeading", label), msg("public.landing.categoryIntro", label));
         return renderLanding(landing, msg("public.landing.categoryTitle", label), results,
-                category.name(), "", model);
+                category.name(), "", partial, model);
     }
 
     /** /exhibitions, /conferences, /courses, /workshops, /concerts, /festivals: the
@@ -294,6 +301,7 @@ public class PageController {
     @GetMapping("/{typeSlug:exhibitions|conferences|courses|workshops|concerts|festivals}")
     public String typeLanding(@PathVariable String typeSlug,
                               @RequestParam(required = false, defaultValue = "0") int page,
+                              @RequestParam(required = false) String partial,
                               Model model) {
         LandingPages.Type type = LandingPages.typeBySlug(typeSlug);
         if (type == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown type");
@@ -304,13 +312,13 @@ public class PageController {
                 msg("public.landing.type." + type.slug() + ".heading"),
                 msg("public.landing.type." + type.slug() + ".intro"));
         return renderLanding(landing, msg("public.landing.type." + type.slug() + ".title", year),
-                results, "", "", model);
+                results, "", "", partial, model);
     }
 
     /** Fills the browse.html model for a landing page: no active filters, the landing's
      *  own dimension pre-selected in the sidebar, and cross-links to the sibling pages. */
     private String renderLanding(Landing landing, String pageTitle, Page<EventCard> results,
-                                 String selectedCategory, String selectedCity, Model model) {
+                                 String selectedCategory, String selectedCity, String partial, Model model) {
         model.addAttribute("landing", landing);
         model.addAttribute("pageTitle", pageTitle);
         model.addAttribute("results", results);
@@ -334,7 +342,7 @@ public class PageController {
         if (results.getTotalElements() == 0) {
             model.addAttribute("noIndexFollow", true);
         }
-        return "browse";
+        return partial != null ? RESULTS_PARTIAL : "browse";
     }
 
     /** "Browse by city / category / type" link rows shown on /browse and every landing page. */
@@ -423,7 +431,7 @@ public class PageController {
         model.addAttribute("event", detail);
         model.addAttribute("liked", liked);
         model.addAttribute("followingOrganizer", followingOrganizer);
-        model.addAttribute("related", catalog.related(slug, 3));
+        model.addAttribute("related", catalog.related(slug, 6)); // R37 #6: compact rows, six of them
 
         // ---- wireframe extras computed server-side ----
         String statusName = entity.getStatus().name();

@@ -2181,4 +2181,112 @@ class SmokeTest {
                 .andExpect(content().string(containsString("Questions about your transfer? Call the organizer:")))
                 .andExpect(content().string(containsString(">+964 770 123 4567</a>")));
     }
+
+    // ---- R37: browse ergonomics (shimmer, infinite scroll, hidden totals, slide-over), compact related, blank bios ----
+
+    @Test
+    void browseHidesTheTotalUntilFilteredAndServesCardFragmentsForInfiniteScroll() throws Exception {
+        // bare catalogue: no total, filters button on every size, pagination kept for crawlers,
+        // the old desktop sidebar gone
+        mockMvc.perform(get("/en/browse"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"resultsCount\""))))
+                .andExpect(content().string(not(containsString("<aside class=\"hidden lg:block\""))))
+                .andExpect(content().string(containsString("id=\"filtersOpenBtn\"")))
+                .andExpect(content().string(containsString("id=\"filterPanel\"")))
+                .andExpect(content().string(containsString("id=\"filterBar\"")))
+                .andExpect(content().string(containsString("id=\"resultsGrid\"")))
+                .andExpect(content().string(containsString("id=\"loadMoreSentinel\"")));
+        // a filter brings the count back, and the Filters button counts the applied ones
+        mockMvc.perform(get("/en/browse?q=Baghdad&price=paid"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"resultsCount\"")))
+                .andExpect(content().string(containsString("events across Iraq</p>")))
+                .andExpect(content().string(containsString("tabular-nums text-white\">2</span>")));
+        // a landing page shows its count too
+        mockMvc.perform(get("/en/city/baghdad"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"resultsCount\"")));
+        // page N as a bare fragment: cards only, no document around them
+        String fragment = mockMvc.perform(get("/en/browse?q=Baghdad%20Nights&partial=1&page=0"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-event-card=\"baghdad-nights-music-festival\"")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(fragment.contains("<html"), "fragment only");
+        org.junit.jupiter.api.Assertions.assertFalse(fragment.contains("id=\"resultsGrid\""), "fragment only");
+        org.junit.jupiter.api.Assertions.assertFalse(fragment.contains("data-next-page"), "one page of results, no next marker");
+        // the landing routes serve the same fragment
+        mockMvc.perform(get("/en/city/baghdad?partial=1&page=0"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-event-card=\"")))
+                .andExpect(content().string(not(containsString("<html"))));
+    }
+
+    @Test
+    void coverImagesShimmerUntilLoaded() throws Exception {
+        var festival = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        String before = festival.getCoverImageUrl();
+        try {
+            festival.setCoverImageUrl("https://images.example.com/festival.jpg");
+            events.save(festival);
+            mockMvc.perform(get("/en/browse?q=Baghdad%20Nights"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(" img-shimmer\"")))
+                    .andExpect(content().string(containsString("class=\"img-fade absolute inset-0 h-full w-full object-cover\"")));
+            // cards without a cover keep the plain gradient (no shimmer box; the head's
+            // CSS rule mentions the class on every page, so match the class attribute)
+            mockMvc.perform(get("/en/browse?q=Erbil%20Tech"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString(" img-shimmer\""))))
+                    .andExpect(content().string(not(containsString("class=\"img-fade"))));
+        } finally {
+            festival.setCoverImageUrl(before);
+            events.save(festival);
+        }
+        // the global script carries the loader bookkeeping
+        mockMvc.perform(get("/js/pwa.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("ieventScanShimmer")));
+    }
+
+    @Test
+    void eventPageListsSixCompactRelatedEvents() throws Exception {
+        // the seed alone leaves the festival with a single related event (same city or
+        // category, upcoming, LIVE); three more Baghdad events make the floor our own
+        for (String n : new String[] {"Smoke Related A", "Smoke Related B", "Smoke Related C"}) {
+            events.save(r18Event(n, n.toLowerCase().replace(' ', '-')));
+            Thread.sleep(2); // r18Event stamps the slug with the current millisecond
+        }
+        String html = mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("More events like this")))
+                .andExpect(content().string(containsString("data-event-card-compact=\"")))
+                .andReturn().getResponse().getContentAsString();
+        int compact = html.split("data-event-card-compact=\"", -1).length - 1;
+        org.junit.jupiter.api.Assertions.assertTrue(compact >= 3 && compact <= 6, "compact related rows: " + compact);
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("data-event-card=\""), "no full-size cards in the related block");
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void organizerAboutTabNeedsRealTextOrContacts() throws Exception {
+        String email = "smoke-blank-bio+" + System.nanoTime() + "@test.iq";
+        var owner = userService.register("Blank Bio", email, null, "SmokePassw0rd!");
+        // the onboarding form posts an empty textarea: that is no bio, and with no contacts
+        // the About tab is not offered at all
+        var organization = hostService.createOrganization(owner, "Blank Bio Org", "blank-bio-org", "Baghdad", "   ", "+9647901234567");
+        org.junit.jupiter.api.Assertions.assertNull(organization.getBio());
+        mockMvc.perform(get("/en/organizers/blank-bio-org"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"tabBtn-about\""))))
+                .andExpect(content().string(not(containsString("About Blank Bio Org"))));
+        // real text brings the tab and the heading back
+        organization.setBio("We run meetups across Baghdad.");
+        organizations.save(organization);
+        mockMvc.perform(get("/en/organizers/blank-bio-org"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"tabBtn-about\"")))
+                .andExpect(content().string(containsString("About Blank Bio Org")))
+                .andExpect(content().string(containsString("We run meetups across Baghdad.")));
+    }
 }

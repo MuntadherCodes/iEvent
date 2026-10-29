@@ -26,14 +26,18 @@
       </nav>
       <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
         <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl" th:text="${landing != null} ? ${landing.heading} : #{public.nav.browse}">Browse events</h1>
-        <p class="text-sm text-ink-500"><span class="font-bold tabular-nums text-ink-800" th:text="${totalCountLine}">1,248</span> [[#{public.browse.acrossIraq}]]</p>
+        <!-- R37 #3: the total is only shown once the visitor narrowed things down (a
+             filter or a landing page); the bare catalogue carries no number. -->
+        <p th:if="${hasFilters or landing != null}" id="resultsCount" class="text-sm text-ink-500"><span class="font-bold tabular-nums text-ink-800" th:text="${totalCountLine}">1,248</span> [[#{public.browse.acrossIraq}]]</p>
       </div>
       <p th:if="${landing != null}" class="mt-3 max-w-3xl text-base leading-relaxed text-ink-600" th:text="${landing.intro}">Discover upcoming events in Baghdad.</p>
     </div>
   </section>
 
-  <!-- ============ STICKY FILTER BAR ============ -->
-  <div class="sticky top-16 z-40 border-b border-ink-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+  <!-- ============ STICKY FILTER BAR ============
+       R37 #4: slides away while the visitor scrolls down through the results and comes
+       back as soon as they scroll up (see the script at the end of the page). -->
+  <div id="filterBar" class="sticky top-16 z-40 border-b border-ink-100 bg-white/95 backdrop-blur transition-[transform,opacity] duration-200 supports-[backdrop-filter]:bg-white/80">
     <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
       <div class="flex items-center gap-3">
         <div class="no-scrollbar relative -my-1 flex flex-1 items-center gap-2 overflow-x-auto py-1">
@@ -47,9 +51,13 @@
              th:text="${@t.category(c.value)}">Music</a>
         </div>
         <div class="flex shrink-0 items-center gap-2">
-          <button id="filtersOpenBtn" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600 lg:hidden">
+          <!-- R37 #5: search / city / price live in the slide-over on every screen size;
+               the badge counts the ones currently applied -->
+          <button id="filtersOpenBtn" type="button" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" aria-controls="filterPanel" aria-expanded="false"
+                  th:with="activeCount=${(q != '' ? 1 : 0) + (selectedCity != '' ? 1 : 0) + (selectedPrice != '' ? 1 : 0)}">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#i-sliders-horizontal"/></svg>
             [[#{public.browse.filters}]]
+            <span th:if="${activeCount > 0}" class="grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-brand-500 px-1.5 text-[11px] font-bold tabular-nums text-white" th:text="${activeCount}">1</span>
           </button>
           <form th:action="@{/browse}" method="get" class="relative hidden items-center gap-2 text-sm sm:flex">
             <input type="hidden" name="q" th:value="${q}">
@@ -99,11 +107,11 @@
   </div>
 
   <!-- ============ SLIDE-OVER FILTER PANEL (mobile/tablet) ============ -->
-  <div id="filterOverlay" class="fixed inset-0 z-50 hidden bg-ink-900/50 lg:hidden"></div>
+  <div id="filterOverlay" class="fixed inset-0 z-50 hidden bg-ink-900/50"></div>
   <!-- Intentional physical positioning: the drawer slides in from the physical left in
        both directions — the open/close JS toggles -translate-x-full, which is a physical
        transform, so start-* here would strand the panel off-screen in RTL. -->
-  <aside id="filterPanel" class="fixed inset-y-0 left-0 z-50 w-[85%] max-w-sm -translate-x-full overflow-y-auto bg-white p-6 shadow-cardHover transition-transform duration-300 lg:hidden" th:attr="aria-label=#{public.browse.filtersPanelAria}" aria-label="Filters panel">
+  <aside id="filterPanel" class="fixed inset-y-0 left-0 z-50 w-[85%] max-w-sm -translate-x-full overflow-y-auto bg-white p-6 shadow-cardHover transition-transform duration-300" th:attr="aria-label=#{public.browse.filtersPanelAria}" aria-label="Filters panel">
     <div class="mb-6 flex items-center justify-between">
       <h2 class="font-display text-lg font-extrabold text-ink-900" th:text="#{public.browse.filters}">Filters</h2>
       <button id="filtersCloseBtn" class="grid h-10 w-10 place-items-center rounded-full border border-ink-200 text-ink-600 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.browse.closeFiltersAria}" aria-label="Close filters"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -147,49 +155,8 @@
   <!-- ============ CONTENT ============ -->
   <section class="py-10 md:py-12 lg:py-14">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="grid gap-8 lg:grid-cols-[260px_1fr] lg:gap-10">
 
-        <!-- Desktop sidebar -->
-        <aside class="hidden lg:block" th:attr="aria-label=#{public.browse.filters}" aria-label="Filters">
-          <form th:action="@{/browse}" method="get" class="sticky top-36 space-y-7 rounded-2xl bg-ink-50/60 p-6">
-            <input type="hidden" name="category" th:value="${selectedCategory}">
-            <input type="hidden" name="sort" th:value="${selectedSort}">
-            <input type="hidden" name="when" th:value="${selectedWhen}">
-            <fieldset>
-              <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.search}">Search</legend>
-              <div class="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 transition focus-within:border-brand-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-100">
-                <svg class="h-4 w-4 shrink-0 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-                <input type="text" name="q" th:value="${q}" data-suggest class="w-full bg-transparent text-sm outline-none placeholder:text-ink-400" th:placeholder="#{public.nav.searchShortPlaceholder}" placeholder="Search events…" th:attr="aria-label=#{public.browse.searchEventsAria}" aria-label="Search events">
-              </div>
-            </fieldset>
-            <hr class="border-ink-100">
-            <fieldset>
-              <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.city}">City</legend>
-              <div class="relative">
-                <select name="city" class="w-full cursor-pointer appearance-none rounded-xl border border-ink-200 bg-white py-3 ps-4 pe-9 text-sm font-medium text-ink-700 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100" th:attr="aria-label=#{public.home.chooseCityAria}" aria-label="Choose city">
-                  <option value="" th:text="#{public.home.allCities}">All cities</option>
-                  <option th:each="c : ${cities}" th:value="${c.city}" th:text="${@t.city(c.city)}" th:selected="${selectedCity == c.city}">Baghdad</option>
-                </select>
-                <svg class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-              </div>
-            </fieldset>
-            <hr class="border-ink-100">
-            <fieldset>
-              <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-ink-400" th:text="#{public.browse.price}">Price</legend>
-              <div class="space-y-2.5 text-sm">
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="price" value="" th:checked="${selectedPrice == ''}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.anyPrice}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="price" value="free" th:checked="${selectedPrice == 'free'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{common.free}]]</label>
-                <label class="flex cursor-pointer items-center gap-3 transition hover:text-brand-600"><input type="radio" name="price" value="paid" th:checked="${selectedPrice == 'paid'}" class="h-4 w-4 accent-[#8f7ac9]"> [[#{public.browse.paid}]]</label>
-              </div>
-            </fieldset>
-            <div class="flex gap-3 pt-1">
-              <button type="submit" class="flex-1 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.browse.apply}">Apply</button>
-              <a th:href="@{/browse}" class="flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.browse.clear}">Clear</a>
-            </div>
-          </form>
-        </aside>
-
-        <!-- Results -->
+        <!-- Results (R37 #5: full width, the filters live in the slide-over above) -->
         <div>
           <!-- Active filter chips -->
           <div th:if="${hasFilters}" class="mb-5 flex flex-wrap items-center gap-2">
@@ -222,10 +189,16 @@
             <a th:href="@{/browse}" class="text-sm font-semibold text-ink-500 transition hover:text-brand-600" th:text="#{public.browse.clearAll}">Clear all</a>
           </div>
 
-          <p class="mb-5 text-sm text-ink-500" th:if="${results.totalElements > 0}">[[#{public.browse.showing}]] <span class="font-bold tabular-nums text-ink-800" th:text="${results.numberOfElements}">9</span> [[#{public.browse.of}]] <span class="font-bold tabular-nums text-ink-800" th:text="${totalCountLine}">1,248</span> [[#{public.home.eventsWord}]]</p>
-
-          <div class="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-3" th:if="${results.totalElements > 0}">
-            <th:block th:each="card : ${results.content}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+          <!-- R37 #2: the grid grows as the visitor scrolls. The same template serves
+               page N as a bare fragment ("browse :: resultsPartial", ?partial=1): the
+               cards plus a marker carrying the next page number, appended by the script
+               at the end of the page. The numbered pagination below stays in the markup
+               for crawlers and no-script visitors; the script hides it. -->
+          <div id="resultsGrid" class="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 xl:grid-cols-4" th:if="${results.totalElements > 0}">
+            <th:block th:fragment="resultsPartial">
+              <th:block th:each="card : ${results.content}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+              <span th:if="${results.hasNext()}" class="hidden" data-next-page th:attr="data-page=${results.number + 1}"></span>
+            </th:block>
           </div>
 
           <!-- Empty state -->
@@ -236,9 +209,16 @@
             <a th:href="@{/browse}" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="${landing != null} ? #{public.landing.allEvents} : #{public.browse.clearFilters}">Clear filters</a>
           </div>
 
+          <!-- Infinite-scroll sentinel, status and retry (script-driven) -->
+          <div id="loadMoreSentinel" class="mt-6 flex flex-col items-center gap-3" th:classappend="${results.hasNext()} ? '' : 'hidden'" aria-live="polite">
+            <p id="loadMoreStatus" class="hidden inline-flex items-center gap-2 text-sm font-medium text-ink-500"><span class="h-4 w-4 animate-spin rounded-full border-2 border-ink-200 border-t-brand-500" aria-hidden="true"></span><span th:text="#{public.browse.loadingMore}">Loading more events</span></p>
+            <button id="loadMoreBtn" type="button" class="hidden rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.browse.loadMore}">Load more</button>
+          </div>
+          <p id="endOfList" class="mt-8 hidden text-center text-sm text-ink-400" th:text="#{public.browse.endOfList}">That is every event for now.</p>
+
           <!-- Pagination -->
-          <nav class="mt-12 flex flex-wrap items-center justify-center gap-2" th:attr="aria-label=#{public.browse.paginationAria}" aria-label="Pagination" th:if="${results.totalPages > 1}">
-            <a th:if="${results.hasPrevious()}"
+          <nav id="pagination" class="mt-12 flex flex-wrap items-center justify-center gap-2" th:attr="aria-label=#{public.browse.paginationAria}" aria-label="Pagination" th:if="${results.totalPages > 1}">
+            <a th:if="${results.hasPrevious()}" rel="prev"
                th:href="${landing != null} ? @{${landing.path}(page=${results.number - 1})} : @{/browse(q=${q},category=${selectedCategory},city=${selectedCity},price=${selectedPrice},when=${selectedWhen},sort=${selectedSort},page=${results.number - 1})}"
                class="grid h-10 w-10 place-items-center rounded-xl border border-ink-200 text-ink-500 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.browse.prevPageAria}" aria-label="Previous page"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-left"/></svg></a>
             <span th:if="${!results.hasPrevious()}" class="grid h-10 w-10 place-items-center rounded-xl border border-ink-100 text-ink-300" aria-hidden="true"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-left"/></svg></span>
@@ -253,7 +233,7 @@
                  th:attr="aria-label=#{public.browse.pageAria(${'' + (p + 1)})}">2</a>
             </th:block>
 
-            <a th:if="${results.hasNext()}"
+            <a th:if="${results.hasNext()}" rel="next"
                th:href="${landing != null} ? @{${landing.path}(page=${results.number + 1})} : @{/browse(q=${q},category=${selectedCategory},city=${selectedCity},price=${selectedPrice},when=${selectedWhen},sort=${selectedSort},page=${results.number + 1})}"
                class="grid h-10 w-10 place-items-center rounded-xl border border-ink-200 text-ink-500 transition hover:border-brand-400 hover:text-brand-600" th:attr="aria-label=#{public.browse.nextPageAria}" aria-label="Next page"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
             <span th:if="${!results.hasNext()}" class="grid h-10 w-10 place-items-center rounded-xl border border-ink-100 text-ink-300" aria-hidden="true"><svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-chevron-right"/></svg></span>
@@ -290,7 +270,6 @@
           </div>
         </div>
 
-      </div>
     </div>
   </section>
 
@@ -301,7 +280,7 @@
 <script th:replace="~{fragments/layout :: menuScript}"></script>
 <script th:replace="~{fragments/layout :: suggestScript}"></script>
 <script>
-  // Filters slide-over
+  // Filters slide-over (R37 #5: the only filter UI, on every screen size)
   var filterPanel = document.getElementById('filterPanel');
   var filterOverlay = document.getElementById('filterOverlay');
   var openBtn = document.getElementById('filtersOpenBtn');
@@ -310,15 +289,109 @@
     filterOverlay.classList.remove('hidden');
     filterPanel.classList.remove('-translate-x-full');
     document.body.style.overflow = 'hidden';
+    if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
+    var first = filterPanel.querySelector('input[name="q"]');
+    if (first) first.focus();
   }
   function closeFilters() {
     filterOverlay.classList.add('hidden');
     filterPanel.classList.add('-translate-x-full');
     document.body.style.overflow = '';
+    if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
   }
   if (openBtn) openBtn.addEventListener('click', openFilters);
   if (closeBtn) closeBtn.addEventListener('click', closeFilters);
   if (filterOverlay) filterOverlay.addEventListener('click', closeFilters);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && filterOverlay && !filterOverlay.classList.contains('hidden')) closeFilters(); });
+
+  // R37 #4: the sticky chip bar steps aside while scrolling down, returns on scroll up
+  (function () {
+    var bar = document.getElementById('filterBar');
+    if (!bar) return;
+    var lastY = window.scrollY || 0, ticking = false;
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        var y = window.scrollY || 0;
+        if (y > lastY + 6 && y > 200) {
+          bar.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        } else if (y < lastY - 6 || y <= 80) {
+          bar.classList.remove('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        }
+        lastY = y;
+        ticking = false;
+      });
+    }, { passive: true });
+  })();
+
+  // R37 #2: infinite scroll. Page N arrives as "browse :: resultsPartial" (the same
+  // query with ?partial=1&page=N) and is appended to the grid; the marker inside the
+  // fragment says which page comes next. Numbered pagination stays for crawlers and
+  // no-script visitors but is hidden here.
+  (function () {
+    var grid = document.getElementById('resultsGrid');
+    var sentinel = document.getElementById('loadMoreSentinel');
+    var status = document.getElementById('loadMoreStatus');
+    var retryBtn = document.getElementById('loadMoreBtn');
+    var endNote = document.getElementById('endOfList');
+    var pagination = document.getElementById('pagination');
+    if (!grid || !sentinel || !('IntersectionObserver' in window) || !('fetch' in window)) return;
+    if (pagination) pagination.classList.add('hidden');
+    function nextMarker() { return grid.querySelector('[data-next-page]'); }
+    // Three pages arrive on their own per "Load more" click (the first click is free),
+    // so the city/category link rows and the footer below the grid stay reachable
+    // instead of being pushed down for ever on a long catalogue.
+    var AUTO_PAGES = 3;
+    var loading = false, autoBudget = AUTO_PAGES;
+    function loadMore() {
+      var marker = nextMarker();
+      if (!marker || loading) return;
+      loading = true;
+      status.classList.remove('hidden');
+      retryBtn.classList.add('hidden');
+      var url = new URL(window.location.href);
+      url.searchParams.set('page', marker.getAttribute('data-page'));
+      url.searchParams.set('partial', '1');
+      fetch(url.toString(), { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(function (html) {
+          marker.remove();
+          var tpl = document.createElement('template');
+          tpl.innerHTML = html.trim();
+          Array.prototype.slice.call(tpl.content.childNodes).forEach(function (n) { grid.appendChild(n); });
+          if (window.ieventScanShimmer) window.ieventScanShimmer(grid);
+          loading = false;
+          status.classList.add('hidden');
+          if (!nextMarker()) {
+            sentinel.classList.add('hidden');
+            if (endNote) endNote.classList.remove('hidden');
+          } else {
+            // re-observe: fires once with the sentinel's real position after the append
+            io.unobserve(sentinel);
+            io.observe(sentinel);
+          }
+        })
+        .catch(function () {
+          loading = false;
+          status.classList.add('hidden');
+          retryBtn.classList.remove('hidden');
+        });
+    }
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries.some(function (en) { return en.isIntersecting; })) return;
+      if (!nextMarker() || loading) return;
+      if (autoBudget > 0) {
+        autoBudget--;
+        loadMore();
+      } else {
+        retryBtn.classList.remove('hidden');
+      }
+    }, { rootMargin: '400px 0px' });
+    io.observe(sentinel);
+    retryBtn.addEventListener('click', function () { autoBudget = AUTO_PAGES; loadMore(); });
+    if (!nextMarker()) sentinel.classList.add('hidden');
+  })();
 </script>
 </body>
 </html>

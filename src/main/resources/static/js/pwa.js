@@ -28,4 +28,24 @@
       f.querySelectorAll('[aria-disabled]').forEach(function (b) { b.removeAttribute('aria-disabled'); b.classList.remove('pointer-events-none', 'opacity-70'); });
     });
   });
+
+  // R37 #1: cover-image shimmer. A .img-shimmer box sweeps a highlight until its
+  // <img> has loaded (or failed), then the image fades in (see layout.html CSS).
+  // Load/error events do not bubble, so they are caught in the capture phase, which
+  // also covers cards appended later (browse infinite scroll); images already
+  // complete by the time this runs (cache) are marked by the scan.
+  function markLoaded(img) {
+    var box = img.closest ? img.closest('.img-shimmer') : null;
+    if (box) box.classList.add('is-loaded');
+  }
+  function scanShimmer(root) {
+    (root || document).querySelectorAll('.img-shimmer img').forEach(function (img) {
+      if (img.complete) markLoaded(img);
+    });
+  }
+  document.addEventListener('load', function (e) { if (e.target && e.target.tagName === 'IMG') markLoaded(e.target); }, true);
+  document.addEventListener('error', function (e) { if (e.target && e.target.tagName === 'IMG') markLoaded(e.target); }, true);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { scanShimmer(); });
+  else scanShimmer();
+  window.ieventScanShimmer = scanShimmer;
 })();

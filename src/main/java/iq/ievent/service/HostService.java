@@ -419,7 +419,7 @@ public class HostService {
         org.setName(name.trim());
         org.setHandle(cleanHandle);
         org.setCity(city);
-        org.setBio(bio);
+        org.setBio(blankToNull(bio)); // R37 #7: an empty onboarding textarea is no bio
         org = organizations.save(org);
         // R27 #4: new organizers start with direct payments AND cash-on-arrival
         // switched on (both can be turned off in Settings > Payments). Direct

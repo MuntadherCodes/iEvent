@@ -303,7 +303,7 @@
               <a th:href="@{/organizers/{h}(h=${event.organizer.handle})}" class="rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600" th:text="#{public.event.viewProfile}">View profile</a>
             </div>
           </div>
-          <p class="mt-5 text-sm leading-relaxed text-ink-600" th:if="${event.organizer.bio != null}" th:text="${event.organizer.bio}">Baghdad's leading live-events crew.</p>
+          <p class="mt-5 text-sm leading-relaxed text-ink-600" th:if="${!#strings.isEmpty(event.organizer.bio)}" th:text="${event.organizer.bio}">Baghdad's leading live-events crew.</p>
         </section>
 
         <!-- More like this -->
@@ -312,8 +312,9 @@
             <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.moreLikeThis}">More events like this</h2>
             <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           </div>
-          <div class="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-3">
-            <th:block th:each="card : ${related}"><a th:replace="~{fragments/layout :: eventCard(${card})}"></a></th:block>
+          <!-- R37 #6: compact rows instead of full cards, so six fit where three did -->
+          <div class="grid gap-3 sm:grid-cols-2">
+            <th:block th:each="card : ${related}"><div th:replace="~{fragments/layout :: eventCardCompact(${card})}"></div></th:block>
           </div>
         </section>
 

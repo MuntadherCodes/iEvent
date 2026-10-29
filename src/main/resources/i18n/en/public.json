@@ -706,5 +706,8 @@
   "public.profile.phoneHint": "Iraqi mobile number, e.g. 0790 123 4567.",
   "public.checkout.transferRisk": "You are transferring straight to the organizer's own account. iEvent does not hold or guarantee this payment, so it is at your own risk: send the exact amount and keep your receipt until your tickets are confirmed.",
   "public.checkout.callFirst": "Unsure? Call the organizer first:",
-  "public.confirm.transferQuestions": "Questions about your transfer? Call the organizer:"
+  "public.confirm.transferQuestions": "Questions about your transfer? Call the organizer:",
+  "public.browse.loadingMore": "Loading more events",
+  "public.browse.loadMore": "Load more",
+  "public.browse.endOfList": "That is every event for now. Check back soon."
 }

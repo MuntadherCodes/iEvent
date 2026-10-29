@@ -351,8 +351,13 @@ test('c. browse: scale volume, pagination, category / search / free filters', as
     .poll(async () => cards.count(), { message: 'expected at least 12 event cards' })
     .toBeGreaterThanOrEqual(12);
 
-  log('pagination "Next page" arrow should be visible');
-  await expect(page.getByRole('link', { name: 'Next page' }).first()).toBeVisible();
+  log('R37 #2: numbered pagination is hidden for script users; scrolling to the end loads page 2');
+  await expect(page.locator('nav[aria-label="Pagination"]')).toBeHidden();
+  const firstPageCount = await cards.count();
+  await page.locator('#loadMoreSentinel').scrollIntoViewIfNeeded();
+  await expect
+    .poll(async () => cards.count(), { message: 'expected more cards after scrolling to the sentinel' })
+    .toBeGreaterThan(firstPageCount);
 
   log('clicking the "Music" category chip should filter to category=MUSIC');
   await page.locator('a[href*="category=MUSIC"]').first().click();
@@ -1324,19 +1329,29 @@ test('aa. ticket downloads: QR PNG, single-ticket PDF, buyer-only order PDF', as
 // ---------- wireframe-parity round ----------
 
 test('ab. browse parity: sort, price radios, when pills, numbered pagination, filter chips', async ({ page }) => {
-  log('/browse shows the results count line and numbered pagination');
+  log('R37 #3: the bare catalogue shows no total; a filter brings the count back');
   await page.goto('/browse');
-  await expect(page.getByText(/Showing/).first()).toBeVisible();
-  await expect(page.getByText(/events across Iraq/).first()).toBeVisible();
-  const pagination = page.locator('nav[aria-label="Pagination"]');
-  await expect(pagination.locator('[aria-current="page"]')).toHaveText('1');
-  await expect(page.getByRole('link', { name: 'Page 2' })).toBeVisible();
-  await expect(pagination.getByText('…').first()).toBeVisible();
+  await expect(page.locator('#resultsCount')).toHaveCount(0);
+  await page.goto('/browse?q=Basra');
+  await expect(page.locator('#resultsCount')).toBeVisible();
+  await expect(page.locator('#resultsCount')).toContainText(/events across Iraq/);
 
-  log('clicking "Page 2" navigates to page=1 and marks it current');
-  await page.getByRole('link', { name: 'Page 2' }).click();
-  await expect(page).toHaveURL(/page=1/);
-  await expect(page.locator('nav[aria-label="Pagination"] [aria-current="page"]')).toHaveText('2');
+  log('R37 #2: numbered pagination is only for crawlers now (hidden), page 2 arrives on scroll');
+  await page.goto('/browse');
+  const pagination = page.locator('nav[aria-label="Pagination"]');
+  await expect(pagination).toBeHidden();
+  await expect(pagination.locator('a[rel="next"]')).toHaveCount(1);
+  const before = await page.locator(EVENT_CARD_LINKS).count();
+  await page.locator('#loadMoreSentinel').scrollIntoViewIfNeeded();
+  await expect
+    .poll(async () => page.locator(EVENT_CARD_LINKS).count(), { message: 'page 2 appended on scroll' })
+    .toBeGreaterThan(before);
+
+  log('R37 #4: the chip bar hides on scroll down and returns on scroll up');
+  await page.mouse.wheel(0, 1200);
+  await expect(page.locator('#filterBar')).toHaveClass(/opacity-0/);
+  await page.mouse.wheel(0, -600);
+  await expect(page.locator('#filterBar')).not.toHaveClass(/opacity-0/);
 
   log('sort dropdown: choosing "Most popular" submits sort=popular');
   await page.goto('/browse');
@@ -1348,10 +1363,14 @@ test('ab. browse parity: sort, price radios, when pills, numbered pagination, fi
   await page.goto('/browse?sort=price');
   await expect(page.locator('#sortSelect')).toHaveValue('price');
 
-  log('price=paid checks the sidebar radio and shows the removable "Paid" chip');
+  log('R37 #5: price=paid is reflected in the slide-over filters (opened by the Filters button, badge = 2 active) and the removable "Paid" chip');
   await page.goto('/browse?q=Basra&price=paid');
-  const sidebar = page.locator('aside[aria-label="Filters"]');
+  await expect(page.locator('#filtersOpenBtn')).toContainText('2');
+  await page.locator('#filtersOpenBtn').click();
+  const sidebar = page.locator('#filterPanel');
+  await expect(sidebar).toBeVisible();
   await expect(sidebar.locator('input[name="price"][value="paid"]')).toBeChecked();
+  await page.locator('#filtersCloseBtn').click();
   await expect(page.getByRole('link', { name: 'Remove price filter' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Remove search filter Basra/ })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Clear all' })).toBeVisible();
