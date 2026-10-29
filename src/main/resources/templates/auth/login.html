@@ -7,109 +7,112 @@
 
 <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white" th:text="#{public.nav.skip}">Skip to content</a>
 
-<main id="main" class="grid min-h-screen lg:grid-cols-2">
-  <div class="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-12 lg:py-16">
-    <div class="w-full max-w-md">
-
-      <a th:href="@{/}" class="mb-8 flex items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
-        <img th:if="${!rtl}" th:src="@{/img/brand-mark-color.png}" alt="" class="h-9 w-auto">
-        <span th:if="${!rtl}" class="font-display text-lg font-extrabold tracking-tight text-ink-900"><span class="text-brand-500">i</span>Event</span>
-        <img th:if="${rtl}" th:src="@{/img/brand-mark-color-arabic.png}" alt="iEvent" class="h-11 w-auto">
-      </a>
-
-      <!-- R27 #7: sign in / create account switcher (both pages) -->
-      <nav class="mb-6 grid grid-cols-2 rounded-xl bg-ink-100 p-1 text-sm font-semibold" th:attr="aria-label=#{public.auth.switchAria}" aria-label="Sign in or create an account">
-        <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/login(next=${nextParam})} : @{/auth/login}" class="rounded-lg px-4 py-2.5 text-center transition bg-white text-ink-900 shadow-card" aria-current="page" th:text="#{public.nav.signIn}">Sign in</a>
-        <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/register(next=${nextParam})} : @{/auth/register}" class="rounded-lg px-4 py-2.5 text-center transition text-ink-500 hover:text-ink-800"  th:text="#{public.auth.createAccount}">Create account</a>
-      </nav>
-
-      <div class="mb-8">
-        <h1 class="font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl" th:text="#{public.auth.welcomeBack}">Welcome back</h1>
-        <p class="mt-2 text-sm text-ink-500" th:text="#{public.auth.tagline}">Discover, save and book events across Iraq.</p>
-      </div>
-
-      <!-- Status banners -->
-      <div th:if="${param.registered != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
-        [[#{public.auth.accountCreated}]]
-      </div>
-      <div th:if="${param.error != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
-        [[#{public.auth.wrongCreds}]]
-      </div>
-      <div th:if="${param.oauth_error != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
-        [[#{public.auth.oauthError}]]
-      </div>
-      <div th:if="${param.logout != null || param.signedout != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 text-sm font-medium text-ink-700">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
-        [[#{public.auth.signedOut}]]
-      </div>
-      <div th:if="${nextParam != null && nextParam != '' && param.error == null && param.oauth_error == null && param.ordered == null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-ticket"/></svg>
-        [[#{public.auth.backWhereLeft}]]
-      </div>
-      <div th:if="${param.ordered != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
-        [[#{public.auth.orderedSignIn}]]
-      </div>
-      <div th:if="${param.reset != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
-        [[#{public.auth.passwordUpdated}]]
-      </div>
-
-      <form th:action="@{/auth/login}" method="post" class="space-y-4">
-
-        <div class="grid gap-2.5">
-          <a th:if="${googleLoginEnabled}" th:href="@{/oauth2/authorization/google}" class="flex w-full items-center justify-center gap-2.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.1-7-5.1l-3.9 3C3.2 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5 14.3c-.3-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3l-3.9-3C.4 8.3 0 10.1 0 12s.4 3.7 1.1 5.3l3.9-3z"/><path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.2 15.2 0 12 0 7.3 0 3.2 2.7 1.1 6.7l3.9 3c1-3 3.8-5.1 7-5.1z"/></svg>
-            [[#{public.auth.continueGoogle}]]
-          </a>
-          <button th:if="${!googleLoginEnabled}" type="button" disabled class="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm font-semibold text-ink-800 opacity-60">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.1-7-5.1l-3.9 3C3.2 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5 14.3c-.3-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3l-3.9-3C.4 8.3 0 10.1 0 12s.4 3.7 1.1 5.3l3.9-3z"/><path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.2 15.2 0 12 0 7.3 0 3.2 2.7 1.1 6.7l3.9 3c1-3 3.8-5.1 7-5.1z"/></svg>
-            [[#{public.auth.continueGoogle}]]
-          </button>
-        </div>
-
-        <div class="flex items-center gap-3 py-1" aria-hidden="true">
-          <span class="h-px flex-1 bg-ink-100"></span>
-          <span class="text-xs font-medium uppercase tracking-wide text-ink-400" th:text="#{public.auth.or}">or</span>
-          <span class="h-px flex-1 bg-ink-100"></span>
-        </div>
-
-        <div>
-          <label for="si-email" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.checkout.email}">Email</label>
-          <input id="si-email" name="email" type="email" autocomplete="email" required th:placeholder="#{public.checkout.emailPh}" placeholder="you@email.com" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
-        </div>
-        <div>
-          <div class="mb-1.5 flex items-center justify-between">
-            <label for="si-pass" class="block text-sm font-semibold text-ink-800" th:text="#{public.auth.password}">Password</label>
-            <a th:href="@{/auth/forgot}" class="text-xs font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.auth.forgotPassword}">Forgot password?</a>
-          </div>
-          <input id="si-pass" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
-        </div>
-        <label class="flex cursor-pointer items-center gap-2.5 text-sm text-ink-600">
-          <input type="checkbox" name="remember-me" value="true" class="h-4 w-4 rounded border-ink-300 accent-[#8f7ac9]">
-          [[#{public.auth.rememberMe}]]
-        </label>
-        <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.nav.signIn}">Sign in</button>
-
-        <p class="pt-1 text-center text-sm text-ink-500">[[#{public.checkout.newTo}]] <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/register(next=${nextParam})} : @{/auth/register}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.createAccount}">Create an account</a></p>
-      </form>
-
-      <!-- Language pills -->
-      <div class="mt-6 flex items-center justify-center gap-2">
-        <a th:href="${urlEn}" class="rounded-full border px-4 py-2 text-xs font-semibold transition"
-           th:classappend="${lang == 'en'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-600 hover:border-brand-400'">EN</a>
-        <a th:href="${urlAr}" class="rounded-full border px-4 py-2 text-xs font-semibold transition"
-           th:classappend="${lang == 'ar'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-600 hover:border-brand-400'" th:text="#{common.arabic}">العربية</a>
-      </div>
-
-      <p class="mt-8 text-center text-xs text-ink-400">[[#{public.footer.copyright1}]]<span class="text-brand-400">♥</span>[[#{public.footer.copyright2}]]</p>
+<!-- R39 #2: one centered card, no side image, sized to fit a laptop viewport without
+     scrolling (same shell as forgot/reset). Logo and language pills live in a slim header. -->
+<header class="border-b border-ink-100 bg-white">
+  <div class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <a th:href="@{/}" class="flex shrink-0 items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
+      <img th:if="${!rtl}" th:src="@{/img/brand-mark-color.png}" alt="" class="h-8 w-auto">
+      <span th:if="${!rtl}" class="font-display text-lg font-extrabold tracking-tight text-ink-900"><span class="text-brand-500">i</span>Event</span>
+      <img th:if="${rtl}" th:src="@{/img/brand-mark-color-arabic.png}" alt="iEvent" class="h-10 w-auto">
+    </a>
+    <!-- Language pills -->
+    <div class="flex items-center gap-2">
+      <a th:href="${urlEn}" class="rounded-full border px-3 py-1.5 text-xs font-semibold transition"
+         th:classappend="${lang == 'en'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-600 hover:border-brand-400'">EN</a>
+      <a th:href="${urlAr}" class="rounded-full border px-3 py-1.5 text-xs font-semibold transition"
+         th:classappend="${lang == 'ar'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-600 hover:border-brand-400'" th:text="#{common.arabic}">العربية</a>
     </div>
   </div>
+</header>
 
-  <div th:replace="~{fragments/layout :: authHero}"></div>
+<main id="main" class="bg-gradient-to-b from-brand-50 to-white">
+  <div class="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md">
+      <div class="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
+
+        <!-- R27 #7: sign in / create account switcher (both pages) -->
+        <nav class="mb-5 grid grid-cols-2 rounded-xl bg-ink-100 p-1 text-sm font-semibold" th:attr="aria-label=#{public.auth.switchAria}" aria-label="Sign in or create an account">
+          <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/login(next=${nextParam})} : @{/auth/login}" class="rounded-lg px-4 py-2 text-center transition bg-white text-ink-900 shadow-card" aria-current="page" th:text="#{public.nav.signIn}">Sign in</a>
+          <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/register(next=${nextParam})} : @{/auth/register}" class="rounded-lg px-4 py-2 text-center transition text-ink-500 hover:text-ink-800" th:text="#{public.auth.createAccount}">Create account</a>
+        </nav>
+
+        <div class="mb-4">
+          <h1 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:text="#{public.auth.welcomeBack}">Welcome back</h1>
+          <p class="mt-1 text-sm text-ink-500" th:text="#{public.auth.tagline}">Discover, save and book events across Iraq.</p>
+        </div>
+
+        <!-- Status banners -->
+        <div th:if="${param.registered != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+          [[#{public.auth.accountCreated}]]
+        </div>
+        <div th:if="${param.error != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+          [[#{public.auth.wrongCreds}]]
+        </div>
+        <div th:if="${param.oauth_error != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+          [[#{public.auth.oauthError}]]
+        </div>
+        <div th:if="${param.logout != null || param.signedout != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-ink-200 bg-ink-50 px-4 py-2.5 text-sm font-medium text-ink-700">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-info"/></svg>
+          [[#{public.auth.signedOut}]]
+        </div>
+        <div th:if="${nextParam != null && nextParam != '' && param.error == null && param.oauth_error == null && param.ordered == null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-ticket"/></svg>
+          [[#{public.auth.backWhereLeft}]]
+        </div>
+        <div th:if="${param.ordered != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+          [[#{public.auth.orderedSignIn}]]
+        </div>
+        <div th:if="${param.reset != null}" class="mb-4 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-800">
+          <svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-circle-check"/></svg>
+          [[#{public.auth.passwordUpdated}]]
+        </div>
+
+        <form th:action="@{/auth/login}" method="post" class="space-y-3">
+
+          <div class="grid gap-2.5">
+            <a th:if="${googleLoginEnabled}" th:href="@{/oauth2/authorization/google}" class="flex w-full items-center justify-center gap-2.5 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 transition hover:border-brand-400 hover:text-brand-600">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.1-7-5.1l-3.9 3C3.2 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5 14.3c-.3-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3l-3.9-3C.4 8.3 0 10.1 0 12s.4 3.7 1.1 5.3l3.9-3z"/><path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.2 15.2 0 12 0 7.3 0 3.2 2.7 1.1 6.7l3.9 3c1-3 3.8-5.1 7-5.1z"/></svg>
+              [[#{public.auth.continueGoogle}]]
+            </a>
+            <button th:if="${!googleLoginEnabled}" type="button" disabled class="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-xl border border-ink-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 opacity-60">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.1-7-5.1l-3.9 3C3.2 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5 14.3c-.3-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3l-3.9-3C.4 8.3 0 10.1 0 12s.4 3.7 1.1 5.3l3.9-3z"/><path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.2 15.2 0 12 0 7.3 0 3.2 2.7 1.1 6.7l3.9 3c1-3 3.8-5.1 7-5.1z"/></svg>
+              [[#{public.auth.continueGoogle}]]
+            </button>
+          </div>
+
+          <div class="flex items-center gap-3" aria-hidden="true">
+            <span class="h-px flex-1 bg-ink-100"></span>
+            <span class="text-xs font-medium uppercase tracking-wide text-ink-400" th:text="#{public.auth.or}">or</span>
+            <span class="h-px flex-1 bg-ink-100"></span>
+          </div>
+
+          <div>
+            <label for="si-email" class="mb-1 block text-sm font-semibold text-ink-800" th:text="#{public.checkout.email}">Email</label>
+            <input id="si-email" name="email" type="email" autocomplete="email" required th:placeholder="#{public.checkout.emailPh}" placeholder="you@email.com" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+          </div>
+          <div>
+            <div class="mb-1 flex items-center justify-between">
+              <label for="si-pass" class="block text-sm font-semibold text-ink-800" th:text="#{public.auth.password}">Password</label>
+              <a th:href="@{/auth/forgot}" class="text-xs font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.auth.forgotPassword}">Forgot password?</a>
+            </div>
+            <input id="si-pass" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+          </div>
+          <label class="flex cursor-pointer items-center gap-2.5 text-sm text-ink-600">
+            <input type="checkbox" name="remember-me" value="true" class="h-4 w-4 rounded border-ink-300 accent-[#8f7ac9]">
+            [[#{public.auth.rememberMe}]]
+          </label>
+          <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 font-semibold text-white shadow-pop transition hover:bg-brand-600 active:scale-[.98]" th:text="#{public.nav.signIn}">Sign in</button>
+
+          <p class="pt-1 text-center text-sm text-ink-500">[[#{public.checkout.newTo}]] <a th:href="${nextParam != null && nextParam != ''} ? @{/auth/register(next=${nextParam})} : @{/auth/register}" class="font-semibold text-brand-600 transition hover:text-brand-700" th:text="#{public.checkout.createAccount}">Create an account</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
 </main>
 
 </body>

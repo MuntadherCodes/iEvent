@@ -790,14 +790,8 @@ events like this"). Same stretched-link pattern as the full card. -->
   </div>
 </footer>
 
-<!-- ============ AUTH HERO IMAGE PANEL FRAGMENT ============ -->
-<!-- Right-side panel on the sign in / sign up pages. Falls back to a brand-colored
-     gradient if /img/auth-hero.jpg hasn't been supplied yet, so the page never shows
-     a broken-image icon. -->
-<div th:fragment="authHero" class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-500 to-brand-800 lg:block">
-  <img th:src="@{/img/auth-hero.png}" alt="" onerror="this.style.display='none'" class="absolute inset-0 h-full w-full object-cover">
-  <div class="absolute inset-0 bg-gradient-to-t from-ink-900/40 via-transparent to-transparent"></div>
-</div>
+<!-- R39 #2: the auth pages no longer have a side image panel (the authHero fragment
+     that used to live here); sign in / sign up are centered cards like forgot/reset. -->
 
 <!-- ============ MOBILE MENU SCRIPT FRAGMENT ============ -->
 <!-- R33: "Directions" row (Google Maps + Waze) for any surface that shows a

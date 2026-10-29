@@ -2375,13 +2375,19 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("id=\"tabBtn-about\""))))
                 .andExpect(content().string(not(containsString("About Blank Bio Org"))));
-        // real text brings the tab and the heading back
+        // real text brings the tab and the heading back; R39 #1: the text appears ONCE
+        // (in the About panel), no longer repeated under the stats in the hero
         organization.setBio("We run meetups across Baghdad.");
         organizations.save(organization);
-        mockMvc.perform(get("/en/organizers/blank-bio-org"))
+        String html = mockMvc.perform(get("/en/organizers/blank-bio-org"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"tabBtn-about\"")))
                 .andExpect(content().string(containsString("About Blank Bio Org")))
-                .andExpect(content().string(containsString("We run meetups across Baghdad.")));
+                .andExpect(content().string(containsString("We run meetups across Baghdad.")))
+                .andReturn().getResponse().getContentAsString();
+        String body = html.substring(html.indexOf("<body"));   // the head carries it as meta descriptions
+        org.junit.jupiter.api.Assertions.assertEquals(1,
+                body.split(java.util.regex.Pattern.quote("We run meetups across Baghdad."), -1).length - 1,
+                "the bio is shown once, in the About panel");
     }
 }
