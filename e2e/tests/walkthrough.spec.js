@@ -3641,3 +3641,48 @@ test('cf. QA: percent-encoded /admin path is still gated; the double-submit guar
   await page.goto('/en');
   await expect(page.locator('script[src="/js/pwa.js"]')).toHaveCount(1);
 });
+
+test('cg. phone width (R40): the event page never scrolls sideways, in Arabic or English, however long its text', async ({ browser }) => {
+  // Every other test runs at desktop width, where this page was always fine. On a phone
+  // the "More events like this" list had no column rule, so the list, and the whole page
+  // with it, grew as wide as the longest single-line date or place among its rows.
+  const context = await browser.newContext(); // no lang cookie: the bare URL is Arabic
+  const p = await context.newPage();
+  const overflowPx = () =>
+    p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  try {
+    // Arabic first: opening /en sets the lang cookie, after which the bare URL bounces to /en
+    for (const [url, dir] of [
+      ['/e/baghdad-nights-music-festival', 'rtl'],
+      ['/en/e/baghdad-nights-music-festival', 'ltr'],
+    ]) {
+      for (const width of [390, 320]) {
+        log(`${url} at ${width}px (${dir}) is no wider than the screen`);
+        await p.setViewportSize({ width, height: 800 });
+        await p.goto(url);
+        await expect(p.locator('html')).toHaveAttribute('dir', dir);
+        await expect(p.locator('[data-event-card-compact]').first()).toBeVisible();
+        expect(await overflowPx(), `${url} at ${width}px: pixels wider than the screen`).toBe(0);
+
+        log('still true with a very long date and place on a related row and a long link pasted into the description');
+        await p.evaluate(() => {
+          const long = 'Al-Hadhara University College, Tikrit Branch, Main Conference Hall, Second Floor, Baghdad';
+          const row = document.querySelector('[data-event-card-compact]');
+          row.querySelectorAll('p.truncate, span.truncate').forEach((line) => {
+            // the place line wraps its text in an inner span: fill the innermost one only
+            if (!line.querySelector('.truncate')) line.textContent = long;
+          });
+          const link = document.createElement('a');
+          link.href = 'https://example.com/forms/' + 'x'.repeat(90) + '/viewform';
+          link.textContent = link.href;
+          const para = document.createElement('p');
+          para.appendChild(link);
+          document.getElementById('aboutContent').appendChild(para);
+        });
+        expect(await overflowPx(), `${url} at ${width}px with long text: pixels wider than the screen`).toBe(0);
+      }
+    }
+  } finally {
+    await context.close();
+  }
+});

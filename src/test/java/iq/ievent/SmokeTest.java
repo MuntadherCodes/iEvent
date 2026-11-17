@@ -2360,6 +2360,12 @@ class SmokeTest {
         int compact = html.split("data-event-card-compact=\"", -1).length - 1;
         org.junit.jupiter.api.Assertions.assertTrue(compact >= 3 && compact <= 6, "compact related rows: " + compact);
         org.junit.jupiter.api.Assertions.assertFalse(html.contains("data-event-card=\""), "no full-size cards in the related block");
+        // R40: the three classes that keep the page inside a phone screen. Each row holds
+        // single-line (truncate) text, so without an explicit column the list, and the
+        // whole page with it, grew as wide as the longest date or place among the rows.
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<div class=\"grid grid-cols-1 gap-3 sm:grid-cols-2\">"), "related list keeps an explicit single column on phones");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("class=\"group relative flex min-w-0 items-center gap-3 "), "compact rows may shrink below their text");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<div class=\"min-w-0 break-words\">"), "the main column cannot outgrow the screen");
     }
 
     @Test

@@ -116,8 +116,12 @@
     <!-- Two-column layout -->
     <div class="mt-8 grid gap-10 lg:mt-10 lg:grid-cols-[1fr_380px] lg:gap-14">
 
-      <!-- ===== MAIN COLUMN ===== -->
-      <div>
+      <!-- ===== MAIN COLUMN =====
+           R40: min-w-0 + break-words keep this column no wider than the screen. Below lg
+           the grid above has one implicit auto column, and an auto column is at least as
+           wide as its widest unbreakable content: without them a long link pasted into
+           the description widens the whole page on a phone. -->
+      <div class="min-w-0 break-words">
 
         <!-- Date + calendar -->
         <div class="flex flex-wrap items-center gap-4">
@@ -312,8 +316,11 @@
             <h2 class="font-display text-xl font-extrabold text-ink-900 md:text-2xl" th:text="#{public.event.moreLikeThis}">More events like this</h2>
             <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           </div>
-          <!-- R37 #6: compact rows instead of full cards, so six fit where three did -->
-          <div class="grid gap-3 sm:grid-cols-2">
+          <!-- R37 #6: compact rows instead of full cards, so six fit where three did.
+               R40: keep grid-cols-1. With no column rule a phone got one auto column as
+               wide as the longest single-line date or place among the rows, which
+               pushed the page wider than the screen. -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <th:block th:each="card : ${related}"><div th:replace="~{fragments/layout :: eventCardCompact(${card})}"></div></th:block>
           </div>
         </section>

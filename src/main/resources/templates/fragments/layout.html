@@ -547,9 +547,12 @@ clicks to the wrong place (the card's own link) instead of the like action. -->
 <!-- ============ COMPACT EVENT CARD FRAGMENT (R37 #6) ============
 A one-row card: small cover on the side, date / title / place beside it. Used
 where a list of related events should take little room (the event page's "More
-events like this"). Same stretched-link pattern as the full card. -->
+events like this"). Same stretched-link pattern as the full card.
+R40: min-w-0 on the row itself. Its date and place are single-line (truncate), so
+without it the row's minimum width is its longest line and it cannot shrink to
+fit a narrow parent. -->
 <div th:fragment="eventCardCompact(card)"
-   class="group relative flex items-center gap-3 rounded-xl border border-ink-100 bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card"
+   class="group relative flex min-w-0 items-center gap-3 rounded-xl border border-ink-100 bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card"
    th:classappend="${card.ended} ? 'opacity-75' : ''"
    th:attr="data-event-card-compact=${card.slug}"
    th:with="grad=${card.coverTheme == 'music'     ? 'from-violet-500 via-brand-500 to-fuchsia-500'
