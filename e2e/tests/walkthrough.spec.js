@@ -3686,3 +3686,49 @@ test('cg. phone width (R40): the event page never scrolls sideways, in Arabic or
     await context.close();
   }
 });
+
+test('ch. search suggestions (R41): the whole list shows on top of the next section, on a phone and on a desktop', async ({ page }) => {
+  // A one-result query (test cb) always fits inside the hero. With several results the list
+  // hangs past the hero's bottom edge, where the hero used to clip it and the category
+  // section showed instead. The endpoint is stubbed so the list is always 8 rows long.
+  const rows = Array.from({ length: 8 }, (_, i) => ({
+    slug: 'baghdad-nights-music-festival',
+    title: `Suggestion row ${i + 1}`,
+    dateLine: 'Saturday, December 5, 2026',
+    city: 'Baghdad',
+  }));
+  await page.route('**/api/events/suggest*', (route) => route.fulfill({ json: rows }));
+
+  for (const [width, height] of [
+    [390, 800],
+    [1280, 720],
+  ]) {
+    log(`home at ${width}px: with 8 suggestions, every part of the list in view is the list itself`);
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    const heroInput = page.locator('input[name="q"][data-suggest]').first();
+    await heroInput.click();
+    await heroInput.pressSequentially('row', { delay: 30 });
+    await expect(page.getByText('Suggestion row 8')).toBeAttached();
+    const list = await page.evaluate(() => {
+      const input = document.querySelector('input[name="q"][data-suggest]');
+      const panel = input.closest('label').querySelector(':scope > div');
+      const r = panel.getBoundingClientRect();
+      const bottom = Math.min(r.bottom, window.innerHeight);
+      const x = r.left + r.width / 2;
+      let coveredAt = null;
+      // walk down the middle of the list: what would a tap hit at each point?
+      for (let y = r.top + 4; y < bottom - 2; y += 6) {
+        const el = document.elementFromPoint(x, y);
+        if (!(el && panel.contains(el))) {
+          coveredAt = Math.round(y - r.top);
+          break;
+        }
+      }
+      return { rows: panel.children.length, inView: Math.round(bottom - r.top), coveredAt };
+    });
+    expect(list.rows).toBe(8);
+    expect(list.inView, `${width}px: pixels of the list inside the viewport`).toBeGreaterThan(120);
+    expect(list.coveredAt, `${width}px: pixels below the top of the list where something else covers it`).toBeNull();
+  }
+});

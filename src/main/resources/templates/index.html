@@ -11,11 +11,17 @@
 
 <main id="main" class="flex-1">
 
-  <!-- ============ HERO ============ -->
-  <section class="type-public relative overflow-hidden bg-gradient-to-b from-brand-50 to-white">
-    <div class="pointer-events-none absolute -start-24 -top-24 h-80 w-80 rounded-full bg-brand-200/50 blur-3xl" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute -end-20 top-32 h-72 w-72 rounded-full bg-fuchsia-200/40 blur-3xl" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute bottom-0 start-1/3 h-64 w-64 rounded-full bg-brand-100/60 blur-3xl" aria-hidden="true"></div>
+  <!-- ============ HERO ============
+       R41: the section itself must not clip (no overflow-hidden here). The search
+       suggestions hang below the search box and reach past the hero's bottom edge, where
+       a clipping section cut them off and the next section showed instead. Only the
+       decorative blobs are clipped, inside their own layer. -->
+  <section class="type-public relative bg-gradient-to-b from-brand-50 to-white">
+    <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div class="absolute -start-24 -top-24 h-80 w-80 rounded-full bg-brand-200/50 blur-3xl"></div>
+      <div class="absolute -end-20 top-32 h-72 w-72 rounded-full bg-fuchsia-200/40 blur-3xl"></div>
+      <div class="absolute bottom-0 start-1/3 h-64 w-64 rounded-full bg-brand-100/60 blur-3xl"></div>
+    </div>
     <!-- R39 #3: tighter vertical rhythm so the category row is in view on a laptop screen -->
     <div class="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 md:pb-12 md:pt-16 lg:px-8 lg:pb-14 lg:pt-16">
       <div class="mx-auto max-w-3xl text-center">

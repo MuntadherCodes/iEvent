@@ -1044,7 +1044,11 @@ class SmokeTest {
                 .andExpect(content().string(containsString("id=\"monthRail\"")))
                 .andExpect(content().string(containsString("View all events")))
                 .andExpect(content().string(not(containsString("events across Iraq this month"))))
-                .andExpect(content().string(containsString("Popular:")));
+                .andExpect(content().string(containsString("Popular:")))
+                // R41: the hero section itself does not clip (the search suggestions hang
+                // past its bottom edge and were cut off there); only its decoration layer does
+                .andExpect(content().string(containsString("<section class=\"type-public relative bg-gradient-to-b from-brand-50 to-white\">")))
+                .andExpect(content().string(containsString("<div class=\"pointer-events-none absolute inset-0 overflow-hidden\" aria-hidden=\"true\">")));
     }
 
     @Test
