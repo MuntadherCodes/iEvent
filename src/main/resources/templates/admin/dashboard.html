@@ -20,30 +20,33 @@
     <button type="submit" class="text-sm font-semibold text-ink-300 transition hover:text-white">Sign out</button>
   </form>
 </header>
+<nav th:replace="~{admin/parts :: nav('orgs')}"></nav>
 
 <main class="mx-auto max-w-6xl px-6 py-10">
   <h1 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Organizations</h1>
   <p class="mt-1 text-ink-500">Every registered host, with live stats. Click one to manage its events or suspend the account.</p>
 
-  <div class="mt-6 grid grid-cols-3 gap-4">
-    <div class="rounded-2xl border border-ink-100 bg-white p-5">
+  <!-- R42: three cards side by side from 640 px up, exactly as before. On a phone, where
+       the labels did not fit a third of the screen, each count is one slim row. -->
+  <div class="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
+    <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-3 sm:block sm:p-5">
       <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">Organizations</p>
-      <p class="mt-1 font-display text-2xl font-extrabold text-ink-900" th:text="${totalOrgs}">0</p>
+      <p class="font-display text-2xl font-extrabold text-ink-900 sm:mt-1" th:text="${totalOrgs}">0</p>
     </div>
-    <div class="rounded-2xl border border-ink-100 bg-white p-5">
+    <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-3 sm:block sm:p-5">
       <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">Active events (platform-wide)</p>
-      <p class="mt-1 font-display text-2xl font-extrabold text-ink-900" th:text="${totalActiveEvents}">0</p>
+      <p class="font-display text-2xl font-extrabold text-ink-900 sm:mt-1" th:text="${totalActiveEvents}">0</p>
     </div>
-    <div class="rounded-2xl border border-ink-100 bg-white p-5">
+    <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-3 sm:block sm:p-5">
       <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">Disabled accounts</p>
-      <p class="mt-1 font-display text-2xl font-extrabold" th:text="${countDisabled}" th:classappend="${countDisabled > 0} ? 'text-rose-600' : 'text-ink-900'">0</p>
+      <p class="font-display text-2xl font-extrabold sm:mt-1" th:text="${countDisabled}" th:classappend="${countDisabled > 0} ? 'text-rose-600' : 'text-ink-900'">0</p>
     </div>
   </div>
 
   <form th:action="@{/admin}" method="get" class="mt-6 flex flex-wrap items-center gap-3">
     <div class="relative min-w-[240px] flex-1">
       <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
-      <input type="search" name="q" th:value="${q}" placeholder="Search by org, handle, owner name or email…" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+      <input type="search" name="q" th:value="${q}" placeholder="Search by org, handle, owner name, email or phone…" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
     </div>
     <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
       <a th:href="@{/admin(q=${q},status='all')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'all'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All <span class="tabular-nums opacity-70" th:text="${countAll}">0</span></a>
@@ -52,12 +55,18 @@
     </div>
   </form>
 
-  <div class="mt-4 overflow-hidden rounded-2xl border border-ink-100 bg-white">
+  <!-- R42: the organizer's phone number: the owner's own; when the owner has none, the
+       organizer's public contact or payments number, labelled as such. It has its own
+       column from tablet width up and sits under the owner's email on a phone, where
+       the column would be out of sight. The table now scrolls sideways inside its card
+       on a narrow screen instead of being cut off. -->
+  <div class="mt-4 overflow-x-auto rounded-2xl border border-ink-100 bg-white">
     <table class="w-full text-start text-sm">
       <thead class="border-b border-ink-100 bg-ink-50 text-xs font-semibold uppercase tracking-wide text-ink-500">
         <tr>
           <th class="px-5 py-3 text-start">Organization</th>
           <th class="px-5 py-3 text-start">Owner</th>
+          <th class="hidden px-5 py-3 text-start md:table-cell">Phone</th>
           <th class="px-5 py-3 text-end">Active events</th>
           <th class="px-5 py-3 text-end">Total events</th>
           <th class="px-5 py-3 text-start">Status</th>
@@ -70,17 +79,19 @@
           <td class="px-5 py-3.5 text-ink-500">
             <span th:text="${o.ownerName}">Owner</span>
             <span class="block text-xs text-ink-400" th:text="${o.ownerEmail}">owner@email.com</span>
+            <span class="mt-1 block text-sm md:hidden"><th:block th:replace="~{admin/parts :: phone(${o.phone}, ${o.phoneNote})}"></th:block></span>
           </td>
+          <td class="hidden px-5 py-3.5 md:table-cell" data-org-phone><th:block th:replace="~{admin/parts :: phone(${o.phone}, ${o.phoneNote})}"></th:block></td>
           <td class="px-5 py-3.5 text-end font-semibold tabular-nums text-ink-800" th:text="${o.activeEvents}">0</td>
           <td class="px-5 py-3.5 text-end tabular-nums text-ink-500" th:text="${o.totalEvents}">0</td>
           <td class="px-5 py-3.5">
             <span th:if="${o.disabled}" class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700">Disabled</span>
             <span th:unless="${o.disabled}" class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Active</span>
           </td>
-          <td class="px-5 py-3.5 text-ink-500" th:text="${o.createdLine}">Jan 1, 2026</td>
+          <td class="whitespace-nowrap px-5 py-3.5 text-ink-500" th:text="${o.createdLine}">Jan 1, 2026</td>
         </tr>
-        <tr th:if="${orgs.isEmpty() and countAll == 0}"><td colspan="6" class="px-5 py-10 text-center text-ink-400">No organizations yet.</td></tr>
-        <tr th:if="${orgs.isEmpty() and countAll > 0}"><td colspan="6" class="px-5 py-10 text-center text-ink-400">No organizations match this search or filter.</td></tr>
+        <tr th:if="${orgs.isEmpty() and countAll == 0}"><td colspan="7" class="px-5 py-10 text-center text-ink-400">No organizations yet.</td></tr>
+        <tr th:if="${orgs.isEmpty() and countAll > 0}"><td colspan="7" class="px-5 py-10 text-center text-ink-400">No organizations match this search or filter.</td></tr>
       </tbody>
     </table>
   </div>

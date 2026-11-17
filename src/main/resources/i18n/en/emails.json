@@ -33,5 +33,8 @@
   "emails.refunded.totalWord": "total",
   "emails.refunded.body3": "All tickets on this order are now void and can no longer be used for entry. The refund itself is returned by the organizer through the same payment method you used, if it doesn't arrive within a few business days, contact the organizer directly.",
   "emails.welcome.footer": "iEvent, events discovery and ticketing for Iraq. You received this because an account was created with this email.",
-  "emails.confirmed.joinInstructions": "Joining instructions:"
+  "emails.confirmed.joinInstructions": "Joining instructions:",
+  "emails.inquiryReply.kicker": "Reply to your message",
+  "emails.inquiryReply.youWrote": "Your message",
+  "emails.inquiryReply.footer": "You can answer this email directly and it will reach our team. © 2026 iEvent"
 }

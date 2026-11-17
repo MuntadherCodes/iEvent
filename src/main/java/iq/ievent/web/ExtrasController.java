@@ -49,6 +49,7 @@ public class ExtrasController {
     private final MailService mail;
     private final UserService userService;
     private final iq.ievent.service.LandingPages landingPages;
+    private final iq.ievent.service.InquiryService inquiries;
     private final String supportEmail;
     private final String siteBaseUrl;
 
@@ -56,9 +57,11 @@ public class ExtrasController {
                             JdbcTemplate jdbc, QrService qr, TicketPdfService pdf,
                             MailService mail, UserService userService,
                             iq.ievent.service.LandingPages landingPages,
+                            iq.ievent.service.InquiryService inquiries,
                             @org.springframework.beans.factory.annotation.Value("${app.mail.support}") String supportEmail,
                             @org.springframework.beans.factory.annotation.Value("${app.base-url}") String siteBaseUrl) {
         this.landingPages = landingPages;
+        this.inquiries = inquiries;
         this.events = events;
         this.orders = orders;
         this.tickets = tickets;
@@ -392,9 +395,14 @@ public class ExtrasController {
             return "contact";
         }
 
+        // R42: the message is kept for the super-admin console (Inquiries) first, then
+        // forwarded to the support mailbox as before. Either one is enough for the team to
+        // see it, so the visitor is told it failed only when both did.
+        boolean kept = inquiries.record(cleanName, cleanEmail, cleanTopic, cleanMessage,
+                LocaleContextHolder.getLocale().getLanguage(), u == null ? null : u.getId());
         boolean sent = mail.sendSupportContact(cleanName, cleanEmail, cleanTopic, cleanMessage,
                 LocaleContextHolder.getLocale());
-        model.addAttribute(sent ? "sent" : "sendFailed", true);
+        model.addAttribute(kept || sent ? "sent" : "sendFailed", true);
         return "contact";
     }
 

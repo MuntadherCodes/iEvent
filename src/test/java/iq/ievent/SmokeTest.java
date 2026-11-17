@@ -2400,4 +2400,283 @@ class SmokeTest {
                 body.split(java.util.regex.Pattern.quote("We run meetups across Baghdad."), -1).length - 1,
                 "the bio is shown once, in the About panel");
     }
+
+    // ---- R42: super-admin console: organizer phone numbers, buyers, inquiries ----
+
+    /** The super-admin gate is a session attribute, set by the password form (AdminAuthController). */
+    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder asAdmin(
+            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request) {
+        return request.sessionAttr(iq.ievent.config.SuperAdminAuthFilter.SESSION_ATTR, Boolean.TRUE);
+    }
+
+    private static int occurrences(String haystack, String needle) {
+        return haystack.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
+    }
+
+    @Test
+    void adminShowsOrganizerPhoneNumbers() throws Exception {
+        var organization = organizations.findByHandle("zainevents").orElseThrow();
+        Long organizerId = organization.getId();
+        var owner = usersRepo.findById(organization.getOwnerUserId()).orElseThrow();
+        String ownerPhoneBefore = owner.getPhone();
+        String contactBefore = organization.getContactPhone();
+        String paymentBefore = organization.getPaymentPhone();
+        try {
+            owner.setPhone("+9647901234567");
+            usersRepo.save(owner);
+            organization.setContactPhone("+964 770 123 4567");
+            organization.setPaymentPhone("+9647811112222");
+            organizations.save(organization);
+
+            // the list: the owner's own number, as a dial link, with a WhatsApp link beside it;
+            // the tabs to the two new sections are there too
+            mockMvc.perform(asAdmin(get("/admin").param("q", "zainevents")))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(">Phone</th>")))
+                    .andExpect(content().string(containsString("href=\"tel:+9647901234567\"")))
+                    .andExpect(content().string(containsString(">+964 790 123 4567</a>")))
+                    .andExpect(content().string(containsString("href=\"https://wa.me/9647901234567\"")))
+                    .andExpect(content().string(not(containsString(">public contact number</span>"))))
+                    .andExpect(content().string(containsString("href=\"/admin/buyers\"")))
+                    .andExpect(content().string(containsString("href=\"/admin/inquiries\"")));
+            // the search box finds an organizer by any of their numbers, typed the local way
+            mockMvc.perform(asAdmin(get("/admin").param("q", "0790 123 4567")))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Zain Events Co.")));
+            mockMvc.perform(asAdmin(get("/admin").param("q", "+964 781 111 2222")))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Zain Events Co.")));
+            mockMvc.perform(asAdmin(get("/admin").param("q", "0799 000 0001")))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("No organizations match this search or filter.")));
+
+            // an owner without a number: the public contact number stands in, and says so
+            owner.setPhone(null);
+            usersRepo.save(owner);
+            mockMvc.perform(asAdmin(get("/admin").param("q", "zainevents")))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(">+964 770 123 4567</a>")))
+                    .andExpect(content().string(containsString(">public contact number</span>")));
+
+            // the organizer's own page lists every number under its label, and links to the buyers
+            mockMvc.perform(asAdmin(get("/admin/orgs/" + organizerId)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("id=\"orgContact\"")))
+                    .andExpect(content().string(containsString("No number")))                    // the owner's, just cleared
+                    .andExpect(content().string(containsString(">+964 770 123 4567</a>")))        // public contact
+                    .andExpect(content().string(containsString(">+964 781 111 2222</a>")))        // payments
+                    .andExpect(content().string(containsString("href=\"/admin/buyers?org=" + organizerId + "\"")))
+                    .andExpect(content().string(containsString("href=\"/admin/buyers?event=")));
+        } finally {
+            var organizationNow = organizations.findByHandle("zainevents").orElseThrow();
+            organizationNow.setContactPhone(contactBefore);
+            organizationNow.setPaymentPhone(paymentBefore);
+            organizations.save(organizationNow);
+            var ownerNow = usersRepo.findById(organizationNow.getOwnerUserId()).orElseThrow();
+            ownerNow.setPhone(ownerPhoneBefore);
+            usersRepo.save(ownerNow);
+        }
+    }
+
+    @Test
+    void adminBuyersPageShowsWhoBoughtAndHowToReachThem() throws Exception {
+        String tag = String.valueOf(System.nanoTime());
+        String email = "r42-buyer-" + tag + "@example.iq";
+        String buyerName = "R42 Buyer " + tag;
+        // an Iraqi mobile that belongs to this run only, so a search by phone finds this buyer alone
+        String national = "79" + String.format("%08d", System.nanoTime() % 100_000_000L);
+        String e164 = "+964" + national;
+        String shown = iq.ievent.service.IraqPhone.display(e164);
+
+        // a guest buys two tickets and types the number the local way
+        mockMvc.perform(multipart("/e/baghdad-nights-music-festival/checkout")
+                        .param("qty-" + generalAdmissionId(), "2")
+                        .param("buyerName", buyerName)
+                        .param("buyerEmail", email)
+                        .param("buyerPhone", "0" + national)
+                        .param("paymentMethodLabel", "ZainCash wallet")
+                        .param("transferReference", "R42-" + tag)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith("/orders/")));
+
+        // behind the admin gate like every other /admin page
+        mockMvc.perform(get("/admin/buyers"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+
+        // found by email: name, email, phone (dial + WhatsApp), what they ordered and where it stands
+        String html = mockMvc.perform(asAdmin(get("/admin/buyers").param("q", email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(buyerName)))
+                .andExpect(content().string(containsString("href=\"mailto:" + email + "\"")))
+                .andExpect(content().string(containsString("href=\"tel:" + e164 + "\"")))
+                .andExpect(content().string(containsString(">" + shown + "</a>")))
+                .andExpect(content().string(containsString("href=\"https://wa.me/" + e164.substring(1) + "\"")))
+                .andExpect(content().string(containsString("Baghdad Nights Music Festival")))
+                .andExpect(content().string(containsString(">Awaiting confirmation</span>")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(1, occurrences(html, "data-buyer-row"),
+                "the search finds this buyer and nobody else");
+
+        // found by phone as well, typed with the leading zero
+        html = mockMvc.perform(asAdmin(get("/admin/buyers").param("q", "0" + national)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(buyerName)))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(1, occurrences(html, "data-buyer-row"));
+
+        // narrowed to the event they bought, and to its organizer: there; to another event: not there
+        Long festivalId = events.findBySlug("baghdad-nights-music-festival").orElseThrow().getId();
+        Long mixerId = events.findBySlug("startup-mixer-baghdad").orElseThrow().getId();
+        Long organizerId = organizations.findByHandle("zainevents").orElseThrow().getId();
+        mockMvc.perform(asAdmin(get("/admin/buyers").param("event", String.valueOf(festivalId)).param("q", email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"buyersScope\"")))
+                .andExpect(content().string(containsString(buyerName)));
+        mockMvc.perform(asAdmin(get("/admin/buyers").param("org", String.valueOf(organizerId)).param("q", email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"buyersScope\"")))
+                .andExpect(content().string(containsString(buyerName)));
+        mockMvc.perform(asAdmin(get("/admin/buyers").param("event", String.valueOf(mixerId)).param("q", email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString(buyerName))));
+
+        // the status pills: the order still waits for the organizer, so "pending" has them and "confirmed" does not
+        mockMvc.perform(asAdmin(get("/admin/buyers").param("status", "pending").param("q", email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(buyerName)));
+        mockMvc.perform(asAdmin(get("/admin/buyers").param("status", "confirmed").param("q", email)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString(buyerName))))
+                .andExpect(content().string(containsString("No buyers match this search or filter.")));
+
+        // an event that does not exist is a 404, not an empty list
+        mockMvc.perform(asAdmin(get("/admin/buyers").param("event", "999999999")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void contactFormMessagesReachTheAdminInboxAndCanBeAnswered() throws Exception {
+        String tag = "r42inq" + System.nanoTime();
+        String email = tag + "@example.iq";
+        String sender = "Inquirer " + tag;
+
+        // a visitor writes through the contact form: the message is kept, so the visitor is told
+        // it was sent whether or not a mail server is listening (the smoke job has none)
+        mockMvc.perform(post("/en/contact").with(csrf())
+                        .param("name", sender)
+                        .param("email", email)
+                        .param("topic", "attendee")
+                        .param("message", "First line " + tag + "\nSecond line"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Message sent")));
+        // a bot that fills the hidden field gets the same page, and nothing is kept
+        mockMvc.perform(post("/en/contact").with(csrf())
+                        .param("name", "Bot " + tag)
+                        .param("email", "bot-" + email)
+                        .param("message", "spam " + tag)
+                        .param("website", "http://spam.example"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Message sent")));
+
+        // behind the admin gate, for reading and for replying
+        mockMvc.perform(get("/admin/inquiries"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+        mockMvc.perform(post("/admin/inquiries/1/reply").with(csrf()).param("body", "x"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+
+        // the inbox: one row for the visitor (none for the bot), with the time, the topic,
+        // the start of the message and the status; the tab shows that something waits
+        String list = mockMvc.perform(asAdmin(get("/admin/inquiries").param("q", tag)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(sender)))
+                .andExpect(content().string(containsString(email)))
+                .andExpect(content().string(containsString("Order / ticket issue")))
+                .andExpect(content().string(containsString("First line " + tag + " Second line")))
+                .andExpect(content().string(containsString(">Not replied</span>")))
+                .andExpect(content().string(containsString("id=\"openInquiriesBadge\"")))
+                .andExpect(content().string(not(containsString("Bot " + tag))))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(1, occurrences(list, "data-inquiry-row"));
+        var idMatch = java.util.regex.Pattern.compile("href=\"/admin/inquiries/(\\d+)\"").matcher(list);
+        org.junit.jupiter.api.Assertions.assertTrue(idMatch.find(), "the row links to the inquiry");
+        String page = "/admin/inquiries/" + idMatch.group(1);
+
+        // the inquiry itself: the whole message with its line break, the reply box, the manual switch
+        mockMvc.perform(asAdmin(get(page)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("First line " + tag + "\nSecond line")))
+                .andExpect(content().string(containsString("href=\"mailto:" + email + "\"")))
+                .andExpect(content().string(containsString("id=\"replyForm\"")))
+                .andExpect(content().string(containsString(">Not replied</span>")))
+                .andExpect(content().string(containsString("id=\"markRepliedBtn\"")));
+        mockMvc.perform(asAdmin(get("/admin/inquiries/999999999")))
+                .andExpect(status().isNotFound());
+
+        // an empty reply is refused before anything is sent
+        mockMvc.perform(asAdmin(post(page + "/reply")).with(csrf()).param("body", "   "))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(page))
+                .andExpect(flash().attribute("replyError", startsWith("Write a reply")));
+
+        // a real reply: what happens next depends on whether a mail server is listening
+        String reply = "Thanks " + tag + ", we are looking into it.";
+        var sent = mockMvc.perform(asAdmin(post(page + "/reply")).with(csrf()).param("body", reply))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(page))
+                .andReturn();
+        var session = (org.springframework.mock.web.MockHttpSession) sent.getRequest().getSession(false);
+        org.junit.jupiter.api.Assertions.assertNotNull(session);
+        if (sent.getFlashMap().containsKey("notice")) {
+            // delivered (a local stack with Mailpit): recorded on the page, and the status flips
+            mockMvc.perform(get(page).session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Reply sent by email.")))
+                    .andExpect(content().string(containsString("data-inquiry-reply")))
+                    .andExpect(content().string(containsString(reply)))
+                    .andExpect(content().string(containsString("id=\"markOpenBtn\"")));
+            mockMvc.perform(asAdmin(post(page + "/open")).with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl(page));
+        } else {
+            // no mail server (the CI smoke job): nothing is recorded, the inquiry still waits,
+            // and the text the admin typed comes back in the box
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    String.valueOf(sent.getFlashMap().get("replyError")).startsWith("The mail server did not accept the reply"),
+                    "flash: " + sent.getFlashMap());
+            org.junit.jupiter.api.Assertions.assertEquals(reply, sent.getFlashMap().get("replyDraft"));
+            mockMvc.perform(get(page).session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("id=\"inquiryError\"")))
+                    .andExpect(content().string(containsString(reply)))
+                    .andExpect(content().string(not(containsString("data-inquiry-reply"))))
+                    .andExpect(content().string(containsString(">Not replied</span>")));
+        }
+
+        // by hand: mark it as replied and it moves to the other list; mark it open and it comes back
+        mockMvc.perform(asAdmin(get("/admin/inquiries").param("status", "open").param("q", tag)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(sender)));
+        mockMvc.perform(asAdmin(post(page + "/replied")).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(page));
+        mockMvc.perform(asAdmin(get("/admin/inquiries").param("status", "replied").param("q", tag)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(sender)))
+                .andExpect(content().string(containsString(">Replied</span>")));
+        mockMvc.perform(asAdmin(get("/admin/inquiries").param("status", "open").param("q", tag)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString(sender))))
+                .andExpect(content().string(containsString("No inquiries match this search or filter.")));
+        mockMvc.perform(asAdmin(post(page + "/open")).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(page));
+        mockMvc.perform(asAdmin(get("/admin/inquiries").param("status", "open").param("q", tag)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(sender)));
+    }
 }

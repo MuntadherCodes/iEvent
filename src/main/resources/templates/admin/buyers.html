@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="_csrf" th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
+<title>Super admin · buyers</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+<style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-ink-50 font-body text-ink-800">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<header class="flex h-16 items-center justify-between border-b border-ink-100 bg-ink-900 px-6">
+  <p class="font-display text-base font-extrabold text-white"><span class="text-brand-400">i</span>Event <span class="ms-1 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-200">Super admin</span></p>
+  <form th:action="@{/admin/logout}" method="post">
+    <button type="submit" class="text-sm font-semibold text-ink-300 transition hover:text-white">Sign out</button>
+  </form>
+</header>
+<nav th:replace="~{admin/parts :: nav('buyers')}"></nav>
+
+<!-- R42: everyone who placed an order, one row per person, with the contact details
+     they gave at checkout. ?org=ID and ?event=ID narrow the list (the organizer page
+     links here with them); the counts then describe that organizer or event only. -->
+<main class="mx-auto max-w-6xl px-6 py-10">
+  <a th:if="${scopeOrgId != null}" th:href="@{/admin/orgs/{id}(id=${scopeOrgId})}" class="text-sm font-semibold text-ink-500 transition hover:text-brand-600">&larr; <span th:text="${scopeOrgName}">Organizer</span></a>
+
+  <h1 class="font-display text-2xl font-extrabold tracking-tight text-ink-900" th:classappend="${scopeOrgId != null} ? 'mt-3'">Buyers</h1>
+  <p class="mt-1 text-ink-500">Everyone who placed an order, newest first, with the name, email and phone number they gave at checkout. The phone field is optional there, so some buyers have none.</p>
+
+  <p th:if="${scopeOrgId != null}" id="buyersScope" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-ink-700">
+    <span th:if="${scopeEventId != null}">Showing only buyers of <strong class="font-semibold text-ink-900" th:text="${scopeEventTitle}">Event title</strong></span>
+    <span th:if="${scopeEventId == null}">Showing only buyers of events by <strong class="font-semibold text-ink-900" th:text="${scopeOrgName}">Organizer</strong></span>
+    <a th:if="${scopeEventId != null}" th:href="@{/admin/buyers(org=${scopeOrgId})}" class="font-semibold text-brand-700 hover:underline">All events of this organizer</a>
+    <a th:href="@{/admin/buyers}" class="font-semibold text-brand-700 hover:underline">All buyers</a>
+  </p>
+
+  <div class="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
+    <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-3 sm:block sm:p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">Buyers</p>
+      <p id="buyersTotal" class="font-display text-2xl font-extrabold text-ink-900 sm:mt-1" th:text="${countAll}">0</p>
+    </div>
+    <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-3 sm:block sm:p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">With a phone number</p>
+      <p id="buyersWithPhone" class="font-display text-2xl font-extrabold text-ink-900 sm:mt-1" th:text="${withPhone}">0</p>
+    </div>
+    <div class="flex items-center justify-between gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-3 sm:block sm:p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">Orders</p>
+      <p id="buyersOrders" class="font-display text-2xl font-extrabold text-ink-900 sm:mt-1" th:text="${totalOrders}">0</p>
+    </div>
+  </div>
+
+  <form th:action="@{/admin/buyers}" method="get" class="mt-6 flex flex-wrap items-center gap-3">
+    <input th:if="${statusFilter != 'all'}" type="hidden" name="status" th:value="${statusFilter}">
+    <input th:if="${orgParam != ''}" type="hidden" name="org" th:value="${orgParam}">
+    <input th:if="${eventParam != ''}" type="hidden" name="event" th:value="${eventParam}">
+    <div class="relative min-w-[240px] flex-1">
+      <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+      <input type="search" name="q" th:value="${q}" placeholder="Search by name, phone, email, order code, event or organizer…" aria-label="Search buyers" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+    </div>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by order status">
+      <a th:href="@{/admin/buyers(q=${q},status='all',org=${orgParam},event=${eventParam})}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'all'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All <span class="tabular-nums opacity-70" th:text="${countAll}">0</span></a>
+      <a th:href="@{/admin/buyers(q=${q},status='confirmed',org=${orgParam},event=${eventParam})}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'confirmed'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'" title="Buyers with at least one confirmed order">Confirmed <span class="tabular-nums opacity-70" th:text="${countConfirmed}">0</span></a>
+      <a th:href="@{/admin/buyers(q=${q},status='pending',org=${orgParam},event=${eventParam})}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'pending'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'" title="Buyers with at least one order the organizer has not confirmed yet">Awaiting confirmation <span class="tabular-nums opacity-70" th:text="${countPending}">0</span></a>
+    </div>
+  </form>
+
+  <!-- A table from tablet width up. On a phone every buyer is one stacked block (the
+       cells turn into lines), so the name, email and phone number show without
+       scrolling sideways. -->
+  <div class="mt-4 overflow-x-auto rounded-2xl border border-ink-100 bg-white">
+    <table class="block w-full text-start text-sm md:table">
+      <thead class="hidden border-b border-ink-100 bg-ink-50 text-xs font-semibold uppercase tracking-wide text-ink-500 md:table-header-group">
+        <tr>
+          <th class="px-5 py-3 text-start">Buyer</th>
+          <th class="px-5 py-3 text-start">Phone</th>
+          <th class="px-5 py-3 text-end">Orders</th>
+          <th class="px-5 py-3 text-end" title="Tickets on confirmed orders">Tickets</th>
+          <th class="px-5 py-3 text-start">Last order</th>
+        </tr>
+      </thead>
+      <tbody class="block divide-y divide-ink-50 md:table-row-group">
+        <tr th:each="b : ${buyers}" data-buyer-row class="block py-3 align-top md:table-row md:py-0">
+          <td class="block px-5 py-0.5 md:table-cell md:py-3.5">
+            <span class="block break-words font-semibold text-ink-900"><bdi th:text="${b.name}">Buyer name</bdi></span>
+            <a th:href="'mailto:' + ${b.email}" class="block w-fit max-w-full break-words text-xs text-ink-500 hover:text-brand-600 hover:underline" th:text="${b.email}">buyer@email.com</a>
+            <span th:if="${b.accountEmail != ''}" class="block break-words text-xs text-ink-400">signs in as <span th:text="${b.accountEmail}">account@email.com</span></span>
+          </td>
+          <td class="block px-5 py-0.5 md:table-cell md:py-3.5" data-buyer-phone><th:block th:replace="~{admin/parts :: phone(${b.phone}, '')}"></th:block></td>
+          <td class="inline-block py-0.5 ps-5 md:table-cell md:px-5 md:py-3.5 md:text-end">
+            <span class="text-xs text-ink-400 md:hidden">Orders</span>
+            <span class="font-semibold tabular-nums text-ink-800" th:text="${b.orders}">1</span>
+            <span th:if="${b.orders > 1}" class="ms-auto hidden max-w-[10rem] text-xs text-ink-400 md:block" th:text="${b.ordersNote}">2 confirmed</span>
+          </td>
+          <td class="inline-block py-0.5 ps-4 tabular-nums text-ink-600 md:table-cell md:px-5 md:py-3.5 md:text-end">
+            <span class="text-xs text-ink-400 md:hidden">Tickets</span>
+            <span th:text="${b.tickets}">0</span>
+          </td>
+          <td class="block px-5 py-0.5 md:table-cell md:py-3.5">
+            <span th:if="${b.orders > 1}" class="mb-1 block text-xs text-ink-400 md:hidden" th:text="${b.ordersNote}">2 confirmed</span>
+            <a th:href="@{/en/e/{s}(s=${b.lastEventSlug})}" target="_blank" dir="auto" class="break-words font-semibold text-ink-900 hover:text-brand-600 hover:underline" th:text="${b.lastEventTitle}">Event title</a>
+            <span th:if="${b.moreEvents > 0}" class="whitespace-nowrap text-xs text-ink-400" th:text="'+ ' + ${b.moreEvents} + ' more'">+ 2 more</span>
+            <span class="mt-0.5 block text-xs text-ink-400"><bdi th:text="${b.lastOrgName}">Organizer</bdi> · <span class="whitespace-nowrap" th:text="${b.lastOrderLine}">Jan 1, 2026</span> · <span class="whitespace-nowrap" th:text="${b.lastOrderCode}">EVT-XXXXXX</span></span>
+            <span th:if="${b.lastStatus == 'CONFIRMED'}" class="mt-1.5 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Confirmed</span>
+            <span th:if="${b.lastStatus == 'PENDING_CONFIRMATION'}" class="mt-1.5 inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">Awaiting confirmation</span>
+            <span th:if="${b.lastStatus != 'CONFIRMED' and b.lastStatus != 'PENDING_CONFIRMATION'}" class="mt-1.5 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700" th:text="${b.lastStatusLabel}">Refunded</span>
+          </td>
+        </tr>
+        <tr th:if="${buyers.isEmpty() and countAll == 0}" class="block md:table-row"><td colspan="5" class="block px-5 py-10 text-center text-ink-400 md:table-cell">No orders yet, so no buyers to show.</td></tr>
+        <tr th:if="${buyers.isEmpty() and countAll > 0}" class="block md:table-row"><td colspan="5" class="block px-5 py-10 text-center text-ink-400 md:table-cell">No buyers match this search or filter.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div th:if="${matchCount > 0}" class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-500">
+    <p>Showing <span class="tabular-nums" th:text="${shownFrom}">1</span> to <span class="tabular-nums" th:text="${shownTo}">50</span> of <span id="buyersMatchCount" class="tabular-nums" th:text="${matchCount}">120</span></p>
+    <div th:if="${pageCount > 1}" class="flex items-center gap-2">
+      <a th:if="${pageNumber > 0}" th:href="@{/admin/buyers(q=${q},status=${statusFilter},org=${orgParam},event=${eventParam},page=${pageNumber - 1})}" class="rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Previous</a>
+      <span>Page <span class="tabular-nums" th:text="${pageNumber + 1}">1</span> of <span class="tabular-nums" th:text="${pageCount}">3</span></span>
+      <a th:if="${pageNumber + 1 < pageCount}" th:href="@{/admin/buyers(q=${q},status=${statusFilter},org=${orgParam},event=${eventParam},page=${pageNumber + 1})}" class="rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Next</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

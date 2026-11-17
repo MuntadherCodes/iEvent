@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="_csrf" th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
+<title>Super admin · inquiries</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+<style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-ink-50 font-body text-ink-800">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<header class="flex h-16 items-center justify-between border-b border-ink-100 bg-ink-900 px-6">
+  <p class="font-display text-base font-extrabold text-white"><span class="text-brand-400">i</span>Event <span class="ms-1 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-200">Super admin</span></p>
+  <form th:action="@{/admin/logout}" method="post">
+    <button type="submit" class="text-sm font-semibold text-ink-300 transition hover:text-white">Sign out</button>
+  </form>
+</header>
+<nav th:replace="~{admin/parts :: nav('inquiries')}"></nav>
+
+<!-- R42: every message sent through the website's contact form, with the time it
+     arrived and whether it has been answered. A row opens the message and its reply box. -->
+<main class="mx-auto max-w-6xl px-6 py-10">
+  <h1 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Inquiries</h1>
+  <p class="mt-1 text-ink-500">Messages sent through the contact form on the website, newest first. Open one to read it in full and reply by email.</p>
+
+  <form th:action="@{/admin/inquiries}" method="get" class="mt-6 flex flex-wrap items-center gap-3">
+    <input th:if="${statusFilter != 'all'}" type="hidden" name="status" th:value="${statusFilter}">
+    <div class="relative min-w-[240px] flex-1">
+      <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+      <input type="search" name="q" th:value="${q}" placeholder="Search by name, email or words in the message…" aria-label="Search inquiries" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+    </div>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+      <a th:href="@{/admin/inquiries(q=${q},status='all')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'all'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">All <span class="tabular-nums opacity-70" th:text="${countAll}">0</span></a>
+      <a th:href="@{/admin/inquiries(q=${q},status='open')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'open'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Not replied <span class="tabular-nums opacity-70" th:text="${countOpen}">0</span></a>
+      <a th:href="@{/admin/inquiries(q=${q},status='replied')}" class="rounded-full border px-4 py-2 text-sm font-medium transition" th:classappend="${statusFilter == 'replied'} ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400'">Replied <span class="tabular-nums opacity-70" th:text="${countReplied}">0</span></a>
+    </div>
+  </form>
+
+  <!-- A table from tablet width up. On a phone every inquiry is one stacked block (the
+       cells turn into lines), so nothing needs scrolling sideways. -->
+  <div class="mt-4 overflow-x-auto rounded-2xl border border-ink-100 bg-white">
+    <table class="block w-full text-start text-sm md:table">
+      <thead class="hidden border-b border-ink-100 bg-ink-50 text-xs font-semibold uppercase tracking-wide text-ink-500 md:table-header-group">
+        <tr>
+          <th class="px-5 py-3 text-start">Received</th>
+          <th class="px-5 py-3 text-start">From</th>
+          <th class="px-5 py-3 text-start">Message</th>
+          <th class="px-5 py-3 text-start">Status</th>
+        </tr>
+      </thead>
+      <tbody class="block divide-y divide-ink-50 md:table-row-group">
+        <tr th:each="i : ${inquiries}" data-inquiry-row class="block cursor-pointer py-3 align-top transition hover:bg-ink-50 md:table-row md:py-0" th:attr="onclick=|location.href='/admin/inquiries/${i.id}'|">
+          <td class="block whitespace-nowrap px-5 py-0.5 text-xs text-ink-500 md:table-cell md:py-3.5 md:text-sm" th:text="${i.receivedLine}">Jan 1, 2026, 9:30 AM</td>
+          <td class="block px-5 py-0.5 md:table-cell md:py-3.5">
+            <a th:href="@{/admin/inquiries/{id}(id=${i.id})}" dir="auto" class="block w-fit max-w-full break-words text-ink-900 hover:text-brand-600 hover:underline" th:classappend="${i.replied} ? 'font-medium' : 'font-bold'" onclick="event.stopPropagation()" th:text="${i.name}">Sender name</a>
+            <span class="block break-words text-xs text-ink-400" th:text="${i.email}">sender@email.com</span>
+          </td>
+          <td class="block px-5 py-0.5 md:table-cell md:min-w-[240px] md:py-3.5">
+            <span class="block text-xs font-semibold text-ink-500" th:text="${i.topicLabel}">General question</span>
+            <span class="mt-0.5 block break-words" th:classappend="${i.replied} ? 'text-ink-500' : 'text-ink-800'"><bdi th:text="${i.excerpt}">The first words of the message…</bdi></span>
+          </td>
+          <td class="block px-5 pb-0.5 pt-1.5 md:table-cell md:py-3.5">
+            <span th:if="${!i.replied}" class="inline-flex items-center whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">Not replied</span>
+            <span th:if="${i.replied}" class="inline-flex items-center whitespace-nowrap rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Replied</span>
+            <span th:if="${i.replied}" class="ms-2 whitespace-nowrap text-xs text-ink-400 md:ms-0 md:mt-1 md:block" th:text="${i.repliedLine}">Jan 2, 2026, 10:00 AM</span>
+          </td>
+        </tr>
+        <tr th:if="${inquiries.isEmpty() and countAll == 0}" class="block md:table-row"><td colspan="4" class="block px-5 py-10 text-center text-ink-400 md:table-cell">No inquiries yet. Messages sent from the Contact page will show up here.</td></tr>
+        <tr th:if="${inquiries.isEmpty() and countAll > 0}" class="block md:table-row"><td colspan="4" class="block px-5 py-10 text-center text-ink-400 md:table-cell">No inquiries match this search or filter.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div th:if="${matchCount > 0}" class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-500">
+    <p>Showing <span class="tabular-nums" th:text="${shownFrom}">1</span> to <span class="tabular-nums" th:text="${shownTo}">50</span> of <span id="inquiriesMatchCount" class="tabular-nums" th:text="${matchCount}">120</span></p>
+    <div th:if="${pageCount > 1}" class="flex items-center gap-2">
+      <a th:if="${pageNumber > 0}" th:href="@{/admin/inquiries(q=${q},status=${statusFilter},page=${pageNumber - 1})}" class="rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Previous</a>
+      <span>Page <span class="tabular-nums" th:text="${pageNumber + 1}">1</span> of <span class="tabular-nums" th:text="${pageCount}">3</span></span>
+      <a th:if="${pageNumber + 1 < pageCount}" th:href="@{/admin/inquiries(q=${q},status=${statusFilter},page=${pageNumber + 1})}" class="rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Next</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

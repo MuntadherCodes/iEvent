@@ -33,5 +33,8 @@
   "emails.refunded.totalWord": "بمجموع",
   "emails.refunded.body3": "جميع تذاكر هذا الطلب أصبحت لاغية ولا يمكن استخدامها للدخول. يعيد المنظّم المبلغ عبر طريقة الدفع نفسها التي استخدمتها، إذا لم يصلك خلال بضعة أيام عمل، فتواصل مع المنظّم مباشرة.",
   "emails.welcome.footer": "iEvent، اكتشاف الفعاليات وحجز التذاكر في العراق. وصلتك هذه الرسالة لأن حساباً أُنشئ بهذا البريد.",
-  "emails.confirmed.joinInstructions": "تعليمات الانضمام:"
+  "emails.confirmed.joinInstructions": "تعليمات الانضمام:",
+  "emails.inquiryReply.kicker": "رد على رسالتك",
+  "emails.inquiryReply.youWrote": "رسالتك",
+  "emails.inquiryReply.footer": "يمكنك الرد على هذه الرسالة مباشرة وسيصل ردك إلى فريقنا. © 2026 iEvent"
 }

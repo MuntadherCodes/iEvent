@@ -3732,3 +3732,209 @@ test('ch. search suggestions (R41): the whole list shows on top of the next sect
     expect(list.coveredAt, `${width}px: pixels below the top of the list where something else covers it`).toBeNull();
   }
 });
+
+// ---------- round 42: super-admin console ----------
+// The console sits behind one shared password (SUPER_ADMIN_PASSWORD in .env, no user
+// account). CI builds its .env from .env.example, whose value is the default below. A
+// local stack with a different password runs these tests with SUPER_ADMIN_PASSWORD set;
+// without it they are skipped with an annotation, like the mail checks without Mailpit.
+const ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD || 'change-me-strong';
+
+/** Signs in to /admin. Returns false (after annotating the test) when the password is refused locally. */
+async function adminSignIn(page, testInfo) {
+  log('signing in to the super-admin console');
+  await page.goto('/admin');
+  await expect(page).toHaveURL(/\/admin\/login/);
+  await page.locator('#ad-pass').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  const inside = page.getByRole('heading', { name: 'Organizations' });
+  const refused = page.getByText('Incorrect password.');
+  await expect(inside.or(refused)).toBeVisible();
+  if (await refused.isVisible()) {
+    if (IS_CI) {
+      throw new Error('the super-admin password from .env.example was refused in CI');
+    }
+    testInfo.annotations.push({
+      type: 'admin-check-skipped',
+      description: 'SUPER_ADMIN_PASSWORD is not the .env.example default here; set it to run the super-admin tests',
+    });
+    log('super-admin password refused: skipping locally (set SUPER_ADMIN_PASSWORD to run this)');
+    return false;
+  }
+  return true;
+}
+
+/** Pixels the page is wider than the screen (0 = no sideways scrolling). */
+const sidewaysPx = (page) =>
+  page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+const ADMIN_TABS = 'nav[aria-label="Admin sections"]';
+
+test('ci. super admin (R42): the organizer phone number is on the organizations list, and the Buyers page shows who bought with phone and email', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const BUYER = {
+    name: `R42 Buyer ${RUN_ID}`,
+    email: `e2e-r42-buyer+${RUN_ID}@test.iq`,
+    phoneTyped: '0790 555 0142',
+    phoneShown: '+964 790 555 0142',
+    digits: '9647905550142',
+  };
+
+  log('a guest buys a festival ticket and leaves a phone number at checkout');
+  await page.goto('/e/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/checkout/);
+  await page.locator('#buyerName').fill(BUYER.name);
+  await page.locator('#buyerEmail').fill(BUYER.email);
+  await page.locator('#buyerPhone').fill(BUYER.phoneTyped);
+  await page.locator('#transferReference').fill('E2E-R42');
+  await page.locator('#submitBtn').click();
+  await expect(page).toHaveURL(/\/orders\//);
+  await signOut(page);
+
+  if (!(await adminSignIn(page, testInfo))) return;
+
+  log('organizations: a Phone column; the organizer created in test m shows the number typed at onboarding, as a dial link with a WhatsApp link');
+  await expect(page.locator('thead th', { hasText: 'Phone' })).toBeVisible();
+  await expect(page.locator(`${ADMIN_TABS} a`)).toHaveText([/Organizations/, /Buyers/, /Inquiries/]);
+  await page.locator('input[name="q"]').fill(HOST2_EMAIL);
+  await page.locator('input[name="q"]').press('Enter');
+  const orgRow = page.locator('tbody tr', { hasText: HOST2_EMAIL });
+  await expect(orgRow).toHaveCount(1);
+  const orgPhone = orgRow.locator('[data-org-phone]');
+  await expect(orgPhone).toContainText('+964 790 123 4567'); // typed as 0790 123 4567 in test m
+  await expect(orgPhone.locator('a[href="tel:+9647901234567"]')).toBeVisible();
+  await expect(orgPhone.locator('a[href="https://wa.me/9647901234567"]')).toHaveText('WhatsApp');
+
+  log('the organizer page lists every number under its label and links to that organizer\'s buyers');
+  await orgRow.locator('td').first().click();
+  await expect(page).toHaveURL(/\/admin\/orgs\/\d+/);
+  await expect(page.locator('#orgContact')).toContainText("Owner's number");
+  await expect(page.locator('#orgContact [data-owner-phone]')).toContainText('+964 790 123 4567');
+  await expect(page.locator('#orgContact')).toContainText('Public contact');
+  await expect(page.locator('#orgContact')).toContainText('Payments number');
+  await page.locator('#orgBuyersLink').click();
+  await expect(page).toHaveURL(/\/admin\/buyers\?org=\d+/);
+  await expect(page.locator('#buyersScope')).toContainText('E2E Test Events');
+
+  log('buyers: the guest from a moment ago, found by email, with name, phone (dial + WhatsApp), email, event and status');
+  await page.locator(`${ADMIN_TABS} a`, { hasText: 'Buyers' }).click();
+  await expect(page).toHaveURL(/\/admin\/buyers$/);
+  await expect(page.getByRole('heading', { name: 'Buyers', exact: true })).toBeVisible();
+  await page.locator('input[name="q"]').fill(BUYER.email);
+  await page.locator('input[name="q"]').press('Enter');
+  const buyerRow = page.locator('[data-buyer-row]');
+  await expect(buyerRow).toHaveCount(1);
+  await expect(buyerRow).toContainText(BUYER.name);
+  await expect(buyerRow.locator(`a[href="mailto:${BUYER.email}"]`)).toBeVisible();
+  await expect(buyerRow.locator('[data-buyer-phone]')).toContainText(BUYER.phoneShown);
+  await expect(buyerRow.locator(`a[href="tel:+${BUYER.digits}"]`)).toBeVisible();
+  await expect(buyerRow.locator(`a[href="https://wa.me/${BUYER.digits}"]`)).toBeVisible();
+  await expect(buyerRow).toContainText('Baghdad Nights Music Festival');
+  await expect(buyerRow).toContainText('Awaiting confirmation');
+
+  log('the same buyer is found by phone, typed the local way');
+  await page.locator('input[name="q"]').fill(BUYER.phoneTyped);
+  await page.locator('input[name="q"]').press('Enter');
+  await expect(page.locator('[data-buyer-row]', { hasText: BUYER.email })).toHaveCount(1);
+
+  log('on a phone the buyers list stacks: no sideways scrolling, and the number is on screen without swiping');
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.locator('input[name="q"]').fill(BUYER.email);
+  await page.locator('input[name="q"]').press('Enter');
+  await expect(page.locator('[data-buyer-row]')).toHaveCount(1);
+  expect(await sidewaysPx(page), 'buyers page at 390px: pixels wider than the screen').toBe(0);
+  const phoneBox = await page.locator('[data-buyer-row] [data-buyer-phone]').boundingBox();
+  expect(phoneBox && phoneBox.x >= 0 && phoneBox.x + phoneBox.width <= 390, 'the phone number fits inside a 390px screen').toBeTruthy();
+  log('the organizations list at phone width: the number sits under the owner, no sideways scrolling of the page');
+  await page.goto('/admin?q=' + encodeURIComponent(HOST2_EMAIL));
+  await expect(page.locator('tbody tr', { hasText: HOST2_EMAIL }).locator('a[href="tel:+9647901234567"]').first()).toBeVisible();
+  expect(await sidewaysPx(page), 'organizations page at 390px: pixels wider than the screen').toBe(0);
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  log('signing out of the console closes it again');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/admin\/login/);
+  await page.goto('/admin/buyers');
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test('cj. super admin (R42): a contact-form message lands in Inquiries with its time and status, and a reply from the console is emailed', async ({ page, request }, testInfo) => {
+  test.setTimeout(90_000);
+  const ASKER = {
+    name: `R42 Asker ${RUN_ID}`,
+    email: `e2e-r42-asker+${RUN_ID}@test.iq`,
+    text: `Where is my ticket? (run ${RUN_ID})`,
+  };
+  const REPLY = `Hello, your ticket is on its way. (run ${RUN_ID})`;
+
+  log('a visitor sends a message through the contact form');
+  await page.goto('/contact');
+  await page.locator('#ct-name').fill(ASKER.name);
+  await page.locator('#ct-email').fill(ASKER.email);
+  await page.locator('#ct-topic').selectOption('attendee');
+  await page.locator('#ct-message').fill(ASKER.text);
+  await page.locator('form[action$="/contact"] button[type="submit"]').click();
+  await expect(page.getByRole('heading', { name: 'Message sent' })).toBeVisible();
+
+  if (!(await adminSignIn(page, testInfo))) return;
+
+  log('inquiries: the tab shows that something waits; the message is listed with its time, topic and "Not replied"');
+  await expect(page.locator('#openInquiriesBadge')).toBeVisible();
+  await page.locator(`${ADMIN_TABS} a`, { hasText: 'Inquiries' }).click();
+  await expect(page).toHaveURL(/\/admin\/inquiries$/);
+  await page.locator('input[name="q"]').fill(ASKER.email);
+  await page.locator('input[name="q"]').press('Enter');
+  const row = page.locator('[data-inquiry-row]');
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText(ASKER.name);
+  await expect(row).toContainText('Order / ticket issue');
+  await expect(row).toContainText(ASKER.text);
+  await expect(row).toContainText('Not replied');
+  await expect(row.locator('td').first()).toHaveText(/^[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M$/);
+
+  log('opening it shows the whole message and the reply box');
+  await row.locator('a', { hasText: ASKER.name }).click();
+  await expect(page).toHaveURL(/\/admin\/inquiries\/\d+/);
+  const inquiryUrl = page.url();
+  await expect(page.locator('#inquiryMessage')).toHaveText(ASKER.text);
+  await expect(page.locator('#inquiryStatus')).toContainText('Not replied');
+  await expect(page.locator(`a[href="mailto:${ASKER.email}"]`)).toBeVisible();
+
+  log('replying from the console: the notice, the status and the reply on the page, and the email in the visitor\'s inbox');
+  await page.locator('#replyBody').fill(REPLY);
+  await page.getByRole('button', { name: 'Send reply' }).click();
+  await expect(page.locator('#inquiryNotice')).toHaveText('Reply sent by email.');
+  await expect(page.locator('#inquiryStatus')).toContainText('Replied');
+  await expect(page.locator('[data-inquiry-reply]')).toHaveCount(1);
+  await expect(page.locator('[data-inquiry-reply]')).toContainText(REPLY);
+  await assertMail(request, testInfo, { to: ASKER.email, subjectPart: 'Re: your message to iEvent' });
+
+  log('the lists follow: gone from "Not replied", present under "Replied"');
+  await page.goto('/admin/inquiries?status=open&q=' + encodeURIComponent(ASKER.email));
+  await expect(page.locator('[data-inquiry-row]')).toHaveCount(0);
+  await page.goto('/admin/inquiries?status=replied&q=' + encodeURIComponent(ASKER.email));
+  await expect(page.locator('[data-inquiry-row]')).toHaveCount(1);
+  await expect(page.locator('[data-inquiry-row]')).toContainText('Replied');
+
+  log('the manual switch puts it back on the waiting list, and marks it replied again without sending anything');
+  await page.goto(inquiryUrl);
+  await page.locator('#markOpenBtn').click();
+  await expect(page.locator('#inquiryStatus')).toContainText('Not replied');
+  await expect(page.locator('[data-inquiry-reply]')).toHaveCount(1);
+  await page.locator('#markRepliedBtn').click();
+  await expect(page.locator('#inquiryStatus')).toContainText('Replied');
+
+  log('on a phone neither the list nor the inquiry scrolls sideways');
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.reload();
+  await expect(page.locator('#inquiryMessage')).toBeVisible();
+  expect(await sidewaysPx(page), 'inquiry page at 390px: pixels wider than the screen').toBe(0);
+  await page.goto('/admin/inquiries');
+  await expect(page.locator('[data-inquiry-row]').first()).toBeVisible();
+  expect(await sidewaysPx(page), 'inquiries list at 390px: pixels wider than the screen').toBe(0);
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/admin\/login/);
+});

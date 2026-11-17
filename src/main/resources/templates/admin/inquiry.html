@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="_csrf" th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
+<title th:text="'Inquiry from ' + ${inquiry.name} + ' · super admin'">Inquiry · super admin</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+<style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-ink-50 font-body text-ink-800">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<header class="flex h-16 items-center justify-between border-b border-ink-100 bg-ink-900 px-6">
+  <p class="font-display text-base font-extrabold text-white"><span class="text-brand-400">i</span>Event <span class="ms-1 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-200">Super admin</span></p>
+  <form th:action="@{/admin/logout}" method="post">
+    <button type="submit" class="text-sm font-semibold text-ink-300 transition hover:text-white">Sign out</button>
+  </form>
+</header>
+<nav th:replace="~{admin/parts :: nav('inquiries')}"></nav>
+
+<!-- R42: one contact-form message, the replies already sent for it, and the reply box.
+     A reply is emailed to the person who wrote; their own answer to it arrives in the
+     support mailbox, not on this page. -->
+<main class="mx-auto max-w-3xl px-6 py-10">
+  <a th:href="@{/admin/inquiries}" class="text-sm font-semibold text-ink-500 transition hover:text-brand-600">&larr; All inquiries</a>
+
+  <p th:if="${notice != null}" id="inquiryNotice" class="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700" role="status" th:text="${notice}">Reply sent by email.</p>
+  <p th:if="${replyError != null}" id="inquiryError" class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" role="alert" th:text="${replyError}">The reply could not be sent.</p>
+
+  <div class="mt-3">
+    <div class="min-w-0">
+      <h1 class="break-words font-display text-2xl font-extrabold tracking-tight text-ink-900"><bdi th:text="${inquiry.name}">Sender name</bdi></h1>
+      <p class="mt-1 break-words text-sm text-ink-500">
+        <a th:href="'mailto:' + ${inquiry.email}" class="font-semibold text-brand-600 hover:underline" th:text="${inquiry.email}">sender@email.com</a>
+        · <span th:text="${inquiry.topicLabel}">General question</span>
+        · Received <span id="inquiryReceived" th:text="${inquiry.receivedLine}">Jan 1, 2026, 9:30 AM</span>
+      </p>
+      <p class="mt-1 text-xs text-ink-400">
+        Sent while browsing the site in <span th:text="${inquiry.langLabel}">Arabic</span><span th:if="${inquiry.hasAccount}">, signed in to their account</span>.
+        <a th:href="@{/admin/buyers(q=${inquiry.email})}" class="font-semibold text-brand-600 hover:underline">Look up their orders</a>
+      </p>
+    </div>
+    <div id="inquiryStatus" class="mt-3">
+      <span th:if="${!inquiry.replied}" class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">Not replied</span>
+      <span th:if="${inquiry.replied}" class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Replied <span class="ms-1 font-medium" th:text="${inquiry.repliedLine}">Jan 2, 2026, 10:00 AM</span></span>
+    </div>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-ink-100 bg-white p-6">
+    <p class="text-xs font-semibold uppercase tracking-wide text-ink-400">Their message</p>
+    <p id="inquiryMessage" dir="auto" class="mt-2 whitespace-pre-line break-words leading-relaxed text-ink-800" th:text="${inquiry.message}">The full message.</p>
+  </div>
+
+  <div th:each="r : ${replies}" data-inquiry-reply class="mt-4 rounded-2xl border border-green-200 bg-green-50 p-6">
+    <p class="text-xs font-semibold uppercase tracking-wide text-green-700">Reply sent <span class="normal-case tracking-normal" th:text="${r.sentLine}">Jan 2, 2026, 10:00 AM</span></p>
+    <p dir="auto" class="mt-2 whitespace-pre-line break-words leading-relaxed text-ink-800" th:text="${r.body}">The reply.</p>
+  </div>
+  <p th:if="${inquiry.replied and replies.isEmpty()}" id="markedByHand" class="mt-4 rounded-2xl border border-ink-100 bg-white px-6 py-4 text-sm text-ink-500">Marked as replied by hand. No reply was sent from here.</p>
+
+  <form id="replyForm" th:action="@{/admin/inquiries/{id}/reply(id=${inquiry.id})}" method="post" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6">
+    <label for="replyBody" class="font-display font-bold text-ink-900" th:text="${replies.isEmpty()} ? 'Reply by email' : 'Send another reply'">Reply by email</label>
+    <p class="mt-1 break-words text-sm text-ink-500">Goes to <strong class="font-semibold text-ink-700" th:text="${inquiry.email}">sender@email.com</strong> from <span th:text="${mailFrom}">no-reply@ievent.events</span>, with their message quoted under yours. If they answer, it arrives in <span th:text="${supportEmail}">support@example.com</span>, not on this page.</p>
+    <textarea id="replyBody" name="body" rows="7" required maxlength="5000" dir="auto" placeholder="Write your reply…" class="mt-4 w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm" th:text="${replyDraft}"></textarea>
+    <button type="submit" class="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-send"/></svg><span data-label>Send reply</span></button>
+  </form>
+
+  <div class="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-100 bg-white p-6">
+    <div class="min-w-0">
+      <p class="font-display font-bold text-ink-900">Status</p>
+      <p th:if="${!inquiry.replied}" class="mt-1 text-sm text-ink-500">Answered some other way, or nothing to answer? Mark it as replied and it leaves the waiting list. No email is sent.</p>
+      <p th:if="${inquiry.replied}" class="mt-1 text-sm text-ink-500">Needs another look? Put it back on the waiting list. The replies above stay.</p>
+    </div>
+    <form th:if="${!inquiry.replied}" th:action="@{/admin/inquiries/{id}/replied(id=${inquiry.id})}" method="post">
+      <button type="submit" id="markRepliedBtn" class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Mark as replied</button>
+    </form>
+    <form th:if="${inquiry.replied}" th:action="@{/admin/inquiries/{id}/open(id=${inquiry.id})}" method="post">
+      <button type="submit" id="markOpenBtn" class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600">Mark as not replied</button>
+    </form>
+  </div>
+</main>
+
+<script>
+  // One click sends one email: a second submit while the first is still on its way is
+  // ignored, and the button says so.
+  (function () {
+    var form = document.getElementById('replyForm');
+    if (!form) return;
+    var label = form.querySelector('[data-label]');
+    var button = form.querySelector('button[type=submit]');
+    form.addEventListener('submit', function (e) {
+      if (form.getAttribute('data-submitted') === '1') { e.preventDefault(); return; }
+      form.setAttribute('data-submitted', '1');
+      if (label) label.textContent = 'Sending…';
+      if (button) button.classList.add('pointer-events-none', 'opacity-70');
+    });
+    // coming back with the browser's back button: the page is as it was, ready again
+    window.addEventListener('pageshow', function () {
+      form.removeAttribute('data-submitted');
+      if (label) label.textContent = 'Send reply';
+      if (button) button.classList.remove('pointer-events-none', 'opacity-70');
+    });
+  })();
+</script>
+</body>
+</html>

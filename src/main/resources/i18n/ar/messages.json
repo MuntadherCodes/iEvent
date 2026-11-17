@@ -208,5 +208,7 @@
   "pdf.showQr": "اعرض رمز QR عند المدخل. يسمح كل رمز بدخول شخص واحد مرة واحدة.",
   "pdf.verifyAt": "تحقق من أي تذكرة عبر",
   "flash.org.phoneRequired": "أدخل رقم هاتفك المحمول لإنشاء ملف المنظّم.",
-  "phone.invalid": "أدخل رقم هاتف محمول عراقي صحيح، مثل 0790 123 4567."
+  "phone.invalid": "أدخل رقم هاتف محمول عراقي صحيح، مثل 0790 123 4567.",
+  "mail.inquiryReply.subject": "رد على رسالتك إلى iEvent",
+  "mail.inquiryReply.greeting": "مرحباً {0}،"
 }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Super admin · shared pieces</title>
+</head>
+<body>
+
+<!-- R42: pieces the super-admin pages share. Nothing renders this file on its own;
+     the admin pages pull the two fragments below. -->
+
+<!-- Section tabs under the dark header. `active` is one of: orgs | buyers | inquiries.
+     The number on Inquiries is how many messages still wait for an answer
+     (AdminController puts openInquiries in every page's model). -->
+<nav th:fragment="nav(active)" class="border-b border-ink-100 bg-white" aria-label="Admin sections">
+  <div class="flex gap-1 overflow-x-auto px-3 sm:px-6">
+    <a th:href="@{/admin}" class="shrink-0 whitespace-nowrap border-b-2 px-2 py-3 text-sm font-semibold transition sm:px-3"
+       th:classappend="${active == 'orgs'} ? 'border-brand-500 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'orgs'} ? 'page' : null">Organizations</a>
+    <a th:href="@{/admin/buyers}" class="shrink-0 whitespace-nowrap border-b-2 px-2 py-3 text-sm font-semibold transition sm:px-3"
+       th:classappend="${active == 'buyers'} ? 'border-brand-500 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'buyers'} ? 'page' : null">Buyers</a>
+    <a th:href="@{/admin/inquiries}" class="shrink-0 whitespace-nowrap border-b-2 px-2 py-3 text-sm font-semibold transition sm:px-3"
+       th:classappend="${active == 'inquiries'} ? 'border-brand-500 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'inquiries'} ? 'page' : null">Inquiries <span id="openInquiriesBadge" th:if="${openInquiries != null and openInquiries > 0}" class="ms-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tabular-nums text-amber-700" title="Waiting for an answer" th:text="${openInquiries}">3</span></a>
+  </div>
+</nav>
+
+<!-- One phone number (an AdminContacts.Phone): the number as a dial link, a WhatsApp
+     link when the number can open a chat, and an optional note under it ('' for none).
+     The two links stop the click from reaching a table row that is itself clickable. -->
+<th:block th:fragment="phone(p, note)">
+  <a th:if="${p.tel != ''}" th:href="'tel:' + ${p.tel}" class="block w-fit whitespace-nowrap font-medium tabular-nums text-ink-800 hover:text-brand-600 hover:underline" onclick="event.stopPropagation()" th:text="${p.display}">+964 770 123 4567</a>
+  <span th:if="${p.display != '' and p.tel == ''}" class="block font-medium text-ink-800" th:text="${p.display}">number as typed</span>
+  <span th:if="${p.whatsapp != '' or note != ''}" class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
+    <a th:if="${p.whatsapp != ''}" th:href="'https://wa.me/' + ${p.whatsapp}" target="_blank" rel="noopener" class="font-semibold text-green-700 hover:underline" onclick="event.stopPropagation()">WhatsApp</a>
+    <span th:if="${note != ''}" class="text-ink-400" th:text="${note}">public contact number</span>
+  </span>
+  <span th:if="${p.display == ''}" class="text-ink-300">No number</span>
+</th:block>
+
+</body>
+</html>

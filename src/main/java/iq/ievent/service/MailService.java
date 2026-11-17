@@ -274,6 +274,44 @@ public class MailService {
         }
     }
 
+    /**
+     * R42: the super-admin's answer to a contact-form message, sent to the person who
+     * wrote. Synchronous, like sendSupportContact: the console records the answer and
+     * marks the inquiry as replied only when this returns true. Reply-To is the support
+     * mailbox, so the person's own answer lands where the team reads mail. The locale is
+     * the language the visitor was browsing in when they wrote: it lays out the frame of
+     * the mail (direction, greeting, labels); the answer goes out exactly as typed.
+     */
+    public boolean sendInquiryReply(String to, String name, String replyText, String originalMessage, Locale locale) {
+        Locale loc = safe(locale);
+        Locale previous = LocaleContextHolder.getLocale();
+        LocaleContextHolder.setLocale(loc);
+        try {
+            Context ctx = new Context(loc);
+            ctx.setVariable("greeting", msg("mail.inquiryReply.greeting", loc, firstName(name)));
+            ctx.setVariable("replyText", replyText);
+            ctx.setVariable("originalMessage", originalMessage);
+            ctx.setVariable("mailLang", isEnglish(loc) ? "en" : "ar");
+            ctx.setVariable("mailDir", isEnglish(loc) ? "ltr" : "rtl");
+            String html = templates.process("email/inquiry-reply", ctx);
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setReplyTo(supportEmail);
+            helper.setSubject(msg("mail.inquiryReply.subject", loc));
+            helper.setText(html, true);
+            sender.send(message);
+            log.info("Sent inquiry reply to {}", to);
+            return true;
+        } catch (Exception e) {
+            log.error("Inquiry reply failed to {}", to, e);
+            return false;
+        } finally {
+            LocaleContextHolder.setLocale(previous);
+        }
+    }
+
     private void sendTeamMail(String to, String subject, String bodyText, String buttonUrl, String buttonLabel, Locale locale) {
         Locale loc = safe(locale);
         Locale previous = LocaleContextHolder.getLocale();
