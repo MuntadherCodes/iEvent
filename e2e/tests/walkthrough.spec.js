@@ -11,8 +11,10 @@
  *                        GA 35,000 IQD on sale, Early Bird sold out
  *                      - "Startup Mixer Baghdad" (startup-mixer-baghdad) free "RSVP" ticket
  *                      Booking fee: 750 IQD per paid ticket up to 15,000 IQD, else
- *                      3% + 2,000 IQD capped at 15,000; WAIVED (0) while
- *                      Format.BOOKING_FEE_WAIVED is true (beta). See FEE_WAIVED below.
+ *                      3% + 2,000 IQD capped at 15,000. Round 43: the site SHOWS that
+ *                      fee (pricing page, fee card examples) while orders are CHARGED 0
+ *                      as long as Format.BOOKING_FEE_WAIVED is true. See FEE_WAIVED,
+ *                      standardFee() and bookingFee() below.
  *   SEED_SCALE=300  -> 300 synthetic "Scale Event #N — <City>" events
  *
  * Selectors are bound to the actual Thymeleaf templates in
@@ -38,11 +40,17 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 // ---------- booking fee model (mirror of Format.java) ----------
 // Flip FEE_WAIVED together with Format.BOOKING_FEE_WAIVED; every money assertion
 // below derives from these helpers instead of hard-coded totals.
+// Round 43: two fees, as in Format.java. standardFee() is the PUBLISHED fee, the one the
+// site shows (pricing page, the fee card's "buyer pays" / "you receive" examples).
+// bookingFee() is what an order is CHARGED: the same amount, or 0 while FEE_WAIVED.
 const FEE_WAIVED = true;
-function bookingFee(price) {
-  if (FEE_WAIVED || price <= 0) return 0;
+function standardFee(price) {
+  if (price <= 0) return 0;
   if (price <= 15000) return 750;
   return Math.min(15000, Math.round(price * 0.03) + 2000);
+}
+function bookingFee(price) {
+  return FEE_WAIVED ? 0 : standardFee(price);
 }
 const iqd = (n) => n.toLocaleString('en-US');
 const orderTotal = (price, qty = 1, discount = 0) => Math.max(0, price * qty - discount) + bookingFee(price) * qty;
@@ -191,7 +199,9 @@ async function registerUser(page, { name, email, password }) {
     .locator('button[type="submit"], input[type="submit"]')
     .first()
     .click();
-  await expect(page).toHaveURL(/\/auth\/login\?registered/);
+  // The first sign-up after a cold start (connection pool, password hashing, the welcome
+  // email) can take longer than the default 5 s; test e tripped over it now and then.
+  await expect(page).toHaveURL(/\/auth\/login\?registered/, { timeout: 20_000 });
 }
 
 async function login(page, email, password) {
@@ -216,6 +226,20 @@ async function signOut(page) {
 }
 
 /**
+ * Types a start time (24h "HH:mm") into the wizard's time field. Since round 17
+ * time-picker.js turns #ev-start into a hidden input that holds the canonical value and
+ * puts a visible text field, #ev-start-display, in front of it. A hidden input cannot be
+ * filled, so the tests that still did that could not get past this line.
+ */
+async function fillStartTime(page, hhmm) {
+  const display = page.locator('#ev-start-display');
+  await display.fill(hhmm);
+  await display.blur(); // commits the value and closes the half-hour list under the field
+  await expect(page.locator('#ev-start')).toHaveValue(hhmm);
+  await expect(display.locator('xpath=..').locator('[role="listbox"]')).toBeHidden();
+}
+
+/**
  * Drives wizard step 1 (basics) on /host/events/new and advances to step 2.
  * The round 10 tests create several HOST2 events — this keeps them uniform.
  */
@@ -226,7 +250,7 @@ async function wizardBasics(page, { title, daysAhead, start, venue, city, catego
   await page.locator('#ev-title').fill(title);
   const date = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   await page.locator('#ev-date').fill(date);
-  await page.locator('#ev-start').fill(start);
+  await fillStartTime(page, start);
   await page.locator('#ev-venue').fill(venue);
   await page.locator('#ev-city').selectOption(city);
   await page.locator('label').filter({ has: page.locator(`input.cat-pill[value="${category}"]`) }).click();
@@ -517,6 +541,308 @@ test('g. REGRESSION: login/register render cleanly in a cookie-less context', as
   }
 });
 
+// ---------- round 43: install prompt, compact home page, pricing as published, buyer-first checkout, Share ----------
+// ck to co need none of the accounts and orders the walkthrough builds up (co signs in as
+// the seeded demo host), so they sit here, ahead of test h, and not at the end of the
+// file: in a serial file a failing step skips everything after it, and these should run
+// whatever happens further down the chain.
+
+const ANDROID_PHONE_UA =
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+const IPHONE_SAFARI_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+
+/**
+ * Hands the page what Chrome on Android fires when a site can be installed: a
+ * beforeinstallprompt event with prompt() and userChoice. A test run cannot count on the
+ * browser firing it by itself, and what is under test is what pwa.js does with it.
+ * window.__installPrompts counts how often the page asked for the system dialog.
+ */
+const offerInstall = (page) =>
+  page.evaluate(() => {
+    window.__installPrompts = window.__installPrompts || 0;
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+    event.prompt = () => {
+      window.__installPrompts += 1;
+      return Promise.resolve();
+    };
+    event.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(event);
+  });
+
+test('ck. install prompt (R43): a phone is offered the app once per visit, "Not now" is remembered, a desktop is left alone', async ({ browser, page }) => {
+  test.setTimeout(90_000);
+  const card = (p) => p.locator('#installPrompt');
+  const androidPhone = { viewport: { width: 390, height: 800 }, hasTouch: true, userAgent: ANDROID_PHONE_UA };
+
+  log('Android phone: the card appears a moment after the browser says the site can be installed');
+  let context = await browser.newContext(androidPhone);
+  try {
+    const p = await context.newPage();
+    await p.goto('/en');
+    await offerInstall(p);
+    await expect(card(p)).toBeVisible();
+    await expect(card(p)).toContainText('Install the iEvent app');
+    await expect(card(p).locator('[data-install-dismiss]')).toHaveText('Not now');
+    expect(
+      await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      'the card does not make the page scroll sideways'
+    ).toBe(0);
+
+    log('"Install" asks for the system dialog, once, and the card goes away');
+    await card(p).locator('[data-install-accept]').click();
+    await expect(card(p)).toHaveCount(0);
+    expect(await p.evaluate(() => window.__installPrompts)).toBe(1);
+
+    log('the next page of the same visit does not ask again');
+    await p.goto('/en/pricing');
+    await offerInstall(p);
+    await p.waitForTimeout(1800); // the card waits 1.2 s before it shows
+    await expect(card(p)).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+
+  log('"Not now" hides it for 14 days, on later visits too; after that it is offered again');
+  context = await browser.newContext(androidPhone);
+  try {
+    const p = await context.newPage();
+    await p.goto('/en');
+    await offerInstall(p);
+    await card(p).locator('[data-install-dismiss]').click();
+    await expect(card(p)).toHaveCount(0);
+    const dismissedAt = await p.evaluate(() => Number(localStorage.getItem('ievent.installDismissedAt')));
+    expect(Math.abs(Date.now() - dismissedAt), 'the dismissal carries the time it happened').toBeLessThan(60_000);
+    await p.evaluate(() => sessionStorage.clear()); // a new visit
+    await p.reload();
+    await offerInstall(p);
+    await p.waitForTimeout(1800);
+    await expect(card(p)).toHaveCount(0);
+    await p.evaluate(() => {
+      sessionStorage.clear();
+      localStorage.setItem('ievent.installDismissedAt', String(Date.now() - 15 * 24 * 60 * 60 * 1000));
+    });
+    await p.reload();
+    await offerInstall(p);
+    await expect(card(p)).toBeVisible();
+  } finally {
+    await context.close();
+  }
+
+  log('iPhone Safari cannot open an install dialog from a page: the card explains the two taps instead');
+  context = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, userAgent: IPHONE_SAFARI_UA });
+  try {
+    const p = await context.newPage();
+    await p.goto('/en');
+    await expect(card(p)).toBeVisible({ timeout: 10_000 }); // shows 2.5 s after the page loads
+    await expect(card(p)).toContainText('Add to Home Screen');
+    await expect(card(p).locator('[data-install-accept]')).toHaveCount(0);
+    await expect(card(p).locator('[data-install-dismiss]')).toHaveText('Close');
+  } finally {
+    await context.close();
+  }
+
+  log('a desktop browser is never asked: it has its own install button in the address bar');
+  await page.goto('/en');
+  await offerInstall(page);
+  await page.waitForTimeout(1800);
+  await expect(card(page)).toHaveCount(0);
+});
+
+test('cl. phone home page (R43): city tiles are one row tall and the footer folds into four groups', async ({ page }) => {
+  const overflowPx = () =>
+    page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto('/en');
+
+  log('"Browse by city": each tile is a compact row, two to a line (it was a 4:3 block, 127px tall)');
+  const tiles = page.locator('main a.bg-gradient-to-br[href*="/city/"]');
+  await expect(tiles.first()).toBeVisible();
+  const tile = await tiles.first().boundingBox();
+  expect(tile.height, 'height of a city tile at 390px').toBeLessThan(90);
+  expect(tile.width, 'width of a city tile at 390px (two to a line)').toBeLessThan(200);
+
+  log('the footer: four link groups, closed on a phone, so it takes well under one screen');
+  const footer = page.locator('footer');
+  const groups = footer.locator('details[data-footer-group]');
+  await expect(groups).toHaveCount(4);
+  await expect(footer.locator('details[data-footer-group][open]')).toHaveCount(0);
+  await expect(footer.locator('a[href="/en/about"]')).toBeHidden();
+  const folded = await footer.boundingBox();
+  expect(folded.height, 'footer height at 390px with its groups closed (it was about 1,270px)').toBeLessThan(650);
+  expect(await overflowPx(), 'home page at 390px: pixels wider than the screen').toBe(0);
+
+  log('a tap opens one group and shows its links');
+  await groups.filter({ has: page.locator('a[href="/en/about"]') }).locator('summary').click();
+  await expect(footer.locator('a[href="/en/about"]')).toBeVisible();
+  await expect(footer.locator('details[data-footer-group][open]')).toHaveCount(1);
+
+  log('from tablet width up nothing moved: every group is open and all its links show');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(footer.locator('details[data-footer-group][open]')).toHaveCount(4);
+  for (const href of ['/en/about', '/en/help', '/en/pricing', '/en/how-it-works']) {
+    await expect(footer.locator(`a[href="${href}"]`)).toBeVisible();
+  }
+});
+
+test('cm. pricing (R43): the fee is stated as it is, and the partnership button opens the contact form on that topic', async ({ page }) => {
+  const overflowPx = () =>
+    page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await page.goto('/en/pricing');
+
+  log('the fee leads the page with its formula and three worked examples; nothing says "beta" or "waived"');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('One small fee, only on paid tickets');
+  await expect(page.locator('#pricingFreeChip')).toContainText('Free tickets: 0 IQD, always');
+  await expect(page.locator('#pricingFee')).toContainText('3% + 2,000 IQD, capped at 15,000 IQD');
+  await expect(page.locator('#pricingExamples')).toContainText(
+    `a 10,000 IQD ticket carries ${iqd(standardFee(10000))} IQD, a 25,000 IQD ticket carries ${iqd(standardFee(25000))} IQD, ` +
+      `and a 500,000 IQD ticket carries ${iqd(standardFee(500000))} IQD`
+  );
+  expect(await page.locator('#main').innerText(), 'wording of the pricing page').not.toMatch(/\bbeta\b|\bwaived\b/i);
+
+  log('enterprise and government: terms by agreement, and one button to start the conversation');
+  const partnerships = page.locator('#partnerships');
+  await expect(partnerships.getByRole('heading', { name: 'Enterprise and government' })).toBeVisible();
+  await expect(partnerships.getByText('Government and public sector')).toBeVisible();
+  const cta = partnerships.locator('#partnershipCta');
+  await expect(cta).toHaveText('Talk to us about a partnership');
+
+  log('no sideways scrolling on a phone, down to 320px');
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(await overflowPx(), `pricing page at ${width}px: pixels wider than the screen`).toBe(0);
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  log('the button lands on the contact form with "Enterprise / government" already chosen');
+  await cta.click();
+  await expect(page).toHaveURL(/\/en\/contact\?topic=partnership$/);
+  await expect(page.locator('#ct-topic')).toHaveValue('partnership');
+  await expect(page.locator('#ct-topic option:checked')).toHaveText('Enterprise / government');
+
+  log('opened plainly, the form still starts on "General question"');
+  await page.goto('/en/contact');
+  await expect(page.locator('#ct-topic')).toHaveValue('general');
+});
+
+test('cn. checkout (R43): the buyer comes before the ticket holders, and "Use my details" copies and keeps following the buyer', async ({ page }) => {
+  const COPY_EMAIL = `e2e-copy+${RUN_ID}@test.iq`;
+
+  log('a visitor opens the Baghdad Nights checkout with two tickets (nothing is submitted in this test)');
+  await page.goto('/e/baghdad-nights-music-festival');
+  await page.getByRole('button', { name: 'Add one General Admission ticket' }).click();
+  await expect(page.locator('.qty-input').first()).toHaveValue('2');
+  await page.getByRole('button', { name: /Get tickets/ }).click();
+  await expect(page).toHaveURL(/\/e\/baghdad-nights-music-festival\/checkout/);
+
+  log('"Your details" is the first thing to fill in; the two ticket holders follow it');
+  const rows = page.locator('.holder-row');
+  await expect(rows).toHaveCount(2);
+  const buyerTop = (await page.locator('#buyerSection').boundingBox()).y;
+  const holdersTop = (await page.locator('#holdersSection').boundingBox()).y;
+  expect(buyerTop, 'the buyer section sits above the ticket holders').toBeLessThan(holdersTop);
+
+  log(`the total is what the buyer pays: ${iqd(orderTotal(35000, 2))} IQD, with no "waived" wording anywhere`);
+  await expect(page.locator('.sum-total').first()).toHaveText(iqdRe(orderTotal(35000, 2)));
+  expect(await page.locator('main').first().innerText(), 'wording of the checkout page').not.toMatch(/\bwaived\b|\bbeta\b/i);
+
+  log('ticking "Use my details" on ticket 1 copies the buyer\'s name and email into it');
+  const name1 = rows.nth(0).locator('input[name="holderName"]');
+  const email1 = rows.nth(0).locator('input[name="holderEmail"]');
+  const box1 = rows.nth(0).locator('input.copy-buyer');
+  await expect(rows.nth(0).getByText('Use my details')).toBeVisible();
+  await page.locator('#buyerName').fill('Copy Tester');
+  await page.locator('#buyerEmail').fill(COPY_EMAIL);
+  await box1.check();
+  await expect(name1).toHaveValue('Copy Tester');
+  await expect(email1).toHaveValue(COPY_EMAIL);
+
+  log('a later change to the buyer reaches the ticked ticket; ticket 2 stays empty');
+  await page.locator('#buyerName').fill('Copy Tester Jr');
+  await expect(name1).toHaveValue('Copy Tester Jr');
+  await expect(rows.nth(1).locator('input[name="holderName"]')).toHaveValue('');
+  await expect(rows.nth(1).locator('input.copy-buyer')).not.toBeChecked();
+
+  log('typing another name on the ticket unticks its box, and the buyer no longer overwrites it');
+  await name1.fill('Someone Else');
+  await expect(box1).not.toBeChecked();
+  await page.locator('#buyerName').fill('Copy Tester III');
+  await expect(name1).toHaveValue('Someone Else');
+});
+
+test('co. organizer event page (R43): Share on a published event opens the link, a copy button and the networks; a phone gets its share sheet', async ({ page, browser }) => {
+  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
+
+  log('opening the Baghdad Nights event page in the organizer console');
+  await page.goto('/host/events?q=Baghdad+Nights');
+  await page.getByRole('link', { name: /Baghdad Nights Music Festival/ }).first().click();
+  await expect(page).toHaveURL(/\/host\/events\/\d+$/);
+  const consoleUrl = page.url();
+
+  log('a live event has a Share button in its header; the panel stays closed until asked for');
+  const shareBtn = page.locator('#shareEventBtn');
+  const panel = page.locator('#sharePanel');
+  await expect(shareBtn).toBeVisible();
+  await expect(shareBtn).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel).toBeHidden();
+
+  log('desktop: the button opens the panel with the public link, "Copy link" and one link per network');
+  await shareBtn.click();
+  await expect(panel).toBeVisible();
+  await expect(shareBtn).toHaveAttribute('aria-expanded', 'true');
+  await expect(panel.locator('#shareUrl')).toHaveText(/\/e\/baghdad-nights-music-festival$/);
+  for (const [network, start] of [
+    ['whatsapp', 'https://wa.me/?text='],
+    ['telegram', 'https://t.me/share/url?url='],
+    ['facebook', 'https://www.facebook.com/sharer/sharer.php?u='],
+    ['x', 'https://twitter.com/intent/tweet?text='],
+  ]) {
+    const href = await panel.locator(`a[data-share-to="${network}"]`).getAttribute('href');
+    expect(href.startsWith(start), `${network} link: ${href}`).toBeTruthy();
+    expect(href, `the ${network} link carries the public address`).toContain('baghdad-nights-music-festival');
+  }
+  const copy = panel.locator('[data-copy="shareUrl"]');
+  await copy.click();
+  await expect(copy).toHaveText('Copied!');
+
+  log('a second click on the button closes the panel again');
+  await shareBtn.click();
+  await expect(panel).toBeHidden();
+  await expect(shareBtn).toHaveAttribute('aria-expanded', 'false');
+
+  log('phone: the same button hands the title and the link to the system share sheet, and the panel stays closed');
+  const phone = await browser.newContext({
+    storageState: await page.context().storageState(),
+    viewport: { width: 390, height: 800 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  try {
+    // desktop Chromium has no share sheet of its own: stand one in and record what it is given
+    await phone.addInitScript(() => {
+      window.__shared = [];
+      navigator.share = (data) => {
+        window.__shared.push(data);
+        return Promise.resolve();
+      };
+    });
+    const p = await phone.newPage();
+    await p.goto(consoleUrl);
+    await p.locator('#shareEventBtn').tap();
+    await expect.poll(() => p.evaluate(() => window.__shared.length)).toBe(1);
+    const shared = await p.evaluate(() => window.__shared[0]);
+    expect(shared.url).toMatch(/\/e\/baghdad-nights-music-festival$/);
+    expect(shared.title).toContain('Baghdad Nights Music Festival');
+    await expect(p.locator('#sharePanel')).toBeHidden();
+    expect(
+      await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      'organizer event page at 390px: pixels wider than the screen'
+    ).toBe(0);
+  } finally {
+    await phone.close();
+  }
+});
+
 test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket status', async ({ page, request }, testInfo) => {
   await registerUser(page, { name: BUYER_NAME, email: BUYER_EMAIL, password: BUYER_PASSWORD });
   log('R31 #4: a welcome email with the attendee guide lands right after sign-up');
@@ -542,7 +868,12 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   await expect(page.locator('#buyerName')).toHaveValue(BUYER_NAME);
   await expect(page.locator('#buyerEmail')).toHaveValue(BUYER_EMAIL);
 
-  log('holder row: name + optional email inputs and "Copy from buyer details"');
+  log('R43: "Your details" comes first on the page, the ticket holders after it');
+  const buyerTop = (await page.locator('#buyerSection').boundingBox()).y;
+  const holdersTop = (await page.locator('#holdersSection').boundingBox()).y;
+  expect(buyerTop, 'the buyer section sits above the ticket holders').toBeLessThan(holdersTop);
+
+  log('holder row: name + optional email inputs and "Use my details"');
   const holderNameInput = page.locator('input[name="holderName"]').first();
   const holderEmailInput = page.locator('input[name="holderEmail"]').first();
   await expect(holderNameInput).toBeVisible();
@@ -593,7 +924,10 @@ test('h. free RSVP flow: checkout, confirmation, my tickets, public ticket statu
   log('/me/tickets should list the Startup Mixer ticket');
   await page.goto('/me/tickets');
   await expect(page.getByRole('link', { name: 'Startup Mixer Baghdad' })).toBeVisible();
-  await expect(page.locator('.qr-box svg').first()).toBeVisible();
+  // /me/tickets lists each ticket as a row with View / QR / PDF links (the QR itself is
+  // drawn on the order page and on /t/{code}). This line still looked for the inline svg
+  // of an earlier layout; it failed, and in a serial file every test after it was skipped.
+  await expect(page.locator(`a[href$="/t/${rsvpTicketCode}/qr.png"]`).first()).toBeVisible();
 
   log(`public ticket status /t/${rsvpTicketCode} should show "Valid ticket"`);
   await page.goto(`/t/${rsvpTicketCode}`);
@@ -831,7 +1165,7 @@ test('m. host onboarding: new user creates an org, publishes an event, it goes p
   await page.locator('#ev-title').fill('E2E Concert Night');
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   await page.locator('#ev-date').fill(tomorrow);
-  await page.locator('#ev-start').fill('20:00');
+  await fillStartTime(page, '20:00');
   // Round 8: step 1 validation requires a venue name while "Venue" is selected.
   await page.locator('#ev-venue').fill('E2E Hall');
   await page.locator('#ev-city').selectOption('Baghdad');
@@ -1270,20 +1604,9 @@ test('y. browse "when" chips: Next 7 days has results, Today renders cleanly', a
   log(`Today filter rendered with ${cardCount} card(s)`);
 });
 
-test('z. host test email reaches Mailpit', async ({ page, request }, testInfo) => {
-  await login(page, DEMO_HOST_EMAIL, DEMO_HOST_PASSWORD);
-
-  log('sending the test email from /host/settings/payments');
-  await page.goto('/host/settings/payments');
-  await page.getByRole('button', { name: /Send me a test email/ }).click();
-  await expect(page.getByText(/Test email sent to/).first()).toBeVisible();
-
-  log('EMAIL: the test mail must land in Mailpit');
-  await assertMail(request, testInfo, {
-    to: DEMO_HOST_EMAIL,
-    subjectPart: 'iEvent test email',
-  });
-});
+// z. (host test email) is gone: it pressed "Send me a test email" on the payments page, a
+// development aid that was taken out of the app long ago ("remove dev test-mail widget"),
+// so the test could only fail. Real mail delivery is covered by h, i, j, af and cj.
 
 test('aa. ticket downloads: QR PNG, single-ticket PDF, buyer-only order PDF', async ({ page, request }) => {
   expect(rsvpTicketCode, 'needs the ticket code captured in test h').toBeTruthy();
@@ -2127,7 +2450,8 @@ test('au. checkout method picker: both methods with copy buttons + amount callou
 
   log('each method card has a copy button; the amount callout carries the total');
   await expect(page.locator('.copy-acct')).toHaveCount(2);
-  await expect(page.getByText('Amount to transfer')).toBeVisible();
+  // the callout has read "Amount due" since cash on arrival was added (it covers both ways of paying)
+  await expect(page.getByText('Amount due', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(iqdRe(orderTotal(35000))).first()).toBeVisible();
 
   log('the buyer can switch the selected method to Test FIB');
@@ -2155,7 +2479,7 @@ test('av. online events: wizard Online toggle, public page never leaks the URL, 
   await page.locator('#ev-title').fill(ONLINE_EVENT_TITLE);
   const inTwoDays = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   await page.locator('#ev-date').fill(inTwoDays);
-  await page.locator('#ev-start').fill('18:00');
+  await fillStartTime(page, '18:00');
 
   log('the "Where is it?" toggle offers Venue / Online / To be announced');
   await expect(page.getByText('Where is it?')).toBeVisible();
@@ -2521,8 +2845,9 @@ test('bc. fee mode (#17): ABSORB event charges the buyer face value; host earnin
   await expect(earningsRow.getByText(iqdRe(bookingFee(20000))).first()).toBeVisible();
   await expect(earningsRow.getByText(iqdRe(20000 - bookingFee(20000))).first()).toBeVisible();
   if (FEE_WAIVED) {
-    log('beta waiver: the earnings page marks booking fees as waived');
-    await expect(page.getByText('Waived').first()).toBeVisible();
+    log('R43: no "Waived" badge; while nothing is charged the Booking fees card says so in plain words');
+    await expect(page.getByText('No booking fees charged on these orders.').first()).toBeVisible();
+    await expect(page.getByText('Waived', { exact: true })).toHaveCount(0);
   }
 });
 
@@ -3006,10 +3331,12 @@ test('bq. edit fee card (R12): price-derived pass/absorb examples; free toggle h
   log('#editFeeCard is visible for a paid event, with notes rewritten from the 20,000 top price');
   const feeCard = page.locator('#editFeeCard');
   await expect(feeCard).toBeVisible();
-  await expect(feeCard.locator('.fee-note-pass')).toContainText(iqd(20000 + bookingFee(20000))); // buyer pays
+  // R43: the examples use the PUBLISHED fee whether or not it is charged yet, so the two
+  // differ (22,600 and 17,400 for a 20,000 ticket). They used to show the same number twice.
+  await expect(feeCard.locator('.fee-note-pass')).toContainText(iqd(20000 + standardFee(20000))); // buyer pays
   await expect(feeCard.locator('.fee-note-pass')).toContainText('20,000');
-  await expect(feeCard.locator('.fee-note-absorb')).toContainText(iqd(20000 - bookingFee(20000))); // host receives
-  if (FEE_WAIVED) await expect(feeCard.getByText(/Waived during the beta/)).toBeVisible();
+  await expect(feeCard.locator('.fee-note-absorb')).toContainText(iqd(20000 - standardFee(20000))); // host receives
+  await expect(feeCard.getByText(/waived|beta/i)).toHaveCount(0);
 
   log('"My event is free" zeroes + locks every price input and HIDES the fee card');
   const firstPrice = page.locator('#ticketTypes input[name="price"]').first();
@@ -3026,7 +3353,7 @@ test('bq. edit fee card (R12): price-derived pass/absorb examples; free toggle h
   await expect(firstPrice).toHaveValue('20000');
   await expect(firstPrice).toHaveJSProperty('readOnly', false);
   await expect(feeCard).toBeVisible();
-  await expect(feeCard.locator('.fee-note-pass')).toContainText(iqd(20000 + bookingFee(20000)));
+  await expect(feeCard.locator('.fee-note-pass')).toContainText(iqd(20000 + standardFee(20000)));
 });
 
 test('br. edit autosave (R12): #autosaveTick appears on changes, hides on revert; reload offers Discard', async ({ page }) => {
@@ -3267,9 +3594,9 @@ test('bv. wizard fee card gating (R13): hidden until a positive price, dynamic e
   log('typing ttPrice 20000 → the card appears with the price-derived notes');
   await page.locator('input[name="ttPrice"]').first().fill('20000');
   await expect(page.locator('#feeCard')).toBeVisible();
-  await expect(page.locator('#feeCard .fee-note-pass')).toContainText(iqd(20000 + bookingFee(20000)));
+  await expect(page.locator('#feeCard .fee-note-pass')).toContainText(iqd(20000 + standardFee(20000)));
   await expect(page.locator('#feeCard .fee-note-pass')).toContainText('20,000');
-  await expect(page.locator('#feeCard .fee-note-absorb')).toContainText(iqd(20000 - bookingFee(20000)));
+  await expect(page.locator('#feeCard .fee-note-absorb')).toContainText(iqd(20000 - standardFee(20000)));
 
   log('clearing the price back to 0 hides the card again (this wizard is abandoned — nothing published)');
   await page.locator('input[name="ttPrice"]').first().fill('0');
@@ -3525,10 +3852,10 @@ test('cc. public content pages (R21): about, help center and pricing render in b
   await firstQ.click();
   await expect(page.getByText('matching events appear as suggestions', { exact: false })).toBeVisible();
 
-  log('pricing shows the beta banner and the published fee formula');
+  log('pricing states the fee as it is (R43: no beta banner) with the published formula');
   await page.goto('/en/pricing');
-  await expect(page.getByText('Free while we build')).toBeVisible();
-  await expect(page.getByText('3% + 2,000 IQD, capped at 15,000 IQD')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('One small fee, only on paid tickets');
+  await expect(page.getByText('3% + 2,000 IQD, capped at 15,000 IQD').first()).toBeVisible();
 
   log('the footer links to all three pages');
   await page.goto('/en');

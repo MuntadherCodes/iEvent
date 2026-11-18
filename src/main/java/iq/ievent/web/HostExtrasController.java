@@ -43,7 +43,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -693,6 +692,9 @@ public class HostExtrasController {
         model.addAttribute("revenueLabel", Format.iqd(stats.revenueIqd()));
         model.addAttribute("grossTotalLabel", Format.iqd(gross));
         model.addAttribute("feesTotalLabel", Format.iqd(fees));
+        // R43: "No booking fees charged on these orders." is only said when it is true.
+        // Orders placed while a fee was charged keep theirs, whatever the switch says today.
+        model.addAttribute("feesCharged", fees > 0);
         model.addAttribute("netTotalLabel", Format.iqd(gross));
         model.addAttribute("refundedTotalLabel", refunded == 0 ? null : Format.iqd(refunded));
         return "host/earnings";
@@ -1031,14 +1033,10 @@ public class HostExtrasController {
 
     private ShareRow toShareRow(Event e) {
         String url = baseUrl + "/e/" + e.getSlug();
-        String encUrl = URLEncoder.encode(url, StandardCharsets.UTF_8);
-        String encTitle = URLEncoder.encode(e.getTitle(), StandardCharsets.UTF_8);
-        String encBoth = URLEncoder.encode(e.getTitle() + " · " + url, StandardCharsets.UTF_8);
+        // R43: the links themselves come from ShareLinks, shared with the event page's Share button
+        iq.ievent.service.ShareLinks share = iq.ievent.service.ShareLinks.of(e.getTitle(), url);
         return new ShareRow(e.getTitle(), Format.cardDateLine(e.getStartsAt(), e.getEndsAt(), e.isHasStartTime(), e.getDatePrecision()), url,
-                "https://wa.me/?text=" + encBoth,
-                "https://t.me/share/url?url=" + encUrl + "&text=" + encTitle,
-                "https://www.facebook.com/sharer/sharer.php?u=" + encUrl,
-                "https://twitter.com/intent/tweet?text=" + encTitle + "&url=" + encUrl,
+                share.whatsapp(), share.telegram(), share.facebook(), share.x(),
                 e.getId());
     }
 

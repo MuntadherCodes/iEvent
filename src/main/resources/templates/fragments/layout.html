@@ -75,7 +75,11 @@
 <link rel="shortcut icon" th:href="@{/img/favicon/favicon.ico}">
 <link rel="apple-touch-icon" sizes="180x180" th:href="@{/img/favicon/apple-touch-icon.png}">
 <link rel="manifest" th:href="@{/img/favicon/site.webmanifest}">
-<script defer th:src="@{/js/pwa.js}"></script>
+<!-- R43: the name under the home-screen icon on iPhone ("Add to Home Screen" would use
+     the page title otherwise), and the wording of the install prompt, which pwa.js reads
+     from its own tag. -->
+<meta name="apple-mobile-web-app-title" content="iEvent">
+<script defer th:src="@{/js/pwa.js}" th:attr="data-install-title=#{common.install.title},data-install-body=#{common.install.body},data-install-ios=#{common.install.ios},data-install-cta=#{common.install.cta},data-install-later=#{common.install.later},data-install-close=#{common.close},data-install-icon=@{/img/favicon/web-app-manifest-192x192.png}"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
 <link th:if="${rtl}" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -684,7 +688,7 @@ fit a narrow parent. -->
   </div>
   <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-pop">
     <p class="font-display text-3xl font-extrabold tabular-nums" dir="ltr">0</p>
-    <p class="mt-1 text-sm font-medium text-emerald-100" th:text="#{learn.stats.fees}">IQD in platform fees during the beta</p>
+    <p class="mt-1 text-sm font-medium text-emerald-100" th:text="#{learn.stats.fees}">IQD in fees on free tickets</p>
   </div>
   <div class="rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-5 text-white shadow-pop">
     <p class="font-display text-3xl font-extrabold tabular-nums" dir="ltr">2</p>
@@ -732,65 +736,114 @@ fit a narrow parent. -->
        onerror="this.style.display='none'" class="absolute inset-0 h-full w-full object-cover">
 </figure>
 
+<!-- R43: the footer is short on phones. Below the sm breakpoint the four link groups
+     are <details> rows, closed until tapped (the script at the end closes them; they are
+     rendered open, so without JavaScript every link stays visible), the logo shares its
+     row with the language switch, and the spacing is tighter. From sm up nothing moves:
+     the groups are always open and their headings are plain headings again. -->
 <footer th:fragment="footer" class="bg-ink-900 text-ink-300" th:classappend="${footerFlush != null and footerFlush} ? '' : 'mt-20'">
-  <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:px-8">
-    <div class="sm:col-span-2 lg:col-span-1">
+  <div class="mx-auto grid max-w-7xl px-4 pb-2 pt-8 sm:grid-cols-2 sm:gap-10 sm:px-6 sm:py-14 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:px-8">
+    <!-- One row on phones (logo, language switch), the tagline under it; from sm up the
+         same three stack as before: logo, tagline, language switch (order-* only, so the
+         switch exists once in the page). -->
+    <div class="flex flex-wrap items-center justify-between gap-x-3 pb-5 sm:col-span-2 sm:flex-col sm:flex-nowrap sm:items-start sm:justify-start sm:pb-0 lg:col-span-1">
       <a th:href="@{/}" class="flex items-center gap-2" th:attr="aria-label=#{public.nav.homeAria}" aria-label="iEvent home">
         <img th:src="@{/img/brand-mark-white.png}" alt="" class="h-9 w-auto">
         <span class="font-display text-lg font-extrabold tracking-tight text-white"><span class="text-brand-300">i</span><th:block th:if="${!rtl}">Event</th:block><span th:if="${rtl}" class="text-[1.15em] leading-none">ايفنت</span></span>
       </a>
-      <p class="mt-4 max-w-xs text-sm leading-relaxed" th:text="#{public.footer.tagline}">Find your event, find your people. Discover what's happening across Iraq — and host your own.</p>
-      <div class="mt-5 flex gap-2">
+      <div class="flex shrink-0 gap-2 sm:order-3 sm:mt-5">
         <a th:href="${urlEn}" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
            th:classappend="${lang == 'en'} ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-ink-600 hover:border-brand-400 hover:text-white'">EN</a>
         <a th:href="${urlAr}" rel="nofollow" class="rounded-full border px-3.5 py-1.5 text-xs font-semibold transition"
            th:classappend="${lang == 'ar'} ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-ink-600 hover:border-brand-400 hover:text-white'" th:text="#{common.arabic}">العربية</a>
       </div>
+      <p class="mt-3 w-full text-sm leading-relaxed sm:order-2 sm:mt-4 sm:max-w-xs" th:text="#{public.footer.tagline}">Find your event, find your people. Discover what's happening across Iraq — and host your own.</p>
     </div>
     <nav th:attr="aria-label=#{public.footer.discover}" aria-label="Discover">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.discover}">Discover</h3>
-      <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{/browse}" class="transition hover:text-brand-300" th:text="#{public.nav.browse}">Browse events</a></li>
-        <li th:each="c : ${ {'Baghdad','Erbil','Basra','Mosul'} }"><a th:href="@{${@t.cityPath(c)}}" class="transition hover:text-brand-300" th:text="${@t.city(c)}">Baghdad</a></li>
-        <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300" th:text="#{public.footer.freeEvents}">Free events</a></li>
-      </ul>
+      <details data-footer-group open class="group border-t border-ink-700/60 sm:border-0">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 py-3.5 sm:pointer-events-none sm:mb-3 sm:block sm:cursor-default sm:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.discover}">Discover</h3>
+          <svg class="h-4 w-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180 sm:hidden" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-sm sm:pb-0">
+          <li><a th:href="@{/browse}" class="transition hover:text-brand-300" th:text="#{public.nav.browse}">Browse events</a></li>
+          <li th:each="c : ${ {'Baghdad','Erbil','Basra','Mosul'} }"><a th:href="@{${@t.cityPath(c)}}" class="transition hover:text-brand-300" th:text="${@t.city(c)}">Baghdad</a></li>
+          <li><a th:href="@{/browse(price='free')}" class="transition hover:text-brand-300" th:text="#{public.footer.freeEvents}">Free events</a></li>
+        </ul>
+      </details>
     </nav>
     <nav th:attr="aria-label=#{public.footer.hostsAria}" aria-label="Hosts">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.forHosts}">For hosts</h3>
-      <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{${hostCtaHref}}" class="transition hover:text-brand-300" th:text="#{public.nav.hostEvent}">Host an event</a></li>
-        <li><a th:href="@{${hostCtaHref}}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
-        <li><a th:href="@{/pricing}" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
-        <li><a th:href="@{/help} + '#organizers'" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
-      </ul>
+      <details data-footer-group open class="group border-t border-ink-700/60 sm:border-0">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 py-3.5 sm:pointer-events-none sm:mb-3 sm:block sm:cursor-default sm:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.forHosts}">For hosts</h3>
+          <svg class="h-4 w-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180 sm:hidden" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-sm sm:pb-0">
+          <li><a th:href="@{${hostCtaHref}}" class="transition hover:text-brand-300" th:text="#{public.nav.hostEvent}">Host an event</a></li>
+          <li><a th:href="@{${hostCtaHref}}" class="transition hover:text-brand-300" th:text="#{public.footer.hostDashboard}">Host dashboard</a></li>
+          <li><a th:href="@{/pricing}" class="transition hover:text-brand-300" th:text="#{public.footer.pricing}">Pricing</a></li>
+          <li><a th:href="@{/help} + '#organizers'" class="transition hover:text-brand-300" th:text="#{public.footer.hostResources}">Host resources</a></li>
+        </ul>
+      </details>
     </nav>
     <nav th:attr="aria-label=#{learn.footer.learn}" aria-label="Learn">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{learn.footer.learn}">Learn</h3>
-      <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{/how-it-works}" class="transition hover:text-brand-300" th:text="#{learn.nav.how}">How it works</a></li>
-        <li><a th:href="@{/features}" class="transition hover:text-brand-300" th:text="#{learn.nav.features}">Features</a></li>
-        <li><a th:href="@{/solutions}" class="transition hover:text-brand-300" th:text="#{learn.nav.solutions}">Solutions</a></li>
-        <li><a th:href="@{/guides/attendees}" class="transition hover:text-brand-300" th:text="#{learn.footer.attendeeGuide}">Attendee guide</a></li>
-        <li><a th:href="@{/guides/organizers}" class="transition hover:text-brand-300" th:text="#{learn.footer.organizerGuide}">Organizer guide</a></li>
-      </ul>
+      <details data-footer-group open class="group border-t border-ink-700/60 sm:border-0">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 py-3.5 sm:pointer-events-none sm:mb-3 sm:block sm:cursor-default sm:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{learn.footer.learn}">Learn</h3>
+          <svg class="h-4 w-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180 sm:hidden" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-sm sm:pb-0">
+          <li><a th:href="@{/how-it-works}" class="transition hover:text-brand-300" th:text="#{learn.nav.how}">How it works</a></li>
+          <li><a th:href="@{/features}" class="transition hover:text-brand-300" th:text="#{learn.nav.features}">Features</a></li>
+          <li><a th:href="@{/solutions}" class="transition hover:text-brand-300" th:text="#{learn.nav.solutions}">Solutions</a></li>
+          <li><a th:href="@{/guides/attendees}" class="transition hover:text-brand-300" th:text="#{learn.footer.attendeeGuide}">Attendee guide</a></li>
+          <li><a th:href="@{/guides/organizers}" class="transition hover:text-brand-300" th:text="#{learn.footer.organizerGuide}">Organizer guide</a></li>
+        </ul>
+      </details>
     </nav>
     <nav th:attr="aria-label=#{public.footer.company}" aria-label="Company">
-      <h3 class="mb-3 font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.company}">Company</h3>
-      <ul class="space-y-2.5 text-sm">
-        <li><a th:href="@{/about}" class="transition hover:text-brand-300" th:text="#{public.footer.about}">About iEvent</a></li>
-        <li><a th:href="@{/contact}" class="transition hover:text-brand-300" th:text="#{public.footer.contact}">Contact</a></li>
-                <li><a th:href="@{/help}" class="transition hover:text-brand-300" th:text="#{public.footer.help}">Help center</a></li>
-        <li><a th:href="@{/privacy}" class="transition hover:text-brand-300" th:text="#{public.footer.privacyPolicy}">Privacy Policy</a></li>
-        <li><a th:href="@{/terms}" class="transition hover:text-brand-300" th:text="#{public.footer.termsOfUse}">Terms of Use</a></li>
-      </ul>
+      <details data-footer-group open class="group border-t border-ink-700/60 sm:border-0">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 py-3.5 sm:pointer-events-none sm:mb-3 sm:block sm:cursor-default sm:py-0 [&::-webkit-details-marker]:hidden">
+          <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white" th:text="#{public.footer.company}">Company</h3>
+          <svg class="h-4 w-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180 sm:hidden" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <ul class="space-y-2.5 pb-4 text-sm sm:pb-0">
+          <li><a th:href="@{/about}" class="transition hover:text-brand-300" th:text="#{public.footer.about}">About iEvent</a></li>
+          <li><a th:href="@{/contact}" class="transition hover:text-brand-300" th:text="#{public.footer.contact}">Contact</a></li>
+          <li><a th:href="@{/help}" class="transition hover:text-brand-300" th:text="#{public.footer.help}">Help center</a></li>
+          <li><a th:href="@{/privacy}" class="transition hover:text-brand-300" th:text="#{public.footer.privacyPolicy}">Privacy Policy</a></li>
+          <li><a th:href="@{/terms}" class="transition hover:text-brand-300" th:text="#{public.footer.termsOfUse}">Terms of Use</a></li>
+        </ul>
+      </details>
     </nav>
   </div>
   <div class="border-t border-ink-700/60">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs sm:flex-row sm:px-6 lg:px-8">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-center text-xs sm:flex-row sm:gap-3 sm:px-6 sm:py-5 sm:text-start lg:px-8">
       <p>[[#{public.footer.copyright1}]]<span class="text-brand-400">♥</span>[[#{public.footer.copyright2}]]</p>
-      <p class="flex items-center gap-1.5 text-ink-400"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-shield-check"/></svg>[[#{public.footer.payments}]]</p>
+      <p class="flex items-center gap-1.5 text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-shield-check"/></svg>[[#{public.footer.payments}]]</p>
     </div>
   </div>
+  <script>
+    (function () {
+      var groups = document.querySelectorAll('[data-footer-group]');
+      if (!groups.length || !window.matchMedia) return;
+      var wide = window.matchMedia('(min-width: 640px)');
+      function sync() {
+        groups.forEach(function (d) {
+          d.open = wide.matches;
+          var summary = d.querySelector('summary');
+          // from sm up the heading is not a control: keep it out of the tab order
+          if (summary) { if (wide.matches) summary.setAttribute('tabindex', '-1'); else summary.removeAttribute('tabindex'); }
+        });
+      }
+      groups.forEach(function (d) {
+        d.addEventListener('toggle', function () { if (wide.matches && !d.open) d.open = true; });
+      });
+      sync();
+      if (wide.addEventListener) wide.addEventListener('change', sync);
+      else if (wide.addListener) wide.addListener(sync);
+    })();
+  </script>
 </footer>
 
 <!-- R39 #2: the auth pages no longer have a side image panel (the authHero fragment

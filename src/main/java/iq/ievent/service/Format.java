@@ -31,21 +31,32 @@ public final class Format {
     public static final long BOOKING_FEE_PERCENT_ADDON_IQD = 2_000L;
     public static final long BOOKING_FEE_MAX_IQD = 15_000L;
 
-    /** Beta: the platform charges no booking fee yet. Flip to false to turn
-     *  the tiered formula below back on for new orders — it's kept intact,
-     *  not deleted, for exactly that switch-over. */
+    /** Shown, not charged yet (owner decision, R43, 2026-11-18): the site presents the
+     *  standard booking fee as its pricing everywhere (pricing page, the wizard's fee card
+     *  and its two examples, the earnings help), with no "beta" or "trial" wording, while
+     *  in the background nothing is charged until the online payment gateway exists.
+     *  So: standardBookingFeeFor() is what the site SAYS, bookingFeeFor() is what an order
+     *  is CHARGED, and this switch is the only difference between the two. While it is
+     *  true every order carries a 0 fee and the checkout shows no fee line. Flip it to
+     *  false to start charging; before that day read HostService.earnings (orders placed
+     *  while nothing was charged must not be counted as "absorbed by the host"). */
     public static final boolean BOOKING_FEE_WAIVED = true;
 
-    /** Platform booking fee for one ticket at this price: 750 IQD flat at or
+    /** The published booking fee for one ticket at this price: 750 IQD flat at or
      *  under 15,000 IQD; above that, 3% of price + 2,000 IQD, capped at
      *  15,000 IQD no matter how high the price climbs. Free tickets (price 0)
-     *  never carry a fee. */
-    public static long bookingFeeFor(long priceIqd) {
-        if (BOOKING_FEE_WAIVED) return 0;
+     *  never carry a fee. This is the price list, whether or not it is charged yet. */
+    public static long standardBookingFeeFor(long priceIqd) {
         if (priceIqd <= 0) return 0;
         if (priceIqd <= BOOKING_FEE_FLAT_THRESHOLD_IQD) return BOOKING_FEE_FLAT_IQD;
         long percentFee = Math.round(priceIqd * BOOKING_FEE_PERCENT) + BOOKING_FEE_PERCENT_ADDON_IQD;
         return Math.min(BOOKING_FEE_MAX_IQD, percentFee);
+    }
+
+    /** What an order is actually charged for one ticket at this price: the published
+     *  fee, or nothing while BOOKING_FEE_WAIVED is on. */
+    public static long bookingFeeFor(long priceIqd) {
+        return BOOKING_FEE_WAIVED ? 0 : standardBookingFeeFor(priceIqd);
     }
 
     /** Arabic locale for date words (day/month names); digits stay Western. */

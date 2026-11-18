@@ -73,8 +73,9 @@
       </button>
       <div id="mobileSummaryBody" class="hidden border-t border-ink-100 px-5 py-4 text-sm">
         <div class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="sum-sub font-semibold tabular-nums" th:text="${subtotalLabel}">0 IQD</span></div>
-        <!-- R38 #4: while the booking fee is waived (Format.BOOKING_FEE_WAIVED) the summary
-             carries no fee row at all (it used to show the schedule struck through) -->
+        <!--/* R38 #4: while no booking fee is charged (Format.BOOKING_FEE_WAIVED) the summary
+             carries no fee row at all (it used to show the schedule struck through).
+             R43: a parser-level comment, so it is never sent to the browser. */-->
         <div th:if="${anyFeeShown and !feeWaived}" class="flex justify-between py-1"><span class="text-ink-500" th:text="#{public.checkout.bookingFeeLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span><span class="sum-fee font-semibold tabular-nums" th:text="${feeLabel}">0 IQD</span></div>
         <div th:if="${discountLabel != null}" class="flex justify-between py-1 text-green-700"><span>[[#{public.checkout.discount}]]<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span><span class="font-semibold tabular-nums" th:text="'−' + ${discountLabel}">−5,000 IQD</span></div>
         <a th:if="${discountLabel == null}" href="#promoSection" class="mt-1 inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-tag"/></svg>[[#{public.checkout.havePromo}]]</a>
@@ -120,7 +121,32 @@
               </div>
             </div>
           </div>
-          <p class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:if="${anyFeeShown and feeWaived}" th:text="#{public.checkout.feeWaivedNote}">Booking fee waived — free for everyone during the beta period.</span><span th:if="${anyFeeShown and !feeWaived}" th:text="#{public.checkout.feeNote}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that. Free tickets have no fee.</span><span th:unless="${anyFeeShown}" th:text="#{public.event.noBookingFee}">No booking fee.</span></p>
+          <!--/* R43: while no fee is charged (Format.BOOKING_FEE_WAIVED) a buyer-pays event says
+               nothing about fees here: the total below is what the buyer pays. */-->
+          <p th:if="${!anyFeeShown or !feeWaived}" class="mt-4 flex items-center gap-1.5 text-xs text-ink-400"><svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-info"/></svg><span th:if="${anyFeeShown and !feeWaived}" th:text="#{public.checkout.feeNote}">Booking fee: 750 IQD for tickets up to 15,000 IQD, or 3% + 2,000 IQD above that. Free tickets have no fee.</span><span th:unless="${anyFeeShown}" th:text="#{public.event.noBookingFee}">No booking fee.</span></p>
+        </section>
+
+        <!-- Your details. R43: the buyer comes BEFORE the ticket holders (it used to be
+             the other way round), so "Use my details" on a ticket has something to copy
+             by the time the buyer reaches it. Field names are unchanged: the POST reads
+             buyerName / buyerEmail / buyerPhone and the holder rows by position. -->
+        <section id="buyerSection" class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-7">
+          <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.checkout.yourDetails}">Your details</h2>
+          <p class="mt-1 text-sm text-ink-500" th:text="#{public.checkout.yourDetailsSub}">The order confirmation and tickets go to these contact details.</p>
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+              <label for="buyerName" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.fullName}]] <span class="text-rose-500">*</span></label>
+              <input id="buyerName" name="buyerName" type="text" required th:value="${currentUser != null ? currentUser.fullName : ''}" th:placeholder="#{public.checkout.buyerNamePh}" placeholder="e.g. Ali Hassan" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            </div>
+            <div>
+              <label for="buyerEmail" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.email}]] <span class="text-rose-500">*</span></label>
+              <input id="buyerEmail" name="buyerEmail" type="email" required th:value="${currentUser != null ? currentUser.email : ''}" th:placeholder="#{public.checkout.emailPh}" placeholder="you@email.com" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            </div>
+            <div>
+              <label for="buyerPhone" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.checkout.phone}">Phone</label>
+              <input id="buyerPhone" name="buyerPhone" type="tel" dir="ltr" th:value="${currentUser != null ? @t.phone(currentUser.phone) : ''}" th:placeholder="#{public.checkout.phonePh}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
+            </div>
+          </div>
         </section>
 
         <!-- Ticket holders -->
@@ -157,26 +183,6 @@
                 </div>
               </div>
             </th:block>
-          </div>
-        </section>
-
-        <!-- Your details -->
-        <section class="rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:p-7">
-          <h2 class="font-display text-lg font-extrabold tracking-tight text-ink-900" th:text="#{public.checkout.yourDetails}">Your details</h2>
-          <p class="mt-1 text-sm text-ink-500" th:text="#{public.checkout.yourDetailsSub}">The order confirmation and tickets go to these contact details.</p>
-          <div class="mt-5 grid gap-4 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-              <label for="buyerName" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.fullName}]] <span class="text-rose-500">*</span></label>
-              <input id="buyerName" name="buyerName" type="text" required th:value="${currentUser != null ? currentUser.fullName : ''}" th:placeholder="#{public.checkout.buyerNamePh}" placeholder="e.g. Ali Hassan" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
-            </div>
-            <div>
-              <label for="buyerEmail" class="mb-1.5 block text-sm font-semibold text-ink-800">[[#{public.checkout.email}]] <span class="text-rose-500">*</span></label>
-              <input id="buyerEmail" name="buyerEmail" type="email" required th:value="${currentUser != null ? currentUser.email : ''}" th:placeholder="#{public.checkout.emailPh}" placeholder="you@email.com" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
-            </div>
-            <div>
-              <label for="buyerPhone" class="mb-1.5 block text-sm font-semibold text-ink-800" th:text="#{public.checkout.phone}">Phone</label>
-              <input id="buyerPhone" name="buyerPhone" type="tel" dir="ltr" th:value="${currentUser != null ? @t.phone(currentUser.phone) : ''}" th:placeholder="#{public.checkout.phonePh}" placeholder="+964 7xx xxx xxxx" class="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-base tabular-nums outline-none placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 sm:text-sm">
-            </div>
           </div>
         </section>
 
@@ -355,7 +361,7 @@
               <span class="sum-line-amt font-semibold tabular-nums text-ink-800"></span>
             </div>
             <div class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.subtotal}">Subtotal</span><span class="sum-sub font-semibold tabular-nums text-ink-800" th:text="${subtotalLabel}">0 IQD</span></div>
-            <!-- R38 #4: no fee row while the fee is waived (see the mobile summary above) -->
+            <!--/* R38 #4: no fee row while no fee is charged (see the mobile summary above) */-->
             <div th:if="${anyFeeShown and !feeWaived}" class="flex justify-between"><span class="text-ink-500" th:text="#{public.checkout.feeSummaryLine}">Booking fee (750 IQD or 3% + 2,000 IQD)</span><span class="sum-fee font-semibold tabular-nums text-ink-800" th:text="${feeLabel}">0 IQD</span></div>
             <div th:if="${discountLabel != null}" id="discountLine" th:attr="data-discount=${discountLabel}" class="flex justify-between text-green-700">
               <span>[[#{public.checkout.discount}]]<span th:if="${promo != ''}" th:text="' (' + ${#strings.toUpperCase(promo)} + ')'"> (SUMMER10)</span></span>
@@ -520,17 +526,39 @@
     if (holdersSection) holdersSection.classList.toggle('hidden', totalTickets === 0);
   }
 
-  // "Copy from buyer details" (event delegation survives row rebuilds)
-  if (holdersList) holdersList.addEventListener('change', function (e) {
-    var cb = e.target.closest('.copy-buyer');
-    if (!cb || !cb.checked) return;
-    var row = cb.closest('.holder-row');
-    if (!row) return;
+  // "Use my details" (event delegation survives row rebuilds). R43: the buyer's own
+  // details sit above the ticket holders now, and a ticked ticket FOLLOWS them: what the
+  // buyer types or corrects afterwards reaches that ticket too, until the box is
+  // unticked or the ticket's own fields are edited by hand.
+  function fillFromBuyer(row) {
     var nameEl = document.getElementById('buyerName');
     var emailEl = document.getElementById('buyerEmail');
     row.querySelector('.holder-name').value = nameEl ? nameEl.value : '';
     row.querySelector('.holder-email').value = emailEl ? emailEl.value : '';
-  });
+  }
+  if (holdersList) {
+    holdersList.addEventListener('change', function (e) {
+      var cb = e.target.closest('.copy-buyer');
+      if (!cb || !cb.checked) return;
+      var row = cb.closest('.holder-row');
+      if (row) fillFromBuyer(row);
+    });
+    holdersList.addEventListener('input', function (e) {
+      if (!e.target.closest('.holder-name, .holder-email')) return;
+      var row = e.target.closest('.holder-row');
+      var cb = row ? row.querySelector('.copy-buyer') : null;
+      if (cb) cb.checked = false;
+    });
+    ['buyerName', 'buyerEmail'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', function () {
+        holdersList.querySelectorAll('.copy-buyer:checked').forEach(function (cb) {
+          var row = cb.closest('.holder-row');
+          if (row) fillFromBuyer(row);
+        });
+      });
+    });
+  }
 
   document.querySelectorAll('.qty-plus, .qty-minus').forEach(function (btn) {
     btn.addEventListener('click', function () {

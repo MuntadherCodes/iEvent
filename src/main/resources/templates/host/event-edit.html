@@ -357,18 +357,17 @@
                when the ticket section itself is absent — announce-only events have
                no #freeToggle for that script to hook off of. The JS still owns
                toggling it live while editing a real ticket's price. -->
-          <div id="editFeeCard" th:attr="data-fee-waived=${feeWaived}" class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5" th:classappend="${evEntity.announceOnly() or ticketRows.?[priceIqd > 0].isEmpty()} ? 'hidden' : ''">
+          <div id="editFeeCard" class="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5" th:classappend="${evEntity.announceOnly() or ticketRows.?[priceIqd > 0].isEmpty()} ? 'hidden' : ''">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-900"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-info"/></svg><span th:text="#{wizard.fee.title}">Booking fee</span></p>
-            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:classappend="${feeWaived} ? 'line-through decoration-brand-300'" th:text="#{wizard.fee.bodyStrong}">750 IQD (or 3% + 2,000 IQD, capped at 15,000 IQD) booking fee</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
-            <p th:if="${feeWaived}" class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-circle-check"/></svg><span th:text="#{wizard.fee.waivedNow}">Waived during the beta: buyers pay the ticket price only and nothing is deducted from you.</span></p>
+            <p class="mt-1 text-sm text-brand-800"><span th:text="#{wizard.fee.body1}">iEvent adds a </span><strong th:text="#{wizard.fee.bodyStrong}">750 IQD for tickets priced up to 15,000 IQD; above 15,000 IQD it becomes 3% + 2,000 IQD, capped at 15,000 IQD</strong><span th:text="#{wizard.fee.body2}"> per paid ticket — you choose who pays it. Free tickets never carry a fee.</span></p>
             <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="PASS" th:checked="${evEntity.feeMode() != 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="fee-note-pass text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}" th:attr="data-tpl=#{wizard.fee.passNoteDyn},data-currency=#{common.iqd}">Buyer pays 36,500 IQD for a 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.pass}">Pass to buyer</span><br><span class="fee-note-pass text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.passNote}" th:attr="data-tpl=#{wizard.fee.passNoteDyn},data-currency=#{common.iqd}">Buyer pays 38,050 IQD for a 35,000 ticket</span></span>
               </label>
               <label class="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input type="radio" name="feeMode" value="ABSORB" th:checked="${evEntity.feeMode() == 'ABSORB'}" class="h-4 w-4 shrink-0 border-ink-300 text-brand-500 focus:ring-brand-400">
-                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="fee-note-absorb text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}" th:attr="data-tpl=#{wizard.fee.absorbNoteDyn},data-currency=#{common.iqd}">You receive 33,500 IQD per 35,000 ticket</span></span>
+                <span class="text-sm"><span class="font-semibold text-ink-900" th:text="#{wizard.fee.absorb}">Absorb it</span><br><span class="fee-note-absorb text-xs tabular-nums text-ink-500" th:text="#{wizard.fee.absorbNote}" th:attr="data-tpl=#{wizard.fee.absorbNoteDyn},data-currency=#{common.iqd}">You receive 31,950 IQD per 35,000 ticket</span></span>
               </label>
             </div>
           </div>
@@ -399,13 +398,16 @@
               </label>
             </div>
 
-            <label class="mt-4 flex items-start gap-2.5 text-sm text-ink-700">
-              <input type="checkbox" name="requirePaymentProof" value="true" th:checked="${evEntity.requirePaymentProof()}" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
-              <span><span class="font-semibold" th:text="#{wizard.pay.requireProof}">Require a transfer reference or receipt</span> <span class="text-ink-500" th:text="#{wizard.pay.requireProofSub}">— buyers must add one before they can submit a transfer order. Cash on arrival never needs this.</span></span>
+            <!-- R43: the two switches were one run-on line each (bold title, a dot, then the
+                 explanation), which read as a single unclear sentence, in Arabic above all. Each is
+                 now a row: what it does as the title, what happens to the buyer underneath. -->
+            <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-300 has-[:checked]:bg-brand-50/50">
+              <input type="checkbox" name="requirePaymentProof" value="true" th:checked="${evEntity.requirePaymentProof()}" class="mt-0.5 h-4 w-4 shrink-0 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span class="min-w-0"><span class="block text-sm font-semibold text-ink-900" th:text="#{wizard.pay.requireProof}">Ask buyers for proof of payment</span><span class="mt-0.5 block text-xs leading-relaxed text-ink-500" th:text="#{wizard.pay.requireProofSub}">Buyers paying by transfer must add the transfer reference or upload the receipt before they can submit the order. Cash on arrival needs no proof.</span></span>
             </label>
-            <label class="mt-3 flex items-start gap-2.5 text-sm text-ink-700">
-              <input type="checkbox" name="autoConfirmOrders" value="true" th:checked="${evEntity.autoConfirmOrders()}" class="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
-              <span><span class="font-semibold" th:text="#{wizard.pay.autoConfirm}">Confirm paid orders automatically</span> <span class="text-ink-500" th:text="#{wizard.pay.autoConfirmSub}">Tickets are issued the moment the buyer submits, without waiting for your verification.</span></span>
+            <label class="mt-2 flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 px-4 py-3 transition hover:border-brand-300 has-[:checked]:border-brand-300 has-[:checked]:bg-brand-50/50">
+              <input type="checkbox" name="autoConfirmOrders" value="true" th:checked="${evEntity.autoConfirmOrders()}" class="mt-0.5 h-4 w-4 shrink-0 rounded border-ink-300 text-brand-500 focus:ring-brand-400">
+              <span class="min-w-0"><span class="block text-sm font-semibold text-ink-900" th:text="#{wizard.pay.autoConfirm}">Issue tickets without my review</span><span class="mt-0.5 block text-xs leading-relaxed text-ink-500" th:text="#{wizard.pay.autoConfirmSub}">On: buyers get their tickets the moment they submit the order, before you check the payment. Off: every paid order waits for your approval in Orders.</span></span>
             </label>
           </div>
 
@@ -815,11 +817,11 @@
     var feeCard = document.getElementById('editFeeCard');
     var paymentMethodsCard = document.getElementById('editPaymentMethodsCard');
     function fmtIqd(n, cur) { return n.toLocaleString('en-US') + ' ' + cur; }
-    // Mirrors Format.bookingFeeFor server-side: 750 flat at/under 15,000 IQD,
-    // else 3% + 2,000 IQD, capped at 15,000 IQD.
-    var FEE_WAIVED = !!(feeCard && feeCard.getAttribute('data-fee-waived') === 'true');
+    // Mirrors Format.standardBookingFeeFor server-side: 750 flat at/under 15,000 IQD,
+    // else 3% + 2,000 IQD, capped at 15,000 IQD. R43: always the published fee, so the
+    // two examples differ (see the note on the create wizard's fee card).
     function bookingFeeFor(price) {
-      if (FEE_WAIVED || price <= 0) return 0;
+      if (price <= 0) return 0;
       if (price <= 15000) return 750;
       return Math.min(15000, Math.round(price * 0.03) + 2000);
     }

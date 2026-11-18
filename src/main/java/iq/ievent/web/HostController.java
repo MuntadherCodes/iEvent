@@ -678,6 +678,8 @@ public class HostController {
         model.addAttribute("eventOrders", ordersForEvent(ev.getId()));
         addPostponeModel(model, ev);
         model.addAttribute("shareBase", baseUrl);
+        // R43: the Share button in the page header (live events) opens these
+        model.addAttribute("share", iq.ievent.service.ShareLinks.of(ev.getTitle(), baseUrl + "/e/" + ev.getSlug()));
         return "host/event-console";
     }
 

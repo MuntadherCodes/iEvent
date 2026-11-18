@@ -15,7 +15,11 @@
 <link rel="shortcut icon" th:href="@{/img/favicon/favicon.ico}">
 <link rel="apple-touch-icon" sizes="180x180" th:href="@{/img/favicon/apple-touch-icon.png}">
 <link rel="manifest" th:href="@{/img/favicon/site.webmanifest}">
-<script defer th:src="@{/js/pwa.js}"></script>
+<!-- R43: the name under the home-screen icon on iPhone ("Add to Home Screen" would use
+     the page title otherwise), and the wording of the install prompt, which pwa.js reads
+     from its own tag. -->
+<meta name="apple-mobile-web-app-title" content="iEvent">
+<script defer th:src="@{/js/pwa.js}" th:attr="data-install-title=#{common.install.title},data-install-body=#{common.install.body},data-install-ios=#{common.install.ios},data-install-cta=#{common.install.cta},data-install-later=#{common.install.later},data-install-close=#{common.close},data-install-icon=@{/img/favicon/web-app-manifest-192x192.png}"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
 <link th:if="${rtl}" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet">

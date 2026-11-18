@@ -1103,14 +1103,34 @@ class SmokeTest {
     }
 
     @Test
-    void pricingPageRendersBetaAndFeeTiers() throws Exception {
+    void pricingPageStatesTheStandardFeeAndOffersPartnerships() throws Exception {
+        // R43: no beta wording; the fee table is the pricing, not an "after the beta" note
         mockMvc.perform(get("/en/pricing"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Free while we build")))
-                .andExpect(content().string(containsString("3% + 2,000 IQD, capped at 15,000 IQD")));
+                .andExpect(content().string(containsString("One small fee, only on paid tickets")))
+                .andExpect(content().string(containsString("The booking fee, per paid ticket")))
+                .andExpect(content().string(containsString("3% + 2,000 IQD, capped at 15,000 IQD")))
+                .andExpect(content().string(containsString("Free tickets: 0 IQD, always")))
+                .andExpect(content().string(not(containsString("Free while we build"))))
+                .andExpect(content().string(not(containsString("the beta"))))
+                // the enterprise and government section, and its way into the contact form
+                .andExpect(content().string(containsString("id=\"partnerships\"")))
+                .andExpect(content().string(containsString("Enterprise and government")))
+                .andExpect(content().string(containsString("href=\"/en/contact?topic=partnership\"")));
         mockMvc.perform(get("/pricing"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("مجاني ونحن نبني")));
+                .andExpect(content().string(containsString("رسم واحد صغير، على التذاكر المدفوعة فقط")))
+                .andExpect(content().string(containsString("للشركات والجهات الحكومية")))
+                .andExpect(content().string(containsString("href=\"/contact?topic=partnership\"")))
+                .andExpect(content().string(not(containsString("مجاني ونحن نبني"))))
+                .andExpect(content().string(not(containsString("التجريبية"))));
+        // the three examples printed under the table are the published formula's own numbers
+        org.junit.jupiter.api.Assertions.assertEquals(750L, iq.ievent.service.Format.standardBookingFeeFor(10_000));
+        org.junit.jupiter.api.Assertions.assertEquals(2_750L, iq.ievent.service.Format.standardBookingFeeFor(25_000));
+        org.junit.jupiter.api.Assertions.assertEquals(15_000L, iq.ievent.service.Format.standardBookingFeeFor(500_000));
+        mockMvc.perform(get("/en/pricing"))
+                .andExpect(content().string(containsString(
+                        "a 10,000 IQD ticket carries 750 IQD, a 25,000 IQD ticket carries 2,750 IQD, and a 500,000 IQD ticket carries 15,000 IQD")));
     }
 
     @Test
@@ -1470,12 +1490,38 @@ class SmokeTest {
     }
 
     @Test
-    void wizardFeeCardCarriesTheWaiverFlag() throws Exception {
+    void wizardFeeCardStatesTheStandardFeeWhetherOrNotItIsCharged() throws Exception {
+        // R43 (owner decision): the fee card shows the published fee and its two examples
+        // use it, with no "waived" wording, while orders are still charged nothing
+        // (Format.BOOKING_FEE_WAIVED). The published fee and the charged fee are two methods.
+        org.junit.jupiter.api.Assertions.assertEquals(0L, iq.ievent.service.Format.standardBookingFeeFor(0));
+        org.junit.jupiter.api.Assertions.assertEquals(750L, iq.ievent.service.Format.standardBookingFeeFor(15_000));
+        org.junit.jupiter.api.Assertions.assertEquals(2_450L, iq.ievent.service.Format.standardBookingFeeFor(15_001));
+        org.junit.jupiter.api.Assertions.assertEquals(3_050L, iq.ievent.service.Format.standardBookingFeeFor(35_000));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                iq.ievent.service.Format.BOOKING_FEE_WAIVED ? 0L : 3_050L,
+                iq.ievent.service.Format.bookingFeeFor(35_000));
         mockMvc.perform(get("/en/host/events/new").with(user(DEMO_HOST_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"feeCard\"")))
-                .andExpect(content().string(containsString("data-fee-waived=\""
-                        + iq.ievent.service.Format.BOOKING_FEE_WAIVED + "\"")));
+                .andExpect(content().string(containsString("750 IQD for tickets priced up to 15,000 IQD")))
+                // 35,000 + 3,050 and 35,000 - 3,050: the two examples differ
+                .andExpect(content().string(containsString("Buyer pays 38,050 IQD for a 35,000 ticket")))
+                .andExpect(content().string(containsString("You receive 31,950 IQD per 35,000 ticket")))
+                .andExpect(content().string(not(containsString("data-fee-waived"))))
+                .andExpect(content().string(not(containsString("Waived during"))))
+                .andExpect(content().string(not(containsString("line-through decoration-brand-300"))))
+                // the two payment switches, reworded (R43)
+                .andExpect(content().string(containsString("Ask buyers for proof of payment")))
+                .andExpect(content().string(containsString("Issue tickets without my review")))
+                .andExpect(content().string(containsString("name=\"requirePaymentProof\" value=\"true\" checked")));
+        Long festivalId = events.findBySlug("baghdad-nights-music-festival").orElseThrow().getId();
+        mockMvc.perform(get("/en/host/events/" + festivalId + "/edit").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"editFeeCard\"")))
+                .andExpect(content().string(containsString("Ask buyers for proof of payment")))
+                .andExpect(content().string(not(containsString("data-fee-waived"))))
+                .andExpect(content().string(not(containsString("Waived during"))));
     }
 
     @Test
@@ -1557,7 +1603,11 @@ class SmokeTest {
             // the console pre-fills the postpone form in the same shape
             mockMvc.perform(get("/en/host/events/" + ev.getId()).with(user(DEMO_HOST_EMAIL)))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(containsString("value=\"MONTH\" checked=\"checked\" class=\"pp-date-mode sr-only\"")))
+                    // Thymeleaf's th:checked ADDS checked="checked" after the tag's last attribute
+                    // (StandardConditionalFixedValueTagProcessor calls setAttribute, not
+                    // replaceAttribute), so it follows class, it does not take th:checked's place.
+                    // This assertion expected it before class and failed in CI until R43.
+                    .andExpect(content().string(containsString("value=\"MONTH\" class=\"pp-date-mode sr-only\" checked=\"checked\"")))
                     .andExpect(content().string(containsString("id=\"pp-month\"")))
                     .andExpect(content().string(containsString("value=\"2031-03\"")));
         } finally {
@@ -2307,7 +2357,11 @@ class SmokeTest {
                 .andExpect(content().string(containsString("Events in Baghdad")))
                 .andExpect(content().string(not(containsString("id=\"resultsCount\""))));
         // page N as a bare fragment: cards only, no document around them
-        String fragment = mockMvc.perform(get("/en/browse?q=Baghdad%20Nights&partial=1&page=0"))
+        // get(String) treats its argument as an UNENCODED template and encodes it, so a
+        // literal %20 would reach the app as "%2520" and the search would look for the text
+        // "Baghdad%20Nights" (this is why the test failed in CI until R43). A ready-made
+        // URI is sent as written.
+        String fragment = mockMvc.perform(get(java.net.URI.create("/en/browse?q=Baghdad%20Nights&partial=1&page=0")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-event-card=\"baghdad-nights-music-festival\"")))
                 .andReturn().getResponse().getContentAsString();
@@ -2328,13 +2382,15 @@ class SmokeTest {
         try {
             festival.setCoverImageUrl("https://images.example.com/festival.jpg");
             events.save(festival);
-            mockMvc.perform(get("/en/browse?q=Baghdad%20Nights"))
+            // a ready-made URI: get(String) would encode the %20 a second time (see
+            // browseHidesTheTotalUntilFilteredAndServesCardFragmentsForInfiniteScroll)
+            mockMvc.perform(get(java.net.URI.create("/en/browse?q=Baghdad%20Nights")))
                     .andExpect(status().isOk())
                     .andExpect(content().string(containsString(" img-shimmer\"")))
                     .andExpect(content().string(containsString("class=\"img-fade absolute inset-0 h-full w-full object-cover\"")));
             // cards without a cover keep the plain gradient (no shimmer box; the head's
             // CSS rule mentions the class on every page, so match the class attribute)
-            mockMvc.perform(get("/en/browse?q=Erbil%20Tech"))
+            mockMvc.perform(get(java.net.URI.create("/en/browse?q=Erbil%20Tech")))
                     .andExpect(status().isOk())
                     .andExpect(content().string(not(containsString(" img-shimmer\""))))
                     .andExpect(content().string(not(containsString("class=\"img-fade"))));
@@ -2678,5 +2734,309 @@ class SmokeTest {
         mockMvc.perform(asAdmin(get("/admin/inquiries").param("status", "open").param("q", tag)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(sender)));
+    }
+
+    // ---- R43: buyer-first checkout, Share on the organizer's event page, the install
+    //      prompt and its icons, a compact home page and footer, pricing as published ----
+
+    @Test
+    void checkoutAsksForTheBuyerBeforeTheTicketHolders() throws Exception {
+        String html = mockMvc.perform(get("/en/e/baghdad-nights-music-festival/checkout")
+                        .param("qty-" + generalAdmissionId(), "2"))
+                .andExpect(status().isOk())
+                // the box on each ticket copies the buyer's own details, and says so
+                .andExpect(content().string(containsString("data-copy-buyer=\"Use my details\"")))
+                .andExpect(content().string(not(containsString("Copy from buyer details"))))
+                .andExpect(content().string(containsString("tickets left blank go under your name")))
+                .andReturn().getResponse().getContentAsString();
+        int buyer = html.indexOf("id=\"buyerSection\"");
+        int buyerName = html.indexOf("name=\"buyerName\"");
+        int holders = html.indexOf("id=\"holdersSection\"");
+        int firstHolder = html.indexOf("class=\"holder-row ");
+        org.junit.jupiter.api.Assertions.assertTrue(buyer >= 0 && holders >= 0, "both sections render");
+        org.junit.jupiter.api.Assertions.assertTrue(buyer < buyerName && buyerName < holders && holders < firstHolder,
+                "the buyer's details come first, the ticket holders after them: " + buyer + " / " + buyerName
+                        + " / " + holders + " / " + firstHolder);
+        org.junit.jupiter.api.Assertions.assertEquals(2, occurrences(html, "class=\"holder-row "),
+                "one holder row per ticket");
+        // the field names did not move with the sections: the order still posts as before
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("name=\"buyerEmail\"") && html.contains("name=\"buyerPhone\"")
+                && html.contains("name=\"holderName\"") && html.contains("name=\"holderEmail\""), "field names unchanged");
+        // nothing on a buyer's page says a fee is waived; while none is charged
+        // (Format.BOOKING_FEE_WAIVED) a buyer-pays event shows no fee note at all
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("waived") || html.contains("beta period"), "no waiver wording");
+        if (iq.ievent.service.Format.BOOKING_FEE_WAIVED) {
+            org.junit.jupiter.api.Assertions.assertFalse(html.contains("Booking fee: 750 IQD"), "no fee note while none is charged");
+        }
+        mockMvc.perform(get("/en/e/baghdad-nights-music-festival"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("waived"))))
+                .andExpect(content().string(not(containsString("beta period"))));
+        mockMvc.perform(get("/e/baghdad-nights-music-festival/checkout")
+                        .param("qty-" + generalAdmissionId(), "1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-copy-buyer=\"استخدم بياناتي\"")))
+                .andExpect(content().string(not(containsString("التجريبية"))));
+    }
+
+    @Test
+    void organizerSharesALiveEventFromItsOwnPage() throws Exception {
+        iq.ievent.domain.Event live = events.findBySlug("baghdad-nights-music-festival").orElseThrow();
+        String url = "http://localhost:8080/e/" + live.getSlug();
+        String encUrl = java.net.URLEncoder.encode(url, java.nio.charset.StandardCharsets.UTF_8);
+        String encTitle = java.net.URLEncoder.encode(live.getTitle(), java.nio.charset.StandardCharsets.UTF_8);
+
+        // the links are built in one place, for this button and for Marketing > Social
+        iq.ievent.service.ShareLinks share = iq.ievent.service.ShareLinks.of(live.getTitle(), url);
+        org.junit.jupiter.api.Assertions.assertEquals(url, share.url());
+        org.junit.jupiter.api.Assertions.assertEquals("https://wa.me/?text=" + encTitle + "+%C2%B7+" + encUrl, share.whatsapp());
+        org.junit.jupiter.api.Assertions.assertEquals("https://t.me/share/url?url=" + encUrl + "&text=" + encTitle, share.telegram());
+        org.junit.jupiter.api.Assertions.assertEquals("https://www.facebook.com/sharer/sharer.php?u=" + encUrl, share.facebook());
+        org.junit.jupiter.api.Assertions.assertEquals("https://twitter.com/intent/tweet?text=" + encTitle + "&url=" + encUrl, share.x());
+        // an untitled event shares its link alone, with no stray separator
+        org.junit.jupiter.api.Assertions.assertEquals("https://wa.me/?text=" + encUrl,
+                iq.ievent.service.ShareLinks.of("  ", url).whatsapp());
+        org.junit.jupiter.api.Assertions.assertEquals("https://wa.me/?text=" + encUrl,
+                iq.ievent.service.ShareLinks.of(null, url).whatsapp());
+
+        // a published event: the Share button in the page header, and the panel it opens
+        String page = mockMvc.perform(get("/en/host/events/" + live.getId()).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"shareEventBtn\" type=\"button\" data-share-event aria-expanded=\"false\"")))
+                .andExpect(content().string(containsString("id=\"sharePanel\" role=\"region\" aria-label=\"Share this event\"")))
+                .andExpect(content().string(containsString("data-url=\"" + url + "\" data-title=\"")))
+                .andExpect(content().string(containsString("href=\"" + share.whatsapp() + "\" data-share-to=\"whatsapp\"")))
+                // an ampersand inside an attribute is written &amp;
+                .andExpect(content().string(containsString(
+                        "href=\"https://t.me/share/url?url=" + encUrl + "&amp;text=" + encTitle + "\" data-share-to=\"telegram\"")))
+                .andExpect(content().string(containsString(
+                        "href=\"https://www.facebook.com/sharer/sharer.php?u=" + encUrl + "\" data-share-to=\"facebook\"")))
+                .andExpect(content().string(containsString("data-share-to=\"x\"")))
+                .andExpect(content().string(containsString("data-copy=\"shareUrl\"")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(1, occurrences(page, " data-share-event aria-"),
+                "one Share button when nothing was just published");
+        // straight after publishing, the green "Your event is live" notice carries a second one
+        String justPublished = mockMvc.perform(get("/en/host/events/" + live.getId())
+                        .flashAttr("published", true).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Your event is live")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(2, occurrences(justPublished, " data-share-event aria-"),
+                "the published notice offers Share as well");
+        mockMvc.perform(get("/host/events/" + live.getId()).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"sharePanel\" role=\"region\" aria-label=\"شارك هذه الفعالية\"")));
+
+        // a draft has no public page to send people to yet: no button, no panel
+        iq.ievent.domain.Event draft = hostService.duplicateEvent(live);
+        org.junit.jupiter.api.Assertions.assertEquals(iq.ievent.domain.Event.Status.DRAFT, draft.getStatus());
+        mockMvc.perform(get("/en/host/events/" + draft.getId()).with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"shareEventBtn\""))))
+                .andExpect(content().string(not(containsString("id=\"sharePanel\""))))
+                .andExpect(content().string(not(containsString(" data-share-event aria-"))));
+    }
+
+    @Test
+    void contactFormOpensOnTheTopicItWasLinkedWith() throws Exception {
+        // the pricing page's partnership button lands on the form with that topic chosen
+        mockMvc.perform(get("/en/contact").param("topic", "partnership"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(
+                        "<option value=\"partnership\" selected=\"selected\">Enterprise / government</option>")))
+                .andExpect(content().string(containsString("<option value=\"general\">General question</option>")));
+        mockMvc.perform(get("/contact").param("topic", "partnership"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(
+                        "<option value=\"partnership\" selected=\"selected\">الشركات والجهات الحكومية</option>")));
+        // no topic, or one the form does not offer: General question, as before
+        for (String topic : new String[] {null, "", "nonsense", "PARTNERSHIP"}) {
+            var request = get("/en/contact");
+            if (topic != null) request = request.param("topic", topic);
+            mockMvc.perform(request)
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("<option value=\"general\" selected=\"selected\">General question</option>")))
+                    .andExpect(content().string(containsString("<option value=\"partnership\">Enterprise / government</option>")));
+        }
+
+        // a message posted with NO topic field used to end in a 500 page (Set.of(..).contains(null)
+        // throws); it is a general question now. One posted as a partnership is filed as one.
+        String tag = "r43topic" + System.nanoTime();
+        mockMvc.perform(post("/en/contact").with(csrf())
+                        .param("name", "No Topic " + tag)
+                        .param("email", "none-" + tag + "@example.iq")
+                        .param("message", "Without a topic " + tag))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Message sent")));
+        mockMvc.perform(post("/en/contact").with(csrf())
+                        .param("name", "Ministry " + tag)
+                        .param("email", "gov-" + tag + "@example.iq")
+                        .param("topic", "partnership")
+                        .param("message", "A partnership question " + tag))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Message sent")));
+        String inbox = mockMvc.perform(asAdmin(get("/admin/inquiries").param("q", tag)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("No Topic " + tag)))
+                .andExpect(content().string(containsString("Ministry " + tag)))
+                .andExpect(content().string(containsString("Enterprise / government")))
+                .andExpect(content().string(containsString("General question")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(2, occurrences(inbox, "data-inquiry-row"));
+        org.junit.jupiter.api.Assertions.assertEquals("Enterprise / government",
+                iq.ievent.service.InquiryService.topicLabel("partnership"));
+    }
+
+    @Test
+    void installPromptIsWiredAndTheAppIconsAreOpaque() throws Exception {
+        // every page hands pwa.js the prompt's wording in the page's own language
+        mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<meta name=\"apple-mobile-web-app-title\" content=\"iEvent\">")))
+                .andExpect(content().string(containsString("src=\"/en/js/pwa.js\" data-install-title=\"Install the iEvent app\"")))
+                .andExpect(content().string(containsString("data-install-cta=\"Install\"")))
+                .andExpect(content().string(containsString("data-install-later=\"Not now\"")))
+                .andExpect(content().string(containsString("data-install-close=\"Close\"")))
+                .andExpect(content().string(containsString("data-install-icon=\"/en/img/favicon/web-app-manifest-192x192.png\"")));
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("src=\"/js/pwa.js\" data-install-title=\"ثبّت تطبيق iEvent\"")))
+                .andExpect(content().string(containsString("data-install-cta=\"تثبيت\"")));
+        // the organizer console has its own layout, and the same wiring
+        mockMvc.perform(get("/en/host").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-install-title=\"Install the iEvent app\"")));
+        mockMvc.perform(get("/js/pwa.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("beforeinstallprompt")))
+                .andExpect(content().string(containsString("ievent.installDismissedAt")))
+                .andExpect(content().string(containsString("data-install-accept")));
+
+        // the manifest: where the app opens, and an icon set for each purpose
+        String manifest = mockMvc.perform(get("/img/favicon/site.webmanifest"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"start_url\": \"/\"")))
+                .andExpect(content().string(containsString("\"display\": \"standalone\"")))
+                .andExpect(content().string(containsString("/img/favicon/web-app-maskable-512x512.png")))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(2, occurrences(manifest, "\"purpose\": \"any\""));
+        org.junit.jupiter.api.Assertions.assertEquals(2, occurrences(manifest, "\"purpose\": \"maskable\""));
+
+        // the installed icon used to come out on black: the files were transparent, and a
+        // launcher paints transparency black. Every icon a phone installs is opaque white
+        // at its corners and at the middle of each edge now.
+        String[][] icons = {
+                {"/img/favicon/apple-touch-icon.png", "180"},
+                {"/img/favicon/web-app-manifest-192x192.png", "192"},
+                {"/img/favicon/web-app-manifest-512x512.png", "512"},
+                {"/img/favicon/web-app-maskable-192x192.png", "192"},
+                {"/img/favicon/web-app-maskable-512x512.png", "512"}};
+        for (String[] icon : icons) {
+            byte[] png = mockMvc.perform(get(icon[0]))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsByteArray();
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png));
+            org.junit.jupiter.api.Assertions.assertNotNull(img, icon[0] + " is a readable image");
+            int size = Integer.parseInt(icon[1]);
+            org.junit.jupiter.api.Assertions.assertEquals(size, img.getWidth(), icon[0]);
+            org.junit.jupiter.api.Assertions.assertEquals(size, img.getHeight(), icon[0]);
+            int last = size - 1;
+            int mid = size / 2;
+            int[][] points = {{0, 0}, {last, 0}, {0, last}, {last, last}, {mid, 0}, {mid, last}, {0, mid}, {last, mid}};
+            for (int[] pt : points) {
+                org.junit.jupiter.api.Assertions.assertEquals(0xFFFFFFFF, img.getRGB(pt[0], pt[1]),
+                        icon[0] + " is opaque white at " + pt[0] + "," + pt[1]);
+            }
+            // and the mark is there: the centre region is not blank
+            boolean inked = false;
+            for (int y = size / 4; y < size * 3 / 4 && !inked; y++) {
+                for (int x = size / 4; x < size * 3 / 4 && !inked; x++) {
+                    inked = img.getRGB(x, y) != 0xFFFFFFFF;
+                }
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(inked, icon[0] + " carries the logo mark");
+        }
+    }
+
+    @Test
+    void homePageCityTilesAreCompactAndTheFooterFoldsOnPhones() throws Exception {
+        String html = mockMvc.perform(get("/en"))
+                .andExpect(status().isOk())
+                // a tile is a row the height of its text, not a 4:3 block
+                .andExpect(content().string(containsString(
+                        "class=\"group flex min-w-0 items-center gap-3 rounded-xl bg-gradient-to-br px-3.5 py-3 shadow-card ")))
+                .andExpect(content().string(not(containsString("aspect-[4/3] flex-col justify-end"))))
+                .andExpect(content().string(containsString("href=\"/en/city/baghdad\"")))
+                .andReturn().getResponse().getContentAsString();
+        // the footer's four link groups: open in the markup (so they work with no script and
+        // on wide screens), folded by the footer's own script on a phone
+        org.junit.jupiter.api.Assertions.assertEquals(4,
+                occurrences(html, "<details data-footer-group open class=\"group border-t border-ink-700/60 sm:border-0\">"),
+                "four footer groups");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("matchMedia('(min-width: 640px)')"), "the folding script is in the footer");
+        // every link the footer had is still there
+        for (String href : new String[] {"/en/about", "/en/help", "/en/pricing", "/en/contact", "/en/terms", "/en/privacy",
+                "/en/how-it-works", "/en/guides/organizers", "/en/city/erbil"}) {
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains("href=\"" + href + "\""), "footer links " + href);
+        }
+    }
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    void earningsPageStatesTheFeeWithoutBetaWording() throws Exception {
+        String html = mockMvc.perform(get("/en/host/earnings").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("How fees work")))
+                // the published formula is always there, not a "no fee right now" box
+                .andExpect(content().string(containsString("added on top of the ticket price unless you choose to absorb it.")))
+                .andExpect(content().string(not(containsString(">Waived<"))))
+                .andExpect(content().string(not(containsString("Waived during"))))
+                .andExpect(content().string(not(containsString("No fee right now"))))
+                .andExpect(content().string(not(containsString("beta period"))))
+                .andReturn().getResponse().getContentAsString();
+        // "No booking fees charged on these orders." appears exactly when that is the case
+        Long orgId = organizations.findByHandle("zainevents").orElseThrow().getId();
+        Long fees = jdbc.queryForObject("""
+                SELECT COALESCE(SUM(o.booking_fee_iqd), 0) FROM orders o
+                JOIN events e ON e.id = o.event_id
+                WHERE e.organization_id = ? AND o.status = 'CONFIRMED'
+                """, Long.class, orgId);
+        boolean noneCharged = iq.ievent.service.Format.BOOKING_FEE_WAIVED && fees != null && fees == 0;
+        org.junit.jupiter.api.Assertions.assertEquals(noneCharged, html.contains("No booking fees charged on these orders."),
+                "the line under Booking fees matches the orders (fees charged so far: " + fees + ")");
+        mockMvc.perform(get("/host/earnings").with(user(DEMO_HOST_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("التجريبية"))))
+                .andExpect(content().string(not(containsString("معفى"))));
+    }
+
+    @Test
+    void noPublicPageMentionsABetaOrAWaiver() throws Exception {
+        // R43 (owner decision): the site states its pricing as it is. Nothing a visitor can
+        // read says "beta" or "waived" any more, in either language.
+        java.util.regex.Pattern english = java.util.regex.Pattern.compile("(?i)\\b(beta|waived|waiver)\\b");
+        for (String path : new String[] {"/en", "/en/pricing", "/en/help", "/en/about", "/en/features", "/en/solutions",
+                "/en/how-it-works", "/en/guides", "/en/guides/organizers", "/en/guides/attendees", "/en/terms",
+                "/en/privacy", "/en/contact", "/en/browse", "/en/e/baghdad-nights-music-festival", "/llms.txt"}) {
+            String body = mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            java.util.regex.Matcher m = english.matcher(body);
+            org.junit.jupiter.api.Assertions.assertFalse(m.find(), path + " still mentions a beta or a waiver");
+        }
+        for (String path : new String[] {"/", "/pricing", "/help", "/about", "/features", "/solutions", "/how-it-works",
+                "/guides/organizers", "/guides/attendees", "/terms", "/privacy", "/contact",
+                "/e/baghdad-nights-music-festival"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString("التجريبية"))))
+                    .andExpect(content().string(not(containsString("معفى"))));
+        }
+        mockMvc.perform(get("/llms.txt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("tailored terms for enterprise and government partners")));
     }
 }

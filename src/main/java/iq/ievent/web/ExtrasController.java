@@ -192,7 +192,8 @@ public class ExtrasController {
                 - [Solutions](%1$s/solutions): how iEvent fits conferences, concerts, workshops, community events, bazaars and sports
                 - [Guides](%1$s/guides): detailed attendee and organizer manuals
                 - [Help center](%1$s/help): how tickets, payments, refunds and hosting work
-                - [Pricing](%1$s/pricing): platform fees (currently waived during the beta)
+                - [Pricing](%1$s/pricing): the booking fee on paid tickets (free events are always free), \
+                and tailored terms for enterprise and government partners
                 - [Privacy policy](%1$s/privacy)
                 - [Terms of use](%1$s/terms)
 
@@ -343,15 +344,25 @@ public class ExtrasController {
     }
 
     private static final java.util.Set<String> CONTACT_TOPICS =
-            java.util.Set.of("general", "attendee", "organizer", "billing");
+            java.util.Set.of("general", "attendee", "organizer", "billing", "partnership");
+
+    /** A topic the contact form offers, or "general". Null-safe on purpose: Set.of(..)
+     *  throws a NullPointerException on contains(null), which turned a POST without a
+     *  topic field (bots, hand-made requests) into a 500 page (R43). */
+    static String contactTopic(String topic) {
+        return topic != null && CONTACT_TOPICS.contains(topic) ? topic : "general";
+    }
 
     @GetMapping("/contact")
-    public String contactForm(@AuthenticationPrincipal UserDetails principal, Model model) {
+    public String contactForm(@AuthenticationPrincipal UserDetails principal,
+                              @RequestParam(required = false) String topic, Model model) {
         User u = principal == null ? null : userService.byEmail(principal.getUsername());
         model.addAttribute("loggedIn", u != null);
         model.addAttribute("prefillName", u == null ? "" : u.getFullName());
         model.addAttribute("prefillEmail", u == null ? "" : u.getEmail());
-        model.addAttribute("prefillTopic", "general");
+        // R43: /contact?topic=partnership (the pricing page's "Talk to us" button) opens
+        // the form with that topic already chosen; anything unknown falls back to general.
+        model.addAttribute("prefillTopic", contactTopic(topic));
         model.addAttribute("prefillMessage", "");
         model.addAttribute("supportEmail", supportEmail);
         return "contact";
@@ -372,7 +383,7 @@ public class ExtrasController {
         String cleanName = u != null ? u.getFullName() : (name == null ? "" : name.trim());
         String cleanEmail = u != null ? u.getEmail() : (email == null ? "" : email.trim());
         String cleanMessage = message == null ? "" : message.trim();
-        String cleanTopic = CONTACT_TOPICS.contains(topic) ? topic : "general";
+        String cleanTopic = contactTopic(topic);
 
         model.addAttribute("loggedIn", u != null);
         model.addAttribute("prefillName", cleanName);

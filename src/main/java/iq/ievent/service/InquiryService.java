@@ -288,6 +288,7 @@ public class InquiryService {
             case "attendee" -> "Order / ticket issue";
             case "organizer" -> "Organizer / event support";
             case "billing" -> "Billing / payments";
+            case "partnership" -> "Enterprise / government";
             default -> "General question";
         };
     }

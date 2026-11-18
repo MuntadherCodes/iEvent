@@ -177,9 +177,13 @@
         <h2 class="font-display text-2xl font-extrabold text-ink-900 md:text-3xl" th:text="#{public.home.browseByCity}">Browse by city</h2>
         <a th:href="@{/browse}" class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700">[[#{public.home.seeAll}]]<svg class="h-4 w-4 rtl:rotate-180" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
       </div>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4">
+      <!-- R43: compact tiles. They used to be tall 4:3 blocks that held nothing but a
+           name and a count; with no photo to show, a row the height of its text reads
+           better and lets every city fit on a phone screen. min-w-0 + truncate keep a
+           long name inside its tile. -->
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
         <a th:each="c, st : ${cities}" th:href="@{${@t.cityPath(c.city)}}"
-           class="group relative flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-5 shadow-card ring-1 ring-inset ring-black/5 transition hover:-translate-y-0.5 hover:shadow-cardHover sm:aspect-[3/2]"
+           class="group flex min-w-0 items-center gap-3 rounded-xl bg-gradient-to-br px-3.5 py-3 shadow-card ring-1 ring-inset ring-black/5 transition hover:-translate-y-0.5 hover:shadow-cardHover sm:px-4 sm:py-3.5"
            th:with="cityGrad=${st.index % 8 == 0 ? 'from-brand-600 via-brand-500 to-fuchsia-500'
                     : (st.index % 8 == 1 ? 'from-indigo-600 via-brand-500 to-sky-500'
                     : (st.index % 8 == 2 ? 'from-teal-500 via-emerald-500 to-cyan-500'
@@ -189,9 +193,11 @@
                     : (st.index % 8 == 6 ? 'from-slate-600 via-ink-600 to-brand-700'
                     :                      'from-emerald-600 via-teal-500 to-sky-500'))))))}"
            th:classappend="${cityGrad}">
-          <svg class="absolute end-4 top-4 h-8 w-8 text-white/30 transition group-hover:scale-110 group-hover:text-white/60" aria-hidden="true"><use href="#i-building-2"/></svg>
-          <span class="font-display text-lg font-extrabold text-white sm:text-xl md:text-2xl" th:text="${@t.city(c.city)}">Baghdad</span>
-          <span class="mt-0.5 text-sm font-medium tabular-nums text-white/80" th:text="${c.count} + ' ' + #{public.home.eventsWord}">640 events</span>
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/15 text-white transition group-hover:bg-white/25 sm:h-10 sm:w-10"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-building-2"/></svg></span>
+          <span class="min-w-0">
+            <span class="block truncate font-display text-base font-extrabold leading-tight text-white sm:text-lg" th:text="${@t.city(c.city)}">Baghdad</span>
+            <span class="mt-0.5 block truncate text-xs font-medium tabular-nums text-white/80 sm:text-sm" th:text="${c.count} + ' ' + #{public.home.eventsWord}">640 events</span>
+          </span>
         </a>
       </div>
     </div>
