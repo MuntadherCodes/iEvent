@@ -42,7 +42,11 @@
 
   <!-- R42: every number this organizer can be reached on, each under its own label -->
   <div id="orgContact" class="mt-6 rounded-2xl border border-ink-100 bg-white p-6">
-    <p class="font-display font-bold text-ink-900">Contact</p>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <p class="font-display font-bold text-ink-900">Contact</p>
+      <!-- R44: a new email to the owner's account address, written and sent from this console -->
+      <a id="orgEmailOwner" th:if="${ownerEmail != '-'}" th:href="@{/admin/emails/new(to=${ownerEmail},name=${ownerName})}" class="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-400 hover:text-brand-600"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-mail"/></svg>Email the owner</a>
+    </div>
     <dl class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
       <div>
         <dt class="text-xs font-semibold uppercase tracking-wide text-ink-400">Owner's number</dt>
@@ -53,6 +57,7 @@
         <dt class="text-xs font-semibold uppercase tracking-wide text-ink-400">Public contact</dt>
         <dd class="mt-1 text-sm" data-contact-phone><th:block th:replace="~{admin/parts :: phone(${contactPhone}, '')}"></th:block></dd>
         <dd th:if="${contactEmail != ''}" class="mt-0.5 text-sm"><a th:href="'mailto:' + ${contactEmail}" class="text-ink-600 hover:text-brand-600 hover:underline" th:text="${contactEmail}">hello@organizer.com</a></dd>
+        <dd th:if="${contactEmail != ''}" class="mt-0.5"><a th:replace="~{admin/parts :: emailLink(${contactEmail}, '', 'Write an email')}"></a></dd>
         <dd class="mt-1 text-xs text-ink-400">From their Branding settings, shown on their public page.</dd>
       </div>
       <div>

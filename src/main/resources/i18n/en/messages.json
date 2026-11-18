@@ -210,5 +210,7 @@
   "flash.org.phoneRequired": "Enter your mobile number to create your organizer profile.",
   "phone.invalid": "Enter a valid Iraqi mobile number, e.g. 0790 123 4567.",
   "mail.inquiryReply.subject": "Re: your message to iEvent",
-  "mail.inquiryReply.greeting": "Hello {0},"
+  "mail.inquiryReply.greeting": "Hello {0},",
+  "mail.adminMessage.greeting": "Hello {0},",
+  "mail.adminMessage.greetingPlain": "Hello,"
 }

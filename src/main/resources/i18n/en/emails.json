@@ -36,5 +36,7 @@
   "emails.confirmed.joinInstructions": "Joining instructions:",
   "emails.inquiryReply.kicker": "Reply to your message",
   "emails.inquiryReply.youWrote": "Your message",
-  "emails.inquiryReply.footer": "You can answer this email directly and it will reach our team. © 2026 iEvent"
+  "emails.inquiryReply.footer": "You can answer this email directly and it will reach our team. © 2026 iEvent",
+  "emails.adminMessage.kicker": "A message from our team",
+  "emails.adminMessage.footer": "You can answer this email directly and it will reach our team. © 2026 iEvent"
 }

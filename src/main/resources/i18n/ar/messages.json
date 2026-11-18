@@ -210,5 +210,7 @@
   "flash.org.phoneRequired": "أدخل رقم هاتفك المحمول لإنشاء ملف المنظّم.",
   "phone.invalid": "أدخل رقم هاتف محمول عراقي صحيح، مثل 0790 123 4567.",
   "mail.inquiryReply.subject": "رد على رسالتك إلى iEvent",
-  "mail.inquiryReply.greeting": "مرحباً {0}،"
+  "mail.inquiryReply.greeting": "مرحباً {0}،",
+  "mail.adminMessage.greeting": "مرحباً {0}،",
+  "mail.adminMessage.greetingPlain": "مرحباً،"
 }

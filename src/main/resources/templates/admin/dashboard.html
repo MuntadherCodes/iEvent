@@ -79,6 +79,8 @@
           <td class="px-5 py-3.5 text-ink-500">
             <span th:text="${o.ownerName}">Owner</span>
             <span class="block text-xs text-ink-400" th:text="${o.ownerEmail}">owner@email.com</span>
+            <!--/* R44: write to the owner from this console */-->
+            <span class="mt-0.5 block"><a th:replace="~{admin/parts :: emailLink(${o.ownerEmail}, ${o.ownerName}, 'Write an email')}"></a></span>
             <span class="mt-1 block text-sm md:hidden"><th:block th:replace="~{admin/parts :: phone(${o.phone}, ${o.phoneNote})}"></th:block></span>
           </td>
           <td class="hidden px-5 py-3.5 md:table-cell" data-org-phone><th:block th:replace="~{admin/parts :: phone(${o.phone}, ${o.phoneNote})}"></th:block></td>

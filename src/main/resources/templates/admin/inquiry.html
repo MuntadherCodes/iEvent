@@ -42,6 +42,8 @@
       <p class="mt-1 text-xs text-ink-400">
         Sent while browsing the site in <span th:text="${inquiry.langLabel}">Arabic</span><span th:if="${inquiry.hasAccount}">, signed in to their account</span>.
         <a th:href="@{/admin/buyers(q=${inquiry.email})}" class="font-semibold text-brand-600 hover:underline">Look up their orders</a>
+        <!--/* R44: a new email to this person, with its own subject, apart from the reply below */-->
+        · <a id="inquiryNewEmail" th:href="@{/admin/emails/new(to=${inquiry.email},name=${inquiry.name})}" class="font-semibold text-brand-600 hover:underline">Write them a new email</a>
       </p>
     </div>
     <div id="inquiryStatus" class="mt-3">

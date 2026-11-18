@@ -7,10 +7,10 @@
 <body>
 
 <!-- R42: pieces the super-admin pages share. Nothing renders this file on its own;
-     the admin pages pull the two fragments below. -->
+     the admin pages pull the fragments below. -->
 
-<!-- Section tabs under the dark header. `active` is one of: orgs | buyers | inquiries.
-     The number on Inquiries is how many messages still wait for an answer
+<!-- Section tabs under the dark header. `active` is one of: orgs | buyers | inquiries |
+     emails (R44). The number on Inquiries is how many messages still wait for an answer
      (AdminController puts openInquiries in every page's model). -->
 <nav th:fragment="nav(active)" class="border-b border-ink-100 bg-white" aria-label="Admin sections">
   <div class="flex gap-1 overflow-x-auto px-3 sm:px-6">
@@ -23,7 +23,18 @@
     <a th:href="@{/admin/inquiries}" class="shrink-0 whitespace-nowrap border-b-2 px-2 py-3 text-sm font-semibold transition sm:px-3"
        th:classappend="${active == 'inquiries'} ? 'border-brand-500 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'"
        th:attr="aria-current=${active == 'inquiries'} ? 'page' : null">Inquiries <span id="openInquiriesBadge" th:if="${openInquiries != null and openInquiries > 0}" class="ms-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold tabular-nums text-amber-700" title="Waiting for an answer" th:text="${openInquiries}">3</span></a>
+    <a th:href="@{/admin/emails}" class="shrink-0 whitespace-nowrap border-b-2 px-2 py-3 text-sm font-semibold transition sm:px-3"
+       th:classappend="${active == 'emails'} ? 'border-brand-500 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'"
+       th:attr="aria-current=${active == 'emails'} ? 'page' : null">Emails</a>
   </div>
+  <script>
+    // R44: four tabs are wider than a small phone, where the row scrolls sideways.
+    // Bring the tab of the page that is open into view.
+    (function () {
+      var open = document.querySelector('nav[aria-label="Admin sections"] a[aria-current="page"]');
+      if (open && open.scrollIntoView) open.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    })();
+  </script>
 </nav>
 
 <!-- One phone number (an AdminContacts.Phone): the number as a dial link, a WhatsApp
@@ -38,6 +49,13 @@
   </span>
   <span th:if="${p.display == ''}" class="text-ink-300">No number</span>
 </th:block>
+
+<!-- R44: "Write an email" for one person: opens the new-email form of this console with
+     the address and the name filled in. `label` is the link's text. Like the phone links
+     above, it stops the click from reaching a table row that is itself clickable. -->
+<a th:fragment="emailLink(email, name, label)" th:if="${email != null and email != '' and email != '-'}"
+   th:href="@{/admin/emails/new(to=${email},name=${name})}" data-email-link
+   class="inline-flex w-fit items-center gap-1 whitespace-nowrap text-xs font-semibold text-brand-600 hover:underline" onclick="event.stopPropagation()"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-mail"/></svg><span th:text="${label}">Write an email</span></a>
 
 </body>
 </html>

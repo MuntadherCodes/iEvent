@@ -36,5 +36,7 @@
   "emails.confirmed.joinInstructions": "تعليمات الانضمام:",
   "emails.inquiryReply.kicker": "رد على رسالتك",
   "emails.inquiryReply.youWrote": "رسالتك",
-  "emails.inquiryReply.footer": "يمكنك الرد على هذه الرسالة مباشرة وسيصل ردك إلى فريقنا. © 2026 iEvent"
+  "emails.inquiryReply.footer": "يمكنك الرد على هذه الرسالة مباشرة وسيصل ردك إلى فريقنا. © 2026 iEvent",
+  "emails.adminMessage.kicker": "رسالة من فريقنا",
+  "emails.adminMessage.footer": "يمكنك الرد على هذه الرسالة مباشرة وسيصل ردك إلى فريقنا. © 2026 iEvent"
 }

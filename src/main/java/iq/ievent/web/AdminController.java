@@ -7,6 +7,7 @@ import iq.ievent.repo.EventRepository;
 import iq.ievent.repo.OrganizationRepository;
 import iq.ievent.repo.UserRepository;
 import iq.ievent.service.AdminContacts;
+import iq.ievent.service.AdminEmailService;
 import iq.ievent.service.InquiryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,7 +37,9 @@ import java.util.Locale;
  *  R42: organizer phone numbers on both pages, the Buyers page (everyone who
  *  placed an order, with the contact details they gave at checkout), and
  *  Inquiries (contact-form messages: when they came, whether they were
- *  answered, and a reply by email). */
+ *  answered, and a reply by email).
+ *  R44: Emails (a new email from the console to an organizer, a buyer or any
+ *  other address, and the list of the ones that went out). */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -50,14 +53,17 @@ public class AdminController {
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final InquiryService inquiries;
+    private final AdminEmailService emails;
 
     public AdminController(OrganizationRepository organizations, EventRepository events,
-                           UserRepository users, JdbcTemplate jdbc, InquiryService inquiries) {
+                           UserRepository users, JdbcTemplate jdbc, InquiryService inquiries,
+                           AdminEmailService emails) {
         this.organizations = organizations;
         this.events = events;
         this.users = users;
         this.jdbc = jdbc;
         this.inquiries = inquiries;
+        this.emails = emails;
     }
 
     /** R42: the number on the Inquiries tab (messages still waiting for an answer). Every
@@ -398,6 +404,114 @@ public class AdminController {
     public String markInquiryOpen(@PathVariable Long id) {
         inquiries.markOpen(id);
         return "redirect:/admin/inquiries/" + id;
+    }
+
+    // ============================================================
+    // R44: Emails (a new email from the console to any address)
+    // ============================================================
+
+    /** Every email written from the console, newest first. ?q= searches the address, the
+     *  name, the subject and the message. Replies to contact-form messages are not here:
+     *  they stay with their inquiry. */
+    @GetMapping("/emails")
+    public String emailList(@RequestParam(required = false) String q,
+                            @RequestParam(name = "page", required = false) String pageParam,
+                            Model model) {
+        AdminEmailService.Listing listing = emails.list(q, AdminContacts.parsePage(pageParam));
+        model.addAttribute("emails", listing.rows());
+        model.addAttribute("pageNumber", listing.number());
+        model.addAttribute("pageCount", listing.pages());
+        model.addAttribute("matchCount", listing.total());
+        model.addAttribute("shownFrom", listing.from());
+        model.addAttribute("shownTo", listing.to());
+        model.addAttribute("q", q == null ? "" : q);
+        model.addAttribute("countAll", emails.count());
+        return "admin/emails";
+    }
+
+    /** The form for a new email. ?to= and ?name= fill the first two boxes: the Email links
+     *  on the organizations, buyers and inquiry pages use them. */
+    @GetMapping("/emails/new")
+    public String emailForm(@RequestParam(required = false) String to,
+                            @RequestParam(required = false) String name,
+                            Model model) {
+        // an email that could not be sent comes back as flash attributes, so what the
+        // admin typed is still in the boxes
+        if (!model.containsAttribute("draftTo")) model.addAttribute("draftTo", to == null ? "" : to.strip());
+        if (!model.containsAttribute("draftName")) model.addAttribute("draftName", name == null ? "" : name.strip());
+        if (!model.containsAttribute("draftSubject")) model.addAttribute("draftSubject", "");
+        if (!model.containsAttribute("draftBody")) model.addAttribute("draftBody", "");
+        model.addAttribute("mailFrom", inquiries.mailFrom());
+        model.addAttribute("supportEmail", inquiries.supportEmail());
+        model.addAttribute("maxRecipients", AdminEmailService.MAX_RECIPIENTS);
+        return "admin/email-new";
+    }
+
+    /** Sends the email (AdminEmailService.send) and goes to the list when all of it went
+     *  out; otherwise back to the form, with what was typed and what went wrong. */
+    @PostMapping("/emails")
+    public String sendEmail(@RequestParam(name = "to", required = false) String to,
+                            @RequestParam(name = "name", required = false) String name,
+                            @RequestParam(name = "subject", required = false) String subject,
+                            @RequestParam(name = "body", required = false) String body,
+                            RedirectAttributes redirect) {
+        AdminEmailService.Outcome outcome = emails.send(to, name, subject, body);
+
+        // rare: the mail went out but the database did not take the row for the list
+        String notListed = outcome.notRecorded() == 0 ? ""
+                : outcome.sent().size() == 1
+                        ? " It went out, but it could not be listed on this page. Do not send it again."
+                        : " " + outcome.notRecorded() + " of the copies that went out could not be listed on"
+                                + " this page. Do not send those again.";
+
+        String problem = null;
+        // what goes back into the To box: everything as typed, or only the addresses the
+        // email did not reach
+        String draftTo = to == null ? "" : to;
+        if (outcome.problem() != null) {
+            problem = switch (outcome.problem()) {
+                case NO_RECIPIENT -> "Add the email address to send to.";
+                case BAD_ADDRESS -> "\"" + outcome.badAddress() + "\" is not an email address, so nothing was sent.";
+                case TOO_MANY -> "That is more than " + AdminEmailService.MAX_RECIPIENTS
+                        + " addresses. Send it to a smaller group at a time.";
+                case NO_SUBJECT -> "Add a subject before sending.";
+                case SUBJECT_TOO_LONG -> "That subject is longer than " + AdminEmailService.MAX_SUBJECT
+                        + " characters. Shorten it and send again.";
+                case EMPTY -> "Write a message before sending.";
+                case TOO_LONG -> "That message is longer than 5,000 characters. Shorten it and send again.";
+            };
+        } else if (!outcome.unsent().isEmpty()) {
+            draftTo = String.join(", ", outcome.unsent());
+            problem = outcome.sent().isEmpty()
+                    ? "The mail server did not accept the email, so nothing was sent or recorded. Try again in a moment."
+                    : "Sent to " + String.join(", ", outcome.sent()) + ". The mail server did not accept the email for "
+                            + outcome.unsent().get(0) + ", so it did not go to the addresses still in the To box. "
+                            + "Try those again in a moment." + notListed;
+        }
+        if (problem != null) {
+            redirect.addFlashAttribute("emailError", problem);
+            redirect.addFlashAttribute("draftTo", draftTo);
+            redirect.addFlashAttribute("draftName", name == null ? "" : name);
+            redirect.addFlashAttribute("draftSubject", subject == null ? "" : subject);
+            redirect.addFlashAttribute("draftBody", body == null ? "" : body);
+            return "redirect:/admin/emails/new";
+        }
+
+        String notice = outcome.sent().size() == 1
+                ? "Email sent to " + outcome.sent().get(0) + "."
+                : "Email sent to " + outcome.sent().size() + " addresses.";
+        redirect.addFlashAttribute("notice", notice + notListed);
+        return "redirect:/admin/emails";
+    }
+
+    /** One sent email in full. */
+    @GetMapping("/emails/{id}")
+    public String emailDetail(@PathVariable Long id, Model model) {
+        AdminEmailService.Sent email = emails.find(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("email", email);
+        model.addAttribute("supportEmail", inquiries.supportEmail());
+        return "admin/email";
     }
 
     @PostMapping("/orgs/{id}/disable")

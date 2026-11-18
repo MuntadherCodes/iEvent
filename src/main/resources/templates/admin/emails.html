@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="_csrf" th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
+<title>Super admin · emails</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+<style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-ink-50 font-body text-ink-800">
+
+<svg th:replace="~{fragments/layout :: icons}"></svg>
+
+<header class="flex h-16 items-center justify-between border-b border-ink-100 bg-ink-900 px-6">
+  <p class="font-display text-base font-extrabold text-white"><span class="text-brand-400">i</span>Event <span class="ms-1 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-200">Super admin</span></p>
+  <form th:action="@{/admin/logout}" method="post">
+    <button type="submit" class="text-sm font-semibold text-ink-300 transition hover:text-white">Sign out</button>
+  </form>
+</header>
+<nav th:replace="~{admin/parts :: nav('emails')}"></nav>
+
+<!-- R44: every email written from this console (New email), newest first. Replies to
+     contact-form messages are not listed here: they stay with their inquiry. -->
+<main class="mx-auto max-w-6xl px-6 py-10">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <h1 class="font-display text-2xl font-extrabold tracking-tight text-ink-900">Emails</h1>
+      <p class="mt-1 text-ink-500">Emails you wrote from this console, newest first. Replies to contact-form messages stay under Inquiries.</p>
+    </div>
+    <a id="newEmailBtn" th:href="@{/admin/emails/new}" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 active:scale-[.98]"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-plus"/></svg>New email</a>
+  </div>
+
+  <p th:if="${notice != null}" id="emailNotice" class="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700" role="status" th:text="${notice}">Email sent to ali@example.com.</p>
+
+  <form th:action="@{/admin/emails}" method="get" class="mt-6 flex flex-wrap items-center gap-3">
+    <div class="relative min-w-[240px] flex-1">
+      <svg class="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden="true"><use href="#i-search"/></svg>
+      <input type="search" name="q" th:value="${q}" placeholder="Search by address, name, subject or words in the message…" aria-label="Search sent emails" class="w-full rounded-xl border border-ink-200 bg-white py-2.5 ps-10 pe-4 text-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+    </div>
+  </form>
+
+  <!-- A table from tablet width up. On a phone every email is one stacked block (the
+       cells turn into lines), so nothing needs scrolling sideways. -->
+  <div class="mt-4 overflow-x-auto rounded-2xl border border-ink-100 bg-white">
+    <table class="block w-full text-start text-sm md:table">
+      <thead class="hidden border-b border-ink-100 bg-ink-50 text-xs font-semibold uppercase tracking-wide text-ink-500 md:table-header-group">
+        <tr>
+          <th class="px-5 py-3 text-start">Sent</th>
+          <th class="px-5 py-3 text-start">To</th>
+          <th class="px-5 py-3 text-start">Email</th>
+        </tr>
+      </thead>
+      <tbody class="block divide-y divide-ink-50 md:table-row-group">
+        <tr th:each="e : ${emails}" data-sent-email-row class="block cursor-pointer py-3 align-top transition hover:bg-ink-50 md:table-row md:py-0" th:attr="onclick=|location.href='/admin/emails/${e.id}'|">
+          <td class="block whitespace-nowrap px-5 py-0.5 text-xs text-ink-500 md:table-cell md:py-3.5 md:text-sm" th:text="${e.sentLine}">Jan 1, 2026, 9:30 AM</td>
+          <td class="block px-5 py-0.5 md:table-cell md:py-3.5">
+            <span th:if="${e.toName != ''}" class="block break-words font-semibold text-ink-900"><bdi th:text="${e.toName}">Recipient name</bdi></span>
+            <span th:if="${e.toName != ''}" class="block break-words text-xs text-ink-500" th:text="${e.toEmail}">recipient@email.com</span>
+            <span th:if="${e.toName == ''}" class="block break-words font-semibold text-ink-900" th:text="${e.toEmail}">recipient@email.com</span>
+          </td>
+          <td class="block px-5 py-0.5 md:table-cell md:min-w-[280px] md:py-3.5">
+            <a th:href="@{/admin/emails/{id}(id=${e.id})}" dir="auto" class="block w-fit max-w-full break-words font-semibold text-ink-900 hover:text-brand-600 hover:underline" onclick="event.stopPropagation()" th:text="${e.subject}">Subject</a>
+            <span class="mt-0.5 block break-words text-ink-500"><bdi th:text="${e.excerpt}">The first words of the message…</bdi></span>
+          </td>
+        </tr>
+        <tr th:if="${emails.isEmpty() and countAll == 0}" class="block md:table-row"><td colspan="3" class="block px-5 py-10 text-center text-ink-400 md:table-cell">No emails sent from here yet. Use New email to write to an organizer, a buyer or anyone else.</td></tr>
+        <tr th:if="${emails.isEmpty() and countAll > 0}" class="block md:table-row"><td colspan="3" class="block px-5 py-10 text-center text-ink-400 md:table-cell">No emails match this search.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div th:if="${matchCount > 0}" class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-500">
+    <p>Showing <span class="tabular-nums" th:text="${shownFrom}">1</span> to <span class="tabular-nums" th:text="${shownTo}">50</span> of <span id="emailsMatchCount" class="tabular-nums" th:text="${matchCount}">120</span></p>
+    <div th:if="${pageCount > 1}" class="flex items-center gap-2">
+      <a th:if="${pageNumber > 0}" th:href="@{/admin/emails(q=${q},page=${pageNumber - 1})}" class="rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Previous</a>
+      <span>Page <span class="tabular-nums" th:text="${pageNumber + 1}">1</span> of <span class="tabular-nums" th:text="${pageCount}">3</span></span>
+      <a th:if="${pageNumber + 1 < pageCount}" th:href="@{/admin/emails(q=${q},page=${pageNumber + 1})}" class="rounded-lg border border-ink-200 bg-white px-3.5 py-2 font-semibold text-ink-600 transition hover:border-brand-400 hover:text-brand-600">Next</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

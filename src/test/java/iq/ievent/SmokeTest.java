@@ -2494,7 +2494,12 @@ class SmokeTest {
                     .andExpect(content().string(containsString("href=\"https://wa.me/9647901234567\"")))
                     .andExpect(content().string(not(containsString(">public contact number</span>"))))
                     .andExpect(content().string(containsString("href=\"/admin/buyers\"")))
-                    .andExpect(content().string(containsString("href=\"/admin/inquiries\"")));
+                    .andExpect(content().string(containsString("href=\"/admin/inquiries\"")))
+                    // R44: the fourth tab, and under the owner's address a link that opens the
+                    // console's new-email form for them
+                    .andExpect(content().string(containsString("href=\"/admin/emails\"")))
+                    .andExpect(content().string(containsString(
+                            "href=\"/admin/emails/new?to=" + owner.getEmail() + "&amp;name=")));
             // the search box finds an organizer by any of their numbers, typed the local way
             mockMvc.perform(asAdmin(get("/admin").param("q", "0790 123 4567")))
                     .andExpect(status().isOk())
@@ -2522,7 +2527,10 @@ class SmokeTest {
                     .andExpect(content().string(containsString(">+964 770 123 4567</a>")))        // public contact
                     .andExpect(content().string(containsString(">+964 781 111 2222</a>")))        // payments
                     .andExpect(content().string(containsString("href=\"/admin/buyers?org=" + organizerId + "\"")))
-                    .andExpect(content().string(containsString("href=\"/admin/buyers?event=")));
+                    .andExpect(content().string(containsString("href=\"/admin/buyers?event=")))
+                    // R44: "Email the owner" on the Contact card
+                    .andExpect(content().string(containsString(
+                            "id=\"orgEmailOwner\" href=\"/admin/emails/new?to=" + owner.getEmail() + "&amp;name=")));
         } finally {
             var organizationNow = organizations.findByHandle("zainevents").orElseThrow();
             organizationNow.setContactPhone(contactBefore);
@@ -2566,6 +2574,8 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(buyerName)))
                 .andExpect(content().string(containsString("href=\"mailto:" + email + "\"")))
+                // R44: and a link to write to them from the console
+                .andExpect(content().string(containsString("href=\"/admin/emails/new?to=" + email + "&amp;name=")))
                 .andExpect(content().string(containsString("href=\"tel:" + e164 + "\"")))
                 .andExpect(content().string(containsString(">" + shown + "</a>")))
                 .andExpect(content().string(containsString("href=\"https://wa.me/" + e164.substring(1) + "\"")))
@@ -2667,6 +2677,9 @@ class SmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("First line " + tag + "\nSecond line")))
                 .andExpect(content().string(containsString("href=\"mailto:" + email + "\"")))
+                // R44: besides the reply, a new email with its own subject
+                .andExpect(content().string(containsString(
+                        "id=\"inquiryNewEmail\" href=\"/admin/emails/new?to=" + email + "&amp;name=")))
                 .andExpect(content().string(containsString("id=\"replyForm\"")))
                 .andExpect(content().string(containsString(">Not replied</span>")))
                 .andExpect(content().string(containsString("id=\"markRepliedBtn\"")));
@@ -3038,5 +3051,145 @@ class SmokeTest {
         mockMvc.perform(get("/llms.txt"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("tailored terms for enterprise and government partners")));
+    }
+
+    // ---- R44: a new email from the super-admin console, and the list of the ones sent ----
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void adminWritesANewEmailFromTheConsole() throws Exception {
+        String tag = "r44mail" + System.nanoTime();
+        String to = tag + "@example.iq";
+        String subject = "Subject " + tag;
+
+        // behind the admin gate: the list, the form and the sending itself
+        mockMvc.perform(get("/admin/emails"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+        mockMvc.perform(get("/admin/emails/new"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+        mockMvc.perform(post("/admin/emails").with(csrf()).param("to", to).param("subject", subject).param("body", "x"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", containsString("/admin/login")));
+
+        // the Emails tab is the open one on its own page, which has the way to a new email
+        mockMvc.perform(asAdmin(get("/admin/emails")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("aria-current=\"page\">Emails</a>")))
+                .andExpect(content().string(containsString("id=\"newEmailBtn\" href=\"/admin/emails/new\"")));
+
+        // opened from a person's link, the form comes with the address and the name filled in
+        mockMvc.perform(asAdmin(get("/admin/emails/new").param("to", to).param("name", "Ali Hassan")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"emailForm\"")))
+                .andExpect(content().string(containsString("value=\"" + to + "\"")))
+                .andExpect(content().string(containsString("value=\"Ali Hassan\"")))
+                .andExpect(content().string(not(containsString("id=\"emailError\""))));
+
+        // an entry that is not an address: nothing is sent, and what was typed comes back with the reason
+        var refused = mockMvc.perform(asAdmin(post("/admin/emails")).with(csrf())
+                        .param("to", to + ", not-an-address")
+                        .param("name", "Ali Hassan")
+                        .param("subject", subject)
+                        .param("body", "Kept " + tag))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/emails/new"))
+                .andExpect(flash().attribute("emailError", "\"not-an-address\" is not an email address, so nothing was sent."))
+                .andReturn();
+        var refusedSession = (org.springframework.mock.web.MockHttpSession) refused.getRequest().getSession(false);
+        org.junit.jupiter.api.Assertions.assertNotNull(refusedSession);
+        mockMvc.perform(get("/admin/emails/new").session(refusedSession))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"emailError\"")))
+                .andExpect(content().string(containsString("is not an email address, so nothing was sent.")))
+                .andExpect(content().string(containsString("value=\"" + to + ", not-an-address\"")))
+                .andExpect(content().string(containsString("value=\"" + subject + "\"")))
+                .andExpect(content().string(containsString("Kept " + tag + "</textarea>")));
+
+        // the other things the form refuses, each with its own reason
+        mockMvc.perform(asAdmin(post("/admin/emails")).with(csrf()).param("to", "  ").param("subject", subject).param("body", "x"))
+                .andExpect(redirectedUrl("/admin/emails/new"))
+                .andExpect(flash().attribute("emailError", "Add the email address to send to."));
+        mockMvc.perform(asAdmin(post("/admin/emails")).with(csrf()).param("to", to).param("subject", " ").param("body", "x"))
+                .andExpect(redirectedUrl("/admin/emails/new"))
+                .andExpect(flash().attribute("emailError", "Add a subject before sending."));
+        mockMvc.perform(asAdmin(post("/admin/emails")).with(csrf()).param("to", to).param("subject", subject).param("body", " \n "))
+                .andExpect(redirectedUrl("/admin/emails/new"))
+                .andExpect(flash().attribute("emailError", "Write a message before sending."));
+        StringBuilder eleven = new StringBuilder();
+        for (int i = 1; i <= 11; i++) eleven.append(i == 1 ? "" : ", ").append("p").append(i).append('-').append(to);
+        mockMvc.perform(asAdmin(post("/admin/emails")).with(csrf()).param("to", eleven.toString()).param("subject", subject).param("body", "x"))
+                .andExpect(redirectedUrl("/admin/emails/new"))
+                .andExpect(flash().attribute("emailError", startsWith("That is more than 10 addresses")));
+        // none of that reached the list
+        String nothingYet = mockMvc.perform(asAdmin(get("/admin/emails").param("q", tag)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(0, occurrences(nothingYet, "data-sent-email-row"),
+                "a refused email is not listed");
+
+        // a real email: what happens next depends on whether a mail server is listening
+        String message = "First line " + tag + "\r\nSecond line";
+        var sent = mockMvc.perform(asAdmin(post("/admin/emails")).with(csrf())
+                        .param("to", to)
+                        .param("name", "Ali Hassan")
+                        .param("subject", subject)
+                        .param("body", message))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        var sentSession = (org.springframework.mock.web.MockHttpSession) sent.getRequest().getSession(false);
+        org.junit.jupiter.api.Assertions.assertNotNull(sentSession);
+        if (sent.getFlashMap().containsKey("notice")) {
+            // delivered (a local stack with Mailpit): the list says so and shows the email
+            org.junit.jupiter.api.Assertions.assertEquals("/admin/emails", sent.getResponse().getRedirectedUrl());
+            org.junit.jupiter.api.Assertions.assertEquals("Email sent to " + to + ".", sent.getFlashMap().get("notice"));
+            mockMvc.perform(get("/admin/emails").session(sentSession))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("id=\"emailNotice\"")))
+                    .andExpect(content().string(containsString("Email sent to " + to + ".")));
+            String list = mockMvc.perform(asAdmin(get("/admin/emails").param("q", tag)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(">Ali Hassan</bdi>")))
+                    .andExpect(content().string(containsString(to)))
+                    .andExpect(content().string(containsString(subject)))
+                    .andExpect(content().string(containsString("First line " + tag + " Second line")))
+                    .andReturn().getResponse().getContentAsString();
+            org.junit.jupiter.api.Assertions.assertEquals(1, occurrences(list, "data-sent-email-row"));
+            var idMatch = java.util.regex.Pattern.compile("href=\"/admin/emails/(\\d+)\"").matcher(list);
+            org.junit.jupiter.api.Assertions.assertTrue(idMatch.find(), "the row links to the email");
+            // the email in full: who it went to, the message with its line break, the way to write again
+            mockMvc.perform(asAdmin(get("/admin/emails/" + idMatch.group(1))))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(subject)))
+                    .andExpect(content().string(containsString("href=\"mailto:" + to + "\"")))
+                    .andExpect(content().string(containsString("First line " + tag + "\nSecond line")))
+                    .andExpect(content().string(containsString(
+                            "id=\"writeAgainLink\" href=\"/admin/emails/new?to=" + to + "&amp;name=Ali%20Hassan\"")));
+        } else {
+            // no mail server (the CI smoke job): nothing is recorded, and everything typed comes back
+            org.junit.jupiter.api.Assertions.assertEquals("/admin/emails/new", sent.getResponse().getRedirectedUrl());
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    String.valueOf(sent.getFlashMap().get("emailError")).startsWith("The mail server did not accept the email"),
+                    "flash: " + sent.getFlashMap());
+            org.junit.jupiter.api.Assertions.assertEquals(to, sent.getFlashMap().get("draftTo"));
+            org.junit.jupiter.api.Assertions.assertEquals(message, sent.getFlashMap().get("draftBody"));
+            mockMvc.perform(get("/admin/emails/new").session(sentSession))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("id=\"emailError\"")))
+                    .andExpect(content().string(containsString("The mail server did not accept the email")))
+                    .andExpect(content().string(containsString("value=\"" + to + "\"")))
+                    .andExpect(content().string(containsString("value=\"" + subject + "\"")))
+                    .andExpect(content().string(containsString("First line " + tag)));
+            String list = mockMvc.perform(asAdmin(get("/admin/emails").param("q", tag)))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            org.junit.jupiter.api.Assertions.assertEquals(0, occurrences(list, "data-sent-email-row"),
+                    "an email the mail server did not take is not listed");
+        }
+
+        // an email that does not exist is a 404, not an empty page
+        mockMvc.perform(asAdmin(get("/admin/emails/999999999")))
+                .andExpect(status().isNotFound());
     }
 }

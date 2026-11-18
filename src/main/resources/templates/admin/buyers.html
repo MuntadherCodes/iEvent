@@ -87,6 +87,8 @@
           <td class="block px-5 py-0.5 md:table-cell md:py-3.5">
             <span class="block break-words font-semibold text-ink-900"><bdi th:text="${b.name}">Buyer name</bdi></span>
             <a th:href="'mailto:' + ${b.email}" class="block w-fit max-w-full break-words text-xs text-ink-500 hover:text-brand-600 hover:underline" th:text="${b.email}">buyer@email.com</a>
+            <!--/* R44: write to the buyer from this console */-->
+            <span class="mt-0.5 block"><a th:replace="~{admin/parts :: emailLink(${b.email}, ${b.name}, 'Write an email')}"></a></span>
             <span th:if="${b.accountEmail != ''}" class="block break-words text-xs text-ink-400">signs in as <span th:text="${b.accountEmail}">account@email.com</span></span>
           </td>
           <td class="block px-5 py-0.5 md:table-cell md:py-3.5" data-buyer-phone><th:block th:replace="~{admin/parts :: phone(${b.phone}, '')}"></th:block></td>
